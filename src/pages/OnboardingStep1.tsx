@@ -60,16 +60,14 @@ const OnboardingStep1 = () => {
   const toggleMentor = (mentorId: string) => {
     if (selectedMentors.includes(mentorId)) {
       setSelectedMentors(selectedMentors.filter((id) => id !== mentorId));
-    } else if (selectedMentors.length < 3) {
-      setSelectedMentors([...selectedMentors, mentorId]);
     } else {
-      toast.error("You can only choose 3 mentors");
+      setSelectedMentors([...selectedMentors, mentorId]);
     }
   };
 
   const handleContinue = async () => {
-    if (selectedMentors.length !== 3) {
-      toast.error("Please select exactly 3 mentors");
+    if (selectedMentors.length === 0) {
+      toast.error("Please select at least one mentor");
       return;
     }
 
@@ -104,9 +102,9 @@ const OnboardingStep1 = () => {
       <div className="max-w-4xl mx-auto space-y-8">
         <div className="text-center space-y-2">
           <h1 className="text-4xl font-bold">Choose Your Council</h1>
-          <p className="text-muted-foreground text-lg">Select 3 mentors to guide your journey</p>
+          <p className="text-muted-foreground text-lg">Select the mentors to guide your journey</p>
           <p className="text-sm text-accent font-medium">
-            {selectedMentors.length}/3 selected
+            {selectedMentors.length} selected
           </p>
         </div>
 
@@ -145,7 +143,7 @@ const OnboardingStep1 = () => {
           <Button
             size="lg"
             onClick={handleContinue}
-            disabled={loading || selectedMentors.length !== 3}
+            disabled={loading || selectedMentors.length === 0}
             className="px-12"
           >
             {loading ? "Saving..." : "Continue"}

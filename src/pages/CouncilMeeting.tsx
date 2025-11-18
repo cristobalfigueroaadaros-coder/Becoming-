@@ -21,7 +21,6 @@ const CouncilMeeting = () => {
   const [question, setQuestion] = useState("");
   const [answers, setAnswers] = useState<Record<string, string>>({});
   const [loading, setLoading] = useState(false);
-  const [newTaskIds, setNewTaskIds] = useState<string[]>([]);
 
   const handleAsk = async () => {
     if (!question.trim() || loading) return;
@@ -58,16 +57,7 @@ const CouncilMeeting = () => {
         answers: data.answers,
       });
 
-      // Extract task IDs from the response
-      const taskIds = data.tasks?.map((t: any) => t.task.id) || [];
-      setNewTaskIds(taskIds);
-
       toast.success("Council has responded!");
-
-      // Redirect to new tasks page after a short delay
-      setTimeout(() => {
-        navigate("/your-new-tasks", { state: { taskIds } });
-      }, 2000);
     } catch (error: any) {
       toast.error(error.message);
     } finally {
@@ -127,16 +117,25 @@ const CouncilMeeting = () => {
                 </CardContent>
               </Card>
             ))}
-            <Button
-              onClick={() => {
-                setQuestion("");
-                setAnswers({});
-              }}
-              variant="outline"
-              className="w-full"
-            >
-              Ask Another Question
-            </Button>
+            <div className="flex flex-col sm:flex-row gap-3">
+              <Button
+                onClick={() => navigate("/my-tasks")}
+                className="flex-1"
+                size="lg"
+              >
+                View Tasks
+              </Button>
+              <Button
+                onClick={() => {
+                  setQuestion("");
+                  setAnswers({});
+                }}
+                variant="outline"
+                className="flex-1"
+              >
+                Ask Another Question
+              </Button>
+            </div>
           </div>
         )}
       </div>
