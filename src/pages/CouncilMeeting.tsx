@@ -30,16 +30,6 @@ const CouncilMeeting = () => {
       const { data: { user } } = await supabase.auth.getUser();
       if (!user) throw new Error("Not authenticated");
 
-      // Check daily limit
-      const { data: canCreate, error: limitError } = await supabase
-        .rpc("can_create_council_meeting", { p_user_id: user.id });
-
-      if (limitError) throw limitError;
-      if (!canCreate) {
-        toast.error("You've reached your daily council meeting limit. Upgrade to premium for unlimited meetings!");
-        return;
-      }
-
       // Get user's mentors
       const { data: mentors, error: mentorsError } = await supabase
         .from("user_mentors")
