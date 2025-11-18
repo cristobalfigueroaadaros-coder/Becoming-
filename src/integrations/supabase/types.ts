@@ -149,6 +149,42 @@ export type Database = {
         }
         Relationships: []
       }
+      tasks: {
+        Row: {
+          created_at: string
+          due_date: string
+          id: string
+          mentor_name: string
+          status: string
+          task_description: string
+          task_title: string
+          user_id: string
+          xp_value: number
+        }
+        Insert: {
+          created_at?: string
+          due_date?: string
+          id?: string
+          mentor_name: string
+          status?: string
+          task_description: string
+          task_title: string
+          user_id: string
+          xp_value?: number
+        }
+        Update: {
+          created_at?: string
+          due_date?: string
+          id?: string
+          mentor_name?: string
+          status?: string
+          task_description?: string
+          task_title?: string
+          user_id?: string
+          xp_value?: number
+        }
+        Relationships: []
+      }
       user_mentors: {
         Row: {
           created_at: string | null

@@ -5,6 +5,15 @@ const corsHeaders = {
   "Access-Control-Allow-Headers": "authorization, x-client-info, apikey, content-type",
 };
 
+const mentorNames: Record<string, string> = {
+  mamba_mentor: "Mamba Mentor",
+  creative_visionary: "Creative Visionary",
+  quantum_inventor: "Quantum Inventor",
+  ancient_sage: "Ancient Sage",
+  compassionate_elder: "Compassionate Elder",
+  future_self: "Future Self",
+};
+
 const mentorPrompts: Record<string, string> = {
   mamba_mentor: `You are The Mamba Mentor. You are an archetype of discipline, mastery and relentless focus. Your mission is to help the user build discipline courage consistency and mental strength. Push the user to take ownership of their life. Guide them toward long term mastery and repetition.
 Voice: Direct intense short sentences like a high performance coach. Use phrases like Stay locked in and Fall in love with the work.
@@ -66,6 +75,7 @@ Deno.serve(async (req) => {
       .maybeSingle();
 
     const answers: Record<string, string> = {};
+    const extractedTasks: Array<{ mentor_name: string; task: any }> = [];
 
     // Call AI for each mentor
     for (const mentorType of mentorTypes) {
@@ -105,11 +115,39 @@ Embody this future version when responding.`;
       }
 
       const aiData = await aiResponse.json();
-      answers[mentorType] = aiData.choices[0].message.content;
+      const mentorAnswer = aiData.choices[0].message.content;
+      answers[mentorType] = mentorAnswer;
+
+      // Extract task from this mentor's response
+      try {
+        const taskResponse = await fetch(`${Deno.env.get("SUPABASE_URL")}/functions/v1/extract-task`, {
+          method: "POST",
+          headers: {
+            "Authorization": authHeader,
+            "Content-Type": "application/json",
+          },
+          body: JSON.stringify({
+            mentorResponse: mentorAnswer,
+            mentorName: mentorNames[mentorType] || mentorType,
+          }),
+        });
+
+        if (taskResponse.ok) {
+          const taskData = await taskResponse.json();
+          extractedTasks.push({
+            mentor_name: mentorNames[mentorType] || mentorType,
+            task: taskData.task,
+          });
+        } else {
+          console.error(`Failed to extract task for ${mentorType}`);
+        }
+      } catch (taskError) {
+        console.error(`Error extracting task for ${mentorType}:`, taskError);
+      }
     }
 
     return new Response(
-      JSON.stringify({ answers }),
+      JSON.stringify({ answers, tasks: extractedTasks }),
       { headers: { ...corsHeaders, "Content-Type": "application/json" } }
     );
   } catch (error: any) {

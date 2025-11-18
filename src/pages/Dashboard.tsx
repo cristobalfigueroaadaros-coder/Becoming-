@@ -3,7 +3,7 @@ import { useNavigate } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
-import { Brain, Lightbulb, Zap, Trees, Heart, Sparkles, Users, BookOpen, Crown, LogOut } from "lucide-react";
+import { Brain, Lightbulb, Zap, Trees, Heart, Sparkles, Users, BookOpen, Crown, LogOut, CheckSquare } from "lucide-react";
 import { toast } from "sonner";
 import { cn } from "@/lib/utils";
 
@@ -167,7 +167,22 @@ const Dashboard = () => {
         )}
 
         {/* Navigation Links */}
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+          <Card
+            className="cursor-pointer hover:shadow-lg transition-all"
+            onClick={() => navigate("/my-tasks")}
+          >
+            <CardContent className="p-6 flex items-center gap-4">
+              <div className="w-12 h-12 bg-primary rounded-xl flex items-center justify-center">
+                <CheckSquare className="w-6 h-6 text-primary-foreground" />
+              </div>
+              <div>
+                <h3 className="font-semibold">My Tasks</h3>
+                <p className="text-sm text-muted-foreground">Track your progress</p>
+              </div>
+            </CardContent>
+          </Card>
+
           <Card
             className="cursor-pointer hover:shadow-lg transition-all"
             onClick={() => navigate("/council-log")}
