@@ -13,6 +13,8 @@ import Dashboard from "./pages/Dashboard";
 import Chat from "./pages/Chat";
 import CouncilMeeting from "./pages/CouncilMeeting";
 import CouncilLog from "./pages/CouncilLog";
+import MyTasks from "./pages/MyTasks";
+import YourNewTasks from "./pages/YourNewTasks";
 import Premium from "./pages/Premium";
 import NotFound from "./pages/NotFound";
 
@@ -77,6 +79,14 @@ const App = () => {
             <Route
               path="/council-log"
               element={session ? <CouncilLog /> : <Navigate to="/auth" />}
+            />
+            <Route
+              path="/my-tasks"
+              element={session ? <MyTasks /> : <Navigate to="/auth" />}
+            />
+            <Route
+              path="/your-new-tasks"
+              element={session ? <YourNewTasks /> : <Navigate to="/auth" />}
             />
             <Route
               path="/premium"
