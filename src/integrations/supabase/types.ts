@@ -175,10 +175,7 @@ export type Database = {
       [_ in never]: never
     }
     Functions: {
-      can_create_council_meeting: {
-        Args: { p_user_id: string }
-        Returns: boolean
-      }
+      [_ in never]: never
     }
     Enums: {
       mentor_type:
