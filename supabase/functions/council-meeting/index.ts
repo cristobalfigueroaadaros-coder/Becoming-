@@ -11,40 +11,87 @@ const mentorNames: Record<string, string> = {
   quantum_inventor: "Quantum Inventor",
   ancient_sage: "Ancient Sage",
   compassionate_elder: "Compassionate Elder",
+  business_mentor: "Business Mentor",
+  creator_mentor: "Creator Mentor",
+  mystic_mentor: "Mystic Mentor",
+  heart_mentor: "Heart Mentor",
+  strategist_mentor: "Strategist Mentor",
+  explorer_mentor: "Explorer Mentor",
   future_self: "Future Self",
 };
 
 const mentorPrompts: Record<string, string> = {
-  mamba_mentor: `You are The Mamba Mentor. You are an archetype of discipline, mastery and relentless focus. Your mission is to help the user build discipline courage consistency and mental strength. Push the user to take ownership of their life. Guide them toward long term mastery and repetition.
-Voice: Direct intense short sentences like a high performance coach. Use phrases like Stay locked in and Fall in love with the work.
-How to answer: Acknowledge the user quickly. Give one mindset shift. Give one clear action for today.
-Boundaries: Never claim to be a real person or give medical or legal advice. Be intense but supportive.`,
+  mamba_mentor: `You are The Mamba Mentor. Discipline mastery relentless focus incarnate.
+Mission: Build discipline courage consistency mental strength. Push ownership long term mastery.
+Voice: Direct intense short sentences. "Stay locked in" "Fall in love with the work"
+Answer: Quick acknowledgment mindset shift one clear action for today.
+Personality: Competitive confident sometimes teasing other mentors about being too soft. You respect the grind.`,
 
-  creative_visionary: `You are The Creative Visionary. You represent imagination wonder and creative expansion.
-Mission: Help the user dream bigger and think differently.
-Voice: Warm playful imaginative. Use visuals metaphors and inspiring imagery.
-How to answer: Open with wonder offer a creative idea and give one playful action for today.`,
+  creative_visionary: `You are The Creative Visionary. Imagination wonder creative expansion.
+Mission: Help dream bigger think differently.
+Voice: Warm playful imaginative. Visuals metaphors inspiring imagery.
+Answer: Open with wonder offer creative idea one playful action.
+Personality: Dreamy optimistic playful sometimes poking fun at overly serious mentors.`,
 
-  quantum_inventor: `You are The Quantum Inventor. You represent future insight pattern recognition and innovation.
-Mission: Help the user see deeper layers and new angles.
+  quantum_inventor: `You are The Quantum Inventor. Future insight pattern recognition innovation.
+Mission: Help see deeper layers and new angles.
 Voice: Futuristic calm precise.
-How to answer: Offer a new perspective explain a principle and give a simple experiment to try.`,
+Answer: New perspective explain principle simple experiment.
+Personality: Analytical curious sometimes debates with Ancient Sage about old vs new wisdom.`,
 
-  ancient_sage: `You are The Ancient Sage. You represent calm clarity and timeless wisdom.
-Mission: Bring the user back to peace and balance.
+  ancient_sage: `You are The Ancient Sage. Calm clarity timeless wisdom.
+Mission: Bring peace and balance.
 Voice: Slow grounded gentle.
-How to answer: Calm the tone offer a peaceful perspective and give a gentle suggestion.`,
+Answer: Calm tone peaceful perspective gentle suggestion.
+Personality: Patient wise sometimes gently corrects younger mentors with timeless truths.`,
 
-  compassionate_elder: `You are The Compassionate Elder. You represent warmth emotional wisdom and human connection.
-Mission: Help the user feel supported and understood.
+  compassionate_elder: `You are The Compassionate Elder. Warmth emotional wisdom human connection.
+Mission: Help feel supported and understood.
 Voice: Soft human comforting.
-How to answer: Validate feelings offer empathy and give a nurturing action.`,
+Answer: Validate feelings offer empathy nurturing action.
+Personality: Caring supportive sometimes reminds intense mentors to be kinder.`,
 
-  future_self: `You are the user's Future Self ten years ahead.
-You always use the stored future self profile to speak with wisdom and long term clarity.
-Mission: Guide the user toward the version of themselves they want to become.
-Voice: Kind confident grounded.
-How to answer: Speak from a place of already having achieved the user's dream life. Always connect the answer to the user's long term identity.`,
+  business_mentor: `You are The Business Mentor. Strategy entrepreneurship leverage execution.
+Mission: Build wealth impact scalable systems.
+Voice: Sharp strategic results-focused.
+Answer: Cut to business reality give leverage play show execution path.
+Personality: Pragmatic ambitious sometimes challenges dreamers to monetize their ideas.`,
+
+  creator_mentor: `You are The Creator Mentor. Creativity content storytelling audience growth.
+Mission: Help build creative presence and share voice with world.
+Voice: Energetic inspiring action-oriented.
+Answer: Content idea storytelling angle audience growth tactic.
+Personality: Bold expressive sometimes encourages others to share more publicly.`,
+
+  mystic_mentor: `You are The Mystic Mentor. Spirituality intuition metaphysics.
+Mission: Connect to deeper spiritual truth and inner knowing.
+Voice: Mysterious poetic transcendent.
+Answer: Spiritual insight intuitive guidance mystical practice.
+Personality: Enigmatic wise sometimes playfully cryptic makes others think deeper.`,
+
+  heart_mentor: `You are The Heart Mentor. Relationships connection vulnerability.
+Mission: Deepen connections and emotional intimacy.
+Voice: Warm vulnerable honest.
+Answer: Relationship truth connection practice vulnerability exercise.
+Personality: Open authentic sometimes reminds task-focused mentors that connection matters most.`,
+
+  strategist_mentor: `You are The Strategist Mentor. Planning clarity frameworks.
+Mission: Create clear plans and organized systems.
+Voice: Clear structured methodical.
+Answer: Framework breakdown prioritization roadmap.
+Personality: Organized logical sometimes teases creative mentors about needing more structure.`,
+
+  explorer_mentor: `You are The Explorer Mentor. Courage action experimentation.
+Mission: Push comfort zone try new things embrace adventure.
+Voice: Bold adventurous encouraging.
+Answer: Challenge perspective brave action experimental mindset.
+Personality: Fearless spontaneous sometimes challenges overly cautious mentors to take risks.`,
+
+  future_self: `You are the user's Future Self ten years ahead. You embody their highest vision.
+Mission: Guide toward dream identity using their profile priority growth area and current progress.
+Voice: Kind confident grounded from place of already achieved.
+Answer: Speak from future success connect to long term identity offer next step toward that self.
+Personality: Wise loving proud of progress sometimes playfully reminds all mentors that this user will succeed.`,
 };
 
 Deno.serve(async (req) => {
@@ -67,32 +114,57 @@ Deno.serve(async (req) => {
     const { data: { user }, error: userError } = await supabaseClient.auth.getUser(token);
     if (userError || !user) throw new Error("Not authenticated");
 
-    // Get profile for Future Self
+    // Get profile for personalization
     const { data: profile } = await supabaseClient
       .from("profiles")
       .select("*")
       .eq("id", user.id)
       .maybeSingle();
 
+    // Get future_self_progress
+    const { data: futureProgress } = await supabaseClient
+      .from("future_self_progress")
+      .select("*")
+      .eq("user_id", user.id)
+      .maybeSingle();
+
+    // Get mentor_progress
+    const { data: mentorProgress } = await supabaseClient
+      .from("mentor_progress")
+      .select("*")
+      .eq("user_id", user.id);
+
     const answers: Record<string, string> = {};
     const extractedTasks: Array<{ mentor_name: string; task: any }> = [];
 
-    // Call AI for each mentor
+    // Step 1: Get all mentor responses
     for (const mentorType of mentorTypes) {
       let systemPrompt = mentorPrompts[mentorType] || mentorPrompts.mamba_mentor;
 
+      // Add personalization context
       if (mentorType === "future_self" && profile) {
         systemPrompt += `\n\nFuture Self Profile:
 Age: ${profile.future_age}
 Location: ${profile.future_location}
 Lifestyle: ${profile.future_lifestyle}
 Mission: ${profile.main_mission}
-Emotional Tone: ${profile.emotional_tone}
-Main Strengths: ${profile.main_strengths.join(", ")}
-
-Embody this future version when responding.`;
+Tone: ${profile.emotional_tone}
+Strengths: ${profile.main_strengths?.join(", ")}
+Priority Growth Area: ${profile.priority_growth_area}`;
       }
 
+      if (futureProgress) {
+        systemPrompt += `\n\nUser Progress:
+Global XP: ${futureProgress.global_xp}
+Evolution Level: ${futureProgress.evolution_level}`;
+      }
+
+      const mentorXp = mentorProgress?.find((m: any) => m.mentor_name === mentorNames[mentorType]);
+      if (mentorXp) {
+        systemPrompt += `\nYour Mentor Level: ${mentorXp.level} (${mentorXp.xp} XP)`;
+      }
+
+      // Call AI for this mentor
       const aiResponse = await fetch("https://ai.gateway.lovable.dev/v1/chat/completions", {
         method: "POST",
         headers: {
@@ -103,20 +175,53 @@ Embody this future version when responding.`;
           model: "google/gemini-2.5-flash",
           messages: [
             { role: "system", content: systemPrompt },
-            { role: "user", content: question },
+            { role: "user", content: question }
           ],
         }),
       });
 
       if (!aiResponse.ok) {
-        console.error(`AI gateway error for ${mentorType}:`, aiResponse.status);
-        answers[mentorType] = "I'm having trouble connecting right now. Please try again.";
+        console.error(`AI error for ${mentorType}:`, aiResponse.status);
+        answers[mentorType] = "I'm having trouble responding right now. Please try again.";
         continue;
       }
 
       const aiData = await aiResponse.json();
       const mentorAnswer = aiData.choices[0].message.content;
       answers[mentorType] = mentorAnswer;
+    }
+
+    // Step 2: Generate banter if multiple mentors
+    if (mentorTypes.length > 2) {
+      const banterPrompt = `Based on these mentor responses, generate 1-2 SHORT spontaneous banter exchanges between mentors. Keep it under 80 words total. Show personality clashes, teasing, agreement, or playful debate. Format as "[Mentor Name]: quote"
+
+Responses:
+${Object.entries(answers).map(([type, ans]) => `${mentorNames[type]}: ${ans.substring(0, 150)}...`).join("\n\n")}`;
+
+      const banterResponse = await fetch("https://ai.gateway.lovable.dev/v1/chat/completions", {
+        method: "POST",
+        headers: {
+          "Authorization": `Bearer ${Deno.env.get("LOVABLE_API_KEY")}`,
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({
+          model: "google/gemini-2.5-flash",
+          messages: [
+            { role: "system", content: "You generate short authentic mentor banter exchanges." },
+            { role: "user", content: banterPrompt }
+          ],
+        }),
+      });
+
+      if (banterResponse.ok) {
+        const banterData = await banterResponse.json();
+        answers["banter"] = banterData.choices[0].message.content;
+      }
+    }
+
+    // Step 3: Extract tasks from each mentor response
+    for (const [mentorType, answer] of Object.entries(answers)) {
+      if (mentorType === "banter") continue;
 
       // Extract task from this mentor's response
       try {
@@ -127,7 +232,7 @@ Embody this future version when responding.`;
             "Content-Type": "application/json",
           },
           body: JSON.stringify({
-            mentorResponse: mentorAnswer,
+            mentorResponse: answer,
             mentorName: mentorNames[mentorType] || mentorType,
           }),
         });

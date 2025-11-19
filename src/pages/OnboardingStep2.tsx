@@ -21,6 +21,7 @@ const OnboardingStep2 = () => {
     strength1: "",
     strength2: "",
     strength3: "",
+    priority_growth_area: "",
   });
 
   const handleSubmit = async (e: React.FormEvent) => {
@@ -39,6 +40,14 @@ const OnboardingStep2 = () => {
         main_mission: formData.main_mission,
         emotional_tone: formData.emotional_tone,
         main_strengths: [formData.strength1, formData.strength2, formData.strength3],
+        priority_growth_area: formData.priority_growth_area,
+      });
+
+      // Initialize future_self_progress for the user
+      await supabase.from("future_self_progress").insert({
+        user_id: user.id,
+        global_xp: 0,
+        evolution_level: 1,
       });
 
       if (error) throw error;
@@ -152,6 +161,25 @@ const OnboardingStep2 = () => {
                   onChange={(e) => setFormData({ ...formData, strength3: e.target.value })}
                   required
                 />
+              </div>
+
+              <div className="space-y-2">
+                <Label htmlFor="priority_growth_area">Priority Growth Area</Label>
+                <select
+                  id="priority_growth_area"
+                  value={formData.priority_growth_area}
+                  onChange={(e) => setFormData({ ...formData, priority_growth_area: e.target.value })}
+                  className="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
+                  required
+                >
+                  <option value="">Select your priority...</option>
+                  <option value="Health and Energy">Health and Energy</option>
+                  <option value="Career and Impact">Career and Impact</option>
+                  <option value="Relationships and Love">Relationships and Love</option>
+                  <option value="Friends and Community">Friends and Community</option>
+                  <option value="Creativity and Learning">Creativity and Learning</option>
+                  <option value="Spiritual Growth">Spiritual Growth</option>
+                </select>
               </div>
 
               <Button type="submit" className="w-full" size="lg" disabled={loading}>
