@@ -14,6 +14,36 @@ export type Database = {
   }
   public: {
     Tables: {
+      actual_self_journal: {
+        Row: {
+          created_at: string | null
+          emotional_tone: string | null
+          entry_text: string | null
+          id: string
+          shadow_detected: string | null
+          user_id: string
+          voice_note_url: string | null
+        }
+        Insert: {
+          created_at?: string | null
+          emotional_tone?: string | null
+          entry_text?: string | null
+          id?: string
+          shadow_detected?: string | null
+          user_id: string
+          voice_note_url?: string | null
+        }
+        Update: {
+          created_at?: string | null
+          emotional_tone?: string | null
+          entry_text?: string | null
+          id?: string
+          shadow_detected?: string | null
+          user_id?: string
+          voice_note_url?: string | null
+        }
+        Relationships: []
+      }
       chats: {
         Row: {
           content: string
@@ -65,6 +95,48 @@ export type Database = {
         }
         Relationships: []
       }
+      daily_portal_entries: {
+        Row: {
+          created_at: string | null
+          evolution_reminder: string | null
+          future_self_message: string | null
+          id: string
+          mentor_message: string | null
+          mini_challenge: string | null
+          one_sentence_truth: string | null
+          quest_step: string | null
+          shadow_warning: string | null
+          shown_at: string | null
+          user_id: string
+        }
+        Insert: {
+          created_at?: string | null
+          evolution_reminder?: string | null
+          future_self_message?: string | null
+          id?: string
+          mentor_message?: string | null
+          mini_challenge?: string | null
+          one_sentence_truth?: string | null
+          quest_step?: string | null
+          shadow_warning?: string | null
+          shown_at?: string | null
+          user_id: string
+        }
+        Update: {
+          created_at?: string | null
+          evolution_reminder?: string | null
+          future_self_message?: string | null
+          id?: string
+          mentor_message?: string | null
+          mini_challenge?: string | null
+          one_sentence_truth?: string | null
+          quest_step?: string | null
+          shadow_warning?: string | null
+          shown_at?: string | null
+          user_id?: string
+        }
+        Relationships: []
+      }
       daily_whispers: {
         Row: {
           created_at: string | null
@@ -86,6 +158,63 @@ export type Database = {
           mentor_type?: Database["public"]["Enums"]["mentor_type"]
           message?: string
           user_id?: string
+        }
+        Relationships: []
+      }
+      future_self_progress: {
+        Row: {
+          created_at: string | null
+          evolution_level: number
+          global_xp: number
+          id: string
+          updated_at: string | null
+          user_id: string
+        }
+        Insert: {
+          created_at?: string | null
+          evolution_level?: number
+          global_xp?: number
+          id?: string
+          updated_at?: string | null
+          user_id: string
+        }
+        Update: {
+          created_at?: string | null
+          evolution_level?: number
+          global_xp?: number
+          id?: string
+          updated_at?: string | null
+          user_id?: string
+        }
+        Relationships: []
+      }
+      mentor_progress: {
+        Row: {
+          created_at: string | null
+          id: string
+          level: number
+          mentor_name: string
+          updated_at: string | null
+          user_id: string
+          xp: number
+        }
+        Insert: {
+          created_at?: string | null
+          id?: string
+          level?: number
+          mentor_name: string
+          updated_at?: string | null
+          user_id: string
+          xp?: number
+        }
+        Update: {
+          created_at?: string | null
+          id?: string
+          level?: number
+          mentor_name?: string
+          updated_at?: string | null
+          user_id?: string
+          xp?: number
         }
         Relationships: []
       }
@@ -120,9 +249,12 @@ export type Database = {
           future_age: number | null
           future_lifestyle: string | null
           future_location: string | null
+          future_self_avatar: string | null
+          future_self_voice_note: string | null
           id: string
           main_mission: string | null
           main_strengths: string[] | null
+          priority_growth_area: string | null
           updated_at: string | null
         }
         Insert: {
@@ -131,9 +263,12 @@ export type Database = {
           future_age?: number | null
           future_lifestyle?: string | null
           future_location?: string | null
+          future_self_avatar?: string | null
+          future_self_voice_note?: string | null
           id: string
           main_mission?: string | null
           main_strengths?: string[] | null
+          priority_growth_area?: string | null
           updated_at?: string | null
         }
         Update: {
@@ -142,10 +277,135 @@ export type Database = {
           future_age?: number | null
           future_lifestyle?: string | null
           future_location?: string | null
+          future_self_avatar?: string | null
+          future_self_voice_note?: string | null
           id?: string
           main_mission?: string | null
           main_strengths?: string[] | null
+          priority_growth_area?: string | null
           updated_at?: string | null
+        }
+        Relationships: []
+      }
+      quest_progress: {
+        Row: {
+          completed_steps: Json
+          created_at: string | null
+          id: string
+          quest_id: string
+          updated_at: string | null
+          user_id: string
+        }
+        Insert: {
+          completed_steps?: Json
+          created_at?: string | null
+          id?: string
+          quest_id: string
+          updated_at?: string | null
+          user_id: string
+        }
+        Update: {
+          completed_steps?: Json
+          created_at?: string | null
+          id?: string
+          quest_id?: string
+          updated_at?: string | null
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "quest_progress_quest_id_fkey"
+            columns: ["quest_id"]
+            isOneToOne: false
+            referencedRelation: "quests"
+            referencedColumns: ["quest_id"]
+          },
+        ]
+      }
+      quests: {
+        Row: {
+          created_at: string | null
+          description: string
+          quest_id: string
+          quest_name: string
+          reward_xp: number
+          steps: Json
+        }
+        Insert: {
+          created_at?: string | null
+          description: string
+          quest_id?: string
+          quest_name: string
+          reward_xp?: number
+          steps?: Json
+        }
+        Update: {
+          created_at?: string | null
+          description?: string
+          quest_id?: string
+          quest_name?: string
+          reward_xp?: number
+          steps?: Json
+        }
+        Relationships: []
+      }
+      seasonal_events: {
+        Row: {
+          created_at: string | null
+          description: string
+          end_date: string
+          event_data: Json | null
+          event_id: string
+          event_name: string
+          start_date: string
+        }
+        Insert: {
+          created_at?: string | null
+          description: string
+          end_date: string
+          event_data?: Json | null
+          event_id?: string
+          event_name: string
+          start_date: string
+        }
+        Update: {
+          created_at?: string | null
+          description?: string
+          end_date?: string
+          event_data?: Json | null
+          event_id?: string
+          event_name?: string
+          start_date?: string
+        }
+        Relationships: []
+      }
+      shadow_progress: {
+        Row: {
+          created_at: string | null
+          encounters: number
+          id: string
+          integrations: number
+          last_triggered_at: string | null
+          shadow_name: string
+          user_id: string
+        }
+        Insert: {
+          created_at?: string | null
+          encounters?: number
+          id?: string
+          integrations?: number
+          last_triggered_at?: string | null
+          shadow_name: string
+          user_id: string
+        }
+        Update: {
+          created_at?: string | null
+          encounters?: number
+          id?: string
+          integrations?: number
+          last_triggered_at?: string | null
+          shadow_name?: string
+          user_id?: string
         }
         Relationships: []
       }
@@ -185,6 +445,30 @@ export type Database = {
         }
         Relationships: []
       }
+      transformation_timeline: {
+        Row: {
+          created_at: string | null
+          event_data: Json
+          event_type: string
+          id: string
+          user_id: string
+        }
+        Insert: {
+          created_at?: string | null
+          event_data?: Json
+          event_type: string
+          id?: string
+          user_id: string
+        }
+        Update: {
+          created_at?: string | null
+          event_data?: Json
+          event_type?: string
+          id?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
       user_mentors: {
         Row: {
           created_at: string | null
@@ -221,6 +505,12 @@ export type Database = {
         | "ancient_sage"
         | "compassionate_elder"
         | "future_self"
+        | "business_mentor"
+        | "creator_mentor"
+        | "mystic_mentor"
+        | "heart_mentor"
+        | "strategist_mentor"
+        | "explorer_mentor"
     }
     CompositeTypes: {
       [_ in never]: never
@@ -355,6 +645,12 @@ export const Constants = {
         "ancient_sage",
         "compassionate_elder",
         "future_self",
+        "business_mentor",
+        "creator_mentor",
+        "mystic_mentor",
+        "heart_mentor",
+        "strategist_mentor",
+        "explorer_mentor",
       ],
     },
   },
