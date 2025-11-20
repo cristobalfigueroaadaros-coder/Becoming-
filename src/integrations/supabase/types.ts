@@ -74,23 +74,32 @@ export type Database = {
       council_meetings: {
         Row: {
           answers: Json
+          banter: string | null
           created_at: string | null
           id: string
           question: string
+          resolution: string | null
+          shadow_triggers: Json | null
           user_id: string
         }
         Insert: {
           answers: Json
+          banter?: string | null
           created_at?: string | null
           id?: string
           question: string
+          resolution?: string | null
+          shadow_triggers?: Json | null
           user_id: string
         }
         Update: {
           answers?: Json
+          banter?: string | null
           created_at?: string | null
           id?: string
           question?: string
+          resolution?: string | null
+          shadow_triggers?: Json | null
           user_id?: string
         }
         Relationships: []

@@ -111,6 +111,8 @@ const CouncilLog = () => {
                       <p className="font-semibold mb-2">Question:</p>
                       <p className="text-muted-foreground">{meeting.question}</p>
                     </div>
+                    
+                    {/* Mentor Responses */}
                     <div className="space-y-3">
                       <p className="font-semibold">Responses:</p>
                       {Object.entries(meeting.answers).map(([mentorType, answer]) => (
@@ -122,6 +124,34 @@ const CouncilLog = () => {
                         </div>
                       ))}
                     </div>
+
+                    {/* Banter Section */}
+                    {meeting.banter && (
+                      <div className="space-y-2 pt-2">
+                        <div className="h-px bg-gradient-to-r from-transparent via-border to-transparent" />
+                        <p className="text-sm font-semibold text-muted-foreground">🗣️ Council Banter</p>
+                        <div className="bg-muted/30 rounded-lg p-3">
+                          <p className="text-xs leading-relaxed whitespace-pre-line italic">
+                            {meeting.banter}
+                          </p>
+                        </div>
+                      </div>
+                    )}
+
+                    {/* Resolution Section */}
+                    {meeting.resolution && (
+                      <div className="space-y-2 pt-2">
+                        <div className="h-px bg-gradient-to-r from-transparent via-border to-transparent" />
+                        <p className="text-sm font-semibold bg-gradient-to-r from-primary to-accent bg-clip-text text-transparent">
+                          ✨ Council Resolution
+                        </p>
+                        <div className="bg-gradient-to-br from-primary/5 to-accent/5 border border-primary/20 rounded-lg p-3">
+                          <p className="text-xs leading-relaxed font-medium">
+                            {meeting.resolution}
+                          </p>
+                        </div>
+                      </div>
+                    )}
                   </CardContent>
                 </Card>
               ))
