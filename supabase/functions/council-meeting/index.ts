@@ -278,24 +278,45 @@ Deliver the final Council Resolution. What is the clear guidance after this disc
       resolution = resolutionData.choices[0].message.content || "";
     }
 
-    // Step 4: Shadow Trigger Detection with encounter creation
+    // Step 4: Shadow Trigger Detection and Shadow Interruption
     const shadowTriggers: any[] = [];
     let shadowType = null;
+    let shadowInterruption = "";
+    
+    // Enhanced keyword detection with 8 shadow categories
+    const triggerPatterns = {
+      fear: ['afraid', 'fear', 'hiding', 'scared', 'terrified', 'anxious', 'retreat', 'hesitant', 'worried', 'uncertain', 'what if', 'safe', 'risk', 'exposed'],
+      shame: ['shame', 'damaged', 'broken', 'unworthy', 'apologize', 'burden', 'not enough', 'inadequate', 'disappointing', 'failed'],
+      impostor: ['impostor', 'fake', 'pretending', 'fraud', 'lucky', "don't belong", 'unqualified', 'deserve', 'prove', 'capable'],
+      procrastination: ['later', 'tomorrow', 'avoiding', 'delay', 'postpone', 'not ready', 'waiting', 'someday', "when i'm ready"],
+      perfectionism: ['perfect', 'flawless', 'not good enough', 'obsess', 'rewrite', 'polish', 'refine', 'improve', 'judge', 'critique'],
+      anger: ['angry', 'resentful', 'furious', 'boiling', 'unfair', 'pushed', 'snap', 'exploding', 'rage', 'irritated'],
+      control: ['control', 'grip', 'manage', 'tight', 'predict', 'rigid', 'structure', 'rules', 'order', 'let go'],
+      isolation: ['alone', 'no one', 'by myself', 'withdraw', 'disconnect', 'numb', 'avoid', 'burnout', 'invisible']
+    };
+
+    // Check both question and mentor answers for shadow keywords (threshold: 1+ keyword)
+    const lowerQuestion = question.toLowerCase();
+    
+    for (const [shadow, keywords] of Object.entries(triggerPatterns)) {
+      const questionMatches = keywords.filter(k => lowerQuestion.includes(k));
+      if (questionMatches.length >= 1) {
+        shadowTriggers.push({
+          source: 'user_question',
+          trigger_shadow: true,
+          shadow_type: shadow,
+          detected_keywords: questionMatches
+        });
+        if (!shadowType) shadowType = shadow;
+      }
+    }
     
     for (const [mentorType, answer] of Object.entries(answers)) {
-      const triggerPatterns = {
-        fear: ['afraid', 'fear', 'hiding', 'scared', 'terrified', 'anxious', 'retreat'],
-        shame: ['shame', 'damaged', 'broken', 'unworthy', 'apologize', 'burden'],
-        impostor: ['impostor', 'fake', 'pretending', 'fraud', 'lucky', "don't belong", 'unqualified'],
-        procrastination: ['later', 'tomorrow', 'avoiding', 'delay', 'postpone', 'not ready'],
-        perfectionism: ['perfect', 'flawless', 'not good enough', 'obsess', 'rewrite', 'polish'],
-      };
-
       const lowerAnswer = (answer as string).toLowerCase();
       
       for (const [shadow, keywords] of Object.entries(triggerPatterns)) {
         const matchedKeywords = keywords.filter(k => lowerAnswer.includes(k));
-        if (matchedKeywords.length >= 2) {
+        if (matchedKeywords.length >= 1) {
           shadowTriggers.push({
             mentor: mentorType,
             line: answer,
@@ -308,8 +329,33 @@ Deliver the final Council Resolution. What is the clear guidance after this disc
       }
     }
 
-    // Trigger shadow encounter if detected (30% chance to avoid overwhelming)
-    if (shadowType && Math.random() < 0.3) {
+    // Get user's shadow intensity preference (default: balanced = 60%)
+    const shadowIntensityMap = {
+      gentle: 0.3,
+      balanced: 0.6,
+      deep_work: 0.9
+    };
+    const shadowIntensity = profile?.shadow_intensity || 'balanced';
+    const triggerProbability = shadowIntensityMap[shadowIntensity as keyof typeof shadowIntensityMap] || 0.6;
+
+    // Shadow Interruption (25% chance to interrupt conversation after banter, before resolution)
+    if (shadowType && banter && Math.random() < 0.25) {
+      const interruptionPrompts = {
+        fear: "You talk of growth, but you're still hiding behind questions. Admit it.",
+        shame: "All this wisdom, yet you still believe you're not enough. Why?",
+        impostor: "They praise your progress, but deep down you think it's luck. Don't you?",
+        procrastination: "Another plan. Another 'soon.' When will you actually start?",
+        perfectionism: "You're refining again. But perfect is just another word for 'never done.'",
+        anger: "Smile all you want. I feel the rage boiling underneath.",
+        control: "You're trying to map it all out. What if you can't?",
+        isolation: "You nod along, but you're still keeping them at arm's length."
+      };
+      
+      shadowInterruption = interruptionPrompts[shadowType as keyof typeof interruptionPrompts] || "";
+    }
+
+    // Trigger shadow encounter if detected
+    if (shadowType && Math.random() < triggerProbability) {
       try {
         const supabaseUrl = Deno.env.get("SUPABASE_URL");
         await fetch(`${supabaseUrl}/functions/v1/trigger-shadow`, {
@@ -365,7 +411,8 @@ Deliver the final Council Resolution. What is the clear guidance after this disc
     return new Response(
       JSON.stringify({ 
         answers, 
-        banter, 
+        banter,
+        shadowInterruption, 
         resolution,
         shadowTriggers,
         tasks: extractedTasks 

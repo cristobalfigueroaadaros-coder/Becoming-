@@ -76,6 +76,42 @@ const shadowTemplates: Record<string, ShadowEncounterTemplate> = {
     mentorType: "Compassionate Elder",
     xpReward: 70,
     integrationLine: "My past does not define my worth. I release what no longer serves who I'm becoming."
+  },
+  anger: {
+    shadowName: "Anger",
+    statement: "You smile when you're seething. You nod when you want to scream. All that rage you're swallowing? It's corroding you from the inside.",
+    prompts: [
+      "What would you say if you weren't afraid of the consequences?",
+      "Who or what are you really angry at — and what are you protecting by staying silent?"
+    ],
+    task: "Write an unsent letter to whoever or whatever you're angry at. Let it be raw, unfiltered, honest. Then decide what to do with it.",
+    mentorType: "Mamba Mentor",
+    xpReward: 60,
+    integrationLine: "My anger is information. I can acknowledge it without being consumed by it."
+  },
+  control: {
+    shadowName: "Control",
+    statement: "You need to know the outcome before you begin. You micromanage every detail. But the tighter you grip, the less you actually hold.",
+    prompts: [
+      "What are you afraid will happen if you let go?",
+      "What would change if you trusted the process more than the plan?"
+    ],
+    task: "Identify one thing you've been trying to control. For the next 24 hours, practice letting it unfold without your intervention.",
+    mentorType: "Ancient Sage",
+    xpReward: 50,
+    integrationLine: "True power comes from flexibility, not force. I trust the flow of life."
+  },
+  isolation: {
+    shadowName: "Isolation",
+    statement: "You tell yourself you're better off alone. That no one would understand anyway. But isolation isn't protection — it's a prison you've built for yourself.",
+    prompts: [
+      "What are you protecting yourself from by staying distant?",
+      "Who would you reach out to if you weren't afraid of being a burden?"
+    ],
+    task: "Send a genuine, vulnerable message to one person you've been avoiding. No agenda, just connection.",
+    mentorType: "Heart Mentor",
+    xpReward: 65,
+    integrationLine: "Connection requires courage, not perfection. I am worthy of belonging."
   }
 };
 

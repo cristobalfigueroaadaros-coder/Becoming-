@@ -264,6 +264,7 @@ export type Database = {
           main_mission: string | null
           main_strengths: string[] | null
           priority_growth_area: string | null
+          shadow_intensity: string | null
           updated_at: string | null
         }
         Insert: {
@@ -278,6 +279,7 @@ export type Database = {
           main_mission?: string | null
           main_strengths?: string[] | null
           priority_growth_area?: string | null
+          shadow_intensity?: string | null
           updated_at?: string | null
         }
         Update: {
@@ -292,6 +294,7 @@ export type Database = {
           main_mission?: string | null
           main_strengths?: string[] | null
           priority_growth_area?: string | null
+          shadow_intensity?: string | null
           updated_at?: string | null
         }
         Relationships: []
