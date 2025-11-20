@@ -191,12 +191,27 @@ Evolution Level: ${futureProgress.evolution_level}`;
       answers[mentorType] = mentorAnswer;
     }
 
-    // Step 2: Generate banter if multiple mentors
+    // Step 2: Generate banter (dynamic mentor interaction)
+    let banter = "";
     if (mentorTypes.length > 2) {
-      const banterPrompt = `Based on these mentor responses, generate 1-2 SHORT spontaneous banter exchanges between mentors. Keep it under 80 words total. Show personality clashes, teasing, agreement, or playful debate. Format as "[Mentor Name]: quote"
+      const banterSystemPrompt = `You are a Council Meeting narrator. Generate authentic, personality-rich banter between mentors.
 
-Responses:
-${Object.entries(answers).map(([type, ans]) => `${mentorNames[type]}: ${ans.substring(0, 150)}...`).join("\n\n")}`;
+Rules:
+- Each mentor speaks ONCE in 1-2 short lines (10-15 words max per line)
+- Show teasing, disagreement, humor, or contrasting views
+- Make it feel conversational and alive
+- Format: [Mentor Name]: "quote"
+- Total output: 60-100 words
+
+Personalities to express:
+${mentorTypes.map((type: string) => `- ${mentorNames[type]}: ${mentorPrompts[type].split('\n')[0]}`).join('\n')}`;
+
+      const banterPrompt = `The user asked: "${question}"
+
+Here are the mentor responses:
+${Object.entries(answers).map(([type, ans]) => `${mentorNames[type]}: ${ans}`).join("\n\n")}
+
+Generate 3-5 lines of banter between these mentors. Show personality clashes, playful teasing, or philosophical debate. Keep it human and emotionally expressive.`;
 
       const banterResponse = await fetch("https://ai.gateway.lovable.dev/v1/chat/completions", {
         method: "POST",
@@ -207,7 +222,7 @@ ${Object.entries(answers).map(([type, ans]) => `${mentorNames[type]}: ${ans.subs
         body: JSON.stringify({
           model: "google/gemini-2.5-flash",
           messages: [
-            { role: "system", content: "You generate short authentic mentor banter exchanges." },
+            { role: "system", content: banterSystemPrompt },
             { role: "user", content: banterPrompt }
           ],
         }),
@@ -215,13 +230,80 @@ ${Object.entries(answers).map(([type, ans]) => `${mentorNames[type]}: ${ans.subs
 
       if (banterResponse.ok) {
         const banterData = await banterResponse.json();
-        answers["banter"] = banterData.choices[0].message.content;
+        banter = banterData.choices[0].message.content || "";
       }
     }
 
-    // Step 3: Extract tasks from each mentor response
+    // Step 3: Generate Final Council Resolution (delivered by Future Self)
+    let resolution = "";
+    const resolutionSystemPrompt = `You are the Future Self, delivering the final Council Resolution.
+
+This is the synthesis of all mentor advice. You speak as the wise, grounded narrator who sees the big picture.
+
+Rules:
+- 2-4 sentences total
+- Supportive, confident, motivating tone
+- Clear guidance or direction
+- Speaks from a place of "already achieved"
+- No fluff, just wisdom
+
+Your role: Synthesize the council's advice into one clear, actionable directive.`;
+
+    const resolutionPrompt = `User question: "${question}"
+
+Mentor answers:
+${Object.entries(answers).map(([type, ans]) => `${mentorNames[type]}: ${ans}`).join("\n\n")}
+
+${banter ? `Banter:\n${banter}\n` : ''}
+
+Deliver the final Council Resolution. What is the clear guidance after this discussion?`;
+
+    const resolutionResponse = await fetch("https://ai.gateway.lovable.dev/v1/chat/completions", {
+      method: "POST",
+      headers: {
+        "Authorization": `Bearer ${Deno.env.get("LOVABLE_API_KEY")}`,
+        "Content-Type": "application/json",
+      },
+      body: JSON.stringify({
+        model: "google/gemini-2.5-flash",
+        messages: [
+          { role: "system", content: resolutionSystemPrompt },
+          { role: "user", content: resolutionPrompt }
+        ],
+      }),
+    });
+
+    if (resolutionResponse.ok) {
+      const resolutionData = await resolutionResponse.json();
+      resolution = resolutionData.choices[0].message.content || "";
+    }
+
+    // Step 4: Shadow Trigger Detection (prep only - tag but don't act)
+    const shadowTriggers: Record<string, boolean> = {};
     for (const [mentorType, answer] of Object.entries(answers)) {
-      if (mentorType === "banter") continue;
+      // Detect confronting, ego-piercing, or emotionally charged lines
+      const shadowKeywords = [
+        "afraid", "fear", "hiding", "avoiding", "pretending",
+        "self-sabotage", "insecurity", "ego", "scared", "uncomfortable",
+        "truth", "reality", "face", "confront", "admit"
+      ];
+      
+      const hasKeyword = shadowKeywords.some(keyword => 
+        answer.toLowerCase().includes(keyword)
+      );
+      
+      // Simple heuristic: if answer contains shadow keywords and is confrontational
+      const isConfrontational = answer.includes("?") || answer.includes("but") || answer.includes("yet");
+      
+      if (hasKeyword && isConfrontational) {
+        shadowTriggers[mentorType] = true;
+      }
+    }
+
+
+    // Step 5: Extract tasks from each mentor response
+    for (const [mentorType, answer] of Object.entries(answers)) {
+      
 
       // Extract task from this mentor's response
       try {
@@ -252,7 +334,13 @@ ${Object.entries(answers).map(([type, ans]) => `${mentorNames[type]}: ${ans.subs
     }
 
     return new Response(
-      JSON.stringify({ answers, tasks: extractedTasks }),
+      JSON.stringify({ 
+        answers, 
+        banter, 
+        resolution,
+        shadowTriggers,
+        tasks: extractedTasks 
+      }),
       { headers: { ...corsHeaders, "Content-Type": "application/json" } }
     );
   } catch (error: any) {
