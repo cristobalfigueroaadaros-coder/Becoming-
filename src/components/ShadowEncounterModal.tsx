@@ -86,19 +86,22 @@ export const ShadowEncounterModal = ({
       let voiceNoteUrl = null;
       if (audioChunks.length > 0) {
         const audioBlob = new Blob(audioChunks, { type: "audio/webm" });
-        const fileName = `shadow-${encounterId}-${Date.now()}.webm`;
+        const fileName = `${user.id}/${encounterId}-${Date.now()}.webm`;
         
-        const { data: uploadData, error: uploadError } = await supabase.storage
+        const { error: uploadError } = await supabase.storage
           .from("voice-notes")
           .upload(fileName, audioBlob);
 
-        if (uploadError) throw uploadError;
-        
-        const { data: { publicUrl } } = supabase.storage
-          .from("voice-notes")
-          .getPublicUrl(fileName);
-        
-        voiceNoteUrl = publicUrl;
+        if (uploadError) {
+          console.error("Voice upload failed:", uploadError);
+          toast.error("Voice note upload failed, continuing with text insight");
+        } else {
+          const { data: { publicUrl } } = supabase.storage
+            .from("voice-notes")
+            .getPublicUrl(fileName);
+          
+          voiceNoteUrl = publicUrl;
+        }
       }
 
       // Update encounter
