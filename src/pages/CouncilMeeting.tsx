@@ -26,6 +26,8 @@ const CouncilMeeting = () => {
   const navigate = useNavigate();
   const [question, setQuestion] = useState("");
   const [answers, setAnswers] = useState<Record<string, string>>({});
+  const [banter, setBanter] = useState("");
+  const [resolution, setResolution] = useState("");
   const [loading, setLoading] = useState(false);
 
   const handleAsk = async () => {
@@ -55,6 +57,8 @@ const CouncilMeeting = () => {
       if (error) throw error;
 
       setAnswers(data.answers);
+      setBanter(data.banter || "");
+      setResolution(data.resolution || "");
 
       // Save meeting
       await supabase.from("council_meetings").insert({
@@ -111,19 +115,64 @@ const CouncilMeeting = () => {
 
         {/* Answers */}
         {Object.keys(answers).length > 0 && (
-          <div className="space-y-4">
-            <h2 className="text-2xl font-bold">Council Responses</h2>
-            {Object.entries(answers).map(([mentorType, answer]) => (
-              <Card key={mentorType}>
-                <CardHeader>
-                  <CardTitle className="text-lg">{mentorNames[mentorType]}</CardTitle>
-                </CardHeader>
-                <CardContent>
-                  <p className="whitespace-pre-wrap">{answer}</p>
-                </CardContent>
-              </Card>
-            ))}
-            <div className="flex flex-col sm:flex-row gap-3">
+          <div className="space-y-6">
+            {/* Mentor Responses */}
+            <div className="space-y-4">
+              <h2 className="text-2xl font-bold bg-gradient-to-r from-primary to-accent bg-clip-text text-transparent">
+                Council Responses
+              </h2>
+              {Object.entries(answers).map(([mentorType, answer]) => (
+                <Card key={mentorType} className="border-l-4 border-l-primary/50">
+                  <CardHeader className="pb-3">
+                    <CardTitle className="text-lg">{mentorNames[mentorType]}</CardTitle>
+                  </CardHeader>
+                  <CardContent>
+                    <p className="text-sm sm:text-base leading-relaxed">{answer}</p>
+                  </CardContent>
+                </Card>
+              ))}
+            </div>
+
+            {/* Banter Section */}
+            {banter && (
+              <div className="space-y-3">
+                <div className="h-px bg-gradient-to-r from-transparent via-border to-transparent" />
+                <div className="space-y-2">
+                  <h3 className="text-lg font-semibold text-muted-foreground">
+                    🗣️ Council Banter
+                  </h3>
+                  <Card className="bg-muted/30">
+                    <CardContent className="pt-4">
+                      <p className="text-sm leading-relaxed whitespace-pre-line italic">
+                        {banter}
+                      </p>
+                    </CardContent>
+                  </Card>
+                </div>
+              </div>
+            )}
+
+            {/* Resolution Section */}
+            {resolution && (
+              <div className="space-y-3">
+                <div className="h-px bg-gradient-to-r from-transparent via-border to-transparent" />
+                <div className="space-y-2">
+                  <h3 className="text-lg font-semibold bg-gradient-to-r from-primary to-accent bg-clip-text text-transparent">
+                    ✨ Council Resolution
+                  </h3>
+                  <Card className="border-2 border-primary/30 bg-gradient-to-br from-primary/5 to-accent/5">
+                    <CardContent className="pt-4">
+                      <p className="text-sm sm:text-base leading-relaxed font-medium">
+                        {resolution}
+                      </p>
+                    </CardContent>
+                  </Card>
+                </div>
+              </div>
+            )}
+
+            {/* Action Buttons */}
+            <div className="flex flex-col sm:flex-row gap-3 pt-2">
               <Button
                 onClick={() => navigate("/my-tasks")}
                 className="flex-1"
@@ -135,6 +184,8 @@ const CouncilMeeting = () => {
                 onClick={() => {
                   setQuestion("");
                   setAnswers({});
+                  setBanter("");
+                  setResolution("");
                 }}
                 variant="outline"
                 className="flex-1"
