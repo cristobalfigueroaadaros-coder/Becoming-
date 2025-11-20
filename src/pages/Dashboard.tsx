@@ -3,7 +3,7 @@ import { useNavigate } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
-import { Brain, Lightbulb, Zap, Trees, Heart, Sparkles, Users, BookOpen, Crown, LogOut, CheckSquare, Briefcase, Palette, Compass, Target, Flag } from "lucide-react";
+import { Brain, Lightbulb, Zap, Trees, Heart, Sparkles, Users, BookOpen, Crown, LogOut, CheckSquare, Briefcase, Palette, Compass, Target, Flag, Ghost } from "lucide-react";
 import { toast } from "sonner";
 import { cn } from "@/lib/utils";
 
@@ -102,6 +102,34 @@ const Dashboard = () => {
     navigate("/auth");
   };
 
+  const handleFaceShadow = async () => {
+    try {
+      const { data: { user } } = await supabase.auth.getUser();
+      if (!user) return;
+
+      // Random shadow type
+      const shadowTypes = ['fear', 'shame', 'impostor', 'procrastination', 'perfectionism', 'anger', 'control', 'isolation'];
+      const randomShadow = shadowTypes[Math.floor(Math.random() * shadowTypes.length)];
+
+      const { error } = await supabase.functions.invoke('trigger-shadow', {
+        body: { 
+          shadowType: randomShadow, 
+          triggeredBy: 'manual',
+          context: { source: 'face_shadow_button' }
+        }
+      });
+
+      if (error) throw error;
+      toast.success("A shadow has emerged...", { description: "Check the encounter modal" });
+    } catch (error: any) {
+      if (error.message?.includes("Active encounter already exists")) {
+        toast.info("You already have an active shadow encounter");
+      } else {
+        toast.error(error.message);
+      }
+    }
+  };
+
   if (loading) {
     return (
       <div className="min-h-screen flex items-center justify-center">
@@ -162,6 +190,23 @@ const Dashboard = () => {
               className="mt-4"
             >
               Start Council Meeting
+            </Button>
+          </CardContent>
+        </Card>
+
+        {/* Face a Shadow Button */}
+        <Card className="bg-gradient-to-r from-destructive/90 to-destructive text-destructive-foreground shadow-xl">
+          <CardContent className="p-8 text-center space-y-4">
+            <Ghost className="w-12 h-12 mx-auto" />
+            <h2 className="text-2xl font-bold">Face a Shadow</h2>
+            <p className="opacity-90">Confront what's holding you back</p>
+            <Button
+              variant="secondary"
+              size="lg"
+              onClick={handleFaceShadow}
+              className="mt-4"
+            >
+              Begin Shadow Work
             </Button>
           </CardContent>
         </Card>

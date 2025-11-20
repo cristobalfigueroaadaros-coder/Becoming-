@@ -27,6 +27,7 @@ const CouncilMeeting = () => {
   const [question, setQuestion] = useState("");
   const [answers, setAnswers] = useState<Record<string, string>>({});
   const [banter, setBanter] = useState("");
+  const [shadowInterruption, setShadowInterruption] = useState("");
   const [resolution, setResolution] = useState("");
   const [loading, setLoading] = useState(false);
 
@@ -58,6 +59,7 @@ const CouncilMeeting = () => {
 
       setAnswers(data.answers);
       setBanter(data.banter || "");
+      setShadowInterruption(data.shadowInterruption || "");
       setResolution(data.resolution || "");
 
       // Save meeting with banter and resolution
@@ -155,6 +157,25 @@ const CouncilMeeting = () => {
               </div>
             )}
 
+            {/* Shadow Interruption */}
+            {shadowInterruption && (
+              <div className="space-y-3">
+                <div className="h-px bg-gradient-to-r from-transparent via-destructive to-transparent opacity-50" />
+                <div className="space-y-2">
+                  <h3 className="text-lg font-semibold text-destructive">
+                    👤 Shadow Intrudes
+                  </h3>
+                  <Card className="border-destructive/50 bg-destructive/5">
+                    <CardContent className="pt-4">
+                      <p className="text-sm leading-relaxed font-medium text-destructive">
+                        {shadowInterruption}
+                      </p>
+                    </CardContent>
+                  </Card>
+                </div>
+              </div>
+            )}
+
             {/* Resolution Section */}
             {resolution && (
               <div className="space-y-3">
@@ -188,6 +209,7 @@ const CouncilMeeting = () => {
                   setQuestion("");
                   setAnswers({});
                   setBanter("");
+                  setShadowInterruption("");
                   setResolution("");
                 }}
                 variant="outline"

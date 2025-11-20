@@ -14,3 +14,6 @@ verify_jwt = true
 
 [functions.trigger-shadow]
 verify_jwt = true
+
+[functions.force-shadow]
+verify_jwt = true
