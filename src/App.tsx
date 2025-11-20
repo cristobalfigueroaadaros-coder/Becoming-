@@ -7,6 +7,7 @@ import { useEffect, useState } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { ShadowEncounterModal } from "@/components/ShadowEncounterModal";
 import { useShadowEncounters } from "@/hooks/useShadowEncounters";
+import { toast } from "@/hooks/use-toast";
 import Index from "./pages/Index";
 import Auth from "./pages/Auth";
 import OnboardingStep1 from "./pages/OnboardingStep1";
@@ -25,12 +26,42 @@ const queryClient = new QueryClient();
 const ShadowEncounterWrapper = () => {
   const { activeEncounter, refetch } = useShadowEncounters();
 
+  const handleDeferEncounter = async () => {
+    if (!activeEncounter) return;
+    
+    try {
+      const { error } = await supabase
+        .from("shadow_encounters")
+        .update({ status: "deferred" })
+        .eq("id", activeEncounter.id);
+      
+      if (error) throw error;
+      
+      refetch();
+      toast({
+        title: "Shadow encounter deferred",
+        description: "It will return later.",
+      });
+    } catch (error: any) {
+      console.error("Failed to defer encounter:", error);
+      toast({
+        title: "Error",
+        description: "Failed to defer encounter",
+        variant: "destructive",
+      });
+    }
+  };
+
   if (!activeEncounter) return null;
 
   return (
     <ShadowEncounterModal
       open={true}
-      onOpenChange={() => {}}
+      onOpenChange={(open) => {
+        if (!open) {
+          handleDeferEncounter();
+        }
+      }}
       encounterId={activeEncounter.id}
       shadowName={activeEncounter.shadow_name}
       shadowStatement={activeEncounter.shadow_statement}
