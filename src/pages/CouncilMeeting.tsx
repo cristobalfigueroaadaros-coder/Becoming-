@@ -6,6 +6,7 @@ import { Textarea } from "@/components/ui/textarea";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { ArrowLeft } from "lucide-react";
 import { toast } from "sonner";
+import { useShadowEncounters } from "@/hooks/useShadowEncounters";
 
 const mentorNames: Record<string, string> = {
   mamba_mentor: "Mamba Mentor",
@@ -24,6 +25,7 @@ const mentorNames: Record<string, string> = {
 
 const CouncilMeeting = () => {
   const navigate = useNavigate();
+  const { refetch } = useShadowEncounters();
   const [question, setQuestion] = useState("");
   const [answers, setAnswers] = useState<Record<string, string>>({});
   const [banter, setBanter] = useState("");
@@ -73,6 +75,9 @@ const CouncilMeeting = () => {
       });
 
       toast.success("Council has responded!");
+      
+      // Immediately check for shadow encounters
+      refetch();
     } catch (error: any) {
       toast.error(error.message);
     } finally {
