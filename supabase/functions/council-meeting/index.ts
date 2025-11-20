@@ -278,25 +278,54 @@ Deliver the final Council Resolution. What is the clear guidance after this disc
       resolution = resolutionData.choices[0].message.content || "";
     }
 
-    // Step 4: Shadow Trigger Detection (prep only - tag but don't act)
-    const shadowTriggers: Record<string, boolean> = {};
+    // Step 4: Shadow Trigger Detection with encounter creation
+    const shadowTriggers: any[] = [];
+    let shadowType = null;
+    
     for (const [mentorType, answer] of Object.entries(answers)) {
-      // Detect confronting, ego-piercing, or emotionally charged lines
-      const shadowKeywords = [
-        "afraid", "fear", "hiding", "avoiding", "pretending",
-        "self-sabotage", "insecurity", "ego", "scared", "uncomfortable",
-        "truth", "reality", "face", "confront", "admit"
-      ];
+      const triggerPatterns = {
+        fear: ['afraid', 'fear', 'hiding', 'scared', 'terrified', 'anxious', 'retreat'],
+        shame: ['shame', 'damaged', 'broken', 'unworthy', 'apologize', 'burden'],
+        impostor: ['impostor', 'fake', 'pretending', 'fraud', 'lucky', "don't belong", 'unqualified'],
+        procrastination: ['later', 'tomorrow', 'avoiding', 'delay', 'postpone', 'not ready'],
+        perfectionism: ['perfect', 'flawless', 'not good enough', 'obsess', 'rewrite', 'polish'],
+      };
+
+      const lowerAnswer = (answer as string).toLowerCase();
       
-      const hasKeyword = shadowKeywords.some(keyword => 
-        answer.toLowerCase().includes(keyword)
-      );
-      
-      // Simple heuristic: if answer contains shadow keywords and is confrontational
-      const isConfrontational = answer.includes("?") || answer.includes("but") || answer.includes("yet");
-      
-      if (hasKeyword && isConfrontational) {
-        shadowTriggers[mentorType] = true;
+      for (const [shadow, keywords] of Object.entries(triggerPatterns)) {
+        const matchedKeywords = keywords.filter(k => lowerAnswer.includes(k));
+        if (matchedKeywords.length >= 2) {
+          shadowTriggers.push({
+            mentor: mentorType,
+            line: answer,
+            trigger_shadow: true,
+            shadow_type: shadow,
+            detected_keywords: matchedKeywords
+          });
+          if (!shadowType) shadowType = shadow;
+        }
+      }
+    }
+
+    // Trigger shadow encounter if detected (30% chance to avoid overwhelming)
+    if (shadowType && Math.random() < 0.3) {
+      try {
+        const supabaseUrl = Deno.env.get("SUPABASE_URL");
+        await fetch(`${supabaseUrl}/functions/v1/trigger-shadow`, {
+          method: 'POST',
+          headers: {
+            'Authorization': authHeader,
+            'Content-Type': 'application/json',
+          },
+          body: JSON.stringify({
+            shadowType,
+            triggeredBy: 'council_meeting',
+            context: { question, mentorTypes }
+          })
+        });
+      } catch (error) {
+        console.error('Failed to trigger shadow encounter:', error);
       }
     }
 
