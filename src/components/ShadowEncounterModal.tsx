@@ -169,7 +169,7 @@ export const ShadowEncounterModal = ({
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto bg-gradient-to-b from-background via-background to-muted/20">
+      <DialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto bg-gradient-to-b from-background via-background to-muted/20 z-[100]">
         <DialogHeader>
           <DialogTitle className="text-2xl font-bold bg-gradient-to-r from-destructive to-destructive/60 bg-clip-text text-transparent">
             ⚡ Shadow Encounter: {shadowName}

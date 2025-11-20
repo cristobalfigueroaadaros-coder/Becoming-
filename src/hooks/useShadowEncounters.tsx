@@ -20,6 +20,7 @@ export const useShadowEncounters = () => {
   useEffect(() => {
     fetchActiveEncounter();
     
+    // Realtime subscription
     const channel = supabase
       .channel("shadow_encounters_changes")
       .on(
@@ -35,8 +36,14 @@ export const useShadowEncounters = () => {
       )
       .subscribe();
 
+    // Fallback polling every 10 seconds
+    const pollingInterval = setInterval(() => {
+      fetchActiveEncounter();
+    }, 10000);
+
     return () => {
       supabase.removeChannel(channel);
+      clearInterval(pollingInterval);
     };
   }, []);
 
