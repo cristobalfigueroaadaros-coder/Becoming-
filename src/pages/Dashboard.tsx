@@ -3,7 +3,7 @@ import { useNavigate } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
-import { Brain, Lightbulb, Zap, Trees, Heart, Sparkles, Users, BookOpen, Crown, LogOut, CheckSquare } from "lucide-react";
+import { Brain, Lightbulb, Zap, Trees, Heart, Sparkles, Users, BookOpen, Crown, LogOut, CheckSquare, Briefcase, Palette, Compass, Target, Flag } from "lucide-react";
 import { toast } from "sonner";
 import { cn } from "@/lib/utils";
 
@@ -14,6 +14,12 @@ const mentorIcons = {
   ancient_sage: Trees,
   compassionate_elder: Heart,
   future_self: Sparkles,
+  business_mentor: Briefcase,
+  creator_mentor: Palette,
+  mystic_mentor: Compass,
+  heart_mentor: Heart,
+  strategist_mentor: Target,
+  explorer_mentor: Flag,
 };
 
 const mentorColors = {
@@ -23,6 +29,12 @@ const mentorColors = {
   ancient_sage: "bg-mentor-sage",
   compassionate_elder: "bg-mentor-elder",
   future_self: "bg-mentor-future",
+  business_mentor: "bg-primary",
+  creator_mentor: "bg-accent",
+  mystic_mentor: "bg-secondary",
+  heart_mentor: "bg-mentor-elder",
+  strategist_mentor: "bg-mentor-quantum",
+  explorer_mentor: "bg-mentor-sage",
 };
 
 const mentorNames = {
@@ -32,6 +44,12 @@ const mentorNames = {
   ancient_sage: "Ancient Sage",
   compassionate_elder: "Compassionate Elder",
   future_self: "Future Self",
+  business_mentor: "Business Mentor",
+  creator_mentor: "Creator Mentor",
+  mystic_mentor: "Mystic Mentor",
+  heart_mentor: "Heart Mentor",
+  strategist_mentor: "Strategist Mentor",
+  explorer_mentor: "Explorer Mentor",
 };
 
 const Dashboard = () => {

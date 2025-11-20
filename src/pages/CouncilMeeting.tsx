@@ -14,6 +14,12 @@ const mentorNames: Record<string, string> = {
   ancient_sage: "Ancient Sage",
   compassionate_elder: "Compassionate Elder",
   future_self: "Future Self",
+  business_mentor: "Business Mentor",
+  creator_mentor: "Creator Mentor",
+  mystic_mentor: "Mystic Mentor",
+  heart_mentor: "Heart Mentor",
+  strategist_mentor: "Strategist Mentor",
+  explorer_mentor: "Explorer Mentor",
 };
 
 const CouncilMeeting = () => {
