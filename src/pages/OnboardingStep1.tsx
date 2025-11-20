@@ -50,6 +50,48 @@ const mentors = [
     icon: Sparkles,
     color: "bg-mentor-future",
   },
+  {
+    id: "business_mentor",
+    name: "Business Mentor",
+    description: "Strategy, entrepreneurship, and execution",
+    icon: Brain,
+    color: "bg-primary",
+  },
+  {
+    id: "creator_mentor",
+    name: "Creator Mentor",
+    description: "Content creation and personal brand",
+    icon: Lightbulb,
+    color: "bg-accent",
+  },
+  {
+    id: "mystic_mentor",
+    name: "Mystic Mentor",
+    description: "Spirituality and inner guidance",
+    icon: Sparkles,
+    color: "bg-secondary",
+  },
+  {
+    id: "heart_mentor",
+    name: "Heart Mentor",
+    description: "Relationships and emotional intelligence",
+    icon: Heart,
+    color: "bg-mentor-elder",
+  },
+  {
+    id: "strategist_mentor",
+    name: "Strategist Mentor",
+    description: "Planning and decision frameworks",
+    icon: Zap,
+    color: "bg-mentor-quantum",
+  },
+  {
+    id: "explorer_mentor",
+    name: "Explorer Mentor",
+    description: "Courage and experimentation",
+    icon: Trees,
+    color: "bg-mentor-sage",
+  },
 ];
 
 const OnboardingStep1 = () => {
