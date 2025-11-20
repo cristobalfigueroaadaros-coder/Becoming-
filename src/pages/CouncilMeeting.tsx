@@ -60,11 +60,14 @@ const CouncilMeeting = () => {
       setBanter(data.banter || "");
       setResolution(data.resolution || "");
 
-      // Save meeting
+      // Save meeting with banter and resolution
       await supabase.from("council_meetings").insert({
         user_id: user.id,
         question: question.trim(),
         answers: data.answers,
+        banter: data.banter || null,
+        resolution: data.resolution || null,
+        shadow_triggers: data.shadowTriggers || {},
       });
 
       toast.success("Council has responded!");
