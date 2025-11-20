@@ -53,7 +53,7 @@ const OnboardingStep2 = () => {
       if (error) throw error;
 
       toast.success("Future Self created!");
-      navigate("/dashboard");
+      navigate("/onboarding-step-3");
     } catch (error: any) {
       toast.error(error.message);
     } finally {

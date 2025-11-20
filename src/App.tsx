@@ -12,6 +12,7 @@ import Index from "./pages/Index";
 import Auth from "./pages/Auth";
 import OnboardingStep1 from "./pages/OnboardingStep1";
 import OnboardingStep2 from "./pages/OnboardingStep2";
+import OnboardingStep3 from "./pages/OnboardingStep3";
 import Dashboard from "./pages/Dashboard";
 import Chat from "./pages/Chat";
 import CouncilMeeting from "./pages/CouncilMeeting";
@@ -118,6 +119,10 @@ const App = () => {
             <Route
               path="/onboarding/step2"
               element={session ? <OnboardingStep2 /> : <Navigate to="/auth" />}
+            />
+            <Route
+              path="/onboarding-step-3"
+              element={session ? <OnboardingStep3 /> : <Navigate to="/auth" />}
             />
             <Route
               path="/dashboard"

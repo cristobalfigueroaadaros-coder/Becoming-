@@ -6,6 +6,8 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/com
 import { Brain, Lightbulb, Zap, Trees, Heart, Sparkles, Users, BookOpen, Crown, LogOut, CheckSquare, Briefcase, Palette, Compass, Target, Flag, Ghost } from "lucide-react";
 import { toast } from "sonner";
 import { cn } from "@/lib/utils";
+import { FutureSelfWidget } from "@/components/FutureSelfWidget";
+import { LifeDomainsRadar } from "@/components/LifeDomainsRadar";
 
 const mentorIcons = {
   mamba_mentor: Brain,
@@ -140,12 +142,12 @@ const Dashboard = () => {
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-primary/5 via-background to-accent/5 p-4 py-8">
-      <div className="max-w-6xl mx-auto space-y-8">
+      <div className="max-w-7xl mx-auto space-y-8">
         {/* Header */}
         <div className="flex items-center justify-between">
           <div>
-            <h1 className="text-4xl font-bold">Your AI Council</h1>
-            <p className="text-muted-foreground mt-2">Your personal mentors await</p>
+            <h1 className="text-4xl font-bold">Your Transformation Journey</h1>
+            <p className="text-muted-foreground mt-2">Guided by your mentors and Future Self</p>
           </div>
           <Button variant="ghost" onClick={handleSignOut}>
             <LogOut className="w-4 h-4 mr-2" />
@@ -153,70 +155,82 @@ const Dashboard = () => {
           </Button>
         </div>
 
-        {/* Mentors Grid */}
-        <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-          {mentors.map((mentor) => {
-            const Icon = mentorIcons[mentor.mentor_type as keyof typeof mentorIcons];
-            const color = mentorColors[mentor.mentor_type as keyof typeof mentorColors];
-            const name = mentorNames[mentor.mentor_type as keyof typeof mentorNames];
-
-            return (
-              <Card
-                key={mentor.id}
-                className="cursor-pointer hover:shadow-lg transition-all"
-                onClick={() => navigate(`/chat/${mentor.mentor_type}`)}
-              >
-                <CardContent className="pt-6 text-center space-y-4">
-                  <div className={cn("w-16 h-16 mx-auto rounded-2xl flex items-center justify-center", color)}>
-                    <Icon className="w-8 h-8 text-white" />
-                  </div>
-                  <p className="font-semibold">{name}</p>
-                </CardContent>
-              </Card>
-            );
-          })}
+        {/* Future Self Section - Central Feature */}
+        <div className="grid lg:grid-cols-2 gap-6">
+          <FutureSelfWidget />
+          <LifeDomainsRadar />
         </div>
 
-        {/* Council Meeting Button */}
-        <Card className="bg-gradient-to-r from-primary to-accent text-primary-foreground shadow-xl">
-          <CardContent className="p-8 text-center space-y-4">
-            <Users className="w-12 h-12 mx-auto" />
-            <h2 className="text-2xl font-bold">Ask the Council</h2>
-            <p className="opacity-90">Get wisdom from all your mentors at once</p>
-            <Button
-              variant="secondary"
-              size="lg"
-              onClick={() => navigate("/council-meeting")}
-              className="mt-4"
-            >
-              Start Council Meeting
-            </Button>
-          </CardContent>
-        </Card>
+        {/* Action Buttons Row */}
+        <div className="grid md:grid-cols-2 gap-4">
+          {/* Council Meeting */}
+          <Card className="bg-gradient-to-r from-primary to-accent text-primary-foreground shadow-xl">
+            <CardContent className="p-6 flex items-center gap-4">
+              <Users className="w-12 h-12 flex-shrink-0" />
+              <div className="flex-1">
+                <h2 className="text-xl font-bold">Ask the Council</h2>
+                <p className="opacity-90 text-sm">Get wisdom from all mentors</p>
+              </div>
+              <Button
+                variant="secondary"
+                onClick={() => navigate("/council-meeting")}
+              >
+                Start
+              </Button>
+            </CardContent>
+          </Card>
 
-        {/* Face a Shadow Button */}
-        <Card className="bg-gradient-to-r from-destructive/90 to-destructive text-destructive-foreground shadow-xl">
-          <CardContent className="p-8 text-center space-y-4">
-            <Ghost className="w-12 h-12 mx-auto" />
-            <h2 className="text-2xl font-bold">Face a Shadow</h2>
-            <p className="opacity-90">Confront what's holding you back</p>
-            <Button
-              variant="secondary"
-              size="lg"
-              onClick={handleFaceShadow}
-              className="mt-4"
-            >
-              Begin Shadow Work
-            </Button>
-          </CardContent>
-        </Card>
+          {/* Face a Shadow */}
+          <Card className="bg-gradient-to-r from-destructive/90 to-destructive text-destructive-foreground shadow-xl">
+            <CardContent className="p-6 flex items-center gap-4">
+              <Ghost className="w-12 h-12 flex-shrink-0" />
+              <div className="flex-1">
+                <h2 className="text-xl font-bold">Face a Shadow</h2>
+                <p className="opacity-90 text-sm">Confront what holds you back</p>
+              </div>
+              <Button
+                variant="secondary"
+                onClick={handleFaceShadow}
+              >
+                Begin
+              </Button>
+            </CardContent>
+          </Card>
+        </div>
+
+        {/* Mentors Grid */}
+        <div>
+          <h2 className="text-2xl font-semibold mb-4">Your AI Mentors</h2>
+          <div className="grid grid-cols-2 md:grid-cols-4 lg:grid-cols-6 gap-4">
+            {mentors.map((mentor) => {
+              const Icon = mentorIcons[mentor.mentor_type as keyof typeof mentorIcons];
+              const color = mentorColors[mentor.mentor_type as keyof typeof mentorColors];
+              const name = mentorNames[mentor.mentor_type as keyof typeof mentorNames];
+
+              return (
+                <Card
+                  key={mentor.id}
+                  className="cursor-pointer hover:shadow-lg transition-all hover:scale-105"
+                  onClick={() => navigate(`/chat/${mentor.mentor_type}`)}
+                >
+                  <CardContent className="pt-6 text-center space-y-3">
+                    <div className={cn("w-14 h-14 mx-auto rounded-2xl flex items-center justify-center", color)}>
+                      <Icon className="w-7 h-7 text-white" />
+                    </div>
+                    <p className="font-medium text-sm">{name}</p>
+                  </CardContent>
+                </Card>
+              );
+            })}
+          </div>
+        </div>
 
         {/* Daily Whisper */}
         {latestWhisper && (
-          <Card>
+          <Card className="border-primary/20 bg-gradient-to-br from-primary/5 to-transparent">
             <CardHeader>
               <CardTitle className="flex items-center gap-2">
-                <Sparkles className="w-5 h-5" />
+                <Sparkles className="w-5 h-5 text-primary" />
                 Daily Whisper
               </CardTitle>
               <CardDescription>
