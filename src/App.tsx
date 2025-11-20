@@ -5,6 +5,8 @@ import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { BrowserRouter, Routes, Route, Navigate } from "react-router-dom";
 import { useEffect, useState } from "react";
 import { supabase } from "@/integrations/supabase/client";
+import { ShadowEncounterModal } from "@/components/ShadowEncounterModal";
+import { useShadowEncounters } from "@/hooks/useShadowEncounters";
 import Index from "./pages/Index";
 import Auth from "./pages/Auth";
 import OnboardingStep1 from "./pages/OnboardingStep1";
@@ -19,6 +21,27 @@ import Premium from "./pages/Premium";
 import NotFound from "./pages/NotFound";
 
 const queryClient = new QueryClient();
+
+const ShadowEncounterWrapper = () => {
+  const { activeEncounter, refetch } = useShadowEncounters();
+
+  if (!activeEncounter) return null;
+
+  return (
+    <ShadowEncounterModal
+      open={true}
+      onOpenChange={() => {}}
+      encounterId={activeEncounter.id}
+      shadowName={activeEncounter.shadow_name}
+      shadowStatement={activeEncounter.shadow_statement}
+      reflectionPrompts={activeEncounter.reflection_prompts || []}
+      taskDescription={activeEncounter.task_description}
+      mentorType={activeEncounter.mentor_type}
+      xpReward={activeEncounter.xp_reward}
+      onComplete={refetch}
+    />
+  );
+};
 
 const App = () => {
   const [session, setSession] = useState<any>(null);
@@ -52,6 +75,7 @@ const App = () => {
       <TooltipProvider>
         <Toaster />
         <Sonner />
+        <ShadowEncounterWrapper />
         <BrowserRouter>
           <Routes>
             <Route path="/" element={session ? <Navigate to="/dashboard" /> : <Index />} />

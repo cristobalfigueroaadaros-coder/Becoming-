@@ -388,6 +388,60 @@ export type Database = {
         }
         Relationships: []
       }
+      shadow_encounters: {
+        Row: {
+          completed_at: string | null
+          created_at: string | null
+          id: string
+          integration_insight: string | null
+          mentor_type: string | null
+          reflection_prompts: Json
+          shadow_name: string
+          shadow_statement: string
+          status: string
+          task_description: string
+          triggered_by: string | null
+          triggered_context: Json | null
+          user_id: string
+          voice_note_url: string | null
+          xp_reward: number
+        }
+        Insert: {
+          completed_at?: string | null
+          created_at?: string | null
+          id?: string
+          integration_insight?: string | null
+          mentor_type?: string | null
+          reflection_prompts?: Json
+          shadow_name: string
+          shadow_statement: string
+          status?: string
+          task_description: string
+          triggered_by?: string | null
+          triggered_context?: Json | null
+          user_id: string
+          voice_note_url?: string | null
+          xp_reward?: number
+        }
+        Update: {
+          completed_at?: string | null
+          created_at?: string | null
+          id?: string
+          integration_insight?: string | null
+          mentor_type?: string | null
+          reflection_prompts?: Json
+          shadow_name?: string
+          shadow_statement?: string
+          status?: string
+          task_description?: string
+          triggered_by?: string | null
+          triggered_context?: Json | null
+          user_id?: string
+          voice_note_url?: string | null
+          xp_reward?: number
+        }
+        Relationships: []
+      }
       shadow_progress: {
         Row: {
           created_at: string | null
