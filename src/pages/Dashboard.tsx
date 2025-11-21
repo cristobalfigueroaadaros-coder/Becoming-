@@ -12,6 +12,8 @@ import { DailyRitualModal } from "@/components/DailyRitualModal";
 import { GoalHierarchy } from "@/components/GoalHierarchy";
 import { AchievementsDisplay } from "@/components/AchievementsDisplay";
 import { Leaderboard } from "@/components/Leaderboard";
+import { ProfileBadges } from "@/components/ProfileBadges";
+import { useProfileBadges } from "@/hooks/useProfileBadges";
 
 const mentorIcons = {
   mamba_mentor: Brain,
@@ -67,6 +69,9 @@ const Dashboard = () => {
   const [hasCompletedRitualToday, setHasCompletedRitualToday] = useState(false);
   const [currentStreak, setCurrentStreak] = useState(0);
   const [todayGoal, setTodayGoal] = useState<string | null>(null);
+  const [currentUserId, setCurrentUserId] = useState<string | null>(null);
+  const { getUserBadgesWithDetails, loading: badgesLoading } = useProfileBadges(currentUserId || undefined);
+  const userBadges = getUserBadgesWithDetails();
 
   useEffect(() => {
     loadDashboardData();
@@ -80,6 +85,8 @@ const Dashboard = () => {
         navigate("/auth");
         return;
       }
+      
+      setCurrentUserId(user.id);
 
       // Load user's mentors
       const { data: mentorsData, error: mentorsError } = await supabase
@@ -214,9 +221,12 @@ const Dashboard = () => {
       <div className="max-w-7xl mx-auto space-y-8">
         {/* Header */}
         <div className="flex items-center justify-between">
-          <div>
+          <div className="space-y-2">
             <h1 className="text-4xl font-bold">Your Transformation Journey</h1>
-            <p className="text-muted-foreground mt-2">Guided by your mentors and Future Self</p>
+            <p className="text-muted-foreground">Guided by your mentors and Future Self</p>
+            {!badgesLoading && userBadges && userBadges.length > 0 && (
+              <ProfileBadges badges={userBadges as any} maxDisplay={4} size="small" />
+            )}
           </div>
           <div className="flex gap-2">
             <Button variant="outline" onClick={() => navigate("/profile")}>

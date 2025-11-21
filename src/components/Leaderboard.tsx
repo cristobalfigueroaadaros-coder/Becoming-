@@ -6,6 +6,7 @@ import { Badge } from "@/components/ui/badge";
 import { Trophy, Medal, Award, TrendingUp, Zap, Target, Flame } from "lucide-react";
 import { Avatar, AvatarFallback } from "@/components/ui/avatar";
 import { useNavigate } from "react-router-dom";
+import { ProfileBadges } from "./ProfileBadges";
 
 interface LeaderboardEntry {
   user_id: string;
@@ -18,6 +19,7 @@ interface LeaderboardEntry {
   completed_tasks: number;
   shadows_faced: number;
   joined_at: string;
+  badges?: any[];
 }
 
 type LeaderboardCategory = "xp" | "achievements" | "streak" | "tasks";
@@ -43,40 +45,64 @@ export const Leaderboard = () => {
   const loadLeaderboard = async () => {
     try {
       setLoading(true);
-      
-      // Calculate date filter based on timeframe
-      let dateFilter = null;
-      if (timeframe === "week") {
-        const weekAgo = new Date();
-        weekAgo.setDate(weekAgo.getDate() - 7);
-        dateFilter = weekAgo.toISOString();
-      } else if (timeframe === "month") {
-        const monthAgo = new Date();
-        monthAgo.setMonth(monthAgo.getMonth() - 1);
-        dateFilter = monthAgo.toISOString();
-      }
-
-      // Query leaderboard stats
       let query = supabase
         .from("leaderboard_stats")
         .select("*");
 
-      if (dateFilter) {
-        query = query.gte("joined_at", dateFilter);
+      // Apply timeframe filter
+      if (timeframe !== "all") {
+        const now = new Date();
+        let startDate: Date;
+
+        if (timeframe === "week") {
+          startDate = new Date(now.getTime() - 7 * 24 * 60 * 60 * 1000);
+        } else {
+          startDate = new Date(now.getTime() - 30 * 24 * 60 * 60 * 1000);
+        }
+
+        query = query.gte("joined_at", startDate.toISOString());
       }
 
-      // Sort by category
-      const sortColumn = category === "xp" ? "total_xp" :
-                        category === "achievements" ? "achievement_count" :
-                        category === "streak" ? "max_streak" :
-                        "completed_tasks";
+      // Apply category sorting
+      const sortColumn =
+        category === "xp" ? "total_xp" :
+        category === "achievements" ? "achievement_count" :
+        category === "streak" ? "max_streak" :
+        "completed_tasks";
 
-      query = query.order(sortColumn, { ascending: false }).limit(50);
-
-      const { data, error } = await query;
+      const { data, error } = await query.order(sortColumn, { ascending: false }).limit(100);
 
       if (error) throw error;
-      setEntries(data || []);
+
+      // Load badges for all users
+      const userIds = data?.map((entry) => entry.user_id).filter(Boolean) || [];
+      const { data: badgesData } = await supabase
+        .from("user_badges")
+        .select(`
+          user_id,
+          badge_key,
+          profile_badges (
+            badge_key,
+            name,
+            description,
+            icon,
+            color,
+            priority
+          )
+        `)
+        .in("user_id", userIds)
+        .eq("is_visible", true);
+
+      // Merge badges with entries
+      const entriesWithBadges = data?.map((entry) => ({
+        ...entry,
+        badges: badgesData
+          ?.filter((b) => b.user_id === entry.user_id)
+          .map((b) => b.profile_badges)
+          .filter(Boolean) || [],
+      }));
+
+      setEntries(entriesWithBadges || []);
     } catch (error) {
       console.error("Error loading leaderboard:", error);
     } finally {
@@ -212,7 +238,7 @@ export const Leaderboard = () => {
                   </Avatar>
 
                   <div className="flex-1 min-w-0">
-                    <div className="flex items-center gap-2">
+                    <div className="flex items-center gap-2 flex-wrap">
                       <p className="font-medium text-sm truncate">
                         {entry.display_name}
                         {isCurrentUser && <span className="text-primary"> (You)</span>}
@@ -220,6 +246,9 @@ export const Leaderboard = () => {
                       <Badge variant="secondary" className="text-xs">
                         Lv {entry.level}
                       </Badge>
+                      {entry.badges && entry.badges.length > 0 && (
+                        <ProfileBadges badges={entry.badges} maxDisplay={2} size="small" />
+                      )}
                     </div>
                     <div className="flex items-center gap-1 text-xs text-muted-foreground">
                       {getCategoryIcon()}
