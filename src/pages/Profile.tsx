@@ -6,9 +6,11 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Progress } from "@/components/ui/progress";
 import { Avatar, AvatarFallback } from "@/components/ui/avatar";
-import { ArrowLeft, Trophy, Flame, Target, Zap, Award, Calendar, Ghost, Users, BookOpen } from "lucide-react";
+import { ArrowLeft, Trophy, Flame, Target, Zap, Award, Calendar, Ghost, Users, BookOpen, Settings } from "lucide-react";
 import { AchievementBadge } from "@/components/AchievementBadge";
+import { ThemeCustomizationModal } from "@/components/ThemeCustomizationModal";
 import { toast } from "sonner";
+import { cn } from "@/lib/utils";
 
 interface ProfileData {
   display_name: string;
@@ -46,6 +48,32 @@ interface TimelineEvent {
   created_at: string;
 }
 
+interface ThemePreferences {
+  theme_color: string;
+  background_style: string;
+  card_style: string;
+  accent_color: string;
+  show_stats_publicly: boolean;
+  show_timeline_publicly: boolean;
+  show_achievements_publicly: boolean;
+}
+
+const themeColorMap: Record<string, string> = {
+  purple: "from-purple-500/10 via-background to-purple-500/5",
+  blue: "from-blue-500/10 via-background to-blue-500/5",
+  green: "from-green-500/10 via-background to-green-500/5",
+  orange: "from-orange-500/10 via-background to-orange-500/5",
+  pink: "from-pink-500/10 via-background to-pink-500/5",
+  teal: "from-teal-500/10 via-background to-teal-500/5",
+};
+
+const backgroundStyleMap: Record<string, string> = {
+  gradient: "bg-gradient-to-br",
+  solid: "bg-background",
+  pattern: "bg-background bg-[radial-gradient(#e5e7eb_1px,transparent_1px)] [background-size:16px_16px]",
+  minimal: "bg-background/50",
+};
+
 const Profile = () => {
   const navigate = useNavigate();
   const { userId } = useParams<{ userId: string }>();
@@ -55,6 +83,8 @@ const Profile = () => {
   const [timeline, setTimeline] = useState<TimelineEvent[]>([]);
   const [loading, setLoading] = useState(true);
   const [isOwnProfile, setIsOwnProfile] = useState(false);
+  const [themePreferences, setThemePreferences] = useState<ThemePreferences | null>(null);
+  const [customizeModalOpen, setCustomizeModalOpen] = useState(false);
 
   useEffect(() => {
     loadProfile();
@@ -99,6 +129,15 @@ const Profile = () => {
         .order("unlocked_at", { ascending: false });
 
       setUserAchievements(userAchs || []);
+
+      // Load theme preferences
+      const { data: themeData } = await supabase
+        .from("user_theme_preferences")
+        .select("*")
+        .eq("user_id", targetUserId)
+        .maybeSingle();
+
+      setThemePreferences(themeData);
 
       // Load transformation timeline (only if own profile)
       if (user?.id === targetUserId) {
@@ -155,6 +194,34 @@ const Profile = () => {
   const xpToNextLevel = profile ? (profile.level * 100) : 100;
   const xpProgress = profile ? ((profile.total_xp % 100) / xpToNextLevel) * 100 : 0;
 
+  // Get theme styling
+  const themeColor = themePreferences?.theme_color || "purple";
+  const backgroundStyle = themePreferences?.background_style || "gradient";
+  const cardStyle = themePreferences?.card_style || "default";
+  
+  const backgroundClass = `${backgroundStyleMap[backgroundStyle]} ${
+    backgroundStyle === "gradient" ? themeColorMap[themeColor] : ""
+  }`;
+
+  const getCardClass = () => {
+    const base = "transition-all";
+    switch (cardStyle) {
+      case "elevated":
+        return `${base} shadow-lg hover:shadow-xl`;
+      case "bordered":
+        return `${base} border-2`;
+      case "glass":
+        return `${base} bg-background/50 backdrop-blur-sm`;
+      default:
+        return base;
+    }
+  };
+
+  // Privacy checks
+  const canShowStats = isOwnProfile || (themePreferences?.show_stats_publicly ?? true);
+  const canShowAchievements = isOwnProfile || (themePreferences?.show_achievements_publicly ?? true);
+  const canShowTimeline = isOwnProfile || (themePreferences?.show_timeline_publicly ?? false);
+
   if (loading) {
     return (
       <div className="min-h-screen bg-gradient-to-br from-primary/5 via-background to-accent/5 flex items-center justify-center">
@@ -175,20 +242,31 @@ const Profile = () => {
   }
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-primary/5 via-background to-accent/5 p-4 py-8">
+    <div className={cn("min-h-screen p-4 py-8", backgroundClass)}>
       <div className="max-w-6xl mx-auto space-y-6">
         {/* Header */}
-        <div className="flex items-center gap-4">
-          <Button variant="ghost" size="icon" onClick={() => navigate(-1)}>
-            <ArrowLeft className="w-5 h-5" />
-          </Button>
-          <h1 className="text-3xl font-bold">
-            {isOwnProfile ? "Your Profile" : `${profile.display_name}'s Profile`}
-          </h1>
+        <div className="flex items-center justify-between gap-4">
+          <div className="flex items-center gap-4">
+            <Button variant="ghost" size="icon" onClick={() => navigate(-1)}>
+              <ArrowLeft className="w-5 h-5" />
+            </Button>
+            <h1 className="text-3xl font-bold">
+              {isOwnProfile ? "Your Profile" : `${profile.display_name}'s Profile`}
+            </h1>
+          </div>
+          {isOwnProfile && (
+            <Button
+              variant="outline"
+              onClick={() => setCustomizeModalOpen(true)}
+            >
+              <Settings className="w-4 h-4 mr-2" />
+              Customize
+            </Button>
+          )}
         </div>
 
         {/* Profile Overview */}
-        <Card className="border-2 border-primary/20">
+        <Card className={cn("border-2 border-primary/20", getCardClass())}>
           <CardContent className="pt-6">
             <div className="flex flex-col md:flex-row items-center gap-6">
               <Avatar className="w-24 h-24 text-4xl">
@@ -225,9 +303,10 @@ const Profile = () => {
         </Card>
 
         {/* Stats Grid */}
-        <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-          <Card>
-            <CardContent className="pt-6 text-center space-y-2">
+        {canShowStats && (
+          <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+            <Card className={getCardClass()}>
+              <CardContent className="pt-6 text-center space-y-2">
               <Trophy className="w-8 h-8 mx-auto text-primary" />
               <div>
                 <p className="text-2xl font-bold">{profile.achievement_count}</p>
@@ -236,7 +315,7 @@ const Profile = () => {
             </CardContent>
           </Card>
 
-          <Card>
+          <Card className={getCardClass()}>
             <CardContent className="pt-6 text-center space-y-2">
               <Flame className="w-8 h-8 mx-auto text-orange-500" />
               <div>
@@ -246,7 +325,7 @@ const Profile = () => {
             </CardContent>
           </Card>
 
-          <Card>
+          <Card className={getCardClass()}>
             <CardContent className="pt-6 text-center space-y-2">
               <Target className="w-8 h-8 mx-auto text-green-500" />
               <div>
@@ -256,7 +335,7 @@ const Profile = () => {
             </CardContent>
           </Card>
 
-          <Card>
+          <Card className={getCardClass()}>
             <CardContent className="pt-6 text-center space-y-2">
               <Ghost className="w-8 h-8 mx-auto text-purple-500" />
               <div>
@@ -266,10 +345,12 @@ const Profile = () => {
             </CardContent>
           </Card>
         </div>
+        )}
 
         {/* Achievements Showcase */}
-        <Card>
-          <CardHeader>
+        {canShowAchievements && (
+          <Card className={getCardClass()}>
+            <CardHeader>
             <CardTitle className="flex items-center gap-2">
               <Award className="w-5 h-5" />
               Achievement Showcase
@@ -298,11 +379,12 @@ const Profile = () => {
               </div>
             )}
           </CardContent>
-        </Card>
+          </Card>
+        )}
 
-        {/* Transformation Timeline (only for own profile) */}
-        {isOwnProfile && (
-          <Card>
+        {/* Transformation Timeline */}
+        {canShowTimeline && (
+          <Card className={getCardClass()}>
             <CardHeader>
               <CardTitle className="flex items-center gap-2">
                 <BookOpen className="w-5 h-5" />
@@ -338,6 +420,12 @@ const Profile = () => {
           </Card>
         )}
       </div>
+
+      <ThemeCustomizationModal
+        open={customizeModalOpen}
+        onClose={() => setCustomizeModalOpen(false)}
+        onUpdate={loadProfile}
+      />
     </div>
   );
 };

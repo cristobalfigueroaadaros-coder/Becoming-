@@ -772,6 +772,48 @@ export type Database = {
         }
         Relationships: []
       }
+      user_theme_preferences: {
+        Row: {
+          accent_color: string
+          background_style: string
+          card_style: string
+          created_at: string
+          id: string
+          show_achievements_publicly: boolean
+          show_stats_publicly: boolean
+          show_timeline_publicly: boolean
+          theme_color: string
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          accent_color?: string
+          background_style?: string
+          card_style?: string
+          created_at?: string
+          id?: string
+          show_achievements_publicly?: boolean
+          show_stats_publicly?: boolean
+          show_timeline_publicly?: boolean
+          theme_color?: string
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          accent_color?: string
+          background_style?: string
+          card_style?: string
+          created_at?: string
+          id?: string
+          show_achievements_publicly?: boolean
+          show_stats_publicly?: boolean
+          show_timeline_publicly?: boolean
+          theme_color?: string
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
       vision_goals: {
         Row: {
           created_at: string
