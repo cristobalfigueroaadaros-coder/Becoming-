@@ -104,6 +104,36 @@ export type Database = {
         }
         Relationships: []
       }
+      daily_goals: {
+        Row: {
+          completed: boolean
+          completed_at: string | null
+          created_at: string
+          goal_text: string
+          id: string
+          user_id: string
+          xp_awarded: boolean
+        }
+        Insert: {
+          completed?: boolean
+          completed_at?: string | null
+          created_at?: string
+          goal_text: string
+          id?: string
+          user_id: string
+          xp_awarded?: boolean
+        }
+        Update: {
+          completed?: boolean
+          completed_at?: string | null
+          created_at?: string
+          goal_text?: string
+          id?: string
+          user_id?: string
+          xp_awarded?: boolean
+        }
+        Relationships: []
+      }
       daily_portal_entries: {
         Row: {
           created_at: string | null
@@ -143,6 +173,36 @@ export type Database = {
           shadow_warning?: string | null
           shown_at?: string | null
           user_id?: string
+        }
+        Relationships: []
+      }
+      daily_rituals: {
+        Row: {
+          check_in_text: string
+          completed_at: string
+          created_at: string
+          id: string
+          streak_count: number
+          user_id: string
+          voice_note_url: string | null
+        }
+        Insert: {
+          check_in_text: string
+          completed_at?: string
+          created_at?: string
+          id?: string
+          streak_count?: number
+          user_id: string
+          voice_note_url?: string | null
+        }
+        Update: {
+          check_in_text?: string
+          completed_at?: string
+          created_at?: string
+          id?: string
+          streak_count?: number
+          user_id?: string
+          voice_note_url?: string | null
         }
         Relationships: []
       }
