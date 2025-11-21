@@ -597,7 +597,7 @@ const Profile = () => {
         )}
 
         {/* Human Design Bodygraph - Show if data exists */}
-        {humanDesignData && (
+        {humanDesignData && humanDesignData.defined_centers && humanDesignData.defined_centers.length > 0 && (
           <BodygraphChart data={humanDesignData} showLabels={true} />
         )}
 
