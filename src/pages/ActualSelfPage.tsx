@@ -1,12 +1,111 @@
 import { useNavigate } from "react-router-dom";
 import { motion } from "framer-motion";
+import { useState, useEffect } from "react";
 import { Button } from "@/components/ui/button";
-import { ArrowLeft } from "lucide-react";
+import { ArrowLeft, Star } from "lucide-react";
 import FutureSelfBackground from "@/components/FutureSelfBackground";
 import { Card } from "@/components/ui/card";
+import { HumanDesignCard } from "@/components/human-design/HumanDesignCard";
+import { supabase } from "@/integrations/supabase/client";
+import { generateMockHumanDesignData, generateHumanDesignDots } from "@/lib/humanDesignDots";
+import { toast } from "sonner";
 
 const ActualSelfPage = () => {
   const navigate = useNavigate();
+  const [humanDesignData, setHumanDesignData] = useState<any>(null);
+  const [hasBirthData, setHasBirthData] = useState(false);
+  const [loading, setLoading] = useState(true);
+  const [generatingDots, setGeneratingDots] = useState(false);
+
+  useEffect(() => {
+    loadHumanDesignData();
+  }, []);
+
+  const loadHumanDesignData = async () => {
+    try {
+      const { data: { user } } = await supabase.auth.getUser();
+      if (!user) return;
+
+      const { data: profile } = await supabase
+        .from("profiles")
+        .select("birth_date, birth_time, birth_time_unknown, human_design_data")
+        .eq("id", user.id)
+        .single();
+
+      if (!profile?.birth_date) {
+        setLoading(false);
+        return;
+      }
+
+      setHasBirthData(true);
+
+      // Check if Human Design data exists
+      if (profile.human_design_data && Object.keys(profile.human_design_data).length > 0) {
+        setHumanDesignData(profile.human_design_data);
+      } else {
+        // Generate Human Design data
+        const hdData = generateMockHumanDesignData(
+          profile.birth_date,
+          profile.birth_time,
+          profile.birth_time_unknown
+        );
+        setHumanDesignData(hdData);
+
+        // Save to profile
+        await supabase
+          .from("profiles")
+          .update({ human_design_data: hdData as any })
+          .eq("id", user.id);
+
+        // Auto-generate constellation dots
+        await handleGenerateDots(hdData, user.id);
+      }
+    } catch (error) {
+      console.error("Error loading Human Design data:", error);
+      toast.error("Failed to load Human Design data");
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const handleGenerateDots = async (hdData?: any, userId?: string) => {
+    setGeneratingDots(true);
+    try {
+      const { data: { user } } = await supabase.auth.getUser();
+      if (!user) throw new Error("Not authenticated");
+
+      const dataToUse = hdData || humanDesignData;
+      const userIdToUse = userId || user.id;
+
+      if (!dataToUse) {
+        toast.error("No Human Design data available");
+        return;
+      }
+
+      // Check if dots already exist
+      const { data: existingDots } = await supabase
+        .from("insight_dots")
+        .select("id")
+        .eq("user_id", userIdToUse)
+        .like("source_type", "human_design%")
+        .limit(1);
+
+      if (existingDots && existingDots.length > 0) {
+        toast.info("Human Design insights already added to your constellation");
+        return;
+      }
+
+      await generateHumanDesignDots(userIdToUse, dataToUse);
+      toast.success("Human Design insights added to your constellation!", {
+        description: "Check the Mapping page to see your new dots"
+      });
+    } catch (error: any) {
+      console.error("Error generating dots:", error);
+      toast.error("Failed to generate constellation dots");
+    } finally {
+      setGeneratingDots(false);
+    }
+  };
 
   return (
     <motion.div 
@@ -34,7 +133,7 @@ const ActualSelfPage = () => {
 
       {/* Content */}
       <motion.div 
-        className="max-w-4xl mx-auto px-4 py-12"
+        className="max-w-4xl mx-auto px-4 py-12 space-y-8"
         initial={{ opacity: 0, y: 20 }}
         animate={{ opacity: 1, y: 0 }}
         transition={{ duration: 0.4, delay: 0.1 }}
@@ -42,6 +141,42 @@ const ActualSelfPage = () => {
         <h1 className="text-5xl md:text-6xl font-bold text-center text-foreground mb-12">
           Actual Self
         </h1>
+
+        {/* Human Design Section */}
+        {loading ? (
+          <Card className="p-8 bg-card/30 backdrop-blur-sm border-border/30">
+            <div className="text-center">
+              <p className="text-muted-foreground">Loading your Human Design...</p>
+            </div>
+          </Card>
+        ) : hasBirthData && humanDesignData ? (
+          <>
+            <HumanDesignCard data={humanDesignData} />
+            <div className="flex justify-center">
+              <Button
+                onClick={() => handleGenerateDots()}
+                disabled={generatingDots}
+                className="gap-2"
+              >
+                <Star className="w-4 h-4" />
+                {generatingDots ? "Adding to Constellation..." : "View in Constellation Map"}
+              </Button>
+            </div>
+          </>
+        ) : (
+          <Card className="p-8 bg-card/30 backdrop-blur-sm border-border/30">
+            <div className="flex flex-col items-center gap-4 text-center">
+              <Star className="w-12 h-12 text-muted-foreground" />
+              <h2 className="text-2xl font-bold">Unlock Your Human Design</h2>
+              <p className="text-muted-foreground max-w-md">
+                Add your birth date to discover your unique energetic blueprint and understand your natural strengths.
+              </p>
+              <Button onClick={() => navigate("/profile")}>
+                Add Birth Info
+              </Button>
+            </div>
+          </Card>
+        )}
         
         <Card className="p-8 bg-card/30 backdrop-blur-sm border-border/30">
           <div className="flex flex-col items-center gap-8">

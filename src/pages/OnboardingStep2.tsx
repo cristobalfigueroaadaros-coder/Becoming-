@@ -7,7 +7,8 @@ import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { toast } from "sonner";
-import { Sparkles } from "lucide-react";
+import { Sparkles, Star } from "lucide-react";
+import { Checkbox } from "@/components/ui/checkbox";
 
 const OnboardingStep2 = () => {
   const navigate = useNavigate();
@@ -22,6 +23,10 @@ const OnboardingStep2 = () => {
     strength2: "",
     strength3: "",
     priority_growth_area: "",
+    birth_date: "",
+    birth_time: "",
+    birth_location: "",
+    birth_time_unknown: false,
   });
 
   const handleSubmit = async (e: React.FormEvent) => {
@@ -41,6 +46,10 @@ const OnboardingStep2 = () => {
         emotional_tone: formData.emotional_tone,
         main_strengths: [formData.strength1, formData.strength2, formData.strength3],
         priority_growth_area: formData.priority_growth_area,
+        birth_date: formData.birth_date || null,
+        birth_time: formData.birth_time || null,
+        birth_location: formData.birth_location || null,
+        birth_time_unknown: formData.birth_time_unknown,
       });
 
       // Initialize future_self_progress for the user
@@ -180,6 +189,74 @@ const OnboardingStep2 = () => {
                   <option value="Creativity and Learning">Creativity and Learning</option>
                   <option value="Spiritual Growth">Spiritual Growth</option>
                 </select>
+              </div>
+
+              {/* Human Design Section */}
+              <div className="border-t border-border pt-6 space-y-4">
+                <div className="flex items-start gap-3 p-4 bg-primary/5 border border-primary/20 rounded-lg">
+                  <Star className="w-5 h-5 text-primary flex-shrink-0 mt-0.5" />
+                  <div className="space-y-1">
+                    <h3 className="font-semibold text-sm">Personalize with Human Design</h3>
+                    <p className="text-xs text-muted-foreground">
+                      Share your birth info to unlock insights about your energy type, decision-making style, and natural strengths based on Human Design.
+                    </p>
+                  </div>
+                </div>
+
+                <div className="space-y-2">
+                  <Label htmlFor="birth_date">Birth Date *</Label>
+                  <Input
+                    id="birth_date"
+                    type="date"
+                    value={formData.birth_date}
+                    onChange={(e) => setFormData({ ...formData, birth_date: e.target.value })}
+                    max={new Date().toISOString().split('T')[0]}
+                    required
+                  />
+                </div>
+
+                <div className="space-y-2">
+                  <Label htmlFor="birth_time">
+                    Birth Time {formData.birth_time_unknown && "(Approximate)"}
+                  </Label>
+                  <Input
+                    id="birth_time"
+                    type="time"
+                    value={formData.birth_time}
+                    onChange={(e) => setFormData({ ...formData, birth_time: e.target.value })}
+                    disabled={formData.birth_time_unknown}
+                    placeholder="Optional but recommended"
+                  />
+                  <div className="flex items-center gap-2">
+                    <Checkbox
+                      id="time_unknown"
+                      checked={formData.birth_time_unknown}
+                      onCheckedChange={(checked) => {
+                        setFormData({ 
+                          ...formData, 
+                          birth_time_unknown: checked as boolean,
+                          birth_time: checked ? "12:00" : ""
+                        });
+                      }}
+                    />
+                    <Label htmlFor="time_unknown" className="text-xs text-muted-foreground cursor-pointer">
+                      I don't know my birth time (we'll use noon as default)
+                    </Label>
+                  </div>
+                </div>
+
+                <div className="space-y-2">
+                  <Label htmlFor="birth_location">Birth Location</Label>
+                  <Input
+                    id="birth_location"
+                    placeholder="City, Country (e.g., New York, USA)"
+                    value={formData.birth_location}
+                    onChange={(e) => setFormData({ ...formData, birth_location: e.target.value })}
+                  />
+                  <p className="text-xs text-muted-foreground">
+                    Optional but helps with more accurate calculations
+                  </p>
+                </div>
               </div>
 
               <Button type="submit" className="w-full" size="lg" disabled={loading}>

@@ -679,6 +679,10 @@ export type Database = {
       }
       profiles: {
         Row: {
+          birth_date: string | null
+          birth_location: string | null
+          birth_time: string | null
+          birth_time_unknown: boolean | null
           created_at: string | null
           emotional_tone: string | null
           future_age: number | null
@@ -686,6 +690,7 @@ export type Database = {
           future_location: string | null
           future_self_avatar: string | null
           future_self_voice_note: string | null
+          human_design_data: Json | null
           id: string
           main_mission: string | null
           main_strengths: string[] | null
@@ -694,6 +699,10 @@ export type Database = {
           updated_at: string | null
         }
         Insert: {
+          birth_date?: string | null
+          birth_location?: string | null
+          birth_time?: string | null
+          birth_time_unknown?: boolean | null
           created_at?: string | null
           emotional_tone?: string | null
           future_age?: number | null
@@ -701,6 +710,7 @@ export type Database = {
           future_location?: string | null
           future_self_avatar?: string | null
           future_self_voice_note?: string | null
+          human_design_data?: Json | null
           id: string
           main_mission?: string | null
           main_strengths?: string[] | null
@@ -709,6 +719,10 @@ export type Database = {
           updated_at?: string | null
         }
         Update: {
+          birth_date?: string | null
+          birth_location?: string | null
+          birth_time?: string | null
+          birth_time_unknown?: boolean | null
           created_at?: string | null
           emotional_tone?: string | null
           future_age?: number | null
@@ -716,6 +730,7 @@ export type Database = {
           future_location?: string | null
           future_self_avatar?: string | null
           future_self_voice_note?: string | null
+          human_design_data?: Json | null
           id?: string
           main_mission?: string | null
           main_strengths?: string[] | null

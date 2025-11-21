@@ -48,6 +48,12 @@ const sourceColors: Record<string, string> = {
   journal_breakthrough: "hsl(280 75% 65%)",
   domain_milestone: "hsl(200 85% 60%)",
   quest_completion: "hsl(300 80% 60%)",
+  human_design_type: "hsl(240 80% 65%)",
+  human_design_strategy: "hsl(200 80% 60%)",
+  human_design_authority: "hsl(40 90% 60%)",
+  human_design_profile: "hsl(320 75% 65%)",
+  human_design_centers: "hsl(160 75% 55%)",
+  human_design_gate: "hsl(270 80% 65%)",
 };
 
 const sourceLabels: Record<string, string> = {
@@ -63,6 +69,12 @@ const sourceLabels: Record<string, string> = {
   journal_breakthrough: "Breakthrough",
   domain_milestone: "Milestone",
   quest_completion: "Quest Win",
+  human_design_type: "HD Type",
+  human_design_strategy: "HD Strategy",
+  human_design_authority: "HD Authority",
+  human_design_profile: "HD Profile",
+  human_design_centers: "HD Centers",
+  human_design_gate: "HD Gate",
 };
 
 export const ConstellationCanvas = ({ 
