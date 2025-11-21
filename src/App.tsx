@@ -15,6 +15,12 @@ import OnboardingStep2 from "./pages/OnboardingStep2";
 import OnboardingStep3 from "./pages/OnboardingStep3";
 import Dashboard from "./pages/Dashboard";
 import FutureSelf from "./pages/FutureSelf";
+import LifeDomainsPage from "./pages/LifeDomainsPage";
+import GoalStructurePage from "./pages/GoalStructurePage";
+import ConstellationPage from "./pages/ConstellationPage";
+import QuestsPage from "./pages/QuestsPage";
+import ActualSelfPage from "./pages/ActualSelfPage";
+import FutureSelfDetailPage from "./pages/FutureSelfDetailPage";
 import Chat from "./pages/Chat";
 import CouncilMeeting from "./pages/CouncilMeeting";
 import CouncilLog from "./pages/CouncilLog";
@@ -133,6 +139,30 @@ const App = () => {
             <Route
               path="/future-self"
               element={session ? <FutureSelf /> : <Navigate to="/auth" />}
+            />
+            <Route
+              path="/future-self/life-domains"
+              element={session ? <LifeDomainsPage /> : <Navigate to="/auth" />}
+            />
+            <Route
+              path="/future-self/goals"
+              element={session ? <GoalStructurePage /> : <Navigate to="/auth" />}
+            />
+            <Route
+              path="/future-self/constellation"
+              element={session ? <ConstellationPage /> : <Navigate to="/auth" />}
+            />
+            <Route
+              path="/future-self/quests"
+              element={session ? <QuestsPage /> : <Navigate to="/auth" />}
+            />
+            <Route
+              path="/future-self/actual-self"
+              element={session ? <ActualSelfPage /> : <Navigate to="/auth" />}
+            />
+            <Route
+              path="/future-self/detail"
+              element={session ? <FutureSelfDetailPage /> : <Navigate to="/auth" />}
             />
             <Route
               path="/chat/:mentorType"
