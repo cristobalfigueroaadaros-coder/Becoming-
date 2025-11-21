@@ -6,6 +6,7 @@ import { ArrowLeft, Star } from "lucide-react";
 import FutureSelfBackground from "@/components/FutureSelfBackground";
 import { Card } from "@/components/ui/card";
 import { HumanDesignCard } from "@/components/human-design/HumanDesignCard";
+import { BodygraphChart } from "@/components/human-design/BodygraphChart";
 import { supabase } from "@/integrations/supabase/client";
 import { generateMockHumanDesignData, generateHumanDesignDots } from "@/lib/humanDesignDots";
 import { toast } from "sonner";
@@ -150,8 +151,11 @@ const ActualSelfPage = () => {
             </div>
           </Card>
         ) : hasBirthData && humanDesignData ? (
-          <>
-            <HumanDesignCard data={humanDesignData} />
+          <div className="space-y-6">
+            <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+              <HumanDesignCard data={humanDesignData} />
+              <BodygraphChart data={humanDesignData} />
+            </div>
             <div className="flex justify-center">
               <Button
                 onClick={() => handleGenerateDots()}
@@ -162,7 +166,7 @@ const ActualSelfPage = () => {
                 {generatingDots ? "Adding to Constellation..." : "View in Constellation Map"}
               </Button>
             </div>
-          </>
+          </div>
         ) : (
           <Card className="p-8 bg-card/30 backdrop-blur-sm border-border/30">
             <div className="flex flex-col items-center gap-4 text-center">
