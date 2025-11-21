@@ -3,11 +3,12 @@ import { useNavigate } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
-import { Brain, Lightbulb, Zap, Trees, Heart, Sparkles, Users, BookOpen, Crown, LogOut, CheckSquare, Briefcase, Palette, Compass, Target, Flag, Ghost } from "lucide-react";
+import { Brain, Lightbulb, Zap, Trees, Heart, Sparkles, Users, BookOpen, Crown, LogOut, CheckSquare, Briefcase, Palette, Compass, Target, Flag, Ghost, Sunrise, Flame } from "lucide-react";
 import { toast } from "sonner";
 import { cn } from "@/lib/utils";
 import { FutureSelfWidget } from "@/components/FutureSelfWidget";
 import { LifeDomainsRadar } from "@/components/LifeDomainsRadar";
+import { DailyRitualModal } from "@/components/DailyRitualModal";
 
 const mentorIcons = {
   mamba_mentor: Brain,
@@ -59,9 +60,14 @@ const Dashboard = () => {
   const [mentors, setMentors] = useState<any[]>([]);
   const [latestWhisper, setLatestWhisper] = useState<any>(null);
   const [loading, setLoading] = useState(true);
+  const [ritualModalOpen, setRitualModalOpen] = useState(false);
+  const [hasCompletedRitualToday, setHasCompletedRitualToday] = useState(false);
+  const [currentStreak, setCurrentStreak] = useState(0);
+  const [todayGoal, setTodayGoal] = useState<string | null>(null);
 
   useEffect(() => {
     loadDashboardData();
+    checkRitualStatus();
   }, []);
 
   const loadDashboardData = async () => {
@@ -132,6 +138,66 @@ const Dashboard = () => {
     }
   };
 
+  const checkRitualStatus = async () => {
+    try {
+      const { data: { user } } = await supabase.auth.getUser();
+      if (!user) return;
+
+      const today = new Date();
+      today.setHours(0, 0, 0, 0);
+
+      // Check if ritual completed today
+      const { data: rituals } = await supabase
+        .from("daily_rituals")
+        .select("completed_at, streak_count")
+        .eq("user_id", user.id)
+        .gte("completed_at", today.toISOString())
+        .order("completed_at", { ascending: false })
+        .limit(1);
+
+      if (rituals && rituals.length > 0) {
+        setHasCompletedRitualToday(true);
+        setCurrentStreak(rituals[0].streak_count);
+      } else {
+        setHasCompletedRitualToday(false);
+        // Calculate streak from last ritual
+        const { data: lastRitual } = await supabase
+          .from("daily_rituals")
+          .select("completed_at, streak_count")
+          .eq("user_id", user.id)
+          .order("completed_at", { ascending: false })
+          .limit(1);
+
+        if (lastRitual && lastRitual.length > 0) {
+          const lastDate = new Date(lastRitual[0].completed_at);
+          const diffTime = Math.abs(today.getTime() - lastDate.getTime());
+          const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
+          
+          if (diffDays === 1) {
+            setCurrentStreak(lastRitual[0].streak_count);
+          } else {
+            setCurrentStreak(0);
+          }
+        }
+      }
+
+      // Load today's goal
+      const { data: goals } = await supabase
+        .from("daily_goals")
+        .select("goal_text, completed")
+        .eq("user_id", user.id)
+        .gte("created_at", today.toISOString())
+        .order("created_at", { ascending: false })
+        .limit(1);
+
+      if (goals && goals.length > 0) {
+        setTodayGoal(goals[0].goal_text);
+      }
+    } catch (error: any) {
+      console.error("Error checking ritual status:", error);
+    }
+  };
+
   if (loading) {
     return (
       <div className="min-h-screen flex items-center justify-center">
@@ -160,6 +226,57 @@ const Dashboard = () => {
           <FutureSelfWidget />
           <LifeDomainsRadar />
         </div>
+
+        {/* Daily Ritual Status */}
+        <Card className="border-primary/20">
+          <CardHeader>
+            <CardTitle className="flex items-center gap-2">
+              <Sunrise className="w-5 h-5 text-primary" />
+              Morning Ritual
+            </CardTitle>
+          </CardHeader>
+          <CardContent>
+            {hasCompletedRitualToday ? (
+              <div className="space-y-3">
+                <div className="flex items-center justify-between">
+                  <div className="flex items-center gap-2">
+                    <div className="w-3 h-3 rounded-full bg-green-500" />
+                    <span className="text-sm font-medium">Ritual Complete ✨</span>
+                  </div>
+                  <div className="flex items-center gap-2 text-orange-500">
+                    <Flame className="w-4 h-4" />
+                    <span className="text-sm font-bold">{currentStreak} day streak</span>
+                  </div>
+                </div>
+                {todayGoal && (
+                  <div className="p-3 rounded-lg bg-muted/50">
+                    <p className="text-sm text-muted-foreground mb-1">Today's Intention:</p>
+                    <p className="text-sm font-medium">{todayGoal}</p>
+                  </div>
+                )}
+              </div>
+            ) : (
+              <div className="space-y-3">
+                <p className="text-sm text-muted-foreground">
+                  Start your day with intention. Complete your morning ritual to set yourself up for success.
+                </p>
+                <Button 
+                  onClick={() => setRitualModalOpen(true)}
+                  className="w-full"
+                >
+                  <Sunrise className="w-4 h-4 mr-2" />
+                  Begin Morning Ritual
+                </Button>
+                {currentStreak > 0 && (
+                  <div className="flex items-center gap-2 text-orange-500 justify-center">
+                    <Flame className="w-4 h-4" />
+                    <span className="text-xs">Keep your {currentStreak}-day streak alive!</span>
+                  </div>
+                )}
+              </div>
+            )}
+          </CardContent>
+        </Card>
 
         {/* Action Buttons Row */}
         <div className="grid md:grid-cols-2 gap-4">
@@ -291,6 +408,15 @@ const Dashboard = () => {
           </Card>
         </div>
       </div>
+
+      <DailyRitualModal
+        open={ritualModalOpen}
+        onClose={() => setRitualModalOpen(false)}
+        onComplete={() => {
+          checkRitualStatus();
+          setRitualModalOpen(false);
+        }}
+      />
     </div>
   );
 };
