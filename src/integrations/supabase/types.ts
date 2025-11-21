@@ -725,6 +725,27 @@ export type Database = {
         }
         Relationships: []
       }
+      purpose_history: {
+        Row: {
+          created_at: string
+          id: string
+          purpose_text: string
+          user_id: string
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          purpose_text: string
+          user_id: string
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          purpose_text?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
       quest_progress: {
         Row: {
           completed_steps: Json
