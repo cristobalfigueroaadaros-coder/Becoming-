@@ -12,6 +12,7 @@ import { ArrowLeft, Network, Filter, Sparkles, Link2, Calendar, Tag, FileText, P
 import { toast } from "sonner";
 import { cn } from "@/lib/utils";
 import { ConstellationCanvas } from "@/components/ConstellationCanvas";
+import { PurposeOnboardingModal } from "@/components/PurposeOnboardingModal";
 
 interface InsightDot {
   id: string;
@@ -67,11 +68,25 @@ const MappingDotsPage = () => {
   const [userReflection, setUserReflection] = useState("");
   const [suggestingConnections, setSuggestingConnections] = useState(false);
   const [loading, setLoading] = useState(true);
+  const [showOnboarding, setShowOnboarding] = useState(false);
 
   useEffect(() => {
     loadDots();
     loadConnections();
+    checkOnboarding();
   }, []);
+
+  const checkOnboarding = () => {
+    const hasSeenOnboarding = localStorage.getItem("mapping-onboarding-completed");
+    if (!hasSeenOnboarding) {
+      setShowOnboarding(true);
+    }
+  };
+
+  const handleOnboardingClose = () => {
+    localStorage.setItem("mapping-onboarding-completed", "true");
+    setShowOnboarding(false);
+  };
 
   const loadDots = async () => {
     try {
@@ -207,6 +222,10 @@ const MappingDotsPage = () => {
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-primary/5 via-background to-accent/5 p-4 py-8">
+      <PurposeOnboardingModal 
+        open={showOnboarding} 
+        onClose={handleOnboardingClose}
+      />
       <div className="max-w-7xl mx-auto space-y-6">
         {/* Header */}
         <div className="flex items-center justify-between flex-wrap gap-4">
