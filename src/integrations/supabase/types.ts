@@ -14,6 +14,45 @@ export type Database = {
   }
   public: {
     Tables: {
+      achievements: {
+        Row: {
+          achievement_key: string
+          created_at: string
+          description: string
+          icon: string
+          id: string
+          requirement_type: string
+          requirement_value: number
+          tier: string
+          title: string
+          xp_reward: number
+        }
+        Insert: {
+          achievement_key: string
+          created_at?: string
+          description: string
+          icon: string
+          id?: string
+          requirement_type: string
+          requirement_value: number
+          tier?: string
+          title: string
+          xp_reward?: number
+        }
+        Update: {
+          achievement_key?: string
+          created_at?: string
+          description?: string
+          icon?: string
+          id?: string
+          requirement_type?: string
+          requirement_value?: number
+          tier?: string
+          title?: string
+          xp_reward?: number
+        }
+        Relationships: []
+      }
       actual_self_journal: {
         Row: {
           created_at: string | null
@@ -657,6 +696,33 @@ export type Database = {
           event_data?: Json
           event_type?: string
           id?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
+      user_achievements: {
+        Row: {
+          achievement_key: string
+          created_at: string
+          id: string
+          progress: number
+          unlocked_at: string
+          user_id: string
+        }
+        Insert: {
+          achievement_key: string
+          created_at?: string
+          id?: string
+          progress?: number
+          unlocked_at?: string
+          user_id: string
+        }
+        Update: {
+          achievement_key?: string
+          created_at?: string
+          id?: string
+          progress?: number
+          unlocked_at?: string
           user_id?: string
         }
         Relationships: []
