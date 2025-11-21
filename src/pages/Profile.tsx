@@ -596,9 +596,68 @@ const Profile = () => {
           />
         )}
 
-        {/* Human Design Bodygraph - Show if data exists */}
-        {humanDesignData && humanDesignData.defined_centers && humanDesignData.defined_centers.length > 0 && (
+        {/* Human Design Section */}
+        {humanDesignData && humanDesignData.defined_centers && humanDesignData.defined_centers.length > 0 ? (
           <BodygraphChart data={humanDesignData} showLabels={true} />
+        ) : isOwnProfile && (
+          <Card className="border-2 border-primary/20 bg-gradient-to-br from-primary/5 to-mentor-future/5">
+            <CardHeader>
+              <div className="flex items-center gap-3">
+                <div className="w-12 h-12 rounded-full bg-primary/10 flex items-center justify-center">
+                  <Compass className="w-6 h-6 text-primary" />
+                </div>
+                <div>
+                  <CardTitle className="text-xl">Discover Your Human Design</CardTitle>
+                  <p className="text-sm text-muted-foreground mt-1">
+                    Unlock insights into your unique energy blueprint
+                  </p>
+                </div>
+              </div>
+            </CardHeader>
+            <CardContent className="space-y-4">
+              <p className="text-sm text-muted-foreground">
+                Human Design combines ancient wisdom with modern science to reveal your authentic self. 
+                Complete your birth information above to generate your personalized bodygraph chart.
+              </p>
+              <div className="flex flex-col sm:flex-row gap-3">
+                <div className="flex-1 p-4 rounded-lg bg-card/50 border border-border/50">
+                  <div className="flex items-center gap-2 mb-2">
+                    <Target className="w-4 h-4 text-primary" />
+                    <span className="text-sm font-semibold">Your Type</span>
+                  </div>
+                  <p className="text-xs text-muted-foreground">
+                    Discover your energetic blueprint
+                  </p>
+                </div>
+                <div className="flex-1 p-4 rounded-lg bg-card/50 border border-border/50">
+                  <div className="flex items-center gap-2 mb-2">
+                    <Zap className="w-4 h-4 text-primary" />
+                    <span className="text-sm font-semibold">Your Strategy</span>
+                  </div>
+                  <p className="text-xs text-muted-foreground">
+                    Learn how to make aligned decisions
+                  </p>
+                </div>
+                <div className="flex-1 p-4 rounded-lg bg-card/50 border border-border/50">
+                  <div className="flex items-center gap-2 mb-2">
+                    <Award className="w-4 h-4 text-primary" />
+                    <span className="text-sm font-semibold">Your Centers</span>
+                  </div>
+                  <p className="text-xs text-muted-foreground">
+                    Understand your energy centers
+                  </p>
+                </div>
+              </div>
+              {!birthInfo?.birth_date && (
+                <div className="p-3 rounded-lg bg-primary/10 border border-primary/20">
+                  <p className="text-sm text-foreground">
+                    👆 <strong>Get started:</strong> Fill in your birth information in the editor above, 
+                    then save to generate your Human Design chart.
+                  </p>
+                </div>
+              )}
+            </CardContent>
+          </Card>
         )}
 
         {/* Stats Grid */}
