@@ -595,6 +595,39 @@ export type Database = {
         }
         Relationships: []
       }
+      self_discovery_quests: {
+        Row: {
+          completed_at: string | null
+          created_at: string
+          id: string
+          insights_generated: string | null
+          quest_data: Json
+          quest_type: string
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          completed_at?: string | null
+          created_at?: string
+          id?: string
+          insights_generated?: string | null
+          quest_data?: Json
+          quest_type: string
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          completed_at?: string | null
+          created_at?: string
+          id?: string
+          insights_generated?: string | null
+          quest_data?: Json
+          quest_type?: string
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
       shadow_encounters: {
         Row: {
           completed_at: string | null
