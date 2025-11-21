@@ -2,7 +2,7 @@ import { useNavigate } from "react-router-dom";
 import { useState, useEffect } from "react";
 import { motion } from "framer-motion";
 import { Button } from "@/components/ui/button";
-import { ArrowLeft, Network, Clock, FileText, Filter, X, Sparkles, Loader2 } from "lucide-react";
+import { ArrowLeft, Network, Clock, FileText, Filter, X, Sparkles, Loader2, Target } from "lucide-react";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import FutureSelfBackground from "@/components/FutureSelfBackground";
 import { ConstellationSystem } from "@/components/ConstellationSystem";
@@ -109,6 +109,7 @@ const ConstellationPage = () => {
   const handleCloseOnboarding = () => {
     setShowOnboarding(false);
     localStorage.setItem("mapping-onboarding-completed", "true");
+    loadAllData(); // Reload to get updated purpose
   };
 
   // Filter dots based on selected filters
@@ -251,11 +252,12 @@ const ConstellationPage = () => {
       <PurposeOnboardingModal 
         open={showOnboarding}
         onClose={handleCloseOnboarding}
+        existingPurpose={userPurpose}
       />
       
       {/* Header */}
       <div className="sticky top-0 z-10 bg-card/50 backdrop-blur-lg border-b border-border/30">
-        <div className="max-w-7xl mx-auto px-4 py-4">
+        <div className="max-w-7xl mx-auto px-4 py-4 flex items-center justify-between">
           <Button
             variant="ghost"
             onClick={() => navigate("/future-self")}
@@ -263,6 +265,16 @@ const ConstellationPage = () => {
           >
             <ArrowLeft className="w-4 h-4" />
             Back to Dashboard
+          </Button>
+          
+          <Button
+            variant="outline"
+            size="sm"
+            onClick={() => setShowOnboarding(true)}
+            className="gap-2"
+          >
+            <Target className="w-4 h-4" />
+            {userPurpose ? "Edit Purpose" : "Set Purpose"}
           </Button>
         </div>
       </div>
