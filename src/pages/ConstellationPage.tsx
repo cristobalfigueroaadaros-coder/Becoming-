@@ -66,6 +66,12 @@ const sourceColors: Record<string, string> = {
   journal_breakthrough: "bg-violet-500",
   domain_milestone: "bg-cyan-500",
   quest_completion: "bg-fuchsia-500",
+  human_design_type: "bg-indigo-500",
+  human_design_strategy: "bg-sky-500",
+  human_design_authority: "bg-amber-500",
+  human_design_profile: "bg-pink-500",
+  human_design_centers: "bg-emerald-500",
+  human_design_gate: "bg-purple-500",
 };
 
 const sourceLabels: Record<string, string> = {
@@ -82,6 +88,12 @@ const sourceLabels: Record<string, string> = {
   journal_breakthrough: "Journal Breakthrough",
   domain_milestone: "Domain Milestone",
   quest_completion: "Quest Completion",
+  human_design_type: "⭐ HD Type",
+  human_design_strategy: "⚡ HD Strategy",
+  human_design_authority: "🧭 HD Authority",
+  human_design_profile: "👤 HD Profile",
+  human_design_centers: "🔮 HD Centers",
+  human_design_gate: "🚪 HD Gate",
 };
 
 const ConstellationPage = () => {
