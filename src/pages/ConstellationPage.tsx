@@ -2,7 +2,7 @@ import { useNavigate } from "react-router-dom";
 import { useState, useEffect } from "react";
 import { motion } from "framer-motion";
 import { Button } from "@/components/ui/button";
-import { ArrowLeft, Network, Clock, FileText } from "lucide-react";
+import { ArrowLeft, Network, Clock, FileText, Filter, X } from "lucide-react";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import FutureSelfBackground from "@/components/FutureSelfBackground";
 import { ConstellationSystem } from "@/components/ConstellationSystem";
@@ -10,9 +10,10 @@ import { ConstellationCanvas } from "@/components/ConstellationCanvas";
 import { ConstellationTimeline } from "@/components/ConstellationTimeline";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
-import { Card, CardContent } from "@/components/ui/card";
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { ScrollArea } from "@/components/ui/scroll-area";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { cn } from "@/lib/utils";
 
 interface InsightDot {
@@ -59,6 +60,26 @@ const sourceColors: Record<string, string> = {
   journal: "bg-purple-500",
   shadow_work: "bg-red-500",
   goal_achievement: "bg-teal-500",
+  shadow_integration: "bg-rose-500",
+  journal_breakthrough: "bg-violet-500",
+  domain_milestone: "bg-cyan-500",
+  quest_completion: "bg-fuchsia-500",
+};
+
+const sourceLabels: Record<string, string> = {
+  book: "📚 Book",
+  idea: "💡 Idea",
+  insight: "✨ Insight",
+  milestone: "🎯 Milestone",
+  council_meeting: "Council Meeting",
+  mentor_chat: "Mentor Chat",
+  journal: "Journal",
+  shadow_work: "Shadow Work",
+  goal_achievement: "Goal Achievement",
+  shadow_integration: "Shadow Integration",
+  journal_breakthrough: "Journal Breakthrough",
+  domain_milestone: "Domain Milestone",
+  quest_completion: "Quest Completion",
 };
 
 const ConstellationPage = () => {
@@ -68,10 +89,31 @@ const ConstellationPage = () => {
   const [connections, setConnections] = useState<DotConnection[]>([]);
   const [selectedDot, setSelectedDot] = useState<InsightDot | null>(null);
   const [userPurpose, setUserPurpose] = useState<string | null>(null);
+  const [filterSource, setFilterSource] = useState<string>("all");
+  const [filterTheme, setFilterTheme] = useState<string>("all");
+  const [showFilters, setShowFilters] = useState(false);
 
   useEffect(() => {
     loadAllData();
   }, []);
+
+  // Filter dots based on selected filters
+  const filteredDots = dots.filter((dot) => {
+    if (filterSource !== "all" && dot.source_type !== filterSource) return false;
+    if (filterTheme !== "all" && dot.core_theme !== filterTheme) return false;
+    return true;
+  });
+
+  // Get unique themes and sources
+  const uniqueThemes = [...new Set(dots.map((d) => d.core_theme))].sort();
+  const uniqueSources = [...new Set(dots.map((d) => d.source_type))].sort();
+
+  const clearFilters = () => {
+    setFilterSource("all");
+    setFilterTheme("all");
+  };
+
+  const activeFiltersCount = (filterSource !== "all" ? 1 : 0) + (filterTheme !== "all" ? 1 : 0);
 
   const loadAllData = async () => {
     try {
@@ -177,53 +219,187 @@ const ConstellationPage = () => {
         </p>
         
         <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full">
-          <TabsList className="grid w-full grid-cols-4 mb-8">
-            <TabsTrigger value="add">Add Entries</TabsTrigger>
-            <TabsTrigger value="canvas">
-              <Network className="w-4 h-4 mr-2" />
-              Canvas
-            </TabsTrigger>
-            <TabsTrigger value="timeline">
-              <Clock className="w-4 h-4 mr-2" />
-              Timeline
-            </TabsTrigger>
-            <TabsTrigger value="list">
-              <FileText className="w-4 h-4 mr-2" />
-              List
-            </TabsTrigger>
-          </TabsList>
+          <div className="flex items-center justify-between mb-6">
+            <TabsList className="grid grid-cols-4">
+              <TabsTrigger value="add">Add Entries</TabsTrigger>
+              <TabsTrigger value="canvas">
+                <Network className="w-4 h-4 mr-2" />
+                Canvas
+              </TabsTrigger>
+              <TabsTrigger value="timeline">
+                <Clock className="w-4 h-4 mr-2" />
+                Timeline
+              </TabsTrigger>
+              <TabsTrigger value="list">
+                <FileText className="w-4 h-4 mr-2" />
+                List
+              </TabsTrigger>
+            </TabsList>
+
+            {(activeTab === "canvas" || activeTab === "timeline" || activeTab === "list") && (
+              <div className="flex items-center gap-2">
+                <Button
+                  variant={showFilters ? "default" : "outline"}
+                  size="sm"
+                  onClick={() => setShowFilters(!showFilters)}
+                  className="relative"
+                >
+                  <Filter className="w-4 h-4 mr-2" />
+                  Filters
+                  {activeFiltersCount > 0 && (
+                    <Badge 
+                      variant="secondary" 
+                      className="ml-2 h-5 w-5 rounded-full p-0 flex items-center justify-center text-xs"
+                    >
+                      {activeFiltersCount}
+                    </Badge>
+                  )}
+                </Button>
+                {activeFiltersCount > 0 && (
+                  <Button
+                    variant="ghost"
+                    size="sm"
+                    onClick={clearFilters}
+                  >
+                    <X className="w-4 h-4 mr-1" />
+                    Clear
+                  </Button>
+                )}
+              </div>
+            )}
+          </div>
+
+          {/* Filters Panel */}
+          {showFilters && (activeTab === "canvas" || activeTab === "timeline" || activeTab === "list") && (
+            <motion.div
+              initial={{ opacity: 0, height: 0 }}
+              animate={{ opacity: 1, height: "auto" }}
+              exit={{ opacity: 0, height: 0 }}
+              transition={{ duration: 0.2 }}
+              className="mb-6"
+            >
+              <Card>
+                <CardHeader className="pb-3">
+                  <CardTitle className="text-sm flex items-center gap-2">
+                    <Filter className="w-4 h-4" />
+                    Filter Insights
+                  </CardTitle>
+                </CardHeader>
+                <CardContent className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                  <div className="space-y-2">
+                    <label className="text-sm font-medium text-muted-foreground">
+                      Source Type
+                    </label>
+                    <Select value={filterSource} onValueChange={setFilterSource}>
+                      <SelectTrigger className="bg-background">
+                        <SelectValue placeholder="All Sources" />
+                      </SelectTrigger>
+                      <SelectContent className="bg-popover z-50">
+                        <SelectItem value="all">All Sources ({dots.length})</SelectItem>
+                        {uniqueSources.map((source) => {
+                          const count = dots.filter(d => d.source_type === source).length;
+                          return (
+                            <SelectItem key={source} value={source}>
+                              {sourceLabels[source] || source} ({count})
+                            </SelectItem>
+                          );
+                        })}
+                      </SelectContent>
+                    </Select>
+                  </div>
+
+                  <div className="space-y-2">
+                    <label className="text-sm font-medium text-muted-foreground">
+                      Theme
+                    </label>
+                    <Select value={filterTheme} onValueChange={setFilterTheme}>
+                      <SelectTrigger className="bg-background">
+                        <SelectValue placeholder="All Themes" />
+                      </SelectTrigger>
+                      <SelectContent className="bg-popover z-50">
+                        <SelectItem value="all">All Themes ({dots.length})</SelectItem>
+                        {uniqueThemes.map((theme) => {
+                          const count = dots.filter(d => d.core_theme === theme).length;
+                          return (
+                            <SelectItem key={theme} value={theme}>
+                              {theme} ({count})
+                            </SelectItem>
+                          );
+                        })}
+                      </SelectContent>
+                    </Select>
+                  </div>
+                </CardContent>
+              </Card>
+            </motion.div>
+          )}
 
           <TabsContent value="add" className="mt-0">
-            <ConstellationSystem />
+            <ConstellationSystem onDataChange={loadAllData} />
           </TabsContent>
 
           <TabsContent value="canvas" className="mt-0">
-            <ConstellationCanvas
-              dots={dots}
-              connections={connections}
-              onDotClick={(dot) => setSelectedDot(dot)}
-              selectedDot={selectedDot}
-              userPurpose={userPurpose}
-            />
+            {filteredDots.length === 0 ? (
+              <Card>
+                <CardContent className="p-12 text-center">
+                  <Network className="w-12 h-12 text-muted-foreground mx-auto mb-4" />
+                  <p className="text-muted-foreground">No insights match your filters</p>
+                  <Button variant="outline" onClick={clearFilters} className="mt-4">
+                    Clear Filters
+                  </Button>
+                </CardContent>
+              </Card>
+            ) : (
+              <ConstellationCanvas
+                dots={filteredDots}
+                connections={connections}
+                onDotClick={(dot) => setSelectedDot(dot)}
+                selectedDot={selectedDot}
+                userPurpose={userPurpose}
+              />
+            )}
           </TabsContent>
 
           <TabsContent value="timeline" className="mt-0">
-            <ConstellationTimeline
-              dots={dots}
-              connections={connections}
-              onDotClick={(dot) => setSelectedDot(dot)}
-              selectedDot={selectedDot}
-              userPurpose={userPurpose}
-            />
+            {filteredDots.length === 0 ? (
+              <Card>
+                <CardContent className="p-12 text-center">
+                  <Clock className="w-12 h-12 text-muted-foreground mx-auto mb-4" />
+                  <p className="text-muted-foreground">No insights match your filters</p>
+                  <Button variant="outline" onClick={clearFilters} className="mt-4">
+                    Clear Filters
+                  </Button>
+                </CardContent>
+              </Card>
+            ) : (
+              <ConstellationTimeline
+                dots={filteredDots}
+                connections={connections}
+                onDotClick={(dot) => setSelectedDot(dot)}
+                selectedDot={selectedDot}
+                userPurpose={userPurpose}
+              />
+            )}
           </TabsContent>
 
           <TabsContent value="list" className="mt-0">
             <Card>
               <CardContent className="p-6">
-                <h3 className="text-lg font-semibold mb-4">All Insights ({dots.length})</h3>
-                <ScrollArea className="h-[600px] pr-4">
-                  <div className="space-y-3">
-                    {dots.map((dot) => (
+                <h3 className="text-lg font-semibold mb-4">
+                  All Insights ({filteredDots.length}{filteredDots.length !== dots.length ? ` of ${dots.length}` : ''})
+                </h3>
+                {filteredDots.length === 0 ? (
+                  <div className="text-center py-12">
+                    <FileText className="w-12 h-12 text-muted-foreground mx-auto mb-4" />
+                    <p className="text-muted-foreground">No insights match your filters</p>
+                    <Button variant="outline" onClick={clearFilters} className="mt-4">
+                      Clear Filters
+                    </Button>
+                  </div>
+                ) : (
+                  <ScrollArea className="h-[600px] pr-4">
+                    <div className="space-y-3">
+                      {filteredDots.map((dot) => (
                       <Card
                         key={dot.id}
                         className={cn(
@@ -261,9 +437,10 @@ const ConstellationPage = () => {
                           </div>
                         </CardContent>
                       </Card>
-                    ))}
-                  </div>
-                </ScrollArea>
+                      ))}
+                    </div>
+                  </ScrollArea>
+                )}
               </CardContent>
             </Card>
           </TabsContent>

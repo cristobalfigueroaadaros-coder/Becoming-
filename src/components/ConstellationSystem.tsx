@@ -57,7 +57,7 @@ const lifeDomains = [
   "Spiritual Growth",
 ];
 
-export const ConstellationSystem = () => {
+export const ConstellationSystem = ({ onDataChange }: { onDataChange?: () => void }) => {
   const [entries, setEntries] = useState<ConstellationEntry[]>([]);
   const [connections, setConnections] = useState<Connection[]>([]);
   const [loading, setLoading] = useState(true);
@@ -147,6 +147,7 @@ export const ConstellationSystem = () => {
         emotional_tone: "",
       });
       loadData();
+      onDataChange?.(); // Notify parent
     } catch (error: any) {
       toast.error("Failed to add entry", { description: error.message });
     }
@@ -162,6 +163,7 @@ export const ConstellationSystem = () => {
       if (error) throw error;
       toast.success("Entry removed");
       loadData();
+      onDataChange?.(); // Notify parent
     } catch (error: any) {
       toast.error("Failed to delete entry");
     }
@@ -189,6 +191,7 @@ export const ConstellationSystem = () => {
           description: "Check the Insights tab to explore them"
         });
         loadData();
+        onDataChange?.(); // Notify parent
       } else {
         toast.info("No new patterns discovered yet", {
           description: "Keep adding to your constellation"
