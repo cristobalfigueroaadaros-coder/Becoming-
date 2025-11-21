@@ -1,4 +1,5 @@
 import { useNavigate } from "react-router-dom";
+import { motion } from "framer-motion";
 import { Button } from "@/components/ui/button";
 import { ArrowLeft } from "lucide-react";
 import FutureSelfBackground from "@/components/FutureSelfBackground";
@@ -8,7 +9,13 @@ const ConstellationPage = () => {
   const navigate = useNavigate();
 
   return (
-    <div className="min-h-screen relative">
+    <motion.div 
+      className="min-h-screen relative"
+      initial={{ opacity: 0 }}
+      animate={{ opacity: 1 }}
+      exit={{ opacity: 0 }}
+      transition={{ duration: 0.3 }}
+    >
       <FutureSelfBackground />
       
       {/* Header */}
@@ -26,13 +33,18 @@ const ConstellationPage = () => {
       </div>
 
       {/* Content */}
-      <div className="max-w-7xl mx-auto px-4 py-12">
+      <motion.div 
+        className="max-w-7xl mx-auto px-4 py-12"
+        initial={{ opacity: 0, y: 20 }}
+        animate={{ opacity: 1, y: 0 }}
+        transition={{ duration: 0.4, delay: 0.1 }}
+      >
         <h1 className="text-5xl md:text-6xl font-bold text-center text-foreground mb-12">
           Constellation System
         </h1>
         <ConstellationSystem />
-      </div>
-    </div>
+      </motion.div>
+    </motion.div>
   );
 };
 
