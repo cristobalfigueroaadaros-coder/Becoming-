@@ -317,6 +317,42 @@ export type Database = {
         }
         Relationships: []
       }
+      monthly_goals: {
+        Row: {
+          completed: boolean
+          completed_at: string | null
+          created_at: string
+          goal_text: string
+          id: string
+          month_start: string
+          user_id: string
+          xp_awarded: boolean
+          xp_value: number
+        }
+        Insert: {
+          completed?: boolean
+          completed_at?: string | null
+          created_at?: string
+          goal_text: string
+          id?: string
+          month_start: string
+          user_id: string
+          xp_awarded?: boolean
+          xp_value?: number
+        }
+        Update: {
+          completed?: boolean
+          completed_at?: string | null
+          created_at?: string
+          goal_text?: string
+          id?: string
+          month_start?: string
+          user_id?: string
+          xp_awarded?: boolean
+          xp_value?: number
+        }
+        Relationships: []
+      }
       premium_waitlist: {
         Row: {
           created_at: string | null
@@ -643,6 +679,105 @@ export type Database = {
           id?: string
           mentor_type?: Database["public"]["Enums"]["mentor_type"]
           user_id?: string
+        }
+        Relationships: []
+      }
+      vision_goals: {
+        Row: {
+          created_at: string
+          id: string
+          milestones: Json | null
+          updated_at: string
+          user_id: string
+          vision_text: string
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          milestones?: Json | null
+          updated_at?: string
+          user_id: string
+          vision_text: string
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          milestones?: Json | null
+          updated_at?: string
+          user_id?: string
+          vision_text?: string
+        }
+        Relationships: []
+      }
+      weekly_goals: {
+        Row: {
+          completed: boolean
+          completed_at: string | null
+          created_at: string
+          goal_text: string
+          id: string
+          user_id: string
+          week_start: string
+          xp_awarded: boolean
+          xp_value: number
+        }
+        Insert: {
+          completed?: boolean
+          completed_at?: string | null
+          created_at?: string
+          goal_text: string
+          id?: string
+          user_id: string
+          week_start: string
+          xp_awarded?: boolean
+          xp_value?: number
+        }
+        Update: {
+          completed?: boolean
+          completed_at?: string | null
+          created_at?: string
+          goal_text?: string
+          id?: string
+          user_id?: string
+          week_start?: string
+          xp_awarded?: boolean
+          xp_value?: number
+        }
+        Relationships: []
+      }
+      yearly_goals: {
+        Row: {
+          completed: boolean
+          completed_at: string | null
+          created_at: string
+          goal_text: string
+          id: string
+          user_id: string
+          xp_awarded: boolean
+          xp_value: number
+          year: number
+        }
+        Insert: {
+          completed?: boolean
+          completed_at?: string | null
+          created_at?: string
+          goal_text: string
+          id?: string
+          user_id: string
+          xp_awarded?: boolean
+          xp_value?: number
+          year: number
+        }
+        Update: {
+          completed?: boolean
+          completed_at?: string | null
+          created_at?: string
+          goal_text?: string
+          id?: string
+          user_id?: string
+          xp_awarded?: boolean
+          xp_value?: number
+          year?: number
         }
         Relationships: []
       }

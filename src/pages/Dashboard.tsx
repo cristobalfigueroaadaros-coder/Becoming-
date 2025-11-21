@@ -9,6 +9,7 @@ import { cn } from "@/lib/utils";
 import { FutureSelfWidget } from "@/components/FutureSelfWidget";
 import { LifeDomainsRadar } from "@/components/LifeDomainsRadar";
 import { DailyRitualModal } from "@/components/DailyRitualModal";
+import { GoalHierarchy } from "@/components/GoalHierarchy";
 
 const mentorIcons = {
   mamba_mentor: Brain,
@@ -359,6 +360,9 @@ const Dashboard = () => {
             </CardContent>
           </Card>
         )}
+
+        {/* Goal Hierarchy */}
+        <GoalHierarchy />
 
         {/* Navigation Links */}
         <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
