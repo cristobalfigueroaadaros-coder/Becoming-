@@ -17,3 +17,6 @@ verify_jwt = true
 
 [functions.force-shadow]
 verify_jwt = true
+
+[functions.analyze-constellation]
+verify_jwt = true

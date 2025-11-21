@@ -110,6 +110,75 @@ export type Database = {
         }
         Relationships: []
       }
+      constellation_connections: {
+        Row: {
+          connection_insight: string
+          created_at: string
+          entry_ids: string[]
+          id: string
+          pattern_type: string
+          user_id: string
+        }
+        Insert: {
+          connection_insight: string
+          created_at?: string
+          entry_ids: string[]
+          id?: string
+          pattern_type: string
+          user_id: string
+        }
+        Update: {
+          connection_insight?: string
+          created_at?: string
+          entry_ids?: string[]
+          id?: string
+          pattern_type?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
+      constellation_entries: {
+        Row: {
+          created_at: string
+          description: string
+          emotional_tone: string | null
+          entry_type: string
+          id: string
+          key_takeaway: string | null
+          related_domains: string[] | null
+          tags: string[] | null
+          title: string
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          created_at?: string
+          description: string
+          emotional_tone?: string | null
+          entry_type: string
+          id?: string
+          key_takeaway?: string | null
+          related_domains?: string[] | null
+          tags?: string[] | null
+          title: string
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          created_at?: string
+          description?: string
+          emotional_tone?: string | null
+          entry_type?: string
+          id?: string
+          key_takeaway?: string | null
+          related_domains?: string[] | null
+          tags?: string[] | null
+          title?: string
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
       council_meetings: {
         Row: {
           answers: Json

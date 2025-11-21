@@ -9,6 +9,7 @@ import { LifeDomainsRadar } from "@/components/LifeDomainsRadar";
 import { GoalHierarchy } from "@/components/GoalHierarchy";
 import { DailyRitualModal } from "@/components/DailyRitualModal";
 import { SelfDiscoveryQuest } from "@/components/SelfDiscoveryQuest";
+import { ConstellationSystem } from "@/components/ConstellationSystem";
 
 const FutureSelf = () => {
   const navigate = useNavigate();
@@ -129,26 +130,14 @@ const FutureSelf = () => {
           <GoalHierarchy />
         </div>
 
-        {/* Constellation System - Placeholder */}
-        <Card className="border-dashed border-2 border-accent/30">
-          <CardHeader>
-            <CardTitle className="flex items-center gap-2 text-2xl">
-              <Star className="w-6 h-6 text-accent" />
-              Constellation System
-              <span className="text-xs bg-accent/20 text-accent px-2 py-1 rounded-full">Coming Soon</span>
-            </CardTitle>
-            <CardDescription>
-              Connect the dots of your journey - books, ideas, insights, and milestones
-            </CardDescription>
-          </CardHeader>
-          <CardContent>
-            <p className="text-muted-foreground text-center py-8">
-              This space will help you map the constellation of experiences that shape your evolution. 
-              Track books you've read, ideas you've captured, and moments of insight - then watch as 
-              patterns emerge to reveal your unique path.
-            </p>
-          </CardContent>
-        </Card>
+        {/* Constellation System Section */}
+        <div>
+          <div className="flex items-center gap-2 mb-4">
+            <Star className="w-6 h-6 text-accent" />
+            <h3 className="text-2xl font-bold">Constellation System</h3>
+          </div>
+          <ConstellationSystem />
+        </div>
 
         {/* Self-Discovery Quest Section */}
         <div>
