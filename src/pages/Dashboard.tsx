@@ -319,13 +319,29 @@ const Dashboard = () => {
                 <p className="text-sm text-muted-foreground">
                   Start your day with intention. Complete your morning ritual to set yourself up for success.
                 </p>
-                <Button 
-                  onClick={() => setRitualModalOpen(true)}
-                  className="w-full"
+                <motion.div
+                  animate={{
+                    scale: [1, 1.02, 1],
+                    boxShadow: [
+                      "0 0 0 0 rgba(var(--primary), 0)",
+                      "0 0 0 8px rgba(var(--primary), 0.1)",
+                      "0 0 0 0 rgba(var(--primary), 0)",
+                    ],
+                  }}
+                  transition={{
+                    duration: 2,
+                    repeat: Infinity,
+                    ease: "easeInOut",
+                  }}
                 >
-                  <Sunrise className="w-4 h-4 mr-2" />
-                  Begin Morning Ritual
-                </Button>
+                  <Button 
+                    onClick={() => setRitualModalOpen(true)}
+                    className="w-full"
+                  >
+                    <Sunrise className="w-4 h-4 mr-2" />
+                    Begin Morning Ritual
+                  </Button>
+                </motion.div>
                 {currentStreak > 0 && (
                   <div className="flex items-center gap-2 text-orange-500 justify-center">
                     <Flame className="w-4 h-4" />
