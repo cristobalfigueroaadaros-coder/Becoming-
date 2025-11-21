@@ -727,6 +727,30 @@ export type Database = {
         }
         Relationships: []
       }
+      user_display_names: {
+        Row: {
+          created_at: string
+          display_name: string
+          id: string
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          created_at?: string
+          display_name: string
+          id?: string
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          created_at?: string
+          display_name?: string
+          id?: string
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
       user_mentors: {
         Row: {
           created_at: string | null
@@ -849,7 +873,21 @@ export type Database = {
       }
     }
     Views: {
-      [_ in never]: never
+      leaderboard_stats: {
+        Row: {
+          achievement_count: number | null
+          avatar: string | null
+          completed_tasks: number | null
+          display_name: string | null
+          joined_at: string | null
+          level: number | null
+          max_streak: number | null
+          shadows_faced: number | null
+          total_xp: number | null
+          user_id: string | null
+        }
+        Relationships: []
+      }
     }
     Functions: {
       [_ in never]: never

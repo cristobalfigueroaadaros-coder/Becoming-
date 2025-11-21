@@ -11,6 +11,7 @@ import { LifeDomainsRadar } from "@/components/LifeDomainsRadar";
 import { DailyRitualModal } from "@/components/DailyRitualModal";
 import { GoalHierarchy } from "@/components/GoalHierarchy";
 import { AchievementsDisplay } from "@/components/AchievementsDisplay";
+import { Leaderboard } from "@/components/Leaderboard";
 
 const mentorIcons = {
   mamba_mentor: Brain,
@@ -367,6 +368,9 @@ const Dashboard = () => {
 
         {/* Achievements */}
         <AchievementsDisplay />
+
+        {/* Leaderboard */}
+        <Leaderboard />
 
         {/* Navigation Links */}
         <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
