@@ -5,7 +5,7 @@ import { Card, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Slider } from "@/components/ui/slider";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { Play, Pause, SkipBack, SkipForward, Gauge, Filter } from "lucide-react";
+import { Play, Pause, SkipBack, SkipForward, Gauge, Filter, BarChart3, TrendingUp, Network as NetworkIcon } from "lucide-react";
 import { cn } from "@/lib/utils";
 
 interface InsightDot {
@@ -84,6 +84,7 @@ export const ConstellationTimeline = ({
   const [dotPositions, setDotPositions] = useState<Record<string, { x: number; y: number }>>({});
   const [filterSource, setFilterSource] = useState<string>("all");
   const [filterTheme, setFilterTheme] = useState<string>("all");
+  const [showStats, setShowStats] = useState(false);
 
   // Apply filters
   const filteredDots = dots.filter((dot) => {
@@ -192,6 +193,80 @@ export const ConstellationTimeline = ({
     });
   };
 
+  // Calculate statistics
+  const calculateStats = () => {
+    if (sortedDots.length === 0) return null;
+
+    // Dots per month
+    const monthCounts: Record<string, number> = {};
+    sortedDots.forEach((dot) => {
+      const date = new Date(dot.created_at);
+      const monthKey = `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, '0')}`;
+      monthCounts[monthKey] = (monthCounts[monthKey] || 0) + 1;
+    });
+
+    const avgDotsPerMonth = Object.values(monthCounts).reduce((a, b) => a + b, 0) / Object.keys(monthCounts).length;
+
+    // Most common themes
+    const themeCounts: Record<string, number> = {};
+    sortedDots.forEach((dot) => {
+      themeCounts[dot.core_theme] = (themeCounts[dot.core_theme] || 0) + 1;
+    });
+    const topThemes = Object.entries(themeCounts)
+      .sort(([, a], [, b]) => b - a)
+      .slice(0, 5)
+      .map(([theme, count]) => ({ theme, count, percentage: (count / sortedDots.length) * 100 }));
+
+    // Connection density over time
+    const visibleDotsUpToCurrent = sortedDots.slice(0, currentIndex + 1);
+    const visibleDotIds = new Set(visibleDotsUpToCurrent.map((d) => d.id));
+    const currentConnections = connections.filter(
+      (c) => visibleDotIds.has(c.dot_id_1) && visibleDotIds.has(c.dot_id_2)
+    );
+    const connectionDensity = visibleDotsUpToCurrent.length > 1
+      ? (currentConnections.length / ((visibleDotsUpToCurrent.length * (visibleDotsUpToCurrent.length - 1)) / 2)) * 100
+      : 0;
+
+    // Growth rate (dots in last 30 days vs previous 30 days)
+    const now = new Date(sortedDots[currentIndex]?.created_at || new Date());
+    const thirtyDaysAgo = new Date(now.getTime() - 30 * 24 * 60 * 60 * 1000);
+    const sixtyDaysAgo = new Date(now.getTime() - 60 * 24 * 60 * 60 * 1000);
+    
+    const recentDots = visibleDotsUpToCurrent.filter(
+      (d) => new Date(d.created_at) >= thirtyDaysAgo && new Date(d.created_at) <= now
+    ).length;
+    const previousDots = visibleDotsUpToCurrent.filter(
+      (d) => new Date(d.created_at) >= sixtyDaysAgo && new Date(d.created_at) < thirtyDaysAgo
+    ).length;
+    
+    const growthRate = previousDots > 0 ? ((recentDots - previousDots) / previousDots) * 100 : 0;
+
+    // Source distribution
+    const sourceCounts: Record<string, number> = {};
+    sortedDots.forEach((dot) => {
+      const label = sourceLabels[dot.source_type] || dot.source_type;
+      sourceCounts[label] = (sourceCounts[label] || 0) + 1;
+    });
+    const topSources = Object.entries(sourceCounts)
+      .sort(([, a], [, b]) => b - a)
+      .slice(0, 3)
+      .map(([source, count]) => ({ source, count }));
+
+    return {
+      totalDots: sortedDots.length,
+      currentDots: visibleDotsUpToCurrent.length,
+      avgDotsPerMonth: avgDotsPerMonth.toFixed(1),
+      topThemes,
+      connectionDensity: connectionDensity.toFixed(1),
+      totalConnections: currentConnections.length,
+      growthRate: growthRate.toFixed(1),
+      topSources,
+      monthsActive: Object.keys(monthCounts).length,
+    };
+  };
+
+  const stats = calculateStats();
+
   if (sortedDots.length === 0) {
     return (
       <Card className="w-full h-[600px] flex items-center justify-center">
@@ -257,11 +332,134 @@ export const ConstellationTimeline = ({
                 Clear Filters
               </Button>
             )}
+            <Button
+              variant={showStats ? "default" : "outline"}
+              size="sm"
+              onClick={() => setShowStats(!showStats)}
+            >
+              <BarChart3 className="w-4 h-4 mr-2" />
+              Stats
+            </Button>
           </div>
         </CardContent>
       </Card>
 
       {/* Timeline Canvas */}
+      <div className="grid grid-cols-1 lg:grid-cols-3 gap-4">
+        {/* Statistics Panel */}
+        <AnimatePresence>
+          {showStats && stats && (
+            <motion.div
+              initial={{ opacity: 0, x: -20 }}
+              animate={{ opacity: 1, x: 0 }}
+              exit={{ opacity: 0, x: -20 }}
+              className="lg:col-span-1"
+            >
+              <Card className="h-full">
+                <CardContent className="p-4 space-y-4">
+                  <div className="flex items-center justify-between">
+                    <h3 className="font-semibold flex items-center gap-2">
+                      <BarChart3 className="w-4 h-4" />
+                      Growth Metrics
+                    </h3>
+                  </div>
+
+                  {/* Overall Stats */}
+                  <div className="space-y-3">
+                    <div className="flex items-center justify-between p-3 rounded-lg bg-primary/5">
+                      <div>
+                        <p className="text-xs text-muted-foreground">Total Insights</p>
+                        <p className="text-2xl font-bold text-primary">{stats.currentDots}</p>
+                      </div>
+                      <TrendingUp className="w-8 h-8 text-primary opacity-50" />
+                    </div>
+
+                    <div className="grid grid-cols-2 gap-2">
+                      <div className="p-3 rounded-lg bg-muted/50">
+                        <p className="text-xs text-muted-foreground">Avg/Month</p>
+                        <p className="text-lg font-semibold">{stats.avgDotsPerMonth}</p>
+                      </div>
+                      <div className="p-3 rounded-lg bg-muted/50">
+                        <p className="text-xs text-muted-foreground">Months Active</p>
+                        <p className="text-lg font-semibold">{stats.monthsActive}</p>
+                      </div>
+                    </div>
+
+                    <div className="p-3 rounded-lg bg-accent/10">
+                      <p className="text-xs text-muted-foreground">30-Day Growth</p>
+                      <p className={cn(
+                        "text-lg font-semibold",
+                        parseFloat(stats.growthRate) > 0 ? "text-green-600" : "text-orange-600"
+                      )}>
+                        {parseFloat(stats.growthRate) > 0 ? "+" : ""}{stats.growthRate}%
+                      </p>
+                    </div>
+                  </div>
+
+                  {/* Connections */}
+                  <div className="space-y-2">
+                    <h4 className="text-sm font-semibold flex items-center gap-2">
+                      <NetworkIcon className="w-3 h-3" />
+                      Connection Density
+                    </h4>
+                    <div className="p-3 rounded-lg bg-muted/50">
+                      <div className="flex items-center justify-between mb-2">
+                        <p className="text-xs text-muted-foreground">Active Connections</p>
+                        <p className="text-sm font-semibold">{stats.totalConnections}</p>
+                      </div>
+                      <div className="w-full bg-background rounded-full h-2">
+                        <div
+                          className="bg-primary h-2 rounded-full transition-all duration-500"
+                          style={{ width: `${Math.min(parseFloat(stats.connectionDensity), 100)}%` }}
+                        />
+                      </div>
+                      <p className="text-xs text-muted-foreground mt-1">
+                        {stats.connectionDensity}% density
+                      </p>
+                    </div>
+                  </div>
+
+                  {/* Top Themes */}
+                  <div className="space-y-2">
+                    <h4 className="text-sm font-semibold">Top Themes</h4>
+                    <div className="space-y-2">
+                      {stats.topThemes.map((theme, idx) => (
+                        <div key={theme.theme} className="space-y-1">
+                          <div className="flex items-center justify-between text-xs">
+                            <span className="truncate flex-1">{theme.theme}</span>
+                            <span className="text-muted-foreground ml-2">{theme.count}</span>
+                          </div>
+                          <div className="w-full bg-muted rounded-full h-1.5">
+                            <div
+                              className="bg-primary h-1.5 rounded-full transition-all duration-500"
+                              style={{ width: `${theme.percentage}%` }}
+                            />
+                          </div>
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+
+                  {/* Top Sources */}
+                  <div className="space-y-2">
+                    <h4 className="text-sm font-semibold">Top Sources</h4>
+                    <div className="space-y-1">
+                      {stats.topSources.map((source) => (
+                        <div key={source.source} className="flex items-center justify-between text-sm p-2 rounded bg-muted/30">
+                          <span className="truncate">{source.source}</span>
+                          <Badge variant="secondary" className="ml-2">{source.count}</Badge>
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+                </CardContent>
+              </Card>
+            </motion.div>
+          )}
+        </AnimatePresence>
+
+        {/* Canvas */}
+        <div className={cn("lg:col-span-3", showStats && "lg:col-span-2")}>
       <Card className="relative overflow-hidden">
         <div ref={canvasRef} className="relative w-full h-[600px] bg-gradient-to-br from-background via-primary/5 to-accent/10">
           <svg className="absolute inset-0 w-full h-full">
@@ -422,6 +620,8 @@ export const ConstellationTimeline = ({
           </AnimatePresence>
         </div>
       </Card>
+        </div>
+      </div>
 
       {/* Playback Controls */}
       <Card>
