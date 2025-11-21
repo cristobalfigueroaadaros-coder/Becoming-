@@ -23,3 +23,6 @@ verify_jwt = true
 
 [functions.generate-learning-module]
 verify_jwt = true
+
+[functions.analyze-dot-connections]
+verify_jwt = true
