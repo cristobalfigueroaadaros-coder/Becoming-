@@ -1,20 +1,37 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef } from "react";
 import { useNavigate } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
 import { Button } from "@/components/ui/button";
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
-import { Sparkles, ArrowLeft, Sunrise, Target, BookOpen, Star } from "lucide-react";
-import { FutureSelfWidget } from "@/components/FutureSelfWidget";
-import { LifeDomainsRadar } from "@/components/LifeDomainsRadar";
-import { GoalHierarchy } from "@/components/GoalHierarchy";
+import { ArrowLeft } from "lucide-react";
 import { DailyRitualModal } from "@/components/DailyRitualModal";
 import { SelfDiscoveryQuest } from "@/components/SelfDiscoveryQuest";
 import { ConstellationSystem } from "@/components/ConstellationSystem";
+import { LifeDomainsRadar } from "@/components/LifeDomainsRadar";
+import { GoalHierarchy } from "@/components/GoalHierarchy";
+import FutureSelfBackground from "@/components/FutureSelfBackground";
+import FutureSelfDashboardCard from "@/components/FutureSelfDashboardCard";
+import LifeDomainsCard from "@/components/dashboard-cards/LifeDomainsCard";
+import DailyRitualCard from "@/components/dashboard-cards/DailyRitualCard";
+import ActualSelfCard from "@/components/dashboard-cards/ActualSelfCard";
+import FutureSelfCard from "@/components/dashboard-cards/FutureSelfCard";
+import ConstellationCard from "@/components/dashboard-cards/ConstellationCard";
+import GoalStructureCard from "@/components/dashboard-cards/GoalStructureCard";
+import QuestsCard from "@/components/dashboard-cards/QuestsCard";
+import PlaceholderCard from "@/components/dashboard-cards/PlaceholderCard";
 
 const FutureSelf = () => {
   const navigate = useNavigate();
   const [ritualModalOpen, setRitualModalOpen] = useState(false);
   const [hasCompletedRitualToday, setHasCompletedRitualToday] = useState(false);
+  
+  const lifeDomainsRef = useRef<HTMLDivElement>(null);
+  const goalsRef = useRef<HTMLDivElement>(null);
+  const constellationRef = useRef<HTMLDivElement>(null);
+  const questsRef = useRef<HTMLDivElement>(null);
+
+  const scrollToSection = (ref: React.RefObject<HTMLDivElement>) => {
+    ref.current?.scrollIntoView({ behavior: 'smooth', block: 'start' });
+  };
 
   useEffect(() => {
     checkRitualStatus();
@@ -42,10 +59,12 @@ const FutureSelf = () => {
   };
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-mentor-future/5 via-background to-accent/5">
+    <div className="min-h-screen relative">
+      <FutureSelfBackground />
+      
       {/* Header */}
-      <div className="sticky top-0 z-10 bg-background/80 backdrop-blur-lg border-b border-border/50">
-        <div className="max-w-7xl mx-auto px-4 py-4 flex items-center justify-between">
+      <div className="sticky top-0 z-10 bg-card/50 backdrop-blur-lg border-b border-border/30">
+        <div className="max-w-7xl mx-auto px-4 py-4">
           <Button
             variant="ghost"
             onClick={() => navigate("/dashboard")}
@@ -54,97 +73,102 @@ const FutureSelf = () => {
             <ArrowLeft className="w-4 h-4" />
             Back to Dashboard
           </Button>
-          <div className="flex items-center gap-2">
-            <Sparkles className="w-6 h-6 text-mentor-future" />
-            <h1 className="text-2xl font-bold bg-gradient-to-r from-mentor-future to-accent bg-clip-text text-transparent">
-              Future Self
-            </h1>
-          </div>
-          <div className="w-24" /> {/* Spacer for center alignment */}
         </div>
       </div>
 
-      {/* Main Content */}
-      <div className="max-w-7xl mx-auto px-4 py-8 space-y-8">
-        {/* Hero Section */}
-        <div className="text-center space-y-4 py-8">
-          <h2 className="text-4xl md:text-5xl font-bold bg-gradient-to-r from-mentor-future via-primary to-accent bg-clip-text text-transparent">
-            Your Sacred Space for Evolution
-          </h2>
-          <p className="text-lg text-muted-foreground max-w-2xl mx-auto">
-            This is where you connect with who you're becoming. Track your growth, 
-            set intentions, and discover the patterns that shape your journey.
-          </p>
+      {/* Dashboard Grid */}
+      <div className="max-w-7xl mx-auto px-4 py-12 space-y-12">
+        {/* Title */}
+        <h1 className="text-5xl md:text-6xl font-bold text-center text-foreground">
+          Future Self Evolution
+        </h1>
+
+        {/* Card Grid */}
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+          {/* Life Domains */}
+          <FutureSelfDashboardCard 
+            title="Life Domains"
+            onClick={() => scrollToSection(lifeDomainsRef)}
+          >
+            <LifeDomainsCard />
+          </FutureSelfDashboardCard>
+
+          {/* Daily Ritual Stack */}
+          <FutureSelfDashboardCard 
+            title="Daily Ritual Stack"
+            onClick={() => setRitualModalOpen(true)}
+          >
+            <DailyRitualCard />
+          </FutureSelfDashboardCard>
+
+          {/* Future Self */}
+          <FutureSelfDashboardCard title="Future Self">
+            <FutureSelfCard />
+          </FutureSelfDashboardCard>
+
+          {/* Actual Self */}
+          <FutureSelfDashboardCard title="Actual Self">
+            <ActualSelfCard />
+          </FutureSelfDashboardCard>
+
+          {/* Mapping & Idea Dots */}
+          <FutureSelfDashboardCard 
+            title="Mapping & Idea Dots"
+            onClick={() => scrollToSection(constellationRef)}
+          >
+            <ConstellationCard />
+          </FutureSelfDashboardCard>
+
+          {/* Goal Structure */}
+          <FutureSelfDashboardCard 
+            title="Goal Structure"
+            onClick={() => scrollToSection(goalsRef)}
+          >
+            <GoalStructureCard />
+          </FutureSelfDashboardCard>
+
+          {/* Self-Discovery Quests */}
+          <FutureSelfDashboardCard 
+            title="Self-Discovery Quests"
+            onClick={() => scrollToSection(questsRef)}
+          >
+            <QuestsCard />
+          </FutureSelfDashboardCard>
+
+          {/* Placeholder Cards */}
+          <FutureSelfDashboardCard title="Coming Soon">
+            <PlaceholderCard />
+          </FutureSelfDashboardCard>
+
+          <FutureSelfDashboardCard title="Coming Soon">
+            <PlaceholderCard />
+          </FutureSelfDashboardCard>
         </div>
+      </div>
 
-        {/* Daily Ritual Section */}
-        <Card className="border-mentor-future/20 bg-gradient-to-br from-mentor-future/10 to-transparent">
-          <CardHeader>
-            <CardTitle className="flex items-center gap-2 text-2xl">
-              <Sunrise className="w-6 h-6 text-mentor-future" />
-              Daily Ritual Hub
-            </CardTitle>
-            <CardDescription>
-              Start each day with intention, meditation, and visualization
-            </CardDescription>
-          </CardHeader>
-          <CardContent>
-            {hasCompletedRitualToday ? (
-              <div className="text-center py-6 space-y-2">
-                <div className="w-16 h-16 mx-auto rounded-full bg-green-500/10 flex items-center justify-center">
-                  <Sparkles className="w-8 h-8 text-green-500" />
-                </div>
-                <p className="text-lg font-medium">Ritual Complete ✨</p>
-                <p className="text-sm text-muted-foreground">You've set your intention for today</p>
-              </div>
-            ) : (
-              <div className="text-center py-6 space-y-4">
-                <p className="text-muted-foreground">
-                  Take a moment to ground yourself, visualize your future, and set today's intention
-                </p>
-                <Button
-                  size="lg"
-                  onClick={() => setRitualModalOpen(true)}
-                  className="bg-gradient-to-r from-mentor-future to-accent hover:opacity-90"
-                >
-                  <Sunrise className="w-5 h-5 mr-2" />
-                  Begin Morning Ritual
-                </Button>
-              </div>
-            )}
-          </CardContent>
-        </Card>
-
-        {/* Progress & Domains Section */}
-        <div className="grid lg:grid-cols-2 gap-6">
-          <FutureSelfWidget />
+      {/* Detailed Sections Below */}
+      <div className="max-w-7xl mx-auto px-4 py-12 space-y-16">
+        {/* Life Domains Detailed */}
+        <div ref={lifeDomainsRef} className="scroll-mt-20">
+          <h2 className="text-3xl font-bold mb-6 text-foreground">Life Domains Radar</h2>
           <LifeDomainsRadar />
         </div>
 
-        {/* Goal Structure Section */}
-        <div>
-          <div className="flex items-center gap-2 mb-4">
-            <Target className="w-6 h-6 text-mentor-future" />
-            <h3 className="text-2xl font-bold">Your Goals & Milestones</h3>
-          </div>
+        {/* Goal Structure Detailed */}
+        <div ref={goalsRef} className="scroll-mt-20">
+          <h2 className="text-3xl font-bold mb-6 text-foreground">Your Goals & Milestones</h2>
           <GoalHierarchy />
         </div>
 
-        {/* Constellation System Section */}
-        <div>
-          <div className="flex items-center gap-2 mb-4">
-            <Star className="w-6 h-6 text-accent" />
-            <h3 className="text-2xl font-bold">Constellation System</h3>
-          </div>
+        {/* Constellation System Detailed */}
+        <div ref={constellationRef} className="scroll-mt-20">
+          <h2 className="text-3xl font-bold mb-6 text-foreground">Constellation System</h2>
           <ConstellationSystem />
         </div>
 
-        {/* Self-Discovery Quest Section */}
-        <div>
-          <div className="flex items-center gap-2 mb-4">
-            <BookOpen className="w-6 h-6 text-primary" />
-            <h3 className="text-2xl font-bold">Self-Discovery Quests</h3>
-          </div>
+        {/* Self-Discovery Quests Detailed */}
+        <div ref={questsRef} className="scroll-mt-20">
+          <h2 className="text-3xl font-bold mb-6 text-foreground">Self-Discovery Quests</h2>
           <SelfDiscoveryQuest />
         </div>
       </div>
