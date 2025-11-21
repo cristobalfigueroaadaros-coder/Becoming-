@@ -9,6 +9,8 @@ import { Avatar, AvatarFallback } from "@/components/ui/avatar";
 import { ArrowLeft, Trophy, Flame, Target, Zap, Award, Calendar, Ghost, Users, BookOpen, Settings } from "lucide-react";
 import { AchievementBadge } from "@/components/AchievementBadge";
 import { ThemeCustomizationModal } from "@/components/ThemeCustomizationModal";
+import { ProfileBadges } from "@/components/ProfileBadges";
+import { useProfileBadges } from "@/hooks/useProfileBadges";
 import { toast } from "sonner";
 import { cn } from "@/lib/utils";
 
@@ -85,6 +87,8 @@ const Profile = () => {
   const [isOwnProfile, setIsOwnProfile] = useState(false);
   const [themePreferences, setThemePreferences] = useState<ThemePreferences | null>(null);
   const [customizeModalOpen, setCustomizeModalOpen] = useState(false);
+  const { getUserBadgesWithDetails, loading: badgesLoading } = useProfileBadges(userId);
+  const userBadges = getUserBadgesWithDetails();
 
   useEffect(() => {
     loadProfile();
@@ -274,11 +278,14 @@ const Profile = () => {
               </Avatar>
 
               <div className="flex-1 text-center md:text-left space-y-3">
-                <div>
+                <div className="space-y-2">
                   <h2 className="text-2xl font-bold">{profile.display_name}</h2>
                   <p className="text-muted-foreground">
                     Member since {new Date(profile.joined_at).toLocaleDateString()}
                   </p>
+                  {!badgesLoading && userBadges && userBadges.length > 0 && (
+                    <ProfileBadges badges={userBadges as any} maxDisplay={5} size="medium" />
+                  )}
                 </div>
 
                 <div className="flex flex-wrap gap-2 justify-center md:justify-start">

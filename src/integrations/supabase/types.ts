@@ -416,6 +416,45 @@ export type Database = {
         }
         Relationships: []
       }
+      profile_badges: {
+        Row: {
+          badge_key: string
+          color: string
+          created_at: string
+          criteria_type: string
+          criteria_value: number | null
+          description: string
+          icon: string
+          id: string
+          name: string
+          priority: number
+        }
+        Insert: {
+          badge_key: string
+          color: string
+          created_at?: string
+          criteria_type: string
+          criteria_value?: number | null
+          description: string
+          icon: string
+          id?: string
+          name: string
+          priority?: number
+        }
+        Update: {
+          badge_key?: string
+          color?: string
+          created_at?: string
+          criteria_type?: string
+          criteria_value?: number | null
+          description?: string
+          icon?: string
+          id?: string
+          name?: string
+          priority?: number
+        }
+        Relationships: []
+      }
       profiles: {
         Row: {
           created_at: string | null
@@ -726,6 +765,41 @@ export type Database = {
           user_id?: string
         }
         Relationships: []
+      }
+      user_badges: {
+        Row: {
+          awarded_at: string
+          badge_key: string
+          display_order: number | null
+          id: string
+          is_visible: boolean
+          user_id: string
+        }
+        Insert: {
+          awarded_at?: string
+          badge_key: string
+          display_order?: number | null
+          id?: string
+          is_visible?: boolean
+          user_id: string
+        }
+        Update: {
+          awarded_at?: string
+          badge_key?: string
+          display_order?: number | null
+          id?: string
+          is_visible?: boolean
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "user_badges_badge_key_fkey"
+            columns: ["badge_key"]
+            isOneToOne: false
+            referencedRelation: "profile_badges"
+            referencedColumns: ["badge_key"]
+          },
+        ]
       }
       user_display_names: {
         Row: {

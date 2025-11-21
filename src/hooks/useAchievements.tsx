@@ -2,6 +2,7 @@ import { useState, useEffect } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
 import confetti from "canvas-confetti";
+import { useProfileBadges } from "./useProfileBadges";
 
 interface Achievement {
   id: string;
@@ -24,6 +25,8 @@ interface UserAchievement {
 export const useAchievements = () => {
   const [achievements, setAchievements] = useState<Achievement[]>([]);
   const [userAchievements, setUserAchievements] = useState<UserAchievement[]>([]);
+  const [currentUserId, setCurrentUserId] = useState<string | null>(null);
+  const { checkAndAwardBadges } = useProfileBadges(currentUserId || undefined);
 
   useEffect(() => {
     loadAchievements();
@@ -33,6 +36,8 @@ export const useAchievements = () => {
     try {
       const { data: { user } } = await supabase.auth.getUser();
       if (!user) return;
+      
+      setCurrentUserId(user.id);
 
       // Load all achievements
       const { data: allAchievements } = await supabase
@@ -98,6 +103,24 @@ export const useAchievements = () => {
           });
 
           await loadAchievements();
+          
+          // Trigger badge check
+          if (user.id) {
+            const { data: stats } = await supabase
+              .from("leaderboard_stats")
+              .select("total_xp, max_streak, shadows_faced, achievement_count")
+              .eq("user_id", user.id)
+              .single();
+            
+            if (stats) {
+              await checkAndAwardBadges({
+                xp: stats.total_xp || 0,
+                maxStreak: stats.max_streak || 0,
+                shadowsFaced: stats.shadows_faced || 0,
+                achievementCount: stats.achievement_count || 0,
+              }, user.id);
+            }
+          }
         }
       } else {
         // Update progress
