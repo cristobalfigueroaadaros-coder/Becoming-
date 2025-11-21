@@ -11,6 +11,7 @@ import { ArrowLeft, Trophy, Flame, Target, Zap, Award, Calendar, Ghost, Users, B
 import { AchievementBadge } from "@/components/AchievementBadge";
 import { ThemeCustomizationModal } from "@/components/ThemeCustomizationModal";
 import { ProfileBadges } from "@/components/ProfileBadges";
+import { BirthInfoEditor } from "@/components/BirthInfoEditor";
 import { useProfileBadges } from "@/hooks/useProfileBadges";
 import { toast } from "sonner";
 import { cn } from "@/lib/utils";
@@ -67,6 +68,13 @@ interface ThemePreferences {
   show_achievements_publicly: boolean;
 }
 
+interface BirthInfo {
+  birth_date: string | null;
+  birth_time: string | null;
+  birth_location: string | null;
+  birth_time_unknown: boolean | null;
+}
+
 const themeColorMap: Record<string, string> = {
   purple: "from-purple-500/10 via-background to-purple-500/5",
   blue: "from-blue-500/10 via-background to-blue-500/5",
@@ -100,6 +108,8 @@ const Profile = () => {
   const [savingPurpose, setSavingPurpose] = useState(false);
   const [purposeHistory, setPurposeHistory] = useState<PurposeHistoryEntry[]>([]);
   const [showPurposeHistory, setShowPurposeHistory] = useState(false);
+  const [birthInfo, setBirthInfo] = useState<BirthInfo | null>(null);
+  const [currentUserId, setCurrentUserId] = useState<string>("");
   const { getUserBadgesWithDetails, loading: badgesLoading } = useProfileBadges(userId);
   const userBadges = getUserBadgesWithDetails();
 
@@ -117,6 +127,7 @@ const Profile = () => {
         return;
       }
 
+      setCurrentUserId(targetUserId);
       setIsOwnProfile(user?.id === targetUserId);
 
       // Load profile stats
@@ -129,16 +140,25 @@ const Profile = () => {
       if (profileError) throw profileError;
       setProfile(profileData);
 
-      // Load user purpose from profiles table
+      // Load user purpose and birth info from profiles table
       const { data: profileDetails } = await supabase
         .from("profiles")
-        .select("main_mission")
+        .select("main_mission, birth_date, birth_time, birth_location, birth_time_unknown")
         .eq("id", targetUserId)
         .maybeSingle();
 
       if (profileDetails?.main_mission) {
         setPurpose(profileDetails.main_mission);
         setPurposeText(profileDetails.main_mission);
+      }
+
+      if (profileDetails) {
+        setBirthInfo({
+          birth_date: profileDetails.birth_date,
+          birth_time: profileDetails.birth_time,
+          birth_location: profileDetails.birth_location,
+          birth_time_unknown: profileDetails.birth_time_unknown,
+        });
       }
 
       // Load purpose history (only for own profile)
@@ -546,6 +566,15 @@ const Profile = () => {
               )}
             </CardContent>
           </Card>
+        )}
+
+        {/* Birth Info Editor - Only for own profile */}
+        {isOwnProfile && currentUserId && (
+          <BirthInfoEditor
+            userId={currentUserId}
+            initialData={birthInfo || undefined}
+            onUpdate={loadProfile}
+          />
         )}
 
         {/* Stats Grid */}
