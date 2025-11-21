@@ -4,9 +4,11 @@ import { supabase } from "@/integrations/supabase/client";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Card } from "@/components/ui/card";
-import { ArrowLeft, Send } from "lucide-react";
+import { Badge } from "@/components/ui/badge";
+import { ArrowLeft, Send, Sparkles } from "lucide-react";
 import { toast } from "sonner";
 import { cn } from "@/lib/utils";
+import { MentorLearningModule } from "@/components/MentorLearningModule";
 
 const mentorNames: Record<string, string> = {
   mamba_mentor: "Mamba Mentor",
@@ -29,12 +31,22 @@ const Chat = () => {
   const [messages, setMessages] = useState<any[]>([]);
   const [input, setInput] = useState("");
   const [loading, setLoading] = useState(false);
+  const [showLearningModule, setShowLearningModule] = useState(false);
+  const [learningModuleData, setLearningModuleData] = useState<any>(null);
+  const [exchangeCount, setExchangeCount] = useState(0);
   const messagesEndRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
     loadMessages();
     subscribeToMessages();
+    countExchanges();
   }, [mentorType]);
+
+  const countExchanges = () => {
+    // Count user messages to track exchanges
+    const userMessages = messages.filter(m => m.role === "user");
+    setExchangeCount(userMessages.length);
+  };
 
   useEffect(() => {
     messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
@@ -54,6 +66,10 @@ const Chat = () => {
 
       if (error) throw error;
       setMessages(data || []);
+      
+      // Count exchanges
+      const userMessages = data?.filter((m: any) => m.role === "user") || [];
+      setExchangeCount(userMessages.length);
     } catch (error: any) {
       toast.error(error.message);
     }
@@ -118,6 +134,41 @@ const Chat = () => {
         role: "assistant",
         content: data.response,
       });
+
+      // Check if we should offer learning module (after 4-6 exchanges)
+      const newExchangeCount = exchangeCount + 1;
+      setExchangeCount(newExchangeCount);
+      
+      if (newExchangeCount >= 4 && newExchangeCount <= 6 && Math.random() > 0.5) {
+        // Suggest learning module
+        await supabase.from("chats").insert({
+          user_id: user.id,
+          mentor_type: mentorType as any,
+          role: "assistant",
+          content: "🎓 I sense you're learning a lot! Would you like to test your understanding with a quick quiz? You might earn a badge!",
+        });
+      }
+    } catch (error: any) {
+      toast.error(error.message);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const handleStartLearningModule = async () => {
+    setLoading(true);
+    try {
+      const { data, error } = await supabase.functions.invoke("generate-learning-module", {
+        body: {
+          chatHistory: messages,
+          mentorType,
+        },
+      });
+
+      if (error) throw error;
+
+      setLearningModuleData(data.module);
+      setShowLearningModule(true);
     } catch (error: any) {
       toast.error(error.message);
     } finally {
@@ -133,10 +184,22 @@ const Chat = () => {
           <Button variant="ghost" size="icon" onClick={() => navigate("/dashboard")}>
             <ArrowLeft className="w-5 h-5" />
           </Button>
-          <div>
+          <div className="flex-1">
             <h1 className="text-xl font-bold">{mentorNames[mentorType || ""]}</h1>
             <p className="text-sm text-muted-foreground">Your personal mentor</p>
           </div>
+          {exchangeCount >= 3 && (
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={handleStartLearningModule}
+              disabled={loading}
+              className="gap-2"
+            >
+              <Sparkles className="w-4 h-4" />
+              Take Quiz
+            </Button>
+          )}
         </div>
       </div>
 
@@ -188,6 +251,23 @@ const Chat = () => {
           </div>
         </div>
       </div>
+
+      {/* Learning Module Modal */}
+      {showLearningModule && learningModuleData && (
+        <MentorLearningModule
+          mentorType={mentorType || ""}
+          mentorName={mentorNames[mentorType || ""]}
+          moduleData={learningModuleData}
+          onComplete={() => {
+            setShowLearningModule(false);
+            setLearningModuleData(null);
+          }}
+          onClose={() => {
+            setShowLearningModule(false);
+            setLearningModuleData(null);
+          }}
+        />
+      )}
     </div>
   );
 };
