@@ -868,6 +868,36 @@ export type Database = {
         }
         Relationships: []
       }
+      user_affirmations: {
+        Row: {
+          affirmation_text: string | null
+          created_at: string
+          id: string
+          is_favorite: boolean
+          song_link: string | null
+          song_name: string | null
+          user_id: string
+        }
+        Insert: {
+          affirmation_text?: string | null
+          created_at?: string
+          id?: string
+          is_favorite?: boolean
+          song_link?: string | null
+          song_name?: string | null
+          user_id: string
+        }
+        Update: {
+          affirmation_text?: string | null
+          created_at?: string
+          id?: string
+          is_favorite?: boolean
+          song_link?: string | null
+          song_name?: string | null
+          user_id?: string
+        }
+        Relationships: []
+      }
       user_badges: {
         Row: {
           awarded_at: string
