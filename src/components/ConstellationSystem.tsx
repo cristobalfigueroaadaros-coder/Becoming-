@@ -231,11 +231,10 @@ export const ConstellationSystem = () => {
             <div>
               <CardTitle className="flex items-center gap-2 text-2xl">
                 <Star className="w-6 h-6 text-accent" />
-                Constellation System
+                Add to Your Constellation
               </CardTitle>
               <CardDescription className="mt-2">
-                Map your journey through books, ideas, insights, and milestones. 
-                AI will help you discover hidden patterns and connections.
+                Log books, ideas, insights, and milestones to build your personal knowledge constellation.
               </CardDescription>
             </div>
             <Badge variant="secondary" className="text-lg px-4 py-2">

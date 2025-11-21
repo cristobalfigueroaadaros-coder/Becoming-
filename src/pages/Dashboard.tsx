@@ -506,15 +506,15 @@ const Dashboard = () => {
           >
             <Card
               className="cursor-pointer hover:shadow-xl transition-shadow border-2 border-primary/30"
-              onClick={() => navigate("/insights-map")}
+              onClick={() => navigate("/future-self/constellation")}
             >
               <CardContent className="p-6 flex items-center gap-4">
                 <div className="w-12 h-12 bg-gradient-to-br from-primary to-purple-500 rounded-xl flex items-center justify-center">
                   <Network className="w-6 h-6 text-white" />
                 </div>
                 <div>
-                  <h3 className="font-semibold">Insights Map</h3>
-                  <p className="text-sm text-muted-foreground">Connect your learnings</p>
+                  <h3 className="font-semibold">Mapping Ideas & Dots</h3>
+                  <p className="text-sm text-muted-foreground">Connect your journey</p>
                 </div>
               </CardContent>
             </Card>
