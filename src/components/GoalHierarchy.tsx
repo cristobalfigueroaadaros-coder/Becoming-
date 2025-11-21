@@ -7,6 +7,7 @@ import { Progress } from "@/components/ui/progress";
 import { Badge } from "@/components/ui/badge";
 import { CheckCircle2, Circle, Plus, Target, Calendar, CalendarDays, CalendarRange, Sparkles } from "lucide-react";
 import { toast } from "sonner";
+import confetti from "canvas-confetti";
 
 interface Goal {
   id: string;
@@ -151,6 +152,98 @@ export const GoalHierarchy = () => {
     }
   };
 
+  const triggerCelebration = (tier: string, xp: number) => {
+    const celebrations = {
+      daily: () => {
+        confetti({
+          particleCount: 50,
+          spread: 50,
+          origin: { y: 0.6 },
+          colors: ['#FF6B6B', '#4ECDC4', '#FFE66D']
+        });
+      },
+      weekly: () => {
+        confetti({
+          particleCount: 100,
+          spread: 70,
+          origin: { y: 0.6 },
+          colors: ['#FF6B6B', '#4ECDC4', '#FFE66D', '#95E1D3']
+        });
+        setTimeout(() => {
+          confetti({
+            particleCount: 50,
+            angle: 60,
+            spread: 55,
+            origin: { x: 0 }
+          });
+          confetti({
+            particleCount: 50,
+            angle: 120,
+            spread: 55,
+            origin: { x: 1 }
+          });
+        }, 200);
+      },
+      monthly: () => {
+        const duration = 3000;
+        const animationEnd = Date.now() + duration;
+        const colors = ['#FF6B6B', '#4ECDC4', '#FFE66D', '#95E1D3', '#C7CEEA'];
+
+        const frame = () => {
+          confetti({
+            particleCount: 3,
+            angle: 60,
+            spread: 55,
+            origin: { x: 0 },
+            colors: colors
+          });
+          confetti({
+            particleCount: 3,
+            angle: 120,
+            spread: 55,
+            origin: { x: 1 },
+            colors: colors
+          });
+
+          if (Date.now() < animationEnd) {
+            requestAnimationFrame(frame);
+          }
+        };
+        frame();
+      },
+      yearly: () => {
+        const duration = 5000;
+        const animationEnd = Date.now() + duration;
+        const defaults = { startVelocity: 30, spread: 360, ticks: 60, zIndex: 0 };
+
+        const randomInRange = (min: number, max: number) => Math.random() * (max - min) + min;
+
+        const interval = setInterval(() => {
+          const timeLeft = animationEnd - Date.now();
+
+          if (timeLeft <= 0) {
+            return clearInterval(interval);
+          }
+
+          const particleCount = 50 * (timeLeft / duration);
+
+          confetti({
+            ...defaults,
+            particleCount,
+            origin: { x: randomInRange(0.1, 0.3), y: Math.random() - 0.2 }
+          });
+          confetti({
+            ...defaults,
+            particleCount,
+            origin: { x: randomInRange(0.7, 0.9), y: Math.random() - 0.2 }
+          });
+        }, 250);
+      }
+    };
+
+    celebrations[tier as keyof typeof celebrations]();
+  };
+
   const toggleGoalCompletion = async (tier: string, goalId: string, currentStatus: boolean) => {
     try {
       const { data: { user } } = await supabase.auth.getUser();
@@ -170,7 +263,21 @@ export const GoalHierarchy = () => {
 
       if (!currentStatus) {
         const xpValues = { daily: 20, weekly: 50, monthly: 150, yearly: 500 };
-        toast.success(`🎉 Goal completed! +${xpValues[tier as keyof typeof xpValues]} XP`);
+        const xp = xpValues[tier as keyof typeof xpValues];
+        
+        triggerCelebration(tier, xp);
+        
+        const messages = {
+          daily: "Daily goal crushed!",
+          weekly: "Weekly milestone achieved!",
+          monthly: "Monthly objective completed!",
+          yearly: "Yearly goal conquered! 🎆"
+        };
+        
+        toast.success(messages[tier as keyof typeof messages], {
+          description: `+${xp} XP earned!`,
+          duration: 4000
+        });
       }
 
       loadGoals();
@@ -311,15 +418,15 @@ export const GoalHierarchy = () => {
                   {tier.goals.map((goal) => (
                     <div
                       key={goal.id}
-                      className="flex items-start gap-2 p-2 rounded-lg hover:bg-muted/50 transition-colors cursor-pointer"
+                      className="flex items-start gap-2 p-2 rounded-lg hover:bg-muted/50 transition-all duration-200 hover:scale-[1.02] cursor-pointer group"
                       onClick={() => toggleGoalCompletion(tier.tier, goal.id, goal.completed)}
                     >
                       {goal.completed ? (
-                        <CheckCircle2 className="w-5 h-5 text-green-500 flex-shrink-0 mt-0.5" />
+                        <CheckCircle2 className="w-5 h-5 text-green-500 flex-shrink-0 mt-0.5 animate-scale-in" />
                       ) : (
-                        <Circle className="w-5 h-5 text-muted-foreground flex-shrink-0 mt-0.5" />
+                        <Circle className="w-5 h-5 text-muted-foreground flex-shrink-0 mt-0.5 group-hover:text-primary transition-colors" />
                       )}
-                      <span className={`text-sm ${goal.completed ? "line-through text-muted-foreground" : ""}`}>
+                      <span className={`text-sm transition-all ${goal.completed ? "line-through text-muted-foreground" : "group-hover:text-primary"}`}>
                         {goal.goal_text}
                       </span>
                     </div>
