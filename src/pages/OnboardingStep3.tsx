@@ -47,12 +47,12 @@ export default function OnboardingStep3() {
   const [loading, setLoading] = useState(false);
 
   const [domainScores, setDomainScores] = useState<Record<string, { current: number; future: number }>>({
-    "Health & Energy": { current: 5, future: 9 },
-    "Career & Impact": { current: 5, future: 9 },
-    "Relationships & Love": { current: 5, future: 9 },
-    "Friends & Community": { current: 5, future: 9 },
-    "Creativity & Learning": { current: 5, future: 9 },
-    "Spiritual Growth": { current: 5, future: 9 }
+    "Health & Energy": { current: 5, future: 10 },
+    "Career & Impact": { current: 5, future: 10 },
+    "Relationships & Love": { current: 5, future: 10 },
+    "Friends & Community": { current: 5, future: 10 },
+    "Creativity & Learning": { current: 5, future: 10 },
+    "Spiritual Growth": { current: 5, future: 10 }
   });
 
   const updateScore = (domain: string, type: 'current' | 'future', value: number) => {
