@@ -8,6 +8,7 @@ import FutureSelfBackground from "@/components/FutureSelfBackground";
 import { ConstellationSystem } from "@/components/ConstellationSystem";
 import { ConstellationCanvas } from "@/components/ConstellationCanvas";
 import { ConstellationTimeline } from "@/components/ConstellationTimeline";
+import { PurposeOnboardingModal } from "@/components/PurposeOnboardingModal";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -93,10 +94,22 @@ const ConstellationPage = () => {
   const [filterTheme, setFilterTheme] = useState<string>("all");
   const [showFilters, setShowFilters] = useState(false);
   const [analyzingConnections, setAnalyzingConnections] = useState(false);
+  const [showOnboarding, setShowOnboarding] = useState(false);
 
   useEffect(() => {
     loadAllData();
+    
+    // Check if user has completed onboarding
+    const onboardingCompleted = localStorage.getItem("mapping-onboarding-completed");
+    if (!onboardingCompleted) {
+      setShowOnboarding(true);
+    }
   }, []);
+
+  const handleCloseOnboarding = () => {
+    setShowOnboarding(false);
+    localStorage.setItem("mapping-onboarding-completed", "true");
+  };
 
   // Filter dots based on selected filters
   const filteredDots = dots.filter((dot) => {
@@ -234,6 +247,11 @@ const ConstellationPage = () => {
       transition={{ duration: 0.3 }}
     >
       <FutureSelfBackground />
+      
+      <PurposeOnboardingModal 
+        open={showOnboarding}
+        onClose={handleCloseOnboarding}
+      />
       
       {/* Header */}
       <div className="sticky top-0 z-10 bg-card/50 backdrop-blur-lg border-b border-border/30">
