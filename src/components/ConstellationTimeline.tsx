@@ -5,8 +5,12 @@ import { Card, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Slider } from "@/components/ui/slider";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { Play, Pause, SkipBack, SkipForward, Gauge, Filter, BarChart3, TrendingUp, Network as NetworkIcon } from "lucide-react";
+import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from "@/components/ui/dropdown-menu";
+import { Play, Pause, SkipBack, SkipForward, Gauge, Filter, BarChart3, TrendingUp, Network as NetworkIcon, Download } from "lucide-react";
 import { cn } from "@/lib/utils";
+import jsPDF from "jspdf";
+import autoTable from "jspdf-autotable";
+import { toast } from "sonner";
 
 interface InsightDot {
   id: string;
@@ -267,6 +271,184 @@ export const ConstellationTimeline = ({
 
   const stats = calculateStats();
 
+  // Export functions
+  const exportToCSV = () => {
+    if (!stats) return;
+
+    const csvRows: string[] = [];
+    
+    // Header
+    csvRows.push("Constellation Timeline Statistics Report");
+    csvRows.push(`Generated: ${new Date().toLocaleString()}`);
+    csvRows.push("");
+
+    // Overall metrics
+    csvRows.push("Overall Metrics");
+    csvRows.push("Metric,Value");
+    csvRows.push(`Total Insights,${stats.currentDots}`);
+    csvRows.push(`Average Dots per Month,${stats.avgDotsPerMonth}`);
+    csvRows.push(`Months Active,${stats.monthsActive}`);
+    csvRows.push(`30-Day Growth Rate,${stats.growthRate}%`);
+    csvRows.push(`Total Connections,${stats.totalConnections}`);
+    csvRows.push(`Connection Density,${stats.connectionDensity}%`);
+    csvRows.push("");
+
+    // Top themes
+    csvRows.push("Top Themes");
+    csvRows.push("Theme,Count,Percentage");
+    stats.topThemes.forEach(({ theme, count, percentage }) => {
+      csvRows.push(`"${theme}",${count},${percentage.toFixed(1)}%`);
+    });
+    csvRows.push("");
+
+    // Top sources
+    csvRows.push("Top Sources");
+    csvRows.push("Source,Count");
+    stats.topSources.forEach(({ source, count }) => {
+      csvRows.push(`"${source}",${count}`);
+    });
+    csvRows.push("");
+
+    // All insights
+    csvRows.push("All Insights");
+    csvRows.push("Date,Source,Theme,Insight");
+    sortedDots.forEach((dot) => {
+      const date = formatDate(dot.created_at);
+      const source = sourceLabels[dot.source_type] || dot.source_type;
+      const insight = dot.insight_text.replace(/"/g, '""'); // Escape quotes
+      csvRows.push(`"${date}","${source}","${dot.core_theme}","${insight}"`);
+    });
+
+    // Create and download
+    const csvContent = csvRows.join("\n");
+    const blob = new Blob([csvContent], { type: "text/csv;charset=utf-8;" });
+    const link = document.createElement("a");
+    const url = URL.createObjectURL(blob);
+    link.setAttribute("href", url);
+    link.setAttribute("download", `constellation-timeline-${new Date().toISOString().split("T")[0]}.csv`);
+    link.style.visibility = "hidden";
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
+
+    toast.success("CSV report downloaded successfully");
+  };
+
+  const exportToPDF = () => {
+    if (!stats) return;
+
+    const doc = new jsPDF();
+    const pageWidth = doc.internal.pageSize.getWidth();
+    let yPos = 20;
+
+    // Title
+    doc.setFontSize(20);
+    doc.setTextColor(99, 102, 241); // Primary color
+    doc.text("Constellation Timeline Report", pageWidth / 2, yPos, { align: "center" });
+    
+    yPos += 10;
+    doc.setFontSize(10);
+    doc.setTextColor(100, 100, 100);
+    doc.text(`Generated: ${new Date().toLocaleString()}`, pageWidth / 2, yPos, { align: "center" });
+    
+    yPos += 15;
+
+    // Overall Metrics Section
+    doc.setFontSize(14);
+    doc.setTextColor(0, 0, 0);
+    doc.text("Overall Metrics", 14, yPos);
+    yPos += 8;
+
+    autoTable(doc, {
+      startY: yPos,
+      head: [["Metric", "Value"]],
+      body: [
+        ["Total Insights", stats.currentDots.toString()],
+        ["Average Dots per Month", stats.avgDotsPerMonth],
+        ["Months Active", stats.monthsActive.toString()],
+        ["30-Day Growth Rate", `${stats.growthRate}%`],
+        ["Total Connections", stats.totalConnections.toString()],
+        ["Connection Density", `${stats.connectionDensity}%`],
+      ],
+      theme: "grid",
+      headStyles: { fillColor: [99, 102, 241] },
+      margin: { left: 14 },
+    });
+
+    yPos = (doc as any).lastAutoTable.finalY + 15;
+
+    // Top Themes Section
+    doc.setFontSize(14);
+    doc.text("Top Themes", 14, yPos);
+    yPos += 8;
+
+    autoTable(doc, {
+      startY: yPos,
+      head: [["Theme", "Count", "Percentage"]],
+      body: stats.topThemes.map(({ theme, count, percentage }) => [
+        theme,
+        count.toString(),
+        `${percentage.toFixed(1)}%`,
+      ]),
+      theme: "grid",
+      headStyles: { fillColor: [99, 102, 241] },
+      margin: { left: 14 },
+    });
+
+    yPos = (doc as any).lastAutoTable.finalY + 15;
+
+    // Check if we need a new page
+    if (yPos > 250) {
+      doc.addPage();
+      yPos = 20;
+    }
+
+    // Top Sources Section
+    doc.setFontSize(14);
+    doc.text("Top Sources", 14, yPos);
+    yPos += 8;
+
+    autoTable(doc, {
+      startY: yPos,
+      head: [["Source", "Count"]],
+      body: stats.topSources.map(({ source, count }) => [source, count.toString()]),
+      theme: "grid",
+      headStyles: { fillColor: [99, 102, 241] },
+      margin: { left: 14 },
+    });
+
+    // Add insights summary on new page
+    doc.addPage();
+    yPos = 20;
+    
+    doc.setFontSize(14);
+    doc.text("Recent Insights Summary", 14, yPos);
+    yPos += 8;
+
+    const recentDots = sortedDots.slice(Math.max(0, sortedDots.length - 10));
+    
+    autoTable(doc, {
+      startY: yPos,
+      head: [["Date", "Source", "Theme", "Insight"]],
+      body: recentDots.map((dot) => [
+        formatDate(dot.created_at),
+        sourceLabels[dot.source_type] || dot.source_type,
+        dot.core_theme,
+        dot.insight_text.substring(0, 60) + (dot.insight_text.length > 60 ? "..." : ""),
+      ]),
+      theme: "grid",
+      headStyles: { fillColor: [99, 102, 241] },
+      margin: { left: 14 },
+      columnStyles: {
+        3: { cellWidth: 80 },
+      },
+    });
+
+    // Save PDF
+    doc.save(`constellation-timeline-${new Date().toISOString().split("T")[0]}.pdf`);
+    toast.success("PDF report downloaded successfully");
+  };
+
   if (sortedDots.length === 0) {
     return (
       <Card className="w-full h-[600px] flex items-center justify-center">
@@ -362,6 +544,23 @@ export const ConstellationTimeline = ({
                       <BarChart3 className="w-4 h-4" />
                       Growth Metrics
                     </h3>
+                    <DropdownMenu>
+                      <DropdownMenuTrigger asChild>
+                        <Button variant="ghost" size="sm">
+                          <Download className="w-4 h-4" />
+                        </Button>
+                      </DropdownMenuTrigger>
+                      <DropdownMenuContent align="end">
+                        <DropdownMenuItem onClick={exportToCSV}>
+                          <Download className="w-4 h-4 mr-2" />
+                          Export as CSV
+                        </DropdownMenuItem>
+                        <DropdownMenuItem onClick={exportToPDF}>
+                          <Download className="w-4 h-4 mr-2" />
+                          Export as PDF
+                        </DropdownMenuItem>
+                      </DropdownMenuContent>
+                    </DropdownMenu>
                   </div>
 
                   {/* Overall Stats */}
