@@ -14,6 +14,7 @@ import OnboardingStep1 from "./pages/OnboardingStep1";
 import OnboardingStep2 from "./pages/OnboardingStep2";
 import OnboardingStep3 from "./pages/OnboardingStep3";
 import Dashboard from "./pages/Dashboard";
+import CommunityHub from "./pages/CommunityHub";
 import FutureSelf from "./pages/FutureSelf";
 import LifeDomainsPage from "./pages/LifeDomainsPage";
 import GoalStructurePage from "./pages/GoalStructurePage";
@@ -135,6 +136,10 @@ const App = () => {
             <Route
               path="/dashboard"
               element={session ? <Dashboard /> : <Navigate to="/auth" />}
+            />
+            <Route
+              path="/community-hub"
+              element={session ? <CommunityHub /> : <Navigate to="/auth" />}
             />
             <Route
               path="/future-self"
