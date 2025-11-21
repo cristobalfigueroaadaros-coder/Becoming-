@@ -2,7 +2,7 @@ import { useNavigate } from "react-router-dom";
 import { useState, useEffect } from "react";
 import { motion } from "framer-motion";
 import { Button } from "@/components/ui/button";
-import { ArrowLeft, Network, Clock, FileText, Filter, X } from "lucide-react";
+import { ArrowLeft, Network, Clock, FileText, Filter, X, Sparkles, Loader2 } from "lucide-react";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import FutureSelfBackground from "@/components/FutureSelfBackground";
 import { ConstellationSystem } from "@/components/ConstellationSystem";
@@ -92,6 +92,7 @@ const ConstellationPage = () => {
   const [filterSource, setFilterSource] = useState<string>("all");
   const [filterTheme, setFilterTheme] = useState<string>("all");
   const [showFilters, setShowFilters] = useState(false);
+  const [analyzingConnections, setAnalyzingConnections] = useState(false);
 
   useEffect(() => {
     loadAllData();
@@ -114,6 +115,50 @@ const ConstellationPage = () => {
   };
 
   const activeFiltersCount = (filterSource !== "all" ? 1 : 0) + (filterTheme !== "all" ? 1 : 0);
+
+  const analyzeConnections = async () => {
+    if (filteredDots.length < 3) {
+      toast.error("Need at least 3 insights to find connections");
+      return;
+    }
+
+    setAnalyzingConnections(true);
+    try {
+      const { data, error } = await supabase.functions.invoke("connect-all-dots", {
+        body: { dots: filteredDots.slice(0, 30) } // Limit to 30 for performance
+      });
+
+      if (error) throw error;
+
+      if (data?.connections && data.connections.length > 0) {
+        toast.success(`Discovered ${data.connections.length} new connections!`, {
+          description: "AI found meaningful patterns in your journey"
+        });
+        loadAllData(); // Reload to show new connections
+      } else {
+        toast.info("No new connections found", {
+          description: "Keep adding insights to discover more patterns"
+        });
+      }
+    } catch (error: any) {
+      console.error("Error analyzing connections:", error);
+      if (error.message?.includes("Rate limit")) {
+        toast.error("Rate limit reached", {
+          description: "Please try again in a moment"
+        });
+      } else if (error.message?.includes("credits")) {
+        toast.error("AI credits depleted", {
+          description: "Please add credits to continue"
+        });
+      } else {
+        toast.error("Failed to analyze connections", {
+          description: error.message
+        });
+      }
+    } finally {
+      setAnalyzingConnections(false);
+    }
+  };
 
   const loadAllData = async () => {
     try {
@@ -238,6 +283,24 @@ const ConstellationPage = () => {
 
             {(activeTab === "canvas" || activeTab === "timeline" || activeTab === "list") && (
               <div className="flex items-center gap-2">
+                <Button
+                  variant="default"
+                  size="sm"
+                  onClick={analyzeConnections}
+                  disabled={analyzingConnections || filteredDots.length < 3}
+                >
+                  {analyzingConnections ? (
+                    <>
+                      <Loader2 className="w-4 h-4 mr-2 animate-spin" />
+                      Analyzing...
+                    </>
+                  ) : (
+                    <>
+                      <Sparkles className="w-4 h-4 mr-2" />
+                      AI Connect Dots
+                    </>
+                  )}
+                </Button>
                 <Button
                   variant={showFilters ? "default" : "outline"}
                   size="sm"
