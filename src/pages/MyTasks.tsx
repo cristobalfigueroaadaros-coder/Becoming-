@@ -55,6 +55,7 @@ const MyTasks = () => {
     const newStatus = currentStatus === "pending" ? "done" : "pending";
 
     try {
+      // Update task status in database
       const { error } = await supabase
         .from("tasks")
         .update({ status: newStatus })
@@ -62,11 +63,46 @@ const MyTasks = () => {
 
       if (error) throw error;
 
+      // Find the task to get mentor name
+      const task = tasks.find(t => t.id === taskId);
+      
+      // Update local state
       setTasks(tasks.map(task => 
         task.id === taskId ? { ...task, status: newStatus } : task
       ));
 
-      toast.success(newStatus === "done" ? "Task completed!" : "Task reopened");
+      if (newStatus === "done" && task) {
+        // Call complete-task edge function to award XP
+        const { data: { session } } = await supabase.auth.getSession();
+        
+        const { data, error: completeError } = await supabase.functions.invoke('complete-task', {
+          body: { 
+            taskId: taskId,
+            mentorName: task.mentor_name,
+            isShadowTask: false
+          },
+          headers: {
+            Authorization: `Bearer ${session?.access_token}`
+          }
+        });
+
+        if (completeError) {
+          console.error('Error completing task:', completeError);
+          toast.error("Task marked complete but XP award failed");
+        } else {
+          // Show celebration toast with XP info
+          toast.success(
+            <div className="flex flex-col gap-1">
+              <div className="font-semibold">Task Completed! 🎉</div>
+              <div className="text-sm">+{data.xpEarned} XP earned</div>
+              {data.leveledUp && <div className="text-sm font-bold text-primary">🎊 Level Up! You're now Level {data.newLevel}!</div>}
+            </div>,
+            { duration: 4000 }
+          );
+        }
+      } else {
+        toast.success("Task reopened");
+      }
     } catch (error: any) {
       toast.error(error.message);
     }
