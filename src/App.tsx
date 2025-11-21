@@ -29,7 +29,6 @@ import MyTasks from "./pages/MyTasks";
 import YourNewTasks from "./pages/YourNewTasks";
 import Premium from "./pages/Premium";
 import Profile from "./pages/Profile";
-import MappingDotsPage from "./pages/MappingDotsPage";
 import NotFound from "./pages/NotFound";
 
 const queryClient = new QueryClient();
@@ -201,10 +200,6 @@ const App = () => {
             <Route
               path="/profile/:userId"
               element={session ? <Profile /> : <Navigate to="/auth" />}
-            />
-            <Route
-              path="/insights-map"
-              element={session ? <MappingDotsPage /> : <Navigate to="/auth" />}
             />
             <Route path="*" element={<NotFound />} />
           </Routes>
