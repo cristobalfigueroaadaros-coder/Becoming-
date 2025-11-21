@@ -7,11 +7,8 @@ import { Brain, Lightbulb, Zap, Trees, Heart, Sparkles, Users, BookOpen, Crown, 
 import { toast } from "sonner";
 import { cn } from "@/lib/utils";
 import { FutureSelfWidget } from "@/components/FutureSelfWidget";
-import { LifeDomainsRadar } from "@/components/LifeDomainsRadar";
 import { DailyRitualModal } from "@/components/DailyRitualModal";
 import { GoalHierarchy } from "@/components/GoalHierarchy";
-import { AchievementsDisplay } from "@/components/AchievementsDisplay";
-import { Leaderboard } from "@/components/Leaderboard";
 import { ProfileBadges } from "@/components/ProfileBadges";
 import { useProfileBadges } from "@/hooks/useProfileBadges";
 
@@ -284,9 +281,8 @@ const Dashboard = () => {
         </Card>
 
         {/* Quick Stats Overview */}
-        <div className="grid lg:grid-cols-2 gap-6">
+        <div className="max-w-2xl">
           <FutureSelfWidget />
-          <LifeDomainsRadar />
         </div>
 
         {/* Daily Ritual Status */}
@@ -404,37 +400,25 @@ const Dashboard = () => {
           </div>
         </div>
 
-        {/* Daily Whisper */}
+        {/* Daily Whisper - Compact */}
         {latestWhisper && (
           <Card className="border-primary/20 bg-gradient-to-br from-primary/5 to-transparent">
-            <CardHeader>
-              <CardTitle className="flex items-center gap-2">
-                <Sparkles className="w-5 h-5 text-primary" />
-                Daily Whisper
-              </CardTitle>
-              <CardDescription>
-                From {mentorNames[latestWhisper.mentor_type as keyof typeof mentorNames]}
-              </CardDescription>
-            </CardHeader>
-            <CardContent>
-              <p className="text-lg italic">{latestWhisper.message}</p>
+            <CardContent className="p-4">
+              <div className="flex items-start gap-3">
+                <Sparkles className="w-5 h-5 text-primary flex-shrink-0 mt-1" />
+                <div className="flex-1 min-w-0">
+                  <p className="text-sm font-medium text-muted-foreground mb-1">
+                    {mentorNames[latestWhisper.mentor_type as keyof typeof mentorNames]}
+                  </p>
+                  <p className="text-sm italic line-clamp-2">{latestWhisper.message}</p>
+                </div>
+              </div>
             </CardContent>
           </Card>
         )}
 
-        {/* Community & Progress Section */}
-        <div className="space-y-6">
-          <div>
-            <h2 className="text-2xl font-semibold mb-4">Community & Achievements</h2>
-            <div className="grid lg:grid-cols-2 gap-6">
-              <AchievementsDisplay />
-              <Leaderboard />
-            </div>
-          </div>
-        </div>
-
         {/* Navigation Links */}
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+        <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
           <Card
             className="cursor-pointer hover:shadow-lg transition-all"
             onClick={() => navigate("/my-tasks")}
@@ -452,6 +436,21 @@ const Dashboard = () => {
 
           <Card
             className="cursor-pointer hover:shadow-lg transition-all"
+            onClick={() => navigate("/community-hub")}
+          >
+            <CardContent className="p-6 flex items-center gap-4">
+              <div className="w-12 h-12 bg-secondary rounded-xl flex items-center justify-center">
+                <Users className="w-6 h-6 text-secondary-foreground" />
+              </div>
+              <div>
+                <h3 className="font-semibold">Community Hub</h3>
+                <p className="text-sm text-muted-foreground">Achievements & rankings</p>
+              </div>
+            </CardContent>
+          </Card>
+
+          <Card
+            className="cursor-pointer hover:shadow-lg transition-all"
             onClick={() => navigate("/council-log")}
           >
             <CardContent className="p-6 flex items-center gap-4">
@@ -460,22 +459,22 @@ const Dashboard = () => {
               </div>
               <div>
                 <h3 className="font-semibold">Council Log</h3>
-                <p className="text-sm text-muted-foreground">View your history</p>
+                <p className="text-sm text-muted-foreground">Past wisdom</p>
               </div>
             </CardContent>
           </Card>
 
           <Card
-            className="cursor-pointer hover:shadow-lg transition-all"
+            className="cursor-pointer hover:shadow-lg transition-all bg-gradient-to-br from-primary/10 to-accent/10"
             onClick={() => navigate("/premium")}
           >
             <CardContent className="p-6 flex items-center gap-4">
-              <div className="w-12 h-12 bg-secondary rounded-xl flex items-center justify-center">
-                <Crown className="w-6 h-6 text-secondary-foreground" />
+              <div className="w-12 h-12 bg-gradient-to-br from-primary to-accent rounded-xl flex items-center justify-center">
+                <Crown className="w-6 h-6 text-white" />
               </div>
               <div>
                 <h3 className="font-semibold">Unlock Premium</h3>
-                <p className="text-sm text-muted-foreground">Get unlimited access</p>
+                <p className="text-sm text-muted-foreground">Enhanced features</p>
               </div>
             </CardContent>
           </Card>
