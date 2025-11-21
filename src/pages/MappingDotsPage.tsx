@@ -11,6 +11,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { ArrowLeft, Network, Filter, Sparkles, Link2, Calendar, Tag, FileText, Plus } from "lucide-react";
 import { toast } from "sonner";
 import { cn } from "@/lib/utils";
+import { ConstellationCanvas } from "@/components/ConstellationCanvas";
 
 interface InsightDot {
   id: string;
@@ -202,6 +203,8 @@ const MappingDotsPage = () => {
       .filter((item) => item.dot);
   };
 
+  const [viewMode, setViewMode] = useState<"constellation" | "list">("constellation");
+
   return (
     <div className="min-h-screen bg-gradient-to-br from-primary/5 via-background to-accent/5 p-4 py-8">
       <div className="max-w-7xl mx-auto space-y-6">
@@ -214,35 +217,60 @@ const MappingDotsPage = () => {
             <div>
               <h1 className="text-3xl font-bold flex items-center gap-2">
                 <Network className="w-8 h-8 text-primary" />
-                Insights Map
+                Mapping Ideas & Dots
               </h1>
               <p className="text-muted-foreground mt-1">
-                {dots.length} insights • {connections.length} connections
-                {unreviewedCount > 0 && ` • ${unreviewedCount} unreviewed`}
+                Discover patterns and connections in your journey
               </p>
             </div>
           </div>
 
           <div className="flex gap-2">
+            <div className="flex gap-1 bg-muted/50 p-1 rounded-lg">
+              <Button
+                variant={viewMode === "constellation" ? "default" : "ghost"}
+                size="sm"
+                onClick={() => setViewMode("constellation")}
+              >
+                <Network className="w-4 h-4 mr-2" />
+                Canvas
+              </Button>
+              <Button
+                variant={viewMode === "list" ? "default" : "ghost"}
+                size="sm"
+                onClick={() => setViewMode("list")}
+              >
+                <FileText className="w-4 h-4 mr-2" />
+                List
+              </Button>
+            </div>
             <Button
               variant="outline"
               onClick={suggestConnections}
               disabled={suggestingConnections || dots.length < 2}
             >
               <Sparkles className="w-4 h-4 mr-2" />
-              {suggestingConnections ? "Analyzing..." : "Suggest Connections"}
-            </Button>
-            <Button
-              variant={isReviewMode ? "default" : "outline"}
-              onClick={() => setIsReviewMode(!isReviewMode)}
-            >
-              <FileText className="w-4 h-4 mr-2" />
-              {isReviewMode ? "Exit Review" : "Review Mode"}
+              {suggestingConnections ? "Analyzing..." : "Connect the Dots"}
             </Button>
           </div>
         </div>
 
-        <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+        {/* Constellation Canvas View */}
+        {viewMode === "constellation" && (
+          <ConstellationCanvas
+            dots={filteredDots}
+            connections={connections}
+            onDotClick={(dot) => {
+              setSelectedDot(dot);
+              setUserReflection(dot.user_reflection || "");
+            }}
+            selectedDot={selectedDot}
+          />
+        )}
+
+        {/* List View */}
+        {viewMode === "list" && (
+          <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
           {/* Filters & List */}
           <div className="lg:col-span-1 space-y-4">
             {/* Filters */}
@@ -537,6 +565,127 @@ const MappingDotsPage = () => {
             </AnimatePresence>
           </div>
         </div>
+        )}
+
+        {/* Selected Dot Details - Always Visible */}
+        <AnimatePresence mode="wait">
+          {selectedDot && (
+            <motion.div
+              initial={{ opacity: 0, y: 20 }}
+              animate={{ opacity: 1, y: 0 }}
+              exit={{ opacity: 0, y: 20 }}
+              className="mt-6"
+            >
+              <Card>
+                <CardHeader>
+                  <div className="flex items-start justify-between">
+                    <div className="space-y-2 flex-1">
+                      <div className="flex items-center gap-2">
+                        <CardTitle className="text-xl">Insight Details</CardTitle>
+                        {!selectedDot.reviewed_at && (
+                          <Badge variant="outline" className="text-xs">
+                            Unreviewed
+                          </Badge>
+                        )}
+                      </div>
+                      <div className="flex items-center gap-2 text-sm text-muted-foreground flex-wrap">
+                        <div className="flex items-center gap-1">
+                          <Calendar className="w-3 h-3" />
+                          {new Date(selectedDot.created_at).toLocaleDateString()}
+                        </div>
+                        <span>•</span>
+                        <div className="flex items-center gap-1">
+                          <Tag className="w-3 h-3" />
+                          {selectedDot.source_mentor || sourceLabels[selectedDot.source_type]}
+                        </div>
+                      </div>
+                    </div>
+                    <Button
+                      variant="ghost"
+                      size="sm"
+                      onClick={() => setSelectedDot(null)}
+                    >
+                      ✕
+                    </Button>
+                  </div>
+                </CardHeader>
+                <CardContent className="space-y-6">
+                  <div className="space-y-2">
+                    <h3 className="text-sm font-semibold text-muted-foreground">Insight</h3>
+                    <p className="text-base leading-relaxed">{selectedDot.insight_text}</p>
+                  </div>
+
+                  <div className="space-y-2">
+                    <h3 className="text-sm font-semibold text-muted-foreground">Themes</h3>
+                    <div className="flex flex-wrap gap-2">
+                      <Badge variant="default">{selectedDot.core_theme}</Badge>
+                      {selectedDot.skill_tags.map((tag) => (
+                        <Badge key={tag} variant="secondary">
+                          {tag}
+                        </Badge>
+                      ))}
+                    </div>
+                  </div>
+
+                  {getConnectedDots(selectedDot.id).length > 0 && (
+                    <div className="space-y-2">
+                      <h3 className="text-sm font-semibold text-muted-foreground flex items-center gap-2">
+                        <Link2 className="w-4 h-4" />
+                        Connected Insights ({getConnectedDots(selectedDot.id).length})
+                      </h3>
+                      <div className="space-y-2">
+                        {getConnectedDots(selectedDot.id).map(({ connection, dot }) => (
+                          <Card
+                            key={connection.id}
+                            className="cursor-pointer hover:border-primary/50"
+                            onClick={() => setSelectedDot(dot!)}
+                          >
+                            <CardContent className="p-3 space-y-2">
+                              <div className="flex items-center justify-between">
+                                <p className="text-xs font-medium">
+                                  {dot?.source_mentor || sourceLabels[dot?.source_type || ""]}
+                                </p>
+                                {connection.ai_generated && (
+                                  <Badge variant="secondary" className="text-xs">
+                                    <Sparkles className="w-3 h-3 mr-1" />
+                                    AI
+                                  </Badge>
+                                )}
+                              </div>
+                              <p className="text-xs text-muted-foreground line-clamp-1">
+                                {dot?.insight_text}
+                              </p>
+                              <p className="text-xs italic text-primary/80">
+                                "{connection.connection_insight}"
+                              </p>
+                            </CardContent>
+                          </Card>
+                        ))}
+                      </div>
+                    </div>
+                  )}
+
+                  <div className="space-y-2">
+                    <h3 className="text-sm font-semibold text-muted-foreground">Your Reflection</h3>
+                    <Textarea
+                      placeholder="What does this insight mean to you? How will you apply it?"
+                      value={userReflection}
+                      onChange={(e) => setUserReflection(e.target.value)}
+                      rows={4}
+                    />
+                    <Button
+                      onClick={saveReflection}
+                      disabled={!userReflection.trim()}
+                      className="w-full"
+                    >
+                      Save Reflection
+                    </Button>
+                  </div>
+                </CardContent>
+              </Card>
+            </motion.div>
+          )}
+        </AnimatePresence>
       </div>
     </div>
   );
