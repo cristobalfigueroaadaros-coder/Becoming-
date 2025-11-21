@@ -8,10 +8,11 @@ import { Badge } from "@/components/ui/badge";
 import { Textarea } from "@/components/ui/textarea";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { ArrowLeft, Network, Filter, Sparkles, Link2, Calendar, Tag, FileText, Plus } from "lucide-react";
+import { ArrowLeft, Network, Filter, Sparkles, Link2, Calendar, Tag, FileText, Plus, Clock } from "lucide-react";
 import { toast } from "sonner";
 import { cn } from "@/lib/utils";
 import { ConstellationCanvas } from "@/components/ConstellationCanvas";
+import { ConstellationTimeline } from "@/components/ConstellationTimeline";
 import { PurposeOnboardingModal } from "@/components/PurposeOnboardingModal";
 
 interface InsightDot {
@@ -248,7 +249,7 @@ const MappingDotsPage = () => {
       .filter((item) => item.dot);
   };
 
-  const [viewMode, setViewMode] = useState<"constellation" | "list">("constellation");
+  const [viewMode, setViewMode] = useState<"constellation" | "list" | "timeline">("constellation");
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-primary/5 via-background to-accent/5 p-4 py-8">
@@ -285,6 +286,14 @@ const MappingDotsPage = () => {
                 Canvas
               </Button>
               <Button
+                variant={viewMode === "timeline" ? "default" : "ghost"}
+                size="sm"
+                onClick={() => setViewMode("timeline")}
+              >
+                <Clock className="w-4 h-4 mr-2" />
+                Timeline
+              </Button>
+              <Button
                 variant={viewMode === "list" ? "default" : "ghost"}
                 size="sm"
                 onClick={() => setViewMode("list")}
@@ -307,6 +316,20 @@ const MappingDotsPage = () => {
         {/* Constellation Canvas View */}
         {viewMode === "constellation" && (
           <ConstellationCanvas
+            dots={filteredDots}
+            connections={connections}
+            onDotClick={(dot) => {
+              setSelectedDot(dot);
+              setUserReflection(dot.user_reflection || "");
+            }}
+            selectedDot={selectedDot}
+            userPurpose={userPurpose}
+          />
+        )}
+
+        {/* Timeline View */}
+        {viewMode === "timeline" && (
+          <ConstellationTimeline
             dots={filteredDots}
             connections={connections}
             onDotClick={(dot) => {
