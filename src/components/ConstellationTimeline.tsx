@@ -4,7 +4,8 @@ import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Slider } from "@/components/ui/slider";
-import { Play, Pause, SkipBack, SkipForward, Gauge } from "lucide-react";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { Play, Pause, SkipBack, SkipForward, Gauge, Filter } from "lucide-react";
 import { cn } from "@/lib/utils";
 
 interface InsightDot {
@@ -81,9 +82,21 @@ export const ConstellationTimeline = ({
   const [isPlaying, setIsPlaying] = useState(false);
   const [playbackSpeed, setPlaybackSpeed] = useState(1);
   const [dotPositions, setDotPositions] = useState<Record<string, { x: number; y: number }>>({});
+  const [filterSource, setFilterSource] = useState<string>("all");
+  const [filterTheme, setFilterTheme] = useState<string>("all");
+
+  // Apply filters
+  const filteredDots = dots.filter((dot) => {
+    const sourceMatch = filterSource === "all" || dot.source_type === filterSource;
+    const themeMatch = filterTheme === "all" || dot.core_theme === filterTheme;
+    return sourceMatch && themeMatch;
+  });
+
+  // Extract unique themes for filter
+  const uniqueThemes = Array.from(new Set(dots.map((dot) => dot.core_theme))).sort();
 
   // Sort dots chronologically
-  const sortedDots = [...dots].sort(
+  const sortedDots = [...filteredDots].sort(
     (a, b) => new Date(a.created_at).getTime() - new Date(b.created_at).getTime()
   );
 
@@ -161,6 +174,12 @@ export const ConstellationTimeline = ({
     setIsPlaying(false);
   };
 
+  // Reset timeline when filters change
+  useEffect(() => {
+    setCurrentIndex(0);
+    setIsPlaying(false);
+  }, [filterSource, filterTheme]);
+
   const handleSkipForward = () => {
     setCurrentIndex((prev) => Math.min(prev + 5, sortedDots.length - 1));
   };
@@ -187,6 +206,61 @@ export const ConstellationTimeline = ({
 
   return (
     <div className="space-y-4">
+      {/* Filters */}
+      <Card>
+        <CardContent className="p-4">
+          <div className="flex items-center gap-4">
+            <Filter className="w-4 h-4 text-muted-foreground" />
+            <div className="flex-1 grid grid-cols-1 md:grid-cols-2 gap-4">
+              <div className="space-y-2">
+                <label className="text-xs text-muted-foreground">Source Type</label>
+                <Select value={filterSource} onValueChange={setFilterSource}>
+                  <SelectTrigger>
+                    <SelectValue />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="all">All Sources</SelectItem>
+                    {Object.entries(sourceLabels).map(([key, label]) => (
+                      <SelectItem key={key} value={key}>
+                        {label}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </div>
+              <div className="space-y-2">
+                <label className="text-xs text-muted-foreground">Core Theme</label>
+                <Select value={filterTheme} onValueChange={setFilterTheme}>
+                  <SelectTrigger>
+                    <SelectValue />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="all">All Themes</SelectItem>
+                    {uniqueThemes.map((theme) => (
+                      <SelectItem key={theme} value={theme}>
+                        {theme}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </div>
+            </div>
+            {(filterSource !== "all" || filterTheme !== "all") && (
+              <Button
+                variant="ghost"
+                size="sm"
+                onClick={() => {
+                  setFilterSource("all");
+                  setFilterTheme("all");
+                }}
+              >
+                Clear Filters
+              </Button>
+            )}
+          </div>
+        </CardContent>
+      </Card>
+
       {/* Timeline Canvas */}
       <Card className="relative overflow-hidden">
         <div ref={canvasRef} className="relative w-full h-[600px] bg-gradient-to-br from-background via-primary/5 to-accent/10">
@@ -325,10 +399,20 @@ export const ConstellationTimeline = ({
                     </Badge>
                     <div className="flex-1 min-w-0">
                       <p className="text-sm font-medium text-foreground mb-1">{currentDot.insight_text}</p>
-                      <div className="flex items-center gap-2 text-xs text-muted-foreground">
+                      <div className="flex items-center gap-2 text-xs text-muted-foreground flex-wrap">
                         <span>{formatDate(currentDot.created_at)}</span>
                         <span>•</span>
+                        <Badge variant="outline" className="text-xs">
+                          {currentDot.core_theme}
+                        </Badge>
+                        <span>•</span>
                         <span>Dot {currentIndex + 1} of {sortedDots.length}</span>
+                        {(filterSource !== "all" || filterTheme !== "all") && (
+                          <>
+                            <span>•</span>
+                            <span className="text-primary">Filtered</span>
+                          </>
+                        )}
                       </div>
                     </div>
                   </div>
