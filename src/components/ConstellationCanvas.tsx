@@ -215,6 +215,42 @@ export const ConstellationCanvas = ({
               })}
             </g>
 
+            {/* Purpose connection lines - connect each dot to the central purpose node */}
+            {userPurpose && positions.has('purpose-node') && (
+              <g opacity="0.15">
+                {dots.map((dot) => {
+                  const dotPos = positions.get(dot.id);
+                  const purposePos = positions.get('purpose-node');
+                  if (!dotPos || !purposePos) return null;
+
+                  const isHighlighted = 
+                    selectedDot?.id === dot.id || 
+                    hoveredDot === dot.id;
+
+                  return (
+                    <motion.line
+                      key={`purpose-${dot.id}`}
+                      x1={dotPos.x}
+                      y1={dotPos.y}
+                      x2={purposePos.x}
+                      y2={purposePos.y}
+                      stroke="hsl(var(--primary))"
+                      strokeWidth={isHighlighted ? 2 : 1}
+                      strokeOpacity={isHighlighted ? 0.6 : 0.25}
+                      strokeDasharray={isHighlighted ? "0" : "4 4"}
+                      initial={{ pathLength: 0, opacity: 0 }}
+                      animate={{ pathLength: 1, opacity: 1 }}
+                      transition={{ 
+                        duration: 1.5, 
+                        ease: "easeInOut",
+                        delay: 0.3
+                      }}
+                    />
+                  );
+                })}
+              </g>
+            )}
+
             {/* Purpose Node - Central Glowing Node */}
             {userPurpose && positions.has('purpose-node') && (
               <g>
