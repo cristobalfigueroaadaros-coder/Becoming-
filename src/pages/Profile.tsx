@@ -6,7 +6,8 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Progress } from "@/components/ui/progress";
 import { Avatar, AvatarFallback } from "@/components/ui/avatar";
-import { ArrowLeft, Trophy, Flame, Target, Zap, Award, Calendar, Ghost, Users, BookOpen, Settings } from "lucide-react";
+import { Textarea } from "@/components/ui/textarea";
+import { ArrowLeft, Trophy, Flame, Target, Zap, Award, Calendar, Ghost, Users, BookOpen, Settings, Compass, Edit2, Check, X } from "lucide-react";
 import { AchievementBadge } from "@/components/AchievementBadge";
 import { ThemeCustomizationModal } from "@/components/ThemeCustomizationModal";
 import { ProfileBadges } from "@/components/ProfileBadges";
@@ -87,6 +88,10 @@ const Profile = () => {
   const [isOwnProfile, setIsOwnProfile] = useState(false);
   const [themePreferences, setThemePreferences] = useState<ThemePreferences | null>(null);
   const [customizeModalOpen, setCustomizeModalOpen] = useState(false);
+  const [purpose, setPurpose] = useState<string>("");
+  const [editingPurpose, setEditingPurpose] = useState(false);
+  const [purposeText, setPurposeText] = useState("");
+  const [savingPurpose, setSavingPurpose] = useState(false);
   const { getUserBadgesWithDetails, loading: badgesLoading } = useProfileBadges(userId);
   const userBadges = getUserBadgesWithDetails();
 
@@ -115,6 +120,18 @@ const Profile = () => {
 
       if (profileError) throw profileError;
       setProfile(profileData);
+
+      // Load user purpose from profiles table
+      const { data: profileDetails } = await supabase
+        .from("profiles")
+        .select("main_mission")
+        .eq("id", targetUserId)
+        .maybeSingle();
+
+      if (profileDetails?.main_mission) {
+        setPurpose(profileDetails.main_mission);
+        setPurposeText(profileDetails.main_mission);
+      }
 
       // Load all achievements
       const { data: allAchievements } = await supabase
@@ -221,6 +238,39 @@ const Profile = () => {
     }
   };
 
+  const handleSavePurpose = async () => {
+    if (!purposeText.trim()) {
+      toast.error("Purpose cannot be empty");
+      return;
+    }
+
+    setSavingPurpose(true);
+    try {
+      const { data: { user } } = await supabase.auth.getUser();
+      if (!user) throw new Error("Not authenticated");
+
+      const { error } = await supabase
+        .from("profiles")
+        .update({ main_mission: purposeText.trim() })
+        .eq("id", user.id);
+
+      if (error) throw error;
+
+      setPurpose(purposeText.trim());
+      setEditingPurpose(false);
+      toast.success("Purpose updated successfully!");
+    } catch (error: any) {
+      toast.error("Failed to update purpose", { description: error.message });
+    } finally {
+      setSavingPurpose(false);
+    }
+  };
+
+  const handleCancelEdit = () => {
+    setPurposeText(purpose);
+    setEditingPurpose(false);
+  };
+
   // Privacy checks
   const canShowStats = isOwnProfile || (themePreferences?.show_stats_publicly ?? true);
   const canShowAchievements = isOwnProfile || (themePreferences?.show_achievements_publicly ?? true);
@@ -308,6 +358,92 @@ const Profile = () => {
             </div>
           </CardContent>
         </Card>
+
+        {/* Life Purpose */}
+        {(isOwnProfile || purpose) && (
+          <Card className={cn("border-2 border-accent/20", getCardClass())}>
+            <CardHeader>
+              <div className="flex items-center justify-between">
+                <CardTitle className="flex items-center gap-2">
+                  <Compass className="w-5 h-5 text-accent" />
+                  Life Purpose
+                </CardTitle>
+                {isOwnProfile && !editingPurpose && (
+                  <Button
+                    variant="ghost"
+                    size="sm"
+                    onClick={() => setEditingPurpose(true)}
+                  >
+                    <Edit2 className="w-4 h-4 mr-2" />
+                    Edit
+                  </Button>
+                )}
+              </div>
+            </CardHeader>
+            <CardContent>
+              {editingPurpose ? (
+                <div className="space-y-4">
+                  <Textarea
+                    value={purposeText}
+                    onChange={(e) => setPurposeText(e.target.value)}
+                    placeholder="Describe your life's purpose or mission..."
+                    rows={5}
+                    className="resize-none"
+                  />
+                  <div className="flex gap-2">
+                    <Button
+                      onClick={handleSavePurpose}
+                      disabled={!purposeText.trim() || savingPurpose}
+                      className="flex-1"
+                    >
+                      <Check className="w-4 h-4 mr-2" />
+                      {savingPurpose ? "Saving..." : "Save Purpose"}
+                    </Button>
+                    <Button
+                      variant="outline"
+                      onClick={handleCancelEdit}
+                      disabled={savingPurpose}
+                    >
+                      <X className="w-4 h-4" />
+                    </Button>
+                  </div>
+                </div>
+              ) : purpose ? (
+                <div className="space-y-4">
+                  <p className="text-base leading-relaxed">{purpose}</p>
+                  {isOwnProfile && (
+                    <div className="bg-accent/10 border border-accent/20 rounded-lg p-3">
+                      <p className="text-sm text-muted-foreground">
+                        💡 <strong className="text-foreground">Tip:</strong> Your purpose will guide your journey and help the AI connect insights back to your mission. Update this as you evolve.
+                      </p>
+                    </div>
+                  )}
+                </div>
+              ) : (
+                <div className="text-center py-8 space-y-4">
+                  <div className="w-16 h-16 rounded-full bg-accent/10 mx-auto flex items-center justify-center">
+                    <Compass className="w-8 h-8 text-accent" />
+                  </div>
+                  {isOwnProfile ? (
+                    <>
+                      <p className="text-muted-foreground">
+                        Define your life's purpose to guide your transformation journey
+                      </p>
+                      <Button onClick={() => setEditingPurpose(true)}>
+                        <Edit2 className="w-4 h-4 mr-2" />
+                        Add Purpose
+                      </Button>
+                    </>
+                  ) : (
+                    <p className="text-muted-foreground">
+                      This user hasn't shared their purpose yet
+                    </p>
+                  )}
+                </div>
+              )}
+            </CardContent>
+          </Card>
+        )}
 
         {/* Stats Grid */}
         {canShowStats && (
