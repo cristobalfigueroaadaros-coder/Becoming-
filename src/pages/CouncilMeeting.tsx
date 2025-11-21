@@ -4,9 +4,10 @@ import { supabase } from "@/integrations/supabase/client";
 import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { ArrowLeft } from "lucide-react";
+import { ArrowLeft, ChevronDown, ChevronUp } from "lucide-react";
 import { toast } from "sonner";
 import { useShadowEncounters } from "@/hooks/useShadowEncounters";
+import { motion, AnimatePresence } from "framer-motion";
 
 const mentorNames: Record<string, string> = {
   mamba_mentor: "Mamba Mentor",
@@ -27,11 +28,24 @@ const CouncilMeeting = () => {
   const navigate = useNavigate();
   const { refetch } = useShadowEncounters();
   const [question, setQuestion] = useState("");
-  const [answers, setAnswers] = useState<Record<string, string>>({});
+  const [answers, setAnswers] = useState<Record<string, any>>({});
+  const [expandedMentors, setExpandedMentors] = useState<Set<string>>(new Set());
   const [banter, setBanter] = useState("");
   const [shadowInterruption, setShadowInterruption] = useState("");
   const [resolution, setResolution] = useState("");
   const [loading, setLoading] = useState(false);
+
+  const toggleExpand = (mentorType: string) => {
+    setExpandedMentors((prev) => {
+      const newSet = new Set(prev);
+      if (newSet.has(mentorType)) {
+        newSet.delete(mentorType);
+      } else {
+        newSet.add(mentorType);
+      }
+      return newSet;
+    });
+  };
 
   const handleAsk = async () => {
     if (!question.trim() || loading) return;
@@ -131,16 +145,71 @@ const CouncilMeeting = () => {
               <h2 className="text-2xl font-bold bg-gradient-to-r from-primary to-accent bg-clip-text text-transparent">
                 Council Responses
               </h2>
-              {Object.entries(answers).map(([mentorType, answer]) => (
-                <Card key={mentorType} className="border-l-4 border-l-primary/50">
-                  <CardHeader className="pb-3">
-                    <CardTitle className="text-lg">{mentorNames[mentorType]}</CardTitle>
-                  </CardHeader>
-                  <CardContent>
-                    <p className="text-sm sm:text-base leading-relaxed">{answer}</p>
-                  </CardContent>
-                </Card>
-              ))}
+              {Object.entries(answers).map(([mentorType, answer]) => {
+                const isExpanded = expandedMentors.has(mentorType);
+                const answerObj = typeof answer === 'object' ? answer : { short: answer, expanded: answer };
+                
+                return (
+                  <Card key={mentorType} className="border-l-4 border-l-primary/50 overflow-hidden">
+                    <CardHeader className="pb-3">
+                      <CardTitle className="text-lg flex items-center justify-between">
+                        {mentorNames[mentorType]}
+                        {answerObj.coreTheme && (
+                          <span className="text-xs font-normal text-muted-foreground bg-muted px-2 py-1 rounded-full">
+                            {answerObj.coreTheme}
+                          </span>
+                        )}
+                      </CardTitle>
+                    </CardHeader>
+                    <CardContent className="space-y-3">
+                      {/* Short Response */}
+                      <p className="text-sm sm:text-base leading-relaxed font-medium">
+                        {answerObj.short}
+                      </p>
+                      
+                      {/* Expanded Response */}
+                      <AnimatePresence>
+                        {isExpanded && answerObj.expanded !== answerObj.short && (
+                          <motion.div
+                            initial={{ height: 0, opacity: 0 }}
+                            animate={{ height: "auto", opacity: 1 }}
+                            exit={{ height: 0, opacity: 0 }}
+                            transition={{ duration: 0.3, ease: "easeInOut" }}
+                          >
+                            <div className="pt-3 border-t border-border/50">
+                              <p className="text-sm sm:text-base leading-relaxed text-muted-foreground">
+                                {answerObj.expanded}
+                              </p>
+                            </div>
+                          </motion.div>
+                        )}
+                      </AnimatePresence>
+                      
+                      {/* Expand Button */}
+                      {answerObj.expanded !== answerObj.short && (
+                        <Button
+                          variant="ghost"
+                          size="sm"
+                          onClick={() => toggleExpand(mentorType)}
+                          className="w-full text-xs hover:bg-primary/10"
+                        >
+                          {isExpanded ? (
+                            <>
+                              <ChevronUp className="w-3 h-3 mr-1" />
+                              Show less
+                            </>
+                          ) : (
+                            <>
+                              <ChevronDown className="w-3 h-3 mr-1" />
+                              Expand for deeper insight
+                            </>
+                          )}
+                        </Button>
+                      )}
+                    </CardContent>
+                  </Card>
+                );
+              })}
             </div>
 
             {/* Banter Section */}

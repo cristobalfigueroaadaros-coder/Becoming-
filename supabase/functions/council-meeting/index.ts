@@ -134,7 +134,7 @@ Deno.serve(async (req) => {
       .select("*")
       .eq("user_id", user.id);
 
-    const answers: Record<string, string> = {};
+    const answers: Record<string, { short: string; expanded: string; coreTheme: string }> = {};
     const extractedTasks: Array<{ mentor_name: string; task: any }> = [];
 
     // Step 1: Get all mentor responses
@@ -165,6 +165,20 @@ Evolution Level: ${futureProgress.evolution_level}`;
       }
 
       // Call AI for this mentor
+      // Generate both short and expanded responses
+      const dualPrompt = `${systemPrompt}
+
+CRITICAL INSTRUCTION: You must respond with TWO versions of your answer:
+
+1. SHORT VERSION (2-3 sentences max): Deliver your core insight in an impactful, agile way. This is what the user sees first.
+
+2. EXPANDED VERSION (4-6 sentences): Provide deeper context, frameworks, or additional wisdom. This is revealed when the user wants to learn more.
+
+Format your response EXACTLY like this:
+SHORT: [your 2-3 sentence response here]
+EXPANDED: [your 4-6 sentence deeper response here]
+CORE_THEME: [single word theme like "discipline", "creativity", "clarity", "courage", etc.]`;
+
       const aiResponse = await fetch("https://ai.gateway.lovable.dev/v1/chat/completions", {
         method: "POST",
         headers: {
@@ -174,7 +188,7 @@ Evolution Level: ${futureProgress.evolution_level}`;
         body: JSON.stringify({
           model: "google/gemini-2.5-flash",
           messages: [
-            { role: "system", content: systemPrompt },
+            { role: "system", content: dualPrompt },
             { role: "user", content: question }
           ],
         }),
@@ -182,13 +196,27 @@ Evolution Level: ${futureProgress.evolution_level}`;
 
       if (!aiResponse.ok) {
         console.error(`AI error for ${mentorType}:`, aiResponse.status);
-        answers[mentorType] = "I'm having trouble responding right now. Please try again.";
+        answers[mentorType] = {
+          short: "I'm having trouble responding right now. Please try again.",
+          expanded: "I'm having trouble responding right now. Please try again.",
+          coreTheme: "connection"
+        };
         continue;
       }
 
       const aiData = await aiResponse.json();
       const mentorAnswer = aiData.choices[0].message.content;
-      answers[mentorType] = mentorAnswer;
+      
+      // Parse the structured response
+      const shortMatch = mentorAnswer.match(/SHORT:\s*(.+?)(?=EXPANDED:|$)/s);
+      const expandedMatch = mentorAnswer.match(/EXPANDED:\s*(.+?)(?=CORE_THEME:|$)/s);
+      const themeMatch = mentorAnswer.match(/CORE_THEME:\s*(\w+)/);
+      
+      answers[mentorType] = {
+        short: shortMatch?.[1].trim() || mentorAnswer,
+        expanded: expandedMatch?.[1].trim() || mentorAnswer,
+        coreTheme: themeMatch?.[1].trim().toLowerCase() || "growth"
+      };
     }
 
     // Step 2: Generate banter (dynamic mentor interaction)
@@ -312,7 +340,7 @@ Deliver the final Council Resolution. What is the clear guidance after this disc
     }
     
     for (const [mentorType, answer] of Object.entries(answers)) {
-      const lowerAnswer = (answer as string).toLowerCase();
+      const lowerAnswer = answer.expanded.toLowerCase();
       
       for (const [shadow, keywords] of Object.entries(triggerPatterns)) {
         const matchedKeywords = keywords.filter(k => lowerAnswer.includes(k));
@@ -378,7 +406,7 @@ Deliver the final Council Resolution. What is the clear guidance after this disc
 
     // Step 5: Extract tasks from each mentor response
     for (const [mentorType, answer] of Object.entries(answers)) {
-      
+      const fullAnswer = answer.expanded;
 
       // Extract task from this mentor's response
       try {
@@ -389,7 +417,7 @@ Deliver the final Council Resolution. What is the clear guidance after this disc
             "Content-Type": "application/json",
           },
           body: JSON.stringify({
-            mentorResponse: answer,
+            mentorResponse: fullAnswer,
             mentorName: mentorNames[mentorType] || mentorType,
           }),
         });
@@ -407,6 +435,28 @@ Deliver the final Council Resolution. What is the clear guidance after this disc
         console.error(`Error extracting task for ${mentorType}:`, taskError);
       }
     }
+
+    // Step 6: Save insights to insight_dots table (don't wait for completion)
+    const saveInsightsPromises = Object.entries(answers).map(async ([mentorType, answer]) => {
+      try {
+        const answerObj = answer as any;
+        await supabaseClient.from("insight_dots").insert({
+          user_id: user.id,
+          source_type: 'council_meeting',
+          source_id: null, // Will be linked after council_meeting is saved
+          source_mentor: mentorNames[mentorType],
+          insight_text: answerObj.short || answer,
+          core_theme: answerObj.coreTheme || 'growth',
+          skill_tags: [answerObj.coreTheme || 'growth'],
+          emotional_tone: null,
+        });
+      } catch (error) {
+        console.error(`Failed to save insight for ${mentorType}:`, error);
+      }
+    });
+
+    // Fire and forget - don't wait for insights to save
+    Promise.all(saveInsightsPromises).catch(console.error);
 
     return new Response(
       JSON.stringify({ 

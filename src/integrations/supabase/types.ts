@@ -338,6 +338,81 @@ export type Database = {
         }
         Relationships: []
       }
+      dot_connections: {
+        Row: {
+          ai_generated: boolean
+          connection_insight: string
+          connection_type: string
+          discovered_at: string
+          dot_id_1: string
+          dot_id_2: string
+          id: string
+          user_id: string
+        }
+        Insert: {
+          ai_generated?: boolean
+          connection_insight: string
+          connection_type: string
+          discovered_at?: string
+          dot_id_1: string
+          dot_id_2: string
+          id?: string
+          user_id: string
+        }
+        Update: {
+          ai_generated?: boolean
+          connection_insight?: string
+          connection_type?: string
+          discovered_at?: string
+          dot_id_1?: string
+          dot_id_2?: string
+          id?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "dot_connections_dot_id_1_fkey"
+            columns: ["dot_id_1"]
+            isOneToOne: false
+            referencedRelation: "insight_dots"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "dot_connections_dot_id_2_fkey"
+            columns: ["dot_id_2"]
+            isOneToOne: false
+            referencedRelation: "insight_dots"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      dot_review_prompts: {
+        Row: {
+          completed: boolean
+          dots_reviewed: string[] | null
+          id: string
+          prompt_type: string
+          shown_at: string
+          user_id: string
+        }
+        Insert: {
+          completed?: boolean
+          dots_reviewed?: string[] | null
+          id?: string
+          prompt_type: string
+          shown_at?: string
+          user_id: string
+        }
+        Update: {
+          completed?: boolean
+          dots_reviewed?: string[] | null
+          id?: string
+          prompt_type?: string
+          shown_at?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
       future_self_progress: {
         Row: {
           created_at: string | null
@@ -362,6 +437,54 @@ export type Database = {
           id?: string
           updated_at?: string | null
           user_id?: string
+        }
+        Relationships: []
+      }
+      insight_dots: {
+        Row: {
+          connection_ids: string[] | null
+          core_theme: string
+          created_at: string
+          emotional_tone: string | null
+          id: string
+          insight_text: string
+          reviewed_at: string | null
+          skill_tags: string[] | null
+          source_id: string | null
+          source_mentor: string | null
+          source_type: string
+          user_id: string
+          user_reflection: string | null
+        }
+        Insert: {
+          connection_ids?: string[] | null
+          core_theme: string
+          created_at?: string
+          emotional_tone?: string | null
+          id?: string
+          insight_text: string
+          reviewed_at?: string | null
+          skill_tags?: string[] | null
+          source_id?: string | null
+          source_mentor?: string | null
+          source_type: string
+          user_id: string
+          user_reflection?: string | null
+        }
+        Update: {
+          connection_ids?: string[] | null
+          core_theme?: string
+          created_at?: string
+          emotional_tone?: string | null
+          id?: string
+          insight_text?: string
+          reviewed_at?: string | null
+          skill_tags?: string[] | null
+          source_id?: string | null
+          source_mentor?: string | null
+          source_type?: string
+          user_id?: string
+          user_reflection?: string | null
         }
         Relationships: []
       }
@@ -392,6 +515,36 @@ export type Database = {
           id?: string
           updated_at?: string
           user_id?: string
+        }
+        Relationships: []
+      }
+      mentor_learning_modules: {
+        Row: {
+          created_at: string
+          id: string
+          mentor_type: Database["public"]["Enums"]["mentor_type"]
+          module_content: string
+          module_title: string
+          quiz_questions: Json
+          skill_focus: string
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          mentor_type: Database["public"]["Enums"]["mentor_type"]
+          module_content: string
+          module_title: string
+          quiz_questions?: Json
+          skill_focus: string
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          mentor_type?: Database["public"]["Enums"]["mentor_type"]
+          module_content?: string
+          module_title?: string
+          quiz_questions?: Json
+          skill_focus?: string
         }
         Relationships: []
       }
@@ -953,6 +1106,36 @@ export type Database = {
           display_name?: string
           id?: string
           updated_at?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
+      user_mentor_badges: {
+        Row: {
+          badge_icon: string
+          badge_name: string
+          earned_at: string
+          id: string
+          mentor_type: Database["public"]["Enums"]["mentor_type"]
+          quiz_score: number
+          user_id: string
+        }
+        Insert: {
+          badge_icon: string
+          badge_name: string
+          earned_at?: string
+          id?: string
+          mentor_type: Database["public"]["Enums"]["mentor_type"]
+          quiz_score: number
+          user_id: string
+        }
+        Update: {
+          badge_icon?: string
+          badge_name?: string
+          earned_at?: string
+          id?: string
+          mentor_type?: Database["public"]["Enums"]["mentor_type"]
+          quiz_score?: number
           user_id?: string
         }
         Relationships: []
