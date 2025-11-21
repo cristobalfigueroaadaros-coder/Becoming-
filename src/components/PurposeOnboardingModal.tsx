@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import {
   Dialog,
@@ -18,12 +18,24 @@ import { toast } from "sonner";
 interface PurposeOnboardingModalProps {
   open: boolean;
   onClose: () => void;
+  existingPurpose?: string | null;
 }
 
-export const PurposeOnboardingModal = ({ open, onClose }: PurposeOnboardingModalProps) => {
+export const PurposeOnboardingModal = ({ open, onClose, existingPurpose }: PurposeOnboardingModalProps) => {
   const [step, setStep] = useState<"question" | "knows-purpose" | "discovering" | "complete">("question");
   const [purposeText, setPurposeText] = useState("");
   const [saving, setSaving] = useState(false);
+
+  // If editing existing purpose, start at the right step with pre-filled text
+  useEffect(() => {
+    if (existingPurpose && open) {
+      setPurposeText(existingPurpose);
+      setStep("knows-purpose");
+    } else if (open && !existingPurpose) {
+      setPurposeText("");
+      setStep("question");
+    }
+  }, [existingPurpose, open]);
 
   const handleKnowsPurpose = () => {
     setStep("knows-purpose");
@@ -51,7 +63,7 @@ export const PurposeOnboardingModal = ({ open, onClose }: PurposeOnboardingModal
 
       if (error) throw error;
 
-      toast.success("Purpose saved! It will guide your journey.");
+      toast.success(existingPurpose ? "Purpose updated!" : "Purpose saved! It will guide your journey.");
       setStep("complete");
     } catch (error: any) {
       toast.error("Failed to save purpose", { description: error.message });
@@ -143,10 +155,13 @@ export const PurposeOnboardingModal = ({ open, onClose }: PurposeOnboardingModal
                   <CheckCircle className="w-10 h-10 text-primary" />
                 </div>
                 <DialogTitle className="text-2xl">
-                  Clarify Your Purpose
+                  {existingPurpose ? "Update Your Purpose" : "Clarify Your Purpose"}
                 </DialogTitle>
                 <DialogDescription className="text-base">
-                  Share your purpose or mission. This will serve as your North Star as you connect the dots of your journey.
+                  {existingPurpose 
+                    ? "Edit your purpose or mission to reflect your current vision."
+                    : "Share your purpose or mission. This will serve as your North Star as you connect the dots of your journey."
+                  }
                 </DialogDescription>
               </DialogHeader>
 
@@ -189,7 +204,7 @@ export const PurposeOnboardingModal = ({ open, onClose }: PurposeOnboardingModal
                     disabled={!purposeText.trim() || saving}
                     className="flex-1"
                   >
-                    {saving ? "Saving..." : "Save & Continue"}
+                    {saving ? "Saving..." : existingPurpose ? "Update Purpose" : "Save & Continue"}
                   </Button>
                 </div>
               </div>
