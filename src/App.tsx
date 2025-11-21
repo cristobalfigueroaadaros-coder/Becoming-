@@ -14,6 +14,7 @@ import OnboardingStep1 from "./pages/OnboardingStep1";
 import OnboardingStep2 from "./pages/OnboardingStep2";
 import OnboardingStep3 from "./pages/OnboardingStep3";
 import Dashboard from "./pages/Dashboard";
+import FutureSelf from "./pages/FutureSelf";
 import Chat from "./pages/Chat";
 import CouncilMeeting from "./pages/CouncilMeeting";
 import CouncilLog from "./pages/CouncilLog";
@@ -128,6 +129,10 @@ const App = () => {
             <Route
               path="/dashboard"
               element={session ? <Dashboard /> : <Navigate to="/auth" />}
+            />
+            <Route
+              path="/future-self"
+              element={session ? <FutureSelf /> : <Navigate to="/auth" />}
             />
             <Route
               path="/chat/:mentorType"
