@@ -3,7 +3,7 @@ import { useNavigate } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
-import { Brain, Lightbulb, Zap, Trees, Heart, Sparkles, Users, BookOpen, Crown, LogOut, CheckSquare, Briefcase, Palette, Compass, Target, Flag, Ghost, Sunrise, Flame } from "lucide-react";
+import { Brain, Lightbulb, Zap, Trees, Heart, Sparkles, Users, BookOpen, Crown, LogOut, CheckSquare, Briefcase, Palette, Compass, Target, Flag, Ghost, Sunrise, Flame, User } from "lucide-react";
 import { toast } from "sonner";
 import { cn } from "@/lib/utils";
 import { FutureSelfWidget } from "@/components/FutureSelfWidget";
@@ -218,10 +218,16 @@ const Dashboard = () => {
             <h1 className="text-4xl font-bold">Your Transformation Journey</h1>
             <p className="text-muted-foreground mt-2">Guided by your mentors and Future Self</p>
           </div>
-          <Button variant="ghost" onClick={handleSignOut}>
-            <LogOut className="w-4 h-4 mr-2" />
-            Sign Out
-          </Button>
+          <div className="flex gap-2">
+            <Button variant="outline" onClick={() => navigate("/profile")}>
+              <User className="w-4 h-4 mr-2" />
+              Profile
+            </Button>
+            <Button variant="ghost" onClick={handleSignOut}>
+              <LogOut className="w-4 h-4 mr-2" />
+              Sign Out
+            </Button>
+          </div>
         </div>
 
         {/* Future Self Section - Central Feature */}

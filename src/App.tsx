@@ -20,6 +20,7 @@ import CouncilLog from "./pages/CouncilLog";
 import MyTasks from "./pages/MyTasks";
 import YourNewTasks from "./pages/YourNewTasks";
 import Premium from "./pages/Premium";
+import Profile from "./pages/Profile";
 import NotFound from "./pages/NotFound";
 
 const queryClient = new QueryClient();
@@ -151,6 +152,14 @@ const App = () => {
             <Route
               path="/premium"
               element={session ? <Premium /> : <Navigate to="/auth" />}
+            />
+            <Route
+              path="/profile"
+              element={session ? <Profile /> : <Navigate to="/auth" />}
+            />
+            <Route
+              path="/profile/:userId"
+              element={session ? <Profile /> : <Navigate to="/auth" />}
             />
             <Route path="*" element={<NotFound />} />
           </Routes>

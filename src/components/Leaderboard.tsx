@@ -5,6 +5,7 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Badge } from "@/components/ui/badge";
 import { Trophy, Medal, Award, TrendingUp, Zap, Target, Flame } from "lucide-react";
 import { Avatar, AvatarFallback } from "@/components/ui/avatar";
+import { useNavigate } from "react-router-dom";
 
 interface LeaderboardEntry {
   user_id: string;
@@ -22,6 +23,7 @@ interface LeaderboardEntry {
 type LeaderboardCategory = "xp" | "achievements" | "streak" | "tasks";
 
 export const Leaderboard = () => {
+  const navigate = useNavigate();
   const [entries, setEntries] = useState<LeaderboardEntry[]>([]);
   const [timeframe, setTimeframe] = useState<"week" | "month" | "all">("all");
   const [category, setCategory] = useState<LeaderboardCategory>("xp");
@@ -114,6 +116,9 @@ export const Leaderboard = () => {
           <TrendingUp className="w-5 h-5 text-primary" />
           Community Leaderboard
         </CardTitle>
+        <p className="text-sm text-muted-foreground mt-1">
+          Click on any profile to view their stats and achievements
+        </p>
       </CardHeader>
       <CardContent className="space-y-4">
         {/* Timeframe selector */}
@@ -187,13 +192,14 @@ export const Leaderboard = () => {
               return (
                 <div
                   key={entry.user_id}
-                  className={`flex items-center gap-3 p-3 rounded-lg transition-all ${
+                  className={`flex items-center gap-3 p-3 rounded-lg transition-all cursor-pointer ${
                     isCurrentUser
                       ? "bg-primary/10 border-2 border-primary"
                       : rank <= 3
-                      ? "bg-accent/50"
+                      ? "bg-accent/50 hover:bg-accent/70"
                       : "bg-muted/30 hover:bg-muted/50"
                   }`}
+                  onClick={() => navigate(`/profile/${entry.user_id}`)}
                 >
                   <div className="w-8 flex justify-center">
                     {getRankIcon(rank)}
