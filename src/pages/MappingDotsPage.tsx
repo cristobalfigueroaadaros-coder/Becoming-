@@ -45,6 +45,11 @@ const sourceColors: Record<string, string> = {
   shadow_work: "bg-red-500",
   constellation: "bg-yellow-500",
   quest: "bg-pink-500",
+  goal_achievement: "bg-teal-500",
+  shadow_integration: "bg-rose-500",
+  journal_breakthrough: "bg-violet-500",
+  domain_milestone: "bg-cyan-500",
+  quest_completion: "bg-fuchsia-500",
 };
 
 const sourceLabels: Record<string, string> = {
@@ -55,6 +60,11 @@ const sourceLabels: Record<string, string> = {
   shadow_work: "Shadow",
   constellation: "Constellation",
   quest: "Quest",
+  goal_achievement: "Goal Win",
+  shadow_integration: "Integration",
+  journal_breakthrough: "Breakthrough",
+  domain_milestone: "Milestone",
+  quest_completion: "Quest Win",
 };
 
 const MappingDotsPage = () => {
@@ -69,10 +79,12 @@ const MappingDotsPage = () => {
   const [suggestingConnections, setSuggestingConnections] = useState(false);
   const [loading, setLoading] = useState(true);
   const [showOnboarding, setShowOnboarding] = useState(false);
+  const [userPurpose, setUserPurpose] = useState<string | null>(null);
 
   useEffect(() => {
     loadDots();
     loadConnections();
+    loadUserPurpose();
     checkOnboarding();
   }, []);
 
@@ -122,6 +134,24 @@ const MappingDotsPage = () => {
       setConnections(data || []);
     } catch (error: any) {
       console.error("Error loading connections:", error);
+    }
+  };
+
+  const loadUserPurpose = async () => {
+    try {
+      const { data: { user } } = await supabase.auth.getUser();
+      if (!user) return;
+
+      const { data, error } = await supabase
+        .from("profiles")
+        .select("main_mission")
+        .eq("id", user.id)
+        .single();
+
+      if (error) throw error;
+      setUserPurpose(data?.main_mission || null);
+    } catch (error: any) {
+      console.error("Error loading purpose:", error);
     }
   };
 
@@ -284,6 +314,7 @@ const MappingDotsPage = () => {
               setUserReflection(dot.user_reflection || "");
             }}
             selectedDot={selectedDot}
+            userPurpose={userPurpose}
           />
         )}
 

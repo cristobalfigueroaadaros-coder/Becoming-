@@ -32,6 +32,7 @@ interface ConstellationCanvasProps {
   connections: DotConnection[];
   onDotClick: (dot: InsightDot) => void;
   selectedDot: InsightDot | null;
+  userPurpose?: string | null;
 }
 
 const sourceColors: Record<string, string> = {
@@ -42,6 +43,11 @@ const sourceColors: Record<string, string> = {
   shadow_work: "hsl(0 80% 60%)",
   constellation: "hsl(50 90% 60%)",
   quest: "hsl(320 80% 60%)",
+  goal_achievement: "hsl(160 80% 55%)",
+  shadow_integration: "hsl(340 70% 60%)",
+  journal_breakthrough: "hsl(280 75% 65%)",
+  domain_milestone: "hsl(200 85% 60%)",
+  quest_completion: "hsl(300 80% 60%)",
 };
 
 const sourceLabels: Record<string, string> = {
@@ -52,13 +58,19 @@ const sourceLabels: Record<string, string> = {
   shadow_work: "Shadow",
   constellation: "Idea",
   quest: "Quest",
+  goal_achievement: "Goal",
+  shadow_integration: "Integration",
+  journal_breakthrough: "Breakthrough",
+  domain_milestone: "Milestone",
+  quest_completion: "Quest Win",
 };
 
 export const ConstellationCanvas = ({ 
   dots, 
   connections, 
   onDotClick,
-  selectedDot 
+  selectedDot,
+  userPurpose
 }: ConstellationCanvasProps) => {
   const canvasRef = useRef<HTMLDivElement>(null);
   const [dimensions, setDimensions] = useState({ width: 800, height: 600 });
@@ -79,35 +91,42 @@ export const ConstellationCanvas = ({
   }, []);
 
   useEffect(() => {
-    // Generate constellation layout
-    if (dots.length === 0) return;
+    // Generate constellation layout with central purpose node
+    if (dots.length === 0 && !userPurpose) return;
 
     const newPositions = new Map<string, { x: number; y: number }>();
     const centerX = dimensions.width / 2;
     const centerY = dimensions.height / 2;
 
-    if (dots.length === 1) {
+    // Always place purpose node at center if it exists
+    if (userPurpose) {
+      newPositions.set('purpose-node', { x: centerX, y: centerY });
+    }
+
+    if (dots.length === 0) {
+      setPositions(newPositions);
+      return;
+    }
+
+    if (dots.length === 1 && !userPurpose) {
       newPositions.set(dots[0].id, { x: centerX, y: centerY });
     } else {
-      // Create a central focal point with dots radiating outward
-      const focalX = dimensions.width * 0.75;
-      const focalY = centerY;
-
+      // Create dots radiating outward from center (purpose node)
       dots.forEach((dot, index) => {
         const totalDots = dots.length;
         const angle = (index / totalDots) * Math.PI * 2;
         
-        // Create clusters with varying distances
-        const clusterDepth = Math.floor(index / 8) + 1;
-        const baseRadius = Math.min(dimensions.width, dimensions.height) * 0.15;
-        const radius = baseRadius * clusterDepth;
+        // Create layers radiating from center
+        const layer = Math.floor(index / 8) + 1;
+        const baseRadius = Math.min(dimensions.width, dimensions.height) * 0.2;
+        const radius = baseRadius * layer;
         
-        // Add some randomness for organic feel
-        const randomOffset = (Math.random() - 0.5) * 40;
-        const randomAngle = (Math.random() - 0.5) * 0.3;
+        // Add organic randomness
+        const randomOffset = (Math.random() - 0.5) * 50;
+        const randomAngle = (Math.random() - 0.5) * 0.4;
         
-        const x = focalX - Math.cos(angle + randomAngle) * (radius + randomOffset);
-        const y = focalY + Math.sin(angle + randomAngle) * (radius + randomOffset);
+        const x = centerX + Math.cos(angle + randomAngle) * (radius + randomOffset);
+        const y = centerY + Math.sin(angle + randomAngle) * (radius + randomOffset);
         
         newPositions.set(dot.id, { 
           x: Math.max(30, Math.min(dimensions.width - 30, x)),
@@ -117,7 +136,7 @@ export const ConstellationCanvas = ({
     }
 
     setPositions(newPositions);
-  }, [dots, dimensions]);
+  }, [dots, dimensions, userPurpose]);
 
   const getConnectedDots = (dotId: string) => {
     return connections.filter(c => c.dot_id_1 === dotId || c.dot_id_2 === dotId);
@@ -195,6 +214,78 @@ export const ConstellationCanvas = ({
                 );
               })}
             </g>
+
+            {/* Purpose Node - Central Glowing Node */}
+            {userPurpose && positions.has('purpose-node') && (
+              <g>
+                {/* Outer pulse rings */}
+                <motion.circle
+                  cx={positions.get('purpose-node')!.x}
+                  cy={positions.get('purpose-node')!.y}
+                  r="50"
+                  fill="none"
+                  stroke="hsl(var(--primary))"
+                  strokeWidth="2"
+                  strokeOpacity="0.3"
+                  initial={{ r: 30, opacity: 0 }}
+                  animate={{ r: 60, opacity: 0 }}
+                  transition={{ duration: 2, repeat: Infinity, ease: "easeOut" }}
+                />
+                <motion.circle
+                  cx={positions.get('purpose-node')!.x}
+                  cy={positions.get('purpose-node')!.y}
+                  r="40"
+                  fill="none"
+                  stroke="hsl(var(--primary))"
+                  strokeWidth="2"
+                  strokeOpacity="0.5"
+                  initial={{ r: 30, opacity: 0 }}
+                  animate={{ r: 50, opacity: 0 }}
+                  transition={{ duration: 2, repeat: Infinity, ease: "easeOut", delay: 0.5 }}
+                />
+                
+                {/* Glow effect */}
+                <circle
+                  cx={positions.get('purpose-node')!.x}
+                  cy={positions.get('purpose-node')!.y}
+                  r="35"
+                  fill="hsl(var(--primary))"
+                  opacity="0.15"
+                  filter="url(#glow)"
+                />
+                
+                {/* Main purpose node */}
+                <motion.circle
+                  cx={positions.get('purpose-node')!.x}
+                  cy={positions.get('purpose-node')!.y}
+                  r="28"
+                  fill="url(#dotGradient)"
+                  stroke="hsl(var(--primary))"
+                  strokeWidth="4"
+                  className="cursor-pointer"
+                  style={{ color: "hsl(var(--primary))" }}
+                  initial={{ scale: 0 }}
+                  animate={{ scale: 1 }}
+                  transition={{ type: "spring", stiffness: 200, delay: 0.2 }}
+                  whileHover={{ scale: 1.1 }}
+                  onMouseEnter={() => setHoveredDot('purpose-node')}
+                  onMouseLeave={() => setHoveredDot(null)}
+                />
+                
+                {/* Purpose icon */}
+                <text
+                  x={positions.get('purpose-node')!.x}
+                  y={positions.get('purpose-node')!.y + 8}
+                  textAnchor="middle"
+                  fill="white"
+                  fontSize="24"
+                  fontWeight="bold"
+                  pointerEvents="none"
+                >
+                  ⭐
+                </text>
+              </g>
+            )}
 
             {/* Dots */}
             {dots.map((dot, index) => {
@@ -278,13 +369,25 @@ export const ConstellationCanvas = ({
               className="absolute pointer-events-none z-50"
               style={{
                 left: positions.get(hoveredDot)?.x || 0,
-                top: (positions.get(hoveredDot)?.y || 0) - 60,
+                top: (positions.get(hoveredDot)?.y || 0) - 70,
                 transform: 'translateX(-50%)'
               }}
             >
               <Card className="shadow-lg border-primary/50">
                 <CardContent className="p-3 space-y-1">
-                  {(() => {
+                  {hoveredDot === 'purpose-node' ? (
+                    <>
+                      <Badge variant="secondary" className="text-xs bg-primary/20">
+                        Your Purpose
+                      </Badge>
+                      <p className="text-xs font-medium max-w-[250px]">
+                        {userPurpose}
+                      </p>
+                      <p className="text-xs text-muted-foreground">
+                        All insights connect to your purpose
+                      </p>
+                    </>
+                  ) : (() => {
                     const dot = dots.find(d => d.id === hoveredDot);
                     if (!dot) return null;
                     return (
