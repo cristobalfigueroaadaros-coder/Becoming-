@@ -85,69 +85,123 @@ const FutureSelf = () => {
         {/* Card Grid */}
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
           {/* Life Domains */}
-          <FutureSelfDashboardCard 
-            title="Life Domains"
-            onClick={() => navigate("/future-self/life-domains")}
+          <motion.div
+            initial={{ opacity: 0, y: 20 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ duration: 0.4, delay: 0.1 }}
           >
-            <LifeDomainsCard />
-          </FutureSelfDashboardCard>
+            <FutureSelfDashboardCard 
+              title="Life Domains"
+              onClick={() => navigate("/future-self/life-domains")}
+            >
+              <LifeDomainsCard />
+            </FutureSelfDashboardCard>
+          </motion.div>
 
           {/* Daily Ritual Stack */}
-          <FutureSelfDashboardCard 
-            title="Daily Ritual Stack"
-            onClick={() => setRitualModalOpen(true)}
+          <motion.div
+            initial={{ opacity: 0, y: 20 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ duration: 0.4, delay: 0.2 }}
           >
-            <DailyRitualCard />
-          </FutureSelfDashboardCard>
+            <FutureSelfDashboardCard 
+              title="Daily Ritual Stack"
+              onClick={() => setRitualModalOpen(true)}
+            >
+              <DailyRitualCard />
+            </FutureSelfDashboardCard>
+          </motion.div>
 
           {/* Future Self */}
-          <FutureSelfDashboardCard 
-            title="Future Self"
-            onClick={() => navigate("/future-self/detail")}
+          <motion.div
+            initial={{ opacity: 0, y: 20 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ duration: 0.4, delay: 0.3 }}
           >
-            <FutureSelfCard />
-          </FutureSelfDashboardCard>
+            <FutureSelfDashboardCard 
+              title="Future Self"
+              onClick={() => navigate("/future-self/detail")}
+            >
+              <FutureSelfCard />
+            </FutureSelfDashboardCard>
+          </motion.div>
 
           {/* Actual Self */}
-          <FutureSelfDashboardCard 
-            title="Actual Self"
-            onClick={() => navigate("/future-self/actual-self")}
+          <motion.div
+            initial={{ opacity: 0, y: 20 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ duration: 0.4, delay: 0.4 }}
           >
-            <ActualSelfCard />
-          </FutureSelfDashboardCard>
+            <FutureSelfDashboardCard 
+              title="Actual Self"
+              onClick={() => navigate("/future-self/actual-self")}
+            >
+              <ActualSelfCard />
+            </FutureSelfDashboardCard>
+          </motion.div>
 
           {/* Mapping & Idea Dots */}
-          <FutureSelfDashboardCard 
-            title="Mapping & Idea Dots"
-            onClick={() => navigate("/future-self/constellation")}
+          <motion.div
+            initial={{ opacity: 0, y: 20 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ duration: 0.4, delay: 0.5 }}
           >
-            <ConstellationCard />
-          </FutureSelfDashboardCard>
+            <FutureSelfDashboardCard 
+              title="Mapping & Idea Dots"
+              onClick={() => navigate("/future-self/constellation")}
+            >
+              <ConstellationCard />
+            </FutureSelfDashboardCard>
+          </motion.div>
 
           {/* Goal Structure */}
-          <FutureSelfDashboardCard 
-            title="Goal Structure"
-            onClick={() => navigate("/future-self/goals")}
+          <motion.div
+            initial={{ opacity: 0, y: 20 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ duration: 0.4, delay: 0.6 }}
           >
-            <GoalStructureCard />
-          </FutureSelfDashboardCard>
+            <FutureSelfDashboardCard 
+              title="Goal Structure"
+              onClick={() => navigate("/future-self/goals")}
+            >
+              <GoalStructureCard />
+            </FutureSelfDashboardCard>
+          </motion.div>
 
           {/* Self-Discovery Quests */}
-          <FutureSelfDashboardCard 
-            title="Self-Discovery Quests"
-            onClick={() => navigate("/future-self/quests")}
+          <motion.div
+            initial={{ opacity: 0, y: 20 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ duration: 0.4, delay: 0.7 }}
           >
-            <QuestsCard />
-          </FutureSelfDashboardCard>
+            <FutureSelfDashboardCard 
+              title="Self-Discovery Quests"
+              onClick={() => navigate("/future-self/quests")}
+            >
+              <QuestsCard />
+            </FutureSelfDashboardCard>
+          </motion.div>
 
           {/* Placeholder Cards */}
-          <FutureSelfDashboardCard title="Coming Soon">
-            <PlaceholderCard />
-          </FutureSelfDashboardCard>
+          <motion.div
+            initial={{ opacity: 0, y: 20 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ duration: 0.4, delay: 0.8 }}
+          >
+            <FutureSelfDashboardCard title="Coming Soon">
+              <PlaceholderCard />
+            </FutureSelfDashboardCard>
+          </motion.div>
 
-          <FutureSelfDashboardCard title="Coming Soon">
-            <PlaceholderCard />
-          </FutureSelfDashboardCard>
+          <motion.div
+            initial={{ opacity: 0, y: 20 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ duration: 0.4, delay: 0.9 }}
+          >
+            <FutureSelfDashboardCard title="Coming Soon">
+              <PlaceholderCard />
+            </FutureSelfDashboardCard>
+          </motion.div>
         </div>
       </motion.div>
 
