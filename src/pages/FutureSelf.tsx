@@ -1,13 +1,9 @@
-import { useState, useEffect, useRef } from "react";
+import { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
 import { Button } from "@/components/ui/button";
 import { ArrowLeft } from "lucide-react";
 import { DailyRitualModal } from "@/components/DailyRitualModal";
-import { SelfDiscoveryQuest } from "@/components/SelfDiscoveryQuest";
-import { ConstellationSystem } from "@/components/ConstellationSystem";
-import { LifeDomainsRadar } from "@/components/LifeDomainsRadar";
-import { GoalHierarchy } from "@/components/GoalHierarchy";
 import FutureSelfBackground from "@/components/FutureSelfBackground";
 import FutureSelfDashboardCard from "@/components/FutureSelfDashboardCard";
 import LifeDomainsCard from "@/components/dashboard-cards/LifeDomainsCard";
@@ -23,15 +19,6 @@ const FutureSelf = () => {
   const navigate = useNavigate();
   const [ritualModalOpen, setRitualModalOpen] = useState(false);
   const [hasCompletedRitualToday, setHasCompletedRitualToday] = useState(false);
-  
-  const lifeDomainsRef = useRef<HTMLDivElement>(null);
-  const goalsRef = useRef<HTMLDivElement>(null);
-  const constellationRef = useRef<HTMLDivElement>(null);
-  const questsRef = useRef<HTMLDivElement>(null);
-
-  const scrollToSection = (ref: React.RefObject<HTMLDivElement>) => {
-    ref.current?.scrollIntoView({ behavior: 'smooth', block: 'start' });
-  };
 
   useEffect(() => {
     checkRitualStatus();
@@ -88,7 +75,7 @@ const FutureSelf = () => {
           {/* Life Domains */}
           <FutureSelfDashboardCard 
             title="Life Domains"
-            onClick={() => scrollToSection(lifeDomainsRef)}
+            onClick={() => navigate("/future-self/life-domains")}
           >
             <LifeDomainsCard />
           </FutureSelfDashboardCard>
@@ -102,19 +89,25 @@ const FutureSelf = () => {
           </FutureSelfDashboardCard>
 
           {/* Future Self */}
-          <FutureSelfDashboardCard title="Future Self">
+          <FutureSelfDashboardCard 
+            title="Future Self"
+            onClick={() => navigate("/future-self/detail")}
+          >
             <FutureSelfCard />
           </FutureSelfDashboardCard>
 
           {/* Actual Self */}
-          <FutureSelfDashboardCard title="Actual Self">
+          <FutureSelfDashboardCard 
+            title="Actual Self"
+            onClick={() => navigate("/future-self/actual-self")}
+          >
             <ActualSelfCard />
           </FutureSelfDashboardCard>
 
           {/* Mapping & Idea Dots */}
           <FutureSelfDashboardCard 
             title="Mapping & Idea Dots"
-            onClick={() => scrollToSection(constellationRef)}
+            onClick={() => navigate("/future-self/constellation")}
           >
             <ConstellationCard />
           </FutureSelfDashboardCard>
@@ -122,7 +115,7 @@ const FutureSelf = () => {
           {/* Goal Structure */}
           <FutureSelfDashboardCard 
             title="Goal Structure"
-            onClick={() => scrollToSection(goalsRef)}
+            onClick={() => navigate("/future-self/goals")}
           >
             <GoalStructureCard />
           </FutureSelfDashboardCard>
@@ -130,7 +123,7 @@ const FutureSelf = () => {
           {/* Self-Discovery Quests */}
           <FutureSelfDashboardCard 
             title="Self-Discovery Quests"
-            onClick={() => scrollToSection(questsRef)}
+            onClick={() => navigate("/future-self/quests")}
           >
             <QuestsCard />
           </FutureSelfDashboardCard>
@@ -143,33 +136,6 @@ const FutureSelf = () => {
           <FutureSelfDashboardCard title="Coming Soon">
             <PlaceholderCard />
           </FutureSelfDashboardCard>
-        </div>
-      </div>
-
-      {/* Detailed Sections Below */}
-      <div className="max-w-7xl mx-auto px-4 py-12 space-y-16">
-        {/* Life Domains Detailed */}
-        <div ref={lifeDomainsRef} className="scroll-mt-20">
-          <h2 className="text-3xl font-bold mb-6 text-foreground">Life Domains Radar</h2>
-          <LifeDomainsRadar />
-        </div>
-
-        {/* Goal Structure Detailed */}
-        <div ref={goalsRef} className="scroll-mt-20">
-          <h2 className="text-3xl font-bold mb-6 text-foreground">Your Goals & Milestones</h2>
-          <GoalHierarchy />
-        </div>
-
-        {/* Constellation System Detailed */}
-        <div ref={constellationRef} className="scroll-mt-20">
-          <h2 className="text-3xl font-bold mb-6 text-foreground">Constellation System</h2>
-          <ConstellationSystem />
-        </div>
-
-        {/* Self-Discovery Quests Detailed */}
-        <div ref={questsRef} className="scroll-mt-20">
-          <h2 className="text-3xl font-bold mb-6 text-foreground">Self-Discovery Quests</h2>
-          <SelfDiscoveryQuest />
         </div>
       </div>
 
