@@ -5,6 +5,7 @@ import { Textarea } from "@/components/ui/textarea";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
 import { Sparkles, Flame, Target } from "lucide-react";
+import { useAchievements } from "@/hooks/useAchievements";
 
 interface DailyRitualModalProps {
   open: boolean;
@@ -21,6 +22,7 @@ export const DailyRitualModal = ({ open, onClose, onComplete }: DailyRitualModal
   const [futureMessage, setFutureMessage] = useState("");
   const [streak, setStreak] = useState(1);
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const { checkMultipleAchievements } = useAchievements();
 
   useEffect(() => {
     if (open) {
@@ -146,6 +148,12 @@ export const DailyRitualModal = ({ open, onClose, onComplete }: DailyRitualModal
           toast.success(`🔥 ${streak}-day streak! Bonus +${bonusXP} XP!`);
         }
       }
+
+      // Check achievements
+      await checkMultipleAchievements({
+        ritualCount: 1,
+        ritualStreak: streak,
+      });
 
       setStep("complete");
       setTimeout(() => {

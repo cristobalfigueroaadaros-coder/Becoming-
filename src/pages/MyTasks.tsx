@@ -7,6 +7,7 @@ import { Checkbox } from "@/components/ui/checkbox";
 import { Progress } from "@/components/ui/progress";
 import { ArrowLeft } from "lucide-react";
 import { toast } from "sonner";
+import { useAchievements } from "@/hooks/useAchievements";
 
 interface Task {
   id: string;
@@ -23,6 +24,7 @@ const MyTasks = () => {
   const navigate = useNavigate();
   const [tasks, setTasks] = useState<Task[]>([]);
   const [loading, setLoading] = useState(true);
+  const { checkMultipleAchievements } = useAchievements();
 
   useEffect(() => {
     loadTasks();
@@ -99,6 +101,12 @@ const MyTasks = () => {
             </div>,
             { duration: 4000 }
           );
+
+          // Check achievements
+          const totalCompleted = tasks.filter(t => t.status === "done").length + 1;
+          await checkMultipleAchievements({
+            taskCount: totalCompleted,
+          });
         }
       } else {
         toast.success("Task reopened");

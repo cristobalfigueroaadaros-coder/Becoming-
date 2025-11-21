@@ -8,6 +8,7 @@ import { Badge } from "@/components/ui/badge";
 import { CheckCircle2, Circle, Plus, Target, Calendar, CalendarDays, CalendarRange, Sparkles } from "lucide-react";
 import { toast } from "sonner";
 import confetti from "canvas-confetti";
+import { useAchievements } from "@/hooks/useAchievements";
 
 interface Goal {
   id: string;
@@ -31,6 +32,8 @@ export const GoalHierarchy = () => {
   
   const [newGoal, setNewGoal] = useState({ daily: "", weekly: "", monthly: "", yearly: "", vision: "" });
   const [showInputs, setShowInputs] = useState({ daily: false, weekly: false, monthly: false, yearly: false, vision: false });
+  
+  const { checkMultipleAchievements } = useAchievements();
 
   useEffect(() => {
     loadGoals();
@@ -147,6 +150,11 @@ export const GoalHierarchy = () => {
       setShowInputs({ ...showInputs, [tier]: false });
       loadGoals();
       toast.success("Goal added!");
+
+      // Check vision achievement
+      if (tier === "vision") {
+        await checkMultipleAchievements({ visionSet: true });
+      }
     } catch (error: any) {
       toast.error(error.message);
     }
@@ -277,6 +285,17 @@ export const GoalHierarchy = () => {
         toast.success(messages[tier as keyof typeof messages], {
           description: `+${xp} XP earned!`,
           duration: 4000
+        });
+
+        // Check goal completion achievements
+        const weeklyComplete = tier === "weekly" && weeklyGoals.filter(g => g.completed || g.id === goalId).length === weeklyGoals.length;
+        const monthlyComplete = tier === "monthly" && monthlyGoals.filter(g => g.completed || g.id === goalId).length === monthlyGoals.length;
+        const yearlyComplete = tier === "yearly" && yearlyGoals.filter(g => g.completed || g.id === goalId).length === yearlyGoals.length;
+
+        await checkMultipleAchievements({
+          weeklyGoalsComplete: weeklyComplete,
+          monthlyGoalsComplete: monthlyComplete,
+          yearlyGoalsComplete: yearlyComplete,
         });
       }
 
