@@ -8,6 +8,7 @@ import { FutureSelfWidget } from "@/components/FutureSelfWidget";
 import { LifeDomainsRadar } from "@/components/LifeDomainsRadar";
 import { GoalHierarchy } from "@/components/GoalHierarchy";
 import { DailyRitualModal } from "@/components/DailyRitualModal";
+import { SelfDiscoveryQuest } from "@/components/SelfDiscoveryQuest";
 
 const FutureSelf = () => {
   const navigate = useNavigate();
@@ -149,26 +150,14 @@ const FutureSelf = () => {
           </CardContent>
         </Card>
 
-        {/* Self-Discovery Quest - Placeholder */}
-        <Card className="border-dashed border-2 border-primary/30">
-          <CardHeader>
-            <CardTitle className="flex items-center gap-2 text-2xl">
-              <BookOpen className="w-6 h-6 text-primary" />
-              Self-Discovery Quests
-              <span className="text-xs bg-primary/20 text-primary px-2 py-1 rounded-full">Coming Soon</span>
-            </CardTitle>
-            <CardDescription>
-              Explore your values, strengths, purpose, and vision through guided journeys
-            </CardDescription>
-          </CardHeader>
-          <CardContent>
-            <p className="text-muted-foreground text-center py-8">
-              Embark on transformative quests to understand yourself deeply. Discover your core values, 
-              identify your strengths, map your Ikigai, and explore what truly matters to you. 
-              Each quest unlocks deeper insights and guides your evolution.
-            </p>
-          </CardContent>
-        </Card>
+        {/* Self-Discovery Quest Section */}
+        <div>
+          <div className="flex items-center gap-2 mb-4">
+            <BookOpen className="w-6 h-6 text-primary" />
+            <h3 className="text-2xl font-bold">Self-Discovery Quests</h3>
+          </div>
+          <SelfDiscoveryQuest />
+        </div>
       </div>
 
       {/* Daily Ritual Modal */}
