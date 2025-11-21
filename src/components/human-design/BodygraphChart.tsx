@@ -59,7 +59,7 @@ const centerDescriptions: Record<string, string> = {
 
 export const BodygraphChart = ({ data, showLabels = true }: BodygraphChartProps) => {
   const isDefined = (centerName: string) => {
-    return data.defined_centers.includes(centerName);
+    return data.defined_centers?.includes(centerName) || false;
   };
 
   const getCenterColor = (centerName: string) => {
