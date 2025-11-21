@@ -51,6 +51,12 @@ interface TimelineEvent {
   created_at: string;
 }
 
+interface PurposeHistoryEntry {
+  id: string;
+  purpose_text: string;
+  created_at: string;
+}
+
 interface ThemePreferences {
   theme_color: string;
   background_style: string;
@@ -92,6 +98,8 @@ const Profile = () => {
   const [editingPurpose, setEditingPurpose] = useState(false);
   const [purposeText, setPurposeText] = useState("");
   const [savingPurpose, setSavingPurpose] = useState(false);
+  const [purposeHistory, setPurposeHistory] = useState<PurposeHistoryEntry[]>([]);
+  const [showPurposeHistory, setShowPurposeHistory] = useState(false);
   const { getUserBadgesWithDetails, loading: badgesLoading } = useProfileBadges(userId);
   const userBadges = getUserBadgesWithDetails();
 
@@ -131,6 +139,18 @@ const Profile = () => {
       if (profileDetails?.main_mission) {
         setPurpose(profileDetails.main_mission);
         setPurposeText(profileDetails.main_mission);
+      }
+
+      // Load purpose history (only for own profile)
+      if (user?.id === targetUserId) {
+        const { data: historyData } = await supabase
+          .from("purpose_history")
+          .select("*")
+          .eq("user_id", targetUserId)
+          .order("created_at", { ascending: false })
+          .limit(20);
+
+        setPurposeHistory(historyData || []);
       }
 
       // Load all achievements
@@ -244,21 +264,49 @@ const Profile = () => {
       return;
     }
 
+    // Check if purpose has actually changed
+    if (purposeText.trim() === purpose) {
+      setEditingPurpose(false);
+      return;
+    }
+
     setSavingPurpose(true);
     try {
       const { data: { user } } = await supabase.auth.getUser();
       if (!user) throw new Error("Not authenticated");
 
-      const { error } = await supabase
+      // Update current purpose
+      const { error: updateError } = await supabase
         .from("profiles")
         .update({ main_mission: purposeText.trim() })
         .eq("id", user.id);
 
-      if (error) throw error;
+      if (updateError) throw updateError;
+
+      // Add to purpose history
+      const { error: historyError } = await supabase
+        .from("purpose_history")
+        .insert({
+          user_id: user.id,
+          purpose_text: purposeText.trim(),
+        });
+
+      if (historyError) throw historyError;
 
       setPurpose(purposeText.trim());
       setEditingPurpose(false);
-      toast.success("Purpose updated successfully!");
+      
+      // Reload history
+      const { data: historyData } = await supabase
+        .from("purpose_history")
+        .select("*")
+        .eq("user_id", user.id)
+        .order("created_at", { ascending: false })
+        .limit(20);
+
+      setPurposeHistory(historyData || []);
+
+      toast.success("Purpose updated and saved to history!");
     } catch (error: any) {
       toast.error("Failed to update purpose", { description: error.message });
     } finally {
@@ -411,12 +459,67 @@ const Profile = () => {
               ) : purpose ? (
                 <div className="space-y-4">
                   <p className="text-base leading-relaxed">{purpose}</p>
+                  
                   {isOwnProfile && (
-                    <div className="bg-accent/10 border border-accent/20 rounded-lg p-3">
-                      <p className="text-sm text-muted-foreground">
-                        💡 <strong className="text-foreground">Tip:</strong> Your purpose will guide your journey and help the AI connect insights back to your mission. Update this as you evolve.
-                      </p>
-                    </div>
+                    <>
+                      <div className="bg-accent/10 border border-accent/20 rounded-lg p-3">
+                        <p className="text-sm text-muted-foreground">
+                          💡 <strong className="text-foreground">Tip:</strong> Your purpose will guide your journey and help the AI connect insights back to your mission. Update this as you evolve.
+                        </p>
+                      </div>
+
+                      {purposeHistory.length > 0 && (
+                        <div className="pt-2 border-t border-border">
+                          <Button
+                            variant="ghost"
+                            size="sm"
+                            onClick={() => setShowPurposeHistory(!showPurposeHistory)}
+                            className="w-full justify-between"
+                          >
+                            <span className="flex items-center gap-2">
+                              <Calendar className="w-4 h-4" />
+                              Purpose History ({purposeHistory.length} versions)
+                            </span>
+                            <span>{showPurposeHistory ? "−" : "+"}</span>
+                          </Button>
+
+                          {showPurposeHistory && (
+                            <div className="mt-4 space-y-4">
+                              <p className="text-sm text-muted-foreground">
+                                Track how your purpose has evolved over time:
+                              </p>
+                              <div className="space-y-3">
+                                {purposeHistory.map((entry, index) => (
+                                  <div
+                                    key={entry.id}
+                                    className="relative pl-6 pb-4 border-l-2 border-accent/30 last:border-l-0 last:pb-0"
+                                  >
+                                    <div className="absolute -left-2 top-0 w-4 h-4 rounded-full bg-accent border-2 border-background" />
+                                    <div className="space-y-2">
+                                      <div className="flex items-center gap-2">
+                                        <Badge variant={index === 0 ? "default" : "secondary"} className="text-xs">
+                                          {index === 0 ? "Current" : `Version ${purposeHistory.length - index}`}
+                                        </Badge>
+                                        <span className="text-xs text-muted-foreground">
+                                          {new Date(entry.created_at).toLocaleDateString(undefined, {
+                                            year: 'numeric',
+                                            month: 'long',
+                                            day: 'numeric'
+                                          })}
+                                        </span>
+                                      </div>
+                                      <p className="text-sm leading-relaxed bg-muted/30 rounded-lg p-3">
+                                        {entry.purpose_text}
+                                      </p>
+                                    </div>
+                                  </div>
+                                ))}
+                              </div>
+                            </div>
+                          )}
+                        </div>
+                      )}
+                    </>
                   )}
                 </div>
               ) : (
