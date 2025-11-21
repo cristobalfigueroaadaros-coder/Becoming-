@@ -12,6 +12,7 @@ import { AchievementBadge } from "@/components/AchievementBadge";
 import { ThemeCustomizationModal } from "@/components/ThemeCustomizationModal";
 import { ProfileBadges } from "@/components/ProfileBadges";
 import { BirthInfoEditor } from "@/components/BirthInfoEditor";
+import { BodygraphChart } from "@/components/human-design/BodygraphChart";
 import { useProfileBadges } from "@/hooks/useProfileBadges";
 import { toast } from "sonner";
 import { cn } from "@/lib/utils";
@@ -75,6 +76,18 @@ interface BirthInfo {
   birth_time_unknown: boolean | null;
 }
 
+interface HumanDesignData {
+  type: string;
+  strategy: string;
+  authority: string;
+  profile: string;
+  defined_centers: string[];
+  undefined_centers: string[];
+  key_gates?: Array<{ gate: number; description: string }>;
+  incarnation_cross?: string;
+  is_approximate: boolean;
+}
+
 const themeColorMap: Record<string, string> = {
   purple: "from-purple-500/10 via-background to-purple-500/5",
   blue: "from-blue-500/10 via-background to-blue-500/5",
@@ -109,6 +122,7 @@ const Profile = () => {
   const [purposeHistory, setPurposeHistory] = useState<PurposeHistoryEntry[]>([]);
   const [showPurposeHistory, setShowPurposeHistory] = useState(false);
   const [birthInfo, setBirthInfo] = useState<BirthInfo | null>(null);
+  const [humanDesignData, setHumanDesignData] = useState<HumanDesignData | null>(null);
   const [currentUserId, setCurrentUserId] = useState<string>("");
   const { getUserBadgesWithDetails, loading: badgesLoading } = useProfileBadges(userId);
   const userBadges = getUserBadgesWithDetails();
@@ -143,7 +157,7 @@ const Profile = () => {
       // Load user purpose and birth info from profiles table
       const { data: profileDetails } = await supabase
         .from("profiles")
-        .select("main_mission, birth_date, birth_time, birth_location, birth_time_unknown")
+        .select("main_mission, birth_date, birth_time, birth_location, birth_time_unknown, human_design_data")
         .eq("id", targetUserId)
         .maybeSingle();
 
@@ -159,6 +173,11 @@ const Profile = () => {
           birth_location: profileDetails.birth_location,
           birth_time_unknown: profileDetails.birth_time_unknown,
         });
+        
+        // Set Human Design data if it exists
+        if (profileDetails.human_design_data && typeof profileDetails.human_design_data === 'object') {
+          setHumanDesignData(profileDetails.human_design_data as unknown as HumanDesignData);
+        }
       }
 
       // Load purpose history (only for own profile)
@@ -575,6 +594,11 @@ const Profile = () => {
             initialData={birthInfo || undefined}
             onUpdate={loadProfile}
           />
+        )}
+
+        {/* Human Design Bodygraph - Show if data exists */}
+        {humanDesignData && (
+          <BodygraphChart data={humanDesignData} showLabels={true} />
         )}
 
         {/* Stats Grid */}
