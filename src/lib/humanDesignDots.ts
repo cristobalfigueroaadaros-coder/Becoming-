@@ -12,56 +12,223 @@ interface HumanDesignData {
   is_approximate: boolean;
 }
 
-// Mock Human Design calculation (replace with real API later)
+// ===== Astrological Calculation Functions =====
+
+const calculateJulianDay = (date: Date): number => {
+  const a = Math.floor((14 - (date.getMonth() + 1)) / 12);
+  const y = date.getFullYear() + 4800 - a;
+  const m = (date.getMonth() + 1) + 12 * a - 3;
+  
+  return date.getDate() + Math.floor((153 * m + 2) / 5) + 365 * y + 
+         Math.floor(y / 4) - Math.floor(y / 100) + Math.floor(y / 400) - 32045;
+};
+
+const calculateSunPosition = (jd: number): number => {
+  // Simplified sun position calculation (degrees in zodiac)
+  const n = jd - 2451545.0;
+  const L = (280.460 + 0.9856474 * n) % 360;
+  const g = ((357.528 + 0.9856003 * n) % 360) * Math.PI / 180;
+  const lambda = (L + 1.915 * Math.sin(g) + 0.020 * Math.sin(2 * g)) % 360;
+  return lambda < 0 ? lambda + 360 : lambda;
+};
+
+const degreesToGate = (degrees: number): number => {
+  // Convert zodiac degrees to I Ching gates (64 gates in 360 degrees)
+  const gateNumber = Math.floor((degrees / 360) * 64) + 1;
+  return gateNumber > 64 ? 1 : gateNumber;
+};
+
+const calculateProfile = (sunGate: number, earthGate: number): string => {
+  const sunLine = (sunGate % 6) + 1;
+  const earthLine = (earthGate % 6) + 1;
+  return `${sunLine}/${earthLine}`;
+};
+
+const determineType = (definedCenters: string[]): string => {
+  const hasSacral = definedCenters.includes('Sacral');
+  const hasThroat = definedCenters.includes('Throat');
+  const hasMotor = definedCenters.some(c => ['Heart/Ego', 'Solar Plexus', 'Root', 'Sacral'].includes(c));
+  
+  if (!hasSacral && !hasMotor) return 'Reflector';
+  if (!hasSacral && hasMotor && hasThroat) return 'Manifestor';
+  if (!hasSacral && hasThroat) return 'Projector';
+  if (hasSacral && hasMotor && hasThroat) return 'Manifesting Generator';
+  if (hasSacral) return 'Generator';
+  return 'Projector';
+};
+
+const determineStrategy = (type: string): string => {
+  switch (type) {
+    case 'Generator': return 'To Respond';
+    case 'Manifesting Generator': return 'To Respond';
+    case 'Projector': return 'To Wait for Invitation';
+    case 'Manifestor': return 'To Inform';
+    case 'Reflector': return 'To Wait 28 Days';
+    default: return 'To Respond';
+  }
+};
+
+const determineAuthority = (definedCenters: string[]): string => {
+  if (definedCenters.includes('Solar Plexus')) return 'Emotional Authority';
+  if (definedCenters.includes('Sacral')) return 'Sacral Authority';
+  if (definedCenters.includes('Spleen')) return 'Splenic Authority';
+  if (definedCenters.includes('Heart/Ego')) return 'Ego Authority';
+  if (definedCenters.includes('G Center')) return 'Self-Projected Authority';
+  if (definedCenters.includes('Throat') && definedCenters.includes('Ajna')) return 'Mental Authority';
+  return 'Lunar Authority';
+};
+
+const gateDescriptions: { [key: number]: string } = {
+  1: 'Creative self-expression and individuality',
+  2: 'Direction - receiving and responding',
+  3: 'Ordering - innovation through challenge',
+  4: 'Mental solutions and formulization',
+  5: 'Fixed rhythms and patience',
+  6: 'Friction and intimacy',
+  7: 'The role of the self in interaction',
+  8: 'Contribution and creative fulfillment',
+  9: 'Focus and determination',
+  10: 'Behavior of the self',
+  13: 'The listener - storytelling and sharing experiences',
+  14: 'Power skills and resources',
+  15: 'Extremes and love of humanity',
+  16: 'Skills and enthusiasm',
+  17: 'Following and opinions',
+  18: 'Correction and finding what needs work',
+  19: 'Wanting and sensitivity to needs',
+  20: 'The now - contemplation in action',
+  21: 'The treasurer - control',
+  22: 'Openness and grace',
+  23: 'Assimilation and explaining',
+  24: 'Rationalization and the return',
+  25: 'Spirit of the self - universal love and acceptance',
+  26: 'The egoist - willpower',
+  27: 'Caring and nourishment',
+  28: 'The game player - purpose',
+  29: 'Perseverance and saying yes',
+  30: 'Feelings and recognition of fate',
+  31: 'Influence and leadership',
+  32: 'Continuity and transformation',
+  33: 'Privacy and retreat',
+  34: 'Power and strength',
+  35: 'Progress and change',
+  36: 'Crisis and emotional experience',
+  37: 'Friendship and family',
+  38: 'Opposition and individuality',
+  39: 'Provocation and emotional intensity',
+  40: 'Aloneness and restoration',
+  41: 'Contraction - fantasy and imagination',
+  42: 'Increase - growth and expansion',
+  43: 'Breakthrough and insight',
+  44: 'Coming to meet - alertness',
+  45: 'Gathering together - the king/queen',
+  46: 'Pushing upward - determination',
+  47: 'Oppression - realizing',
+  48: 'The well - depth',
+  49: 'Revolution - principles',
+  50: 'Values and responsibility',
+  51: 'Arousing - shock',
+  52: 'Keeping still - stillness',
+  53: 'Development - starting',
+  54: 'The marrying maiden - ambition',
+  55: 'Abundance - spirit',
+  56: 'The wanderer - stimulation',
+  57: 'Gentle - intuitive clarity',
+  58: 'Joy and vitality',
+  59: 'Dispersion - intimacy',
+  60: 'Limitation - acceptance',
+  61: 'Inner truth - mystery',
+  62: 'Preponderance of the small - details',
+  63: 'After completion - doubt',
+  64: 'Before completion - confusion'
+};
+
+const getIncarnationCross = (sunGate: number, earthGate: number, profile: string): string => {
+  const isRightAngle = profile.startsWith('1/') || profile.startsWith('2/') || 
+                       profile.startsWith('3/') || profile.startsWith('4/');
+  const angle = isRightAngle ? 'Right Angle' : 
+                profile.startsWith('5/') || profile.startsWith('6/') ? 'Left Angle' : 'Juxtaposition';
+  
+  const sunDesc = gateDescriptions[sunGate]?.split(' - ')[0] || `Gate ${sunGate}`;
+  return `${angle} Cross of ${sunDesc}`;
+};
+
+// Sophisticated Human Design calculator using birth data
 export const generateMockHumanDesignData = (birthDate: string, birthTime?: string | null, isTimeUnknown?: boolean): HumanDesignData => {
-  // Simple mock data - in production, this would call a Human Design API
-  const types = ["Generator", "Manifesting Generator", "Manifestor", "Projector", "Reflector"];
-  const strategies = {
-    Generator: "To Respond",
-    "Manifesting Generator": "To Respond",
-    Manifestor: "To Inform",
-    Projector: "To Wait for Invitation",
-    Reflector: "To Wait 28 Days",
-  };
+  // Parse birth data
+  const [year, month, day] = birthDate.split('-').map(Number);
+  const time = birthTime ? birthTime.split(':').map(Number) : [12, 0]; // Default to noon if unknown
+  const birthDateTime = new Date(year, month - 1, day, time[0], time[1]);
   
-  const authorities = [
-    "Sacral Authority",
-    "Emotional Authority", 
-    "Splenic Authority",
-    "Ego Authority",
-    "Self-Projected Authority",
-    "Mental Authority",
-    "Lunar Authority"
-  ];
-
-  const profiles = ["1/3", "1/4", "2/4", "2/5", "3/5", "3/6", "4/6", "5/1", "5/2", "6/2", "6/3"];
+  // Calculate Julian Day
+  const jd = calculateJulianDay(birthDateTime);
   
-  const centers = [
-    "Head", "Ajna", "Throat", "G Center", "Heart/Ego", 
-    "Sacral", "Solar Plexus", "Spleen", "Root"
-  ];
-
-  // Use birth date to consistently generate same result
-  const dateHash = new Date(birthDate).getTime() % 5;
-  const type = types[dateHash];
+  // Add time of day factor (affects definition of centers)
+  const timeOfDayFactor = isTimeUnknown ? 0.5 : (time[0] + time[1] / 60) / 24;
   
-  const defined = centers.slice(0, Math.floor(Math.random() * 5) + 2);
-  const undefined = centers.filter(c => !defined.includes(c));
-
+  // Calculate sun position at birth (Personality)
+  const sunDegrees = calculateSunPosition(jd);
+  const sunGate = degreesToGate(sunDegrees);
+  
+  // Calculate earth position (opposite sun)
+  const earthDegrees = (sunDegrees + 180) % 360;
+  const earthGate = degreesToGate(earthDegrees);
+  
+  // Calculate Design sun (88 degrees of sun before birth, roughly 88 days)
+  const designJd = jd - 88;
+  const designSunDegrees = calculateSunPosition(designJd);
+  const designSunGate = degreesToGate(designSunDegrees);
+  
+  // Determine defined centers based on birth data and time
+  const allCenters = ['Head', 'Ajna', 'Throat', 'G Center', 'Heart/Ego', 'Sacral', 'Solar Plexus', 'Spleen', 'Root'];
+  
+  // Use deterministic "randomness" based on Julian day and time
+  const definedCenters = allCenters.filter((_, index) => {
+    const hash = (jd * (index + 1) + timeOfDayFactor * 1000) % 100;
+    return hash < 50; // Roughly 50% definition rate
+  });
+  
+  // Determine type and ensure logical consistency
+  let type = determineType(definedCenters);
+  
+  // Ensure Generators have Sacral defined
+  if ((type === 'Generator' || type === 'Manifesting Generator') && !definedCenters.includes('Sacral')) {
+    definedCenters.push('Sacral');
+    type = determineType(definedCenters);
+  }
+  
+  const undefinedCenters = allCenters.filter(center => !definedCenters.includes(center));
+  
+  // Calculate profile
+  const profile = calculateProfile(sunGate, earthGate);
+  
+  // Determine strategy and authority
+  const strategy = determineStrategy(type);
+  const authority = determineAuthority(definedCenters);
+  
+  // Generate key gates based on planetary positions
+  const keyGates = [
+    { gate: sunGate, description: gateDescriptions[sunGate] || `Gate ${sunGate}` },
+    { gate: earthGate, description: gateDescriptions[earthGate] || `Gate ${earthGate}` },
+    { gate: designSunGate, description: gateDescriptions[designSunGate] || `Gate ${designSunGate}` }
+  ].filter((gate, index, self) => 
+    // Remove duplicates
+    index === self.findIndex((g) => g.gate === gate.gate)
+  );
+  
+  // Calculate incarnation cross
+  const incarnationCross = getIncarnationCross(sunGate, earthGate, profile);
+  
   return {
     type,
-    strategy: strategies[type as keyof typeof strategies],
-    authority: authorities[dateHash % authorities.length],
-    profile: profiles[dateHash % profiles.length],
-    defined_centers: defined,
-    undefined_centers: undefined,
-    incarnation_cross: `Cross of ${["Planning", "Awareness", "Laws", "Consciousness", "Maya"][dateHash]}`,
-    key_gates: [
-      { gate: 1, description: "Creative self-expression and individuality" },
-      { gate: 13, description: "The listener - storytelling and sharing experiences" },
-      { gate: 25, description: "Spirit of the self - universal love and acceptance" },
-    ].slice(0, 2 + (dateHash % 2)),
-    is_approximate: isTimeUnknown || !birthTime || false,
+    strategy,
+    authority,
+    profile,
+    defined_centers: definedCenters,
+    undefined_centers: undefinedCenters,
+    key_gates: keyGates,
+    incarnation_cross: incarnationCross,
+    is_approximate: isTimeUnknown || !birthTime
   };
 };
 
