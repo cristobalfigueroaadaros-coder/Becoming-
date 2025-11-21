@@ -57,12 +57,12 @@ const FutureSelf = () => {
       <FutureSelfBackground />
       
       {/* Header */}
-      <div className="sticky top-0 z-10 bg-card/50 backdrop-blur-lg border-b border-border/30">
+      <div className="sticky top-0 z-10 bg-white/80 backdrop-blur-lg border-b border-gray-200">
         <div className="max-w-7xl mx-auto px-4 py-4">
           <Button
             variant="ghost"
             onClick={() => navigate("/dashboard")}
-            className="gap-2"
+            className="gap-2 text-gray-700 hover:text-gray-900"
           >
             <ArrowLeft className="w-4 h-4" />
             Back to Dashboard
@@ -78,7 +78,7 @@ const FutureSelf = () => {
         transition={{ duration: 0.4, delay: 0.1 }}
       >
         {/* Title */}
-        <h1 className="text-5xl md:text-6xl font-bold text-center text-foreground">
+        <h1 className="text-5xl md:text-6xl font-bold text-center bg-gradient-to-r from-primary to-blue-600 bg-clip-text text-transparent">
           Future Self Evolution
         </h1>
 
