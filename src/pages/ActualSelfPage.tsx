@@ -150,7 +150,7 @@ const ActualSelfPage = () => {
               <p className="text-muted-foreground">Loading your Human Design...</p>
             </div>
           </Card>
-        ) : hasBirthData && humanDesignData ? (
+        ) : hasBirthData && humanDesignData && humanDesignData.defined_centers && humanDesignData.defined_centers.length > 0 ? (
           <div className="space-y-6">
             <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
               <HumanDesignCard data={humanDesignData} />
