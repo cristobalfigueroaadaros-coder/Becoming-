@@ -2,8 +2,9 @@ import { useNavigate } from "react-router-dom";
 import { useState, useEffect } from "react";
 import { motion } from "framer-motion";
 import { Button } from "@/components/ui/button";
-import { ArrowLeft, Network, Clock, FileText, Filter, X, Sparkles, Loader2, Target } from "lucide-react";
+import { ArrowLeft, Network, Clock, FileText, Filter, X, Sparkles, Loader2, Target, ChevronDown, ChevronUp } from "lucide-react";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@/components/ui/collapsible";
 import FutureSelfBackground from "@/components/FutureSelfBackground";
 import { ConstellationSystem } from "@/components/ConstellationSystem";
 import { ConstellationCanvas } from "@/components/ConstellationCanvas";
@@ -95,6 +96,7 @@ const ConstellationPage = () => {
   const [showFilters, setShowFilters] = useState(false);
   const [analyzingConnections, setAnalyzingConnections] = useState(false);
   const [showOnboarding, setShowOnboarding] = useState(false);
+  const [purposeExpanded, setPurposeExpanded] = useState(true);
 
   useEffect(() => {
     loadAllData();
@@ -432,6 +434,62 @@ const ConstellationPage = () => {
           </TabsContent>
 
           <TabsContent value="canvas" className="mt-0">
+            {userPurpose && (
+              <Collapsible
+                open={purposeExpanded}
+                onOpenChange={setPurposeExpanded}
+                className="mb-6"
+              >
+                <Card className="border-primary/20 bg-gradient-to-r from-primary/5 to-primary/10">
+                  <CardContent className="p-6">
+                    <CollapsibleTrigger className="flex items-center justify-between w-full group">
+                      <div className="flex items-center gap-3">
+                        <div className="w-10 h-10 rounded-full bg-primary/20 flex items-center justify-center">
+                          <Target className="w-5 h-5 text-primary" />
+                        </div>
+                        <div className="text-left">
+                          <h3 className="text-sm font-semibold text-muted-foreground uppercase tracking-wide">
+                            Your Purpose
+                          </h3>
+                          {!purposeExpanded && (
+                            <p className="text-sm text-muted-foreground line-clamp-1">
+                              {userPurpose}
+                            </p>
+                          )}
+                        </div>
+                      </div>
+                      <Button variant="ghost" size="sm" className="h-8 w-8 p-0">
+                        {purposeExpanded ? (
+                          <ChevronUp className="w-4 h-4" />
+                        ) : (
+                          <ChevronDown className="w-4 h-4" />
+                        )}
+                      </Button>
+                    </CollapsibleTrigger>
+                    
+                    <CollapsibleContent className="mt-4">
+                      <p className="text-foreground leading-relaxed">
+                        {userPurpose}
+                      </p>
+                      <div className="mt-4 pt-4 border-t border-border/50 flex items-center justify-between">
+                        <p className="text-xs text-muted-foreground">
+                          Every insight in your constellation connects to this purpose
+                        </p>
+                        <Button
+                          variant="ghost"
+                          size="sm"
+                          onClick={() => setShowOnboarding(true)}
+                          className="text-xs h-7"
+                        >
+                          Edit Purpose
+                        </Button>
+                      </div>
+                    </CollapsibleContent>
+                  </CardContent>
+                </Card>
+              </Collapsible>
+            )}
+            
             {filteredDots.length === 0 ? (
               <Card>
                 <CardContent className="p-12 text-center">
@@ -454,6 +512,62 @@ const ConstellationPage = () => {
           </TabsContent>
 
           <TabsContent value="timeline" className="mt-0">
+            {userPurpose && (
+              <Collapsible
+                open={purposeExpanded}
+                onOpenChange={setPurposeExpanded}
+                className="mb-6"
+              >
+                <Card className="border-primary/20 bg-gradient-to-r from-primary/5 to-primary/10">
+                  <CardContent className="p-6">
+                    <CollapsibleTrigger className="flex items-center justify-between w-full group">
+                      <div className="flex items-center gap-3">
+                        <div className="w-10 h-10 rounded-full bg-primary/20 flex items-center justify-center">
+                          <Target className="w-5 h-5 text-primary" />
+                        </div>
+                        <div className="text-left">
+                          <h3 className="text-sm font-semibold text-muted-foreground uppercase tracking-wide">
+                            Your Purpose
+                          </h3>
+                          {!purposeExpanded && (
+                            <p className="text-sm text-muted-foreground line-clamp-1">
+                              {userPurpose}
+                            </p>
+                          )}
+                        </div>
+                      </div>
+                      <Button variant="ghost" size="sm" className="h-8 w-8 p-0">
+                        {purposeExpanded ? (
+                          <ChevronUp className="w-4 h-4" />
+                        ) : (
+                          <ChevronDown className="w-4 h-4" />
+                        )}
+                      </Button>
+                    </CollapsibleTrigger>
+                    
+                    <CollapsibleContent className="mt-4">
+                      <p className="text-foreground leading-relaxed">
+                        {userPurpose}
+                      </p>
+                      <div className="mt-4 pt-4 border-t border-border/50 flex items-center justify-between">
+                        <p className="text-xs text-muted-foreground">
+                          Every insight in your constellation connects to this purpose
+                        </p>
+                        <Button
+                          variant="ghost"
+                          size="sm"
+                          onClick={() => setShowOnboarding(true)}
+                          className="text-xs h-7"
+                        >
+                          Edit Purpose
+                        </Button>
+                      </div>
+                    </CollapsibleContent>
+                  </CardContent>
+                </Card>
+              </Collapsible>
+            )}
+            
             {filteredDots.length === 0 ? (
               <Card>
                 <CardContent className="p-12 text-center">
@@ -476,6 +590,62 @@ const ConstellationPage = () => {
           </TabsContent>
 
           <TabsContent value="list" className="mt-0">
+            {userPurpose && (
+              <Collapsible
+                open={purposeExpanded}
+                onOpenChange={setPurposeExpanded}
+                className="mb-6"
+              >
+                <Card className="border-primary/20 bg-gradient-to-r from-primary/5 to-primary/10">
+                  <CardContent className="p-6">
+                    <CollapsibleTrigger className="flex items-center justify-between w-full group">
+                      <div className="flex items-center gap-3">
+                        <div className="w-10 h-10 rounded-full bg-primary/20 flex items-center justify-center">
+                          <Target className="w-5 h-5 text-primary" />
+                        </div>
+                        <div className="text-left">
+                          <h3 className="text-sm font-semibold text-muted-foreground uppercase tracking-wide">
+                            Your Purpose
+                          </h3>
+                          {!purposeExpanded && (
+                            <p className="text-sm text-muted-foreground line-clamp-1">
+                              {userPurpose}
+                            </p>
+                          )}
+                        </div>
+                      </div>
+                      <Button variant="ghost" size="sm" className="h-8 w-8 p-0">
+                        {purposeExpanded ? (
+                          <ChevronUp className="w-4 h-4" />
+                        ) : (
+                          <ChevronDown className="w-4 h-4" />
+                        )}
+                      </Button>
+                    </CollapsibleTrigger>
+                    
+                    <CollapsibleContent className="mt-4">
+                      <p className="text-foreground leading-relaxed">
+                        {userPurpose}
+                      </p>
+                      <div className="mt-4 pt-4 border-t border-border/50 flex items-center justify-between">
+                        <p className="text-xs text-muted-foreground">
+                          Every insight in your constellation connects to this purpose
+                        </p>
+                        <Button
+                          variant="ghost"
+                          size="sm"
+                          onClick={() => setShowOnboarding(true)}
+                          className="text-xs h-7"
+                        >
+                          Edit Purpose
+                        </Button>
+                      </div>
+                    </CollapsibleContent>
+                  </CardContent>
+                </Card>
+              </Collapsible>
+            )}
+            
             <Card>
               <CardContent className="p-6">
                 <h3 className="text-lg font-semibold mb-4">
