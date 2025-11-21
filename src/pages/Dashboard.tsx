@@ -1,5 +1,6 @@
 import { useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
+import { motion } from "framer-motion";
 import { supabase } from "@/integrations/supabase/client";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
@@ -419,65 +420,89 @@ const Dashboard = () => {
 
         {/* Navigation Links */}
         <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
-          <Card
-            className="cursor-pointer hover:shadow-lg transition-all"
-            onClick={() => navigate("/my-tasks")}
+          <motion.div
+            whileHover={{ scale: 1.03, y: -4 }}
+            whileTap={{ scale: 0.98 }}
+            transition={{ type: "spring", stiffness: 400, damping: 17 }}
           >
-            <CardContent className="p-6 flex items-center gap-4">
-              <div className="w-12 h-12 bg-primary rounded-xl flex items-center justify-center">
-                <CheckSquare className="w-6 h-6 text-primary-foreground" />
-              </div>
-              <div>
-                <h3 className="font-semibold">My Tasks</h3>
-                <p className="text-sm text-muted-foreground">Track your progress</p>
-              </div>
-            </CardContent>
-          </Card>
+            <Card
+              className="cursor-pointer hover:shadow-xl transition-shadow"
+              onClick={() => navigate("/my-tasks")}
+            >
+              <CardContent className="p-6 flex items-center gap-4">
+                <div className="w-12 h-12 bg-primary rounded-xl flex items-center justify-center">
+                  <CheckSquare className="w-6 h-6 text-primary-foreground" />
+                </div>
+                <div>
+                  <h3 className="font-semibold">My Tasks</h3>
+                  <p className="text-sm text-muted-foreground">Track your progress</p>
+                </div>
+              </CardContent>
+            </Card>
+          </motion.div>
 
-          <Card
-            className="cursor-pointer hover:shadow-lg transition-all"
-            onClick={() => navigate("/community-hub")}
+          <motion.div
+            whileHover={{ scale: 1.03, y: -4 }}
+            whileTap={{ scale: 0.98 }}
+            transition={{ type: "spring", stiffness: 400, damping: 17 }}
           >
-            <CardContent className="p-6 flex items-center gap-4">
-              <div className="w-12 h-12 bg-secondary rounded-xl flex items-center justify-center">
-                <Users className="w-6 h-6 text-secondary-foreground" />
-              </div>
-              <div>
-                <h3 className="font-semibold">Community Hub</h3>
-                <p className="text-sm text-muted-foreground">Achievements & rankings</p>
-              </div>
-            </CardContent>
-          </Card>
+            <Card
+              className="cursor-pointer hover:shadow-xl transition-shadow"
+              onClick={() => navigate("/community-hub")}
+            >
+              <CardContent className="p-6 flex items-center gap-4">
+                <div className="w-12 h-12 bg-secondary rounded-xl flex items-center justify-center">
+                  <Users className="w-6 h-6 text-secondary-foreground" />
+                </div>
+                <div>
+                  <h3 className="font-semibold">Community Hub</h3>
+                  <p className="text-sm text-muted-foreground">Achievements & rankings</p>
+                </div>
+              </CardContent>
+            </Card>
+          </motion.div>
 
-          <Card
-            className="cursor-pointer hover:shadow-lg transition-all"
-            onClick={() => navigate("/council-log")}
+          <motion.div
+            whileHover={{ scale: 1.03, y: -4 }}
+            whileTap={{ scale: 0.98 }}
+            transition={{ type: "spring", stiffness: 400, damping: 17 }}
           >
-            <CardContent className="p-6 flex items-center gap-4">
-              <div className="w-12 h-12 bg-accent rounded-xl flex items-center justify-center">
-                <BookOpen className="w-6 h-6 text-accent-foreground" />
-              </div>
-              <div>
-                <h3 className="font-semibold">Council Log</h3>
-                <p className="text-sm text-muted-foreground">Past wisdom</p>
-              </div>
-            </CardContent>
-          </Card>
+            <Card
+              className="cursor-pointer hover:shadow-xl transition-shadow"
+              onClick={() => navigate("/council-log")}
+            >
+              <CardContent className="p-6 flex items-center gap-4">
+                <div className="w-12 h-12 bg-accent rounded-xl flex items-center justify-center">
+                  <BookOpen className="w-6 h-6 text-accent-foreground" />
+                </div>
+                <div>
+                  <h3 className="font-semibold">Council Log</h3>
+                  <p className="text-sm text-muted-foreground">Past wisdom</p>
+                </div>
+              </CardContent>
+            </Card>
+          </motion.div>
 
-          <Card
-            className="cursor-pointer hover:shadow-lg transition-all bg-gradient-to-br from-primary/10 to-accent/10"
-            onClick={() => navigate("/premium")}
+          <motion.div
+            whileHover={{ scale: 1.03, y: -4 }}
+            whileTap={{ scale: 0.98 }}
+            transition={{ type: "spring", stiffness: 400, damping: 17 }}
           >
-            <CardContent className="p-6 flex items-center gap-4">
-              <div className="w-12 h-12 bg-gradient-to-br from-primary to-accent rounded-xl flex items-center justify-center">
-                <Crown className="w-6 h-6 text-white" />
-              </div>
-              <div>
-                <h3 className="font-semibold">Unlock Premium</h3>
-                <p className="text-sm text-muted-foreground">Enhanced features</p>
-              </div>
-            </CardContent>
-          </Card>
+            <Card
+              className="cursor-pointer hover:shadow-xl transition-shadow bg-gradient-to-br from-primary/10 to-accent/10"
+              onClick={() => navigate("/premium")}
+            >
+              <CardContent className="p-6 flex items-center gap-4">
+                <div className="w-12 h-12 bg-gradient-to-br from-primary to-accent rounded-xl flex items-center justify-center">
+                  <Crown className="w-6 h-6 text-white" />
+                </div>
+                <div>
+                  <h3 className="font-semibold">Unlock Premium</h3>
+                  <p className="text-sm text-muted-foreground">Enhanced features</p>
+                </div>
+              </CardContent>
+            </Card>
+          </motion.div>
         </div>
       </div>
 
