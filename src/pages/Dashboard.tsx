@@ -240,7 +240,50 @@ const Dashboard = () => {
           </div>
         </div>
 
-        {/* Future Self Section - Central Feature */}
+        {/* Future Self - Primary Navigation Card */}
+        <Card 
+          className="cursor-pointer hover:shadow-2xl transition-all bg-gradient-to-br from-mentor-future/10 via-accent/5 to-transparent border-mentor-future/30 hover:scale-[1.02]"
+          onClick={() => navigate("/future-self")}
+        >
+          <CardContent className="p-8">
+            <div className="flex items-start justify-between">
+              <div className="space-y-3 flex-1">
+                <div className="flex items-center gap-3">
+                  <div className="w-14 h-14 rounded-2xl bg-gradient-to-br from-mentor-future to-accent flex items-center justify-center">
+                    <Sparkles className="w-8 h-8 text-white" />
+                  </div>
+                  <div>
+                    <h2 className="text-2xl font-bold">Enter Future Self Space</h2>
+                    <p className="text-muted-foreground">Your sacred space for evolution and growth</p>
+                  </div>
+                </div>
+                <div className="grid grid-cols-2 md:grid-cols-4 gap-4 pt-4">
+                  <div className="space-y-1">
+                    <div className="text-xs text-muted-foreground">Daily Ritual</div>
+                    <div className="text-sm font-medium">Visualization & Intention</div>
+                  </div>
+                  <div className="space-y-1">
+                    <div className="text-xs text-muted-foreground">Life Domains</div>
+                    <div className="text-sm font-medium">Track Your Progress</div>
+                  </div>
+                  <div className="space-y-1">
+                    <div className="text-xs text-muted-foreground">Goal Structure</div>
+                    <div className="text-sm font-medium">Weekly to 10-Year Vision</div>
+                  </div>
+                  <div className="space-y-1">
+                    <div className="text-xs text-muted-foreground">Self-Discovery</div>
+                    <div className="text-sm font-medium">Coming Soon</div>
+                  </div>
+                </div>
+              </div>
+              <Button size="lg" className="bg-gradient-to-r from-mentor-future to-accent">
+                Explore →
+              </Button>
+            </div>
+          </CardContent>
+        </Card>
+
+        {/* Quick Stats Overview */}
         <div className="grid lg:grid-cols-2 gap-6">
           <FutureSelfWidget />
           <LifeDomainsRadar />
@@ -379,14 +422,16 @@ const Dashboard = () => {
           </Card>
         )}
 
-        {/* Goal Hierarchy */}
-        <GoalHierarchy />
-
-        {/* Achievements */}
-        <AchievementsDisplay />
-
-        {/* Leaderboard */}
-        <Leaderboard />
+        {/* Community & Progress Section */}
+        <div className="space-y-6">
+          <div>
+            <h2 className="text-2xl font-semibold mb-4">Community & Achievements</h2>
+            <div className="grid lg:grid-cols-2 gap-6">
+              <AchievementsDisplay />
+              <Leaderboard />
+            </div>
+          </div>
+        </div>
 
         {/* Navigation Links */}
         <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
