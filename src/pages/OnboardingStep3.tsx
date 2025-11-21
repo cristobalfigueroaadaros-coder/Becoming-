@@ -106,13 +106,23 @@ export default function OnboardingStep3() {
   return (
     <div className="min-h-screen bg-gradient-to-br from-background via-background to-mentor-future/5 p-4 sm:p-8">
       <div className="max-w-4xl mx-auto space-y-8">
-        <div className="text-center space-y-2">
+        <div className="text-center space-y-4">
           <h1 className="text-4xl font-bold bg-gradient-to-r from-primary to-mentor-future bg-clip-text text-transparent">
             Map Your Life Domains
           </h1>
           <p className="text-lg text-muted-foreground">
-            Rate where you are now and where you want to be in 10 years
+            For each domain, rate your current satisfaction and your vision for the future
           </p>
+          <div className="flex items-center justify-center gap-8 pt-2">
+            <div className="flex items-center gap-2">
+              <div className="w-3 h-3 rounded-full bg-primary/20 border-2 border-primary" />
+              <span className="text-sm font-medium">Current State</span>
+            </div>
+            <div className="flex items-center gap-2">
+              <div className="w-3 h-3 rounded-full bg-mentor-future/20 border-2 border-mentor-future" />
+              <span className="text-sm font-medium">Future Vision</span>
+            </div>
+          </div>
         </div>
 
         <div className="grid gap-6">
@@ -130,9 +140,14 @@ export default function OnboardingStep3() {
                   <CardDescription>{domain.description}</CardDescription>
                 </CardHeader>
                 <CardContent className="space-y-6">
-                  <div className="space-y-3">
+                  {/* Current State Section */}
+                  <div className="space-y-3 p-4 rounded-lg bg-primary/5 border border-primary/20">
+                    <div className="flex items-center gap-2 mb-2">
+                      <div className="w-2 h-2 rounded-full bg-primary" />
+                      <Label className="text-sm font-semibold text-primary">📍 Where You Are Today</Label>
+                    </div>
                     <div className="flex justify-between items-center">
-                      <Label className="text-sm font-medium">Current State</Label>
+                      <span className="text-xs text-muted-foreground">Current satisfaction level</span>
                       <span className="text-2xl font-bold text-primary">{scores.current}</span>
                     </div>
                     <Slider
@@ -143,11 +158,20 @@ export default function OnboardingStep3() {
                       step={1}
                       className="w-full"
                     />
+                    <div className="flex justify-between text-xs text-muted-foreground">
+                      <span>Low</span>
+                      <span>High</span>
+                    </div>
                   </div>
 
-                  <div className="space-y-3">
+                  {/* Future Vision Section */}
+                  <div className="space-y-3 p-4 rounded-lg bg-mentor-future/5 border border-mentor-future/20">
+                    <div className="flex items-center gap-2 mb-2">
+                      <div className="w-2 h-2 rounded-full bg-mentor-future" />
+                      <Label className="text-sm font-semibold text-mentor-future">🎯 Where You Want To Be (10 Years)</Label>
+                    </div>
                     <div className="flex justify-between items-center">
-                      <Label className="text-sm font-medium">Future Vision</Label>
+                      <span className="text-xs text-muted-foreground">Future vision level</span>
                       <span className="text-2xl font-bold text-mentor-future">{scores.future}</span>
                     </div>
                     <Slider
@@ -156,13 +180,18 @@ export default function OnboardingStep3() {
                       min={1}
                       max={10}
                       step={1}
-                      className="w-full"
+                      className="w-full [&_[role=slider]]:border-mentor-future [&>span>span]:bg-mentor-future"
                     />
+                    <div className="flex justify-between text-xs text-muted-foreground">
+                      <span>Low</span>
+                      <span>High</span>
+                    </div>
                   </div>
 
-                  <div className="flex items-center justify-between pt-2 text-sm text-muted-foreground">
-                    <span>Growth Potential:</span>
-                    <span className="font-semibold text-foreground">
+                  {/* Growth Indicator */}
+                  <div className="flex items-center justify-between pt-2 px-2">
+                    <span className="text-sm text-muted-foreground">Growth Potential:</span>
+                    <span className="text-lg font-bold text-foreground bg-gradient-to-r from-primary to-mentor-future bg-clip-text text-transparent">
                       +{scores.future - scores.current} levels
                     </span>
                   </div>
