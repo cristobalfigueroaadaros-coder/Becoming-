@@ -2,7 +2,7 @@ import { useNavigate } from "react-router-dom";
 import { useState, useEffect } from "react";
 import { motion } from "framer-motion";
 import { Button } from "@/components/ui/button";
-import { ArrowLeft, Network, Clock, FileText, Filter, X, Sparkles, Loader2, Target, ChevronDown, ChevronUp } from "lucide-react";
+import { ArrowLeft, Network, Clock, FileText, Filter, X, Sparkles, Loader2, Target, ChevronDown, ChevronUp, Eye, EyeOff } from "lucide-react";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@/components/ui/collapsible";
 import FutureSelfBackground from "@/components/FutureSelfBackground";
@@ -121,6 +121,9 @@ const ConstellationPage = () => {
   const [analyzingConnections, setAnalyzingConnections] = useState(false);
   const [showOnboarding, setShowOnboarding] = useState(false);
   const [purposeExpanded, setPurposeExpanded] = useState(true);
+  const [purposeAlignments, setPurposeAlignments] = useState<any[]>([]);
+  const [showPurposeView, setShowPurposeView] = useState(false);
+  const [analyzingPurpose, setAnalyzingPurpose] = useState(false);
 
   useEffect(() => {
     loadAllData();
@@ -197,6 +200,44 @@ const ConstellationPage = () => {
       }
     } finally {
       setAnalyzingConnections(false);
+    }
+  };
+
+  const analyzePurposeAlignment = async () => {
+    if (!userPurpose || filteredDots.length === 0) {
+      toast.error("Need purpose and insights to analyze alignment");
+      return;
+    }
+
+    setAnalyzingPurpose(true);
+    try {
+      const { data: { user } } = await supabase.auth.getUser();
+      if (!user) return;
+
+      const { data, error } = await supabase.functions.invoke("analyze-purpose-alignment", {
+        body: { 
+          dots: filteredDots.slice(0, 50), // Limit for performance
+          userPurpose,
+          userId: user.id
+        }
+      });
+
+      if (error) throw error;
+
+      if (data?.alignments) {
+        setPurposeAlignments(data.alignments);
+        setShowPurposeView(true);
+        toast.success("Purpose alignment analyzed!", {
+          description: `${data.summary.high} high, ${data.summary.medium} medium, ${data.summary.low} low alignment`
+        });
+      }
+    } catch (error: any) {
+      console.error("Error analyzing purpose alignment:", error);
+      toast.error("Failed to analyze purpose alignment", {
+        description: error.message
+      });
+    } finally {
+      setAnalyzingPurpose(false);
     }
   };
 
@@ -339,6 +380,41 @@ const ConstellationPage = () => {
 
             {(activeTab === "canvas" || activeTab === "timeline" || activeTab === "list") && (
               <div className="flex items-center gap-2">
+                {userPurpose && (
+                  <>
+                    <Button
+                      variant={showPurposeView ? "default" : "outline"}
+                      size="sm"
+                      onClick={() => {
+                        if (showPurposeView) {
+                          setShowPurposeView(false);
+                        } else if (purposeAlignments.length > 0) {
+                          setShowPurposeView(true);
+                        } else {
+                          analyzePurposeAlignment();
+                        }
+                      }}
+                      disabled={analyzingPurpose}
+                    >
+                      {analyzingPurpose ? (
+                        <>
+                          <Loader2 className="w-4 h-4 mr-2 animate-spin" />
+                          Analyzing...
+                        </>
+                      ) : showPurposeView ? (
+                        <>
+                          <Eye className="w-4 h-4 mr-2" />
+                          Purpose View
+                        </>
+                      ) : (
+                        <>
+                          <Target className="w-4 h-4 mr-2" />
+                          {purposeAlignments.length > 0 ? "Show Purpose" : "Analyze Purpose"}
+                        </>
+                      )}
+                    </Button>
+                  </>
+                )}
                 <Button
                   variant="default"
                   size="sm"
@@ -531,6 +607,8 @@ const ConstellationPage = () => {
                 onDotClick={(dot) => setSelectedDot(dot)}
                 selectedDot={selectedDot}
                 userPurpose={userPurpose}
+                purposeAlignments={purposeAlignments}
+                showPurposeView={showPurposeView}
               />
             )}
           </TabsContent>

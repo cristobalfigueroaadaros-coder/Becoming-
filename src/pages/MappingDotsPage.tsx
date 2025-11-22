@@ -8,7 +8,7 @@ import { Badge } from "@/components/ui/badge";
 import { Textarea } from "@/components/ui/textarea";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { ArrowLeft, Network, Filter, Sparkles, Link2, Calendar, Tag, FileText, Plus, Clock } from "lucide-react";
+import { ArrowLeft, Network, Filter, Sparkles, Link2, Calendar, Tag, FileText, Plus, Clock, Target, Eye, Loader2 } from "lucide-react";
 import { toast } from "sonner";
 import { cn } from "@/lib/utils";
 import { ConstellationCanvas } from "@/components/ConstellationCanvas";
@@ -113,6 +113,9 @@ const MappingDotsPage = () => {
   const [loading, setLoading] = useState(true);
   const [showOnboarding, setShowOnboarding] = useState(false);
   const [userPurpose, setUserPurpose] = useState<string | null>(null);
+  const [purposeAlignments, setPurposeAlignments] = useState<any[]>([]);
+  const [showPurposeView, setShowPurposeView] = useState(false);
+  const [analyzingPurpose, setAnalyzingPurpose] = useState(false);
 
   useEffect(() => {
     loadDots();
@@ -185,6 +188,44 @@ const MappingDotsPage = () => {
       setUserPurpose(data?.main_mission || null);
     } catch (error: any) {
       console.error("Error loading purpose:", error);
+    }
+  };
+
+  const analyzePurposeAlignment = async () => {
+    if (!userPurpose || filteredDots.length === 0) {
+      toast.error("Need purpose and insights to analyze alignment");
+      return;
+    }
+
+    setAnalyzingPurpose(true);
+    try {
+      const { data: { user } } = await supabase.auth.getUser();
+      if (!user) return;
+
+      const { data, error } = await supabase.functions.invoke("analyze-purpose-alignment", {
+        body: { 
+          dots: filteredDots.slice(0, 50),
+          userPurpose,
+          userId: user.id
+        }
+      });
+
+      if (error) throw error;
+
+      if (data?.alignments) {
+        setPurposeAlignments(data.alignments);
+        setShowPurposeView(true);
+        toast.success("Purpose alignment analyzed!", {
+          description: `${data.summary.high} high, ${data.summary.medium} medium, ${data.summary.low} low alignment`
+        });
+      }
+    } catch (error: any) {
+      console.error("Error analyzing purpose alignment:", error);
+      toast.error("Failed to analyze purpose alignment", {
+        description: error.message
+      });
+    } finally {
+      setAnalyzingPurpose(false);
     }
   };
 
@@ -334,14 +375,49 @@ const MappingDotsPage = () => {
                 List
               </Button>
             </div>
-            <Button
-              variant="outline"
-              onClick={suggestConnections}
-              disabled={suggestingConnections || dots.length < 2}
-            >
-              <Sparkles className="w-4 h-4 mr-2" />
-              {suggestingConnections ? "Analyzing..." : "Connect the Dots"}
-            </Button>
+            <div className="flex gap-2">
+              {userPurpose && (
+                <Button
+                  variant={showPurposeView ? "default" : "outline"}
+                  size="sm"
+                  onClick={() => {
+                    if (showPurposeView) {
+                      setShowPurposeView(false);
+                    } else if (purposeAlignments.length > 0) {
+                      setShowPurposeView(true);
+                    } else {
+                      analyzePurposeAlignment();
+                    }
+                  }}
+                  disabled={analyzingPurpose}
+                >
+                  {analyzingPurpose ? (
+                    <>
+                      <Loader2 className="w-4 h-4 mr-2 animate-spin" />
+                      Analyzing...
+                    </>
+                  ) : showPurposeView ? (
+                    <>
+                      <Eye className="w-4 h-4 mr-2" />
+                      Purpose View
+                    </>
+                  ) : (
+                    <>
+                      <Target className="w-4 h-4 mr-2" />
+                      {purposeAlignments.length > 0 ? "Show Purpose" : "Analyze Purpose"}
+                    </>
+                  )}
+                </Button>
+              )}
+              <Button
+                variant="outline"
+                onClick={suggestConnections}
+                disabled={suggestingConnections || dots.length < 2}
+              >
+                <Sparkles className="w-4 h-4 mr-2" />
+                {suggestingConnections ? "Analyzing..." : "Connect the Dots"}
+              </Button>
+            </div>
           </div>
         </div>
 
@@ -356,6 +432,8 @@ const MappingDotsPage = () => {
             }}
             selectedDot={selectedDot}
             userPurpose={userPurpose}
+            purposeAlignments={purposeAlignments}
+            showPurposeView={showPurposeView}
           />
         )}
 

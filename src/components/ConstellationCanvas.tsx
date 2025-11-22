@@ -3,6 +3,7 @@ import { motion, AnimatePresence } from "framer-motion";
 import { cn } from "@/lib/utils";
 import { Badge } from "@/components/ui/badge";
 import { Card, CardContent } from "@/components/ui/card";
+import { Target } from "lucide-react";
 
 interface InsightDot {
   id: string;
@@ -27,12 +28,20 @@ interface DotConnection {
   ai_generated: boolean;
 }
 
+interface PurposeAlignment {
+  id: string;
+  alignmentScore: number;
+  reason: string;
+}
+
 interface ConstellationCanvasProps {
   dots: InsightDot[];
   connections: DotConnection[];
   onDotClick: (dot: InsightDot) => void;
   selectedDot: InsightDot | null;
   userPurpose?: string | null;
+  purposeAlignments?: PurposeAlignment[];
+  showPurposeView?: boolean;
 }
 
 const sourceColors: Record<string, string> = {
@@ -129,7 +138,9 @@ export const ConstellationCanvas = ({
   connections, 
   onDotClick,
   selectedDot,
-  userPurpose
+  userPurpose,
+  purposeAlignments = [],
+  showPurposeView = false
 }: ConstellationCanvasProps) => {
   const canvasRef = useRef<HTMLDivElement>(null);
   const [dimensions, setDimensions] = useState({ width: 800, height: 600 });
@@ -210,12 +221,27 @@ export const ConstellationCanvas = ({
   };
 
   const getDotColor = (dot: InsightDot) => {
+    // In purpose view, color by alignment strength
+    if (showPurposeView && purposeAlignments.length > 0) {
+      const alignment = purposeAlignments.find(a => a.id === dot.id);
+      if (alignment) {
+        if (alignment.alignmentScore >= 61) return "hsl(280 90% 65%)"; // High: vibrant purple
+        if (alignment.alignmentScore >= 31) return "hsl(200 80% 60%)"; // Medium: blue
+        return "hsl(220 40% 55%)"; // Low: muted gray-blue
+      }
+    }
+    
     // Prioritize emotional tone color if available
     if (dot.emotional_tone && emotionalToneColors[dot.emotional_tone]) {
       return emotionalToneColors[dot.emotional_tone];
     }
     // Fall back to source type color
     return sourceColors[dot.source_type] || "hsl(var(--primary))";
+  };
+
+  const getPurposeAlignment = (dotId: string): number => {
+    const alignment = purposeAlignments.find(a => a.id === dotId);
+    return alignment?.alignmentScore || 0;
   };
 
   return (
@@ -295,16 +321,33 @@ export const ConstellationCanvas = ({
             </g>
 
             {/* Purpose connection lines - connect each dot to the central purpose node */}
-            {userPurpose && positions.has('purpose-node') && (
-              <g opacity="0.15">
+            {userPurpose && positions.has('purpose-node') && showPurposeView && (
+              <g>
                 {dots.map((dot) => {
                   const dotPos = positions.get(dot.id);
                   const purposePos = positions.get('purpose-node');
                   if (!dotPos || !purposePos) return null;
 
+                  const alignment = getPurposeAlignment(dot.id);
+                  const isHighAlignment = alignment >= 61;
+                  const isMediumAlignment = alignment >= 31 && alignment < 61;
+                  
                   const isHighlighted = 
                     selectedDot?.id === dot.id || 
                     hoveredDot === dot.id;
+
+                  // Only show connections for medium and high alignment
+                  if (alignment < 31 && !isHighlighted) return null;
+
+                  // Determine connection styling based on alignment
+                  const strokeColor = isHighAlignment 
+                    ? "hsl(280 90% 65%)" 
+                    : isMediumAlignment 
+                      ? "hsl(200 80% 60%)" 
+                      : "hsl(220 40% 55%)";
+                  
+                  const strokeWidth = isHighAlignment ? 2.5 : isMediumAlignment ? 1.5 : 1;
+                  const strokeOpacity = isHighAlignment ? 0.7 : isMediumAlignment ? 0.5 : 0.3;
 
                   return (
                     <motion.line
@@ -313,16 +356,16 @@ export const ConstellationCanvas = ({
                       y1={dotPos.y}
                       x2={purposePos.x}
                       y2={purposePos.y}
-                      stroke="hsl(var(--primary))"
-                      strokeWidth={isHighlighted ? 2 : 1}
-                      strokeOpacity={isHighlighted ? 0.6 : 0.25}
-                      strokeDasharray={isHighlighted ? "0" : "4 4"}
+                      stroke={isHighlighted ? "hsl(var(--primary))" : strokeColor}
+                      strokeWidth={isHighlighted ? 3 : strokeWidth}
+                      strokeOpacity={isHighlighted ? 0.9 : strokeOpacity}
+                      strokeDasharray={isHighAlignment ? "0" : "4 4"}
                       initial={{ pathLength: 0, opacity: 0 }}
                       animate={{ pathLength: 1, opacity: 1 }}
                       transition={{ 
                         duration: 1.5, 
                         ease: "easeInOut",
-                        delay: 0.3
+                        delay: 0.3 + (alignment / 300) // Stagger based on alignment
                       }}
                     />
                   );
@@ -412,18 +455,36 @@ export const ConstellationCanvas = ({
               const isHovered = hoveredDot === dot.id;
               const color = getDotColor(dot);
               const hasEmotionalTone = !!dot.emotional_tone;
+              const alignment = getPurposeAlignment(dot.id);
+              const isPurposeAligned = showPurposeView && alignment >= 61;
 
               return (
                 <g key={dot.id}>
-                  {/* Enhanced glow for emotional tone dots */}
-                  {(isSelected || isHovered) && (
+                  {/* Enhanced glow for emotional tone dots and purpose-aligned dots */}
+                  {(isSelected || isHovered || isPurposeAligned) && (
                     <circle
                       cx={pos.x}
                       cy={pos.y}
-                      r={size + 10}
+                      r={size + (isPurposeAligned ? 15 : 10)}
                       fill={color}
-                      opacity={hasEmotionalTone ? 0.3 : 0.2}
+                      opacity={isPurposeAligned ? 0.4 : hasEmotionalTone ? 0.3 : 0.2}
                       filter="url(#glow)"
+                    />
+                  )}
+                  
+                  {/* Extra glow ring for high-purpose alignment */}
+                  {isPurposeAligned && !isSelected && !isHovered && (
+                    <motion.circle
+                      cx={pos.x}
+                      cy={pos.y}
+                      r={size + 20}
+                      fill="none"
+                      stroke={color}
+                      strokeWidth="2"
+                      strokeOpacity="0.3"
+                      initial={{ r: size + 15, opacity: 0 }}
+                      animate={{ r: size + 25, opacity: 0 }}
+                      transition={{ duration: 2, repeat: Infinity, ease: "easeOut" }}
                     />
                   )}
                   
@@ -431,10 +492,10 @@ export const ConstellationCanvas = ({
                   <motion.circle
                     cx={pos.x}
                     cy={pos.y}
-                    r={size}
+                    r={size * (isPurposeAligned ? 1.2 : 1)}
                     fill="url(#dotGradient)"
                     stroke={isSelected ? "white" : color}
-                    strokeWidth={isSelected ? 3 : (hasEmotionalTone ? 2.5 : 2)}
+                    strokeWidth={isSelected ? 3 : isPurposeAligned ? 3 : (hasEmotionalTone ? 2.5 : 2)}
                     className="cursor-pointer transition-all"
                     onClick={() => onDotClick(dot)}
                     onMouseEnter={() => setHoveredDot(dot.id)}
@@ -506,6 +567,8 @@ export const ConstellationCanvas = ({
                   ) : (() => {
                     const dot = dots.find(d => d.id === hoveredDot);
                     if (!dot) return null;
+                    const alignment = getPurposeAlignment(dot.id);
+                    const alignmentData = purposeAlignments.find(a => a.id === dot.id);
                     return (
                       <>
                         <Badge 
@@ -523,9 +586,27 @@ export const ConstellationCanvas = ({
                             💫 {dot.emotional_tone}
                           </Badge>
                         )}
+                        {showPurposeView && alignment > 0 && (
+                          <Badge 
+                            variant="outline" 
+                            className={cn(
+                              "text-xs",
+                              alignment >= 61 ? "border-purple-500 bg-purple-500/10" :
+                              alignment >= 31 ? "border-blue-500 bg-blue-500/10" :
+                              "border-gray-500 bg-gray-500/10"
+                            )}
+                          >
+                            {alignment >= 61 ? "🎯 High" : alignment >= 31 ? "→ Medium" : "~ Low"} Purpose Alignment
+                          </Badge>
+                        )}
                         <p className="text-xs font-medium max-w-[200px] line-clamp-2">
                           {dot.insight_text}
                         </p>
+                        {showPurposeView && alignmentData && (
+                          <p className="text-xs text-muted-foreground italic">
+                            {alignmentData.reason}
+                          </p>
+                        )}
                         <p className="text-xs text-muted-foreground">
                           {getConnectedDots(dot.id).length} connections
                         </p>
@@ -573,6 +654,29 @@ export const ConstellationCanvas = ({
               <div className="flex items-center gap-2">
                 <div className="w-2 h-2 rounded-full bg-gradient-to-r from-blue-400 to-cyan-400 flex-shrink-0" />
                 <span>Low (Peaceful)</span>
+              </div>
+            </div>
+          </div>
+        )}
+        
+        {showPurposeView && purposeAlignments.length > 0 && (
+          <div className="pt-2 border-t border-border/30">
+            <p className="text-xs font-semibold text-muted-foreground mb-2 flex items-center gap-1">
+              <Target className="w-3 h-3" />
+              Purpose Alignment
+            </p>
+            <div className="space-y-1 text-xs text-muted-foreground">
+              <div className="flex items-center gap-2">
+                <div className="w-4 h-4 rounded-full bg-purple-500 flex-shrink-0" />
+                <span>High (61-100)</span>
+              </div>
+              <div className="flex items-center gap-2">
+                <div className="w-3 h-3 rounded-full bg-blue-500 flex-shrink-0" />
+                <span>Medium (31-60)</span>
+              </div>
+              <div className="flex items-center gap-2">
+                <div className="w-2 h-2 rounded-full bg-gray-500 flex-shrink-0" />
+                <span>Low (0-30)</span>
               </div>
             </div>
           </div>
