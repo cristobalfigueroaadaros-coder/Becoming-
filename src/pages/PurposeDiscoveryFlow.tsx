@@ -7,7 +7,9 @@ import { Textarea } from "@/components/ui/textarea";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Progress } from "@/components/ui/progress";
-import { ArrowLeft, ArrowRight, Sparkles } from "lucide-react";
+import { Badge } from "@/components/ui/badge";
+import { Alert, AlertDescription } from "@/components/ui/alert";
+import { ArrowLeft, ArrowRight, Sparkles, Check, Loader2 } from "lucide-react";
 import { toast } from "sonner";
 
 interface Question {
@@ -113,6 +115,11 @@ export default function PurposeDiscoveryFlow() {
   const [answers, setAnswers] = useState<Record<string, any>>({});
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
+  const [showRefinement, setShowRefinement] = useState(false);
+  const [refinementData, setRefinementData] = useState<any>(null);
+  const [loadingRefinement, setLoadingRefinement] = useState(false);
+  const [selectedPurpose, setSelectedPurpose] = useState<string | null>(null);
+  const [customPurpose, setCustomPurpose] = useState("");
 
   useEffect(() => {
     loadProgress();
@@ -224,11 +231,51 @@ export default function PurposeDiscoveryFlow() {
     }
   };
 
+  const getRefinedPurpose = async () => {
+    setLoadingRefinement(true);
+    try {
+      const { data, error } = await supabase.functions.invoke("refine-purpose", {
+        body: { purposePath, answers },
+      });
+
+      if (error) throw error;
+
+      setRefinementData(data.refinement);
+      setShowRefinement(true);
+    } catch (error: any) {
+      console.error("Error getting refinement:", error);
+      toast.error("Failed to generate purpose refinement");
+    } finally {
+      setLoadingRefinement(false);
+    }
+  };
+
   const completeDiscovery = async () => {
+    if (currentStep === questions.length - 1) {
+      // Last step - show refinement instead of completing
+      await getRefinedPurpose();
+      return;
+    }
+
     setSaving(true);
     try {
       const { data: { user } } = await supabase.auth.getUser();
       if (!user) throw new Error("Not authenticated");
+
+      // Save selected or custom purpose
+      const finalPurpose = customPurpose || selectedPurpose;
+      if (finalPurpose) {
+        await supabase
+          .from("profiles")
+          .update({ main_mission: finalPurpose })
+          .eq("id", user.id);
+
+        // Add to purpose history
+        await supabase.from("purpose_history").insert({
+          user_id: user.id,
+          purpose_text: finalPurpose,
+        });
+      }
 
       // Create insight dots for each answer
       const dotPromises = Object.entries(answers).map(async ([questionId, answer]) => {
@@ -319,6 +366,164 @@ export default function PurposeDiscoveryFlow() {
     return null;
   }
 
+  if (showRefinement && refinementData) {
+    return (
+      <div className="min-h-screen bg-gradient-to-br from-background via-background to-primary/5 p-4 sm:p-8">
+        <div className="max-w-4xl mx-auto space-y-8">
+          <div className="text-center space-y-3">
+            <div className="flex items-center justify-center gap-2">
+              <Sparkles className="w-8 h-8 text-primary" />
+              <h1 className="text-4xl font-bold bg-gradient-to-r from-primary to-accent bg-clip-text text-transparent">
+                Your Refined Purpose
+              </h1>
+            </div>
+            <p className="text-muted-foreground text-lg">
+              Based on your journey, here are focused purpose statements crafted for you
+            </p>
+          </div>
+
+          {/* Purpose Options */}
+          <div className="space-y-4">
+            <h2 className="text-xl font-semibold">Choose Your Purpose Statement</h2>
+            {refinementData.refinedPurposes?.map((purpose: any, idx: number) => (
+              <Card
+                key={idx}
+                className={`cursor-pointer transition-all hover:scale-[1.02] ${
+                  selectedPurpose === purpose.statement
+                    ? "border-2 border-primary shadow-lg"
+                    : "border-2 border-transparent hover:border-primary/50"
+                }`}
+                onClick={() => {
+                  setSelectedPurpose(purpose.statement);
+                  setCustomPurpose("");
+                }}
+              >
+                <CardHeader>
+                  <div className="flex items-start justify-between">
+                    <div className="flex-1">
+                      <Badge className="mb-2">{purpose.focus}</Badge>
+                      <CardTitle className="text-xl leading-relaxed">
+                        {purpose.statement}
+                      </CardTitle>
+                    </div>
+                    {selectedPurpose === purpose.statement && (
+                      <Check className="w-6 h-6 text-primary flex-shrink-0" />
+                    )}
+                  </div>
+                </CardHeader>
+                <CardContent>
+                  <p className="text-sm text-muted-foreground">{purpose.rationale}</p>
+                </CardContent>
+              </Card>
+            ))}
+          </div>
+
+          {/* Custom Purpose Option */}
+          <Card>
+            <CardHeader>
+              <CardTitle className="text-lg">Or Write Your Own</CardTitle>
+              <CardDescription>
+                Feel free to craft your own purpose statement or modify one above
+              </CardDescription>
+            </CardHeader>
+            <CardContent>
+              <Textarea
+                value={customPurpose}
+                onChange={(e) => {
+                  setCustomPurpose(e.target.value);
+                  setSelectedPurpose(null);
+                }}
+                placeholder="Write your own purpose statement..."
+                rows={4}
+                className="resize-none"
+              />
+            </CardContent>
+          </Card>
+
+          {/* Insights Section */}
+          <div className="grid md:grid-cols-2 gap-4">
+            <Card>
+              <CardHeader>
+                <CardTitle className="text-lg">Key Themes</CardTitle>
+              </CardHeader>
+              <CardContent>
+                <div className="flex flex-wrap gap-2">
+                  {refinementData.keyThemes?.map((theme: string) => (
+                    <Badge key={theme} variant="secondary">{theme}</Badge>
+                  ))}
+                </div>
+              </CardContent>
+            </Card>
+
+            <Card>
+              <CardHeader>
+                <CardTitle className="text-lg">Your Strengths</CardTitle>
+              </CardHeader>
+              <CardContent>
+                <div className="flex flex-wrap gap-2">
+                  {refinementData.strengthsIdentified?.map((strength: string) => (
+                    <Badge key={strength} variant="outline">{strength}</Badge>
+                  ))}
+                </div>
+              </CardContent>
+            </Card>
+          </div>
+
+          {refinementData.insights && (
+            <Alert className="bg-primary/5 border-primary/20">
+              <Sparkles className="h-4 w-4" />
+              <AlertDescription className="text-sm">
+                <strong>Insight:</strong> {refinementData.insights}
+              </AlertDescription>
+            </Alert>
+          )}
+
+          {/* Next Steps */}
+          <Card>
+            <CardHeader>
+              <CardTitle>Next Steps to Live Your Purpose</CardTitle>
+            </CardHeader>
+            <CardContent>
+              <ul className="space-y-2">
+                {refinementData.nextSteps?.map((step: string, idx: number) => (
+                  <li key={idx} className="flex items-start gap-2">
+                    <span className="text-primary font-bold">{idx + 1}.</span>
+                    <span className="text-sm">{step}</span>
+                  </li>
+                ))}
+              </ul>
+            </CardContent>
+          </Card>
+
+          {/* Action Buttons */}
+          <div className="flex gap-4">
+            <Button
+              variant="outline"
+              onClick={() => setShowRefinement(false)}
+              className="h-12"
+            >
+              ← Back to Questions
+            </Button>
+            <Button
+              onClick={completeDiscovery}
+              disabled={!selectedPurpose && !customPurpose.trim() || saving}
+              className="flex-1 h-12 text-lg"
+            >
+              {saving ? (
+                <>
+                  <Loader2 className="w-5 h-5 mr-2 animate-spin" />
+                  Saving...
+                </>
+              ) : (
+                "Complete Journey 🚀"
+              )}
+            </Button>
+          </div>
+        </div>
+      </div>
+    );
+  }
+
   return (
     <div className="min-h-screen bg-gradient-to-br from-background via-background to-primary/5 p-4 sm:p-8">
       <div className="max-w-3xl mx-auto space-y-8">
@@ -406,10 +611,20 @@ export default function PurposeDiscoveryFlow() {
 
               <Button
                 onClick={handleNext}
-                disabled={saving}
+                disabled={saving || loadingRefinement}
               >
                 {currentStep === questions.length - 1 ? (
-                  saving ? "Completing..." : "Complete Journey"
+                  loadingRefinement ? (
+                    <>
+                      <Loader2 className="w-4 h-4 mr-2 animate-spin" />
+                      Analyzing...
+                    </>
+                  ) : (
+                    <>
+                      <Sparkles className="w-4 h-4 mr-2" />
+                      Get Purpose Refinement
+                    </>
+                  )
                 ) : (
                   <>
                     Next
