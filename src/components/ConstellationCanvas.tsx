@@ -36,6 +36,12 @@ interface ConstellationCanvasProps {
 }
 
 const sourceColors: Record<string, string> = {
+  book: "hsl(220 80% 60%)",
+  idea: "hsl(45 90% 60%)",
+  insight: "hsl(270 75% 65%)",
+  milestone: "hsl(140 75% 55%)",
+  memory: "hsl(190 80% 60%)",
+  emotion: "hsl(330 80% 65%)",
   council_meeting: "hsl(220 90% 60%)",
   mentor_chat: "hsl(140 70% 50%)",
   journal: "hsl(270 70% 60%)",
@@ -57,6 +63,12 @@ const sourceColors: Record<string, string> = {
 };
 
 const sourceLabels: Record<string, string> = {
+  book: "📚 Book",
+  idea: "💡 Idea",
+  insight: "✨ Insight",
+  milestone: "🎯 Milestone",
+  memory: "🧠 Memory",
+  emotion: "😌 Emotion",
   council_meeting: "Council",
   mentor_chat: "Chat",
   journal: "Journal",

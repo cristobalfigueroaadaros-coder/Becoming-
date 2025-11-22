@@ -8,11 +8,12 @@ import { Label } from "@/components/ui/label";
 import { Badge } from "@/components/ui/badge";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
-import { BookOpen, Lightbulb, Sparkles, Flag, Star, Trash2, Loader2, Network } from "lucide-react";
+import { BookOpen, Lightbulb, Sparkles, Flag, Star, Trash2, Loader2, Network, Brain, Heart, Plus } from "lucide-react";
 import { toast } from "sonner";
 import { cn } from "@/lib/utils";
+import { TagInput } from "@/components/TagInput";
 
-type EntryType = "book" | "idea" | "insight" | "milestone";
+type EntryType = "book" | "idea" | "insight" | "milestone" | "memory" | "emotion" | "custom";
 
 interface ConstellationEntry {
   id: string;
@@ -39,6 +40,9 @@ const entryTypeIcons = {
   idea: Lightbulb,
   insight: Sparkles,
   milestone: Flag,
+  memory: Brain,
+  emotion: Heart,
+  custom: Plus,
 };
 
 const entryTypeColors = {
@@ -46,6 +50,9 @@ const entryTypeColors = {
   idea: "text-yellow-500",
   insight: "text-purple-500",
   milestone: "text-green-500",
+  memory: "text-cyan-500",
+  emotion: "text-pink-500",
+  custom: "text-orange-500",
 };
 
 const lifeDomains = [
@@ -73,11 +80,22 @@ export const ConstellationSystem = ({ onDataChange }: { onDataChange?: () => voi
     related_domains: [] as string[],
     tags: [] as string[],
     emotional_tone: "",
+    custom_type: "",
   });
+
+  // Collect all existing tags for suggestions
+  const [existingTags, setExistingTags] = useState<string[]>([]);
 
   useEffect(() => {
     loadData();
   }, []);
+
+  useEffect(() => {
+    // Extract unique tags from all entries for autocomplete
+    const allTags = entries.flatMap(e => e.tags || []);
+    const uniqueTags = Array.from(new Set(allTags));
+    setExistingTags(uniqueTags);
+  }, [entries]);
 
   const loadData = async () => {
     try {
@@ -117,15 +135,22 @@ export const ConstellationSystem = ({ onDataChange }: { onDataChange?: () => voi
       return;
     }
 
+    if (activeTab === "custom" && !newEntry.custom_type.trim()) {
+      toast.error("Please specify the custom entry type");
+      return;
+    }
+
     try {
       const { data: { user } } = await supabase.auth.getUser();
       if (!user) throw new Error("Not authenticated");
+
+      const entryType = activeTab === "custom" ? newEntry.custom_type.trim() : activeTab;
 
       const { error } = await supabase
         .from("constellation_entries")
         .insert({
           user_id: user.id,
-          entry_type: activeTab,
+          entry_type: entryType,
           title: newEntry.title.trim(),
           description: newEntry.description.trim(),
           key_takeaway: newEntry.key_takeaway.trim() || null,
@@ -145,6 +170,7 @@ export const ConstellationSystem = ({ onDataChange }: { onDataChange?: () => voi
         related_domains: [],
         tags: [],
         emotional_tone: "",
+        custom_type: "",
       });
       loadData();
       onDataChange?.(); // Notify parent
@@ -237,7 +263,7 @@ export const ConstellationSystem = ({ onDataChange }: { onDataChange?: () => voi
                 Add to Your Constellation
               </CardTitle>
               <CardDescription className="mt-2">
-                Log books, ideas, insights, and milestones to build your personal knowledge constellation.
+                Capture all moments of your evolution - from books and insights to memories and emotions.
               </CardDescription>
             </div>
             <Badge variant="secondary" className="text-lg px-4 py-2">
@@ -263,15 +289,33 @@ export const ConstellationSystem = ({ onDataChange }: { onDataChange?: () => voi
                 </DialogHeader>
                 
                 <Tabs value={activeTab} onValueChange={(v) => setActiveTab(v as EntryType)}>
-                  <TabsList className="grid w-full grid-cols-4">
+                  <TabsList className="grid w-full grid-cols-4 md:grid-cols-7">
                     <TabsTrigger value="book">📚 Book</TabsTrigger>
                     <TabsTrigger value="idea">💡 Idea</TabsTrigger>
                     <TabsTrigger value="insight">✨ Insight</TabsTrigger>
                     <TabsTrigger value="milestone">🎯 Milestone</TabsTrigger>
+                    <TabsTrigger value="memory">🧠 Memory</TabsTrigger>
+                    <TabsTrigger value="emotion">😌 Emotion</TabsTrigger>
+                    <TabsTrigger value="custom">➕ Custom</TabsTrigger>
                   </TabsList>
                 </Tabs>
 
                 <div className="space-y-4 mt-4">
+                  {activeTab === "custom" && (
+                    <div>
+                      <Label htmlFor="custom-type">Custom Type *</Label>
+                      <Input
+                        id="custom-type"
+                        placeholder="e.g., Dream, Conversation, Breakthrough, Challenge..."
+                        value={newEntry.custom_type}
+                        onChange={(e) => setNewEntry({ ...newEntry, custom_type: e.target.value })}
+                      />
+                      <p className="text-xs text-muted-foreground mt-1">
+                        Create your own category to capture unique moments
+                      </p>
+                    </div>
+                  )}
+
                   <div>
                     <Label htmlFor="title">Title *</Label>
                     <Input
@@ -280,7 +324,10 @@ export const ConstellationSystem = ({ onDataChange }: { onDataChange?: () => voi
                         activeTab === "book" ? "Book title and author" :
                         activeTab === "idea" ? "Brief idea summary" :
                         activeTab === "insight" ? "Key insight" :
-                        "Milestone achieved"
+                        activeTab === "milestone" ? "Milestone achieved" :
+                        activeTab === "memory" ? "What do you remember?" :
+                        activeTab === "emotion" ? "What are you feeling?" :
+                        "Give it a title"
                       }
                       value={newEntry.title}
                       onChange={(e) => setNewEntry({ ...newEntry, title: e.target.value })}
@@ -295,7 +342,10 @@ export const ConstellationSystem = ({ onDataChange }: { onDataChange?: () => voi
                         activeTab === "book" ? "What was this book about? Why did you read it?" :
                         activeTab === "idea" ? "Describe your idea in detail" :
                         activeTab === "insight" ? "What did you realize? What clicked?" :
-                        "What did you accomplish? How does it feel?"
+                        activeTab === "milestone" ? "What did you accomplish? How does it feel?" :
+                        activeTab === "memory" ? "Describe the memory. Why is it significant?" :
+                        activeTab === "emotion" ? "What triggered this? What does it tell you about yourself?" :
+                        "Describe this moment in detail"
                       }
                       value={newEntry.description}
                       onChange={(e) => setNewEntry({ ...newEntry, description: e.target.value })}
@@ -313,31 +363,37 @@ export const ConstellationSystem = ({ onDataChange }: { onDataChange?: () => voi
                     />
                   </div>
 
-                  <div>
-                    <Label>Related Life Domains</Label>
-                    <div className="grid grid-cols-2 gap-2 mt-2">
-                      {lifeDomains.map(domain => (
-                        <Button
-                          key={domain}
-                          type="button"
-                          variant={newEntry.related_domains.includes(domain) ? "default" : "outline"}
-                          size="sm"
-                          onClick={() => toggleDomain(domain)}
-                        >
-                          {domain}
-                        </Button>
-                      ))}
-                    </div>
-                  </div>
+                  <TagInput
+                    label="Tags & Themes"
+                    value={newEntry.tags}
+                    onChange={(tags) => setNewEntry({ ...newEntry, tags })}
+                    suggestions={[
+                      ...existingTags,
+                      "Health & Energy",
+                      "Career & Impact",
+                      "Relationships & Love",
+                      "Friends & Community",
+                      "Creativity & Learning",
+                      "Spiritual Growth",
+                      "Personal Growth",
+                      "Breakthrough",
+                      "Challenge",
+                      "Discovery",
+                    ]}
+                    placeholder="Add tags to categorize this entry"
+                  />
 
                   <div>
-                    <Label htmlFor="emotional-tone">Emotional Tone</Label>
+                    <Label htmlFor="emotional-tone">How did this make you feel?</Label>
                     <Input
                       id="emotional-tone"
-                      placeholder="How did this make you feel? (e.g., excited, challenged, peaceful)"
+                      placeholder="e.g., breakthrough, transformative, peaceful, challenged, excited"
                       value={newEntry.emotional_tone}
                       onChange={(e) => setNewEntry({ ...newEntry, emotional_tone: e.target.value })}
                     />
+                    <p className="text-xs text-muted-foreground mt-1">
+                      Emotional context helps map the impact of this moment
+                    </p>
                   </div>
 
                   <Button onClick={addEntry} className="w-full">
@@ -424,14 +480,14 @@ export const ConstellationSystem = ({ onDataChange }: { onDataChange?: () => voi
                           )}
                           
                           <div className="flex flex-wrap gap-2">
-                            {entry.related_domains?.map(domain => (
-                              <Badge key={domain} variant="secondary" className="text-xs">
-                                {domain}
+                            {entry.tags?.map(tag => (
+                              <Badge key={tag} variant="secondary" className="text-xs">
+                                {tag}
                               </Badge>
                             ))}
                             {entry.emotional_tone && (
-                              <Badge variant="outline" className="text-xs">
-                                {entry.emotional_tone}
+                              <Badge variant="outline" className="text-xs border-pink-500/50 text-pink-600 dark:text-pink-400">
+                                💫 {entry.emotional_tone}
                               </Badge>
                             )}
                           </div>
