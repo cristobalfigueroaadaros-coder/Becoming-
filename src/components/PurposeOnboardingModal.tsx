@@ -14,6 +14,7 @@ import { Label } from "@/components/ui/label";
 import { Sparkles, Compass, Map, CheckCircle } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
+import { cn } from "@/lib/utils";
 
 interface PurposeOnboardingModalProps {
   open: boolean;
@@ -22,9 +23,12 @@ interface PurposeOnboardingModalProps {
 }
 
 export const PurposeOnboardingModal = ({ open, onClose, existingPurpose }: PurposeOnboardingModalProps) => {
-  const [step, setStep] = useState<"question" | "knows-purpose" | "discovering" | "complete">("question");
+  const [step, setStep] = useState<"question" | "knows-purpose" | "discovering" | "dialogue" | "complete">("question");
   const [purposeText, setPurposeText] = useState("");
   const [saving, setSaving] = useState(false);
+  const [discoveryMessages, setDiscoveryMessages] = useState<Array<{role: 'assistant' | 'user', content: string}>>([]);
+  const [userResponse, setUserResponse] = useState("");
+  const [isProcessing, setIsProcessing] = useState(false);
 
   // If editing existing purpose, start at the right step with pre-filled text
   useEffect(() => {
@@ -43,6 +47,57 @@ export const PurposeOnboardingModal = ({ open, onClose, existingPurpose }: Purpo
 
   const handleDoesntKnow = () => {
     setStep("discovering");
+  };
+
+  const startDiscoveryDialogue = () => {
+    setStep("dialogue");
+    // Initialize with first AI question
+    setDiscoveryMessages([{
+      role: 'assistant',
+      content: "Let's explore your purpose together. I'll ask you some questions to help uncover patterns in your life. What moments in your life have made you feel most alive and fulfilled?"
+    }]);
+  };
+
+  const sendDiscoveryResponse = async () => {
+    if (!userResponse.trim()) return;
+
+    const newMessages = [
+      ...discoveryMessages,
+      { role: 'user' as const, content: userResponse }
+    ];
+    setDiscoveryMessages(newMessages);
+    setUserResponse("");
+    setIsProcessing(true);
+
+    try {
+      const { data: { user } } = await supabase.auth.getUser();
+      if (!user) throw new Error("Not authenticated");
+
+      const { data, error } = await supabase.functions.invoke('purpose-discovery', {
+        body: { 
+          messages: newMessages,
+          userId: user.id
+        }
+      });
+
+      if (error) throw error;
+
+      if (data.nextQuestion) {
+        setDiscoveryMessages([...newMessages, { role: 'assistant', content: data.nextQuestion }]);
+      }
+
+      if (data.complete) {
+        // Discovery is complete, show the insights
+        toast.success("Purpose insights discovered!", { 
+          description: `Created ${data.dotsCreated} constellation nodes from your reflections` 
+        });
+        setStep("complete");
+      }
+    } catch (error: any) {
+      toast.error("Discovery error", { description: error.message });
+    } finally {
+      setIsProcessing(false);
+    }
   };
 
   const savePurpose = async () => {
@@ -277,8 +332,58 @@ export const PurposeOnboardingModal = ({ open, onClose, existingPurpose }: Purpo
                   </p>
                 </div>
 
-                <Button onClick={handleComplete} className="w-full">
-                  Start Mapping My Journey
+                <Button onClick={startDiscoveryDialogue} className="w-full">
+                  Start Discovery Dialogue
+                </Button>
+              </div>
+            </motion.div>
+          )}
+
+          {step === "dialogue" && (
+            <motion.div
+              key="dialogue"
+              initial={{ opacity: 0, y: 20 }}
+              animate={{ opacity: 1, y: 0 }}
+              exit={{ opacity: 0, y: -20 }}
+            >
+              <DialogHeader className="space-y-2">
+                <DialogTitle className="text-xl">Purpose Discovery Dialogue</DialogTitle>
+                <DialogDescription className="text-sm">
+                  Share your thoughts honestly. Each insight will become a node in your constellation.
+                </DialogDescription>
+              </DialogHeader>
+
+              <div className="mt-4 space-y-4 max-h-[400px] overflow-y-auto">
+                {discoveryMessages.map((msg, idx) => (
+                  <div
+                    key={idx}
+                    className={cn(
+                      "p-4 rounded-lg",
+                      msg.role === 'assistant' 
+                        ? "bg-primary/10 border border-primary/20" 
+                        : "bg-accent/10 border border-accent/20 ml-8"
+                    )}
+                  >
+                    <p className="text-sm whitespace-pre-wrap">{msg.content}</p>
+                  </div>
+                ))}
+              </div>
+
+              <div className="mt-4 space-y-3">
+                <Textarea
+                  placeholder="Share your thoughts..."
+                  value={userResponse}
+                  onChange={(e) => setUserResponse(e.target.value)}
+                  rows={4}
+                  disabled={isProcessing}
+                  className="resize-none"
+                />
+                <Button
+                  onClick={sendDiscoveryResponse}
+                  disabled={!userResponse.trim() || isProcessing}
+                  className="w-full"
+                >
+                  {isProcessing ? "Processing..." : "Continue"}
                 </Button>
               </div>
             </motion.div>

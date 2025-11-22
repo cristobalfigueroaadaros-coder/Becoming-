@@ -12,6 +12,7 @@ import { DailyRitualModal } from "@/components/DailyRitualModal";
 import { GoalHierarchy } from "@/components/GoalHierarchy";
 import { ProfileBadges } from "@/components/ProfileBadges";
 import { useProfileBadges } from "@/hooks/useProfileBadges";
+import { PurposeOnboardingModal } from "@/components/PurposeOnboardingModal";
 
 const mentorIcons = {
   mamba_mentor: Brain,
@@ -70,10 +71,13 @@ const Dashboard = () => {
   const [currentUserId, setCurrentUserId] = useState<string | null>(null);
   const { getUserBadgesWithDetails, loading: badgesLoading } = useProfileBadges(currentUserId || undefined);
   const userBadges = getUserBadgesWithDetails();
+  const [purposeModalOpen, setPurposeModalOpen] = useState(false);
+  const [userPurpose, setUserPurpose] = useState<string | null>(null);
 
   useEffect(() => {
     loadDashboardData();
     checkRitualStatus();
+    checkPurposeStatus();
   }, []);
 
   const loadDashboardData = async () => {
@@ -203,6 +207,29 @@ const Dashboard = () => {
       }
     } catch (error: any) {
       console.error("Error checking ritual status:", error);
+    }
+  };
+
+  const checkPurposeStatus = async () => {
+    try {
+      const { data: { user } } = await supabase.auth.getUser();
+      if (!user) return;
+
+      const { data: profile } = await supabase
+        .from("profiles")
+        .select("main_mission")
+        .eq("id", user.id)
+        .single();
+
+      if (profile) {
+        setUserPurpose(profile.main_mission);
+        // Show modal if no purpose is set
+        if (!profile.main_mission) {
+          setPurposeModalOpen(true);
+        }
+      }
+    } catch (error: any) {
+      console.error("Error checking purpose status:", error);
     }
   };
 
@@ -550,6 +577,15 @@ const Dashboard = () => {
           checkRitualStatus();
           setRitualModalOpen(false);
         }}
+      />
+
+      <PurposeOnboardingModal
+        open={purposeModalOpen}
+        onClose={() => {
+          setPurposeModalOpen(false);
+          checkPurposeStatus();
+        }}
+        existingPurpose={userPurpose}
       />
     </div>
   );
