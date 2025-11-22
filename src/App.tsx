@@ -31,6 +31,9 @@ import YourNewTasks from "./pages/YourNewTasks";
 import Premium from "./pages/Premium";
 import Profile from "./pages/Profile";
 import NotFound from "./pages/NotFound";
+import PurposeDiscoveryFlow from "./pages/PurposeDiscoveryFlow";
+import MappingDotsPage from "./pages/MappingDotsPage";
+import DailyPortal from "./pages/DailyPortal";
 
 const queryClient = new QueryClient();
 
@@ -205,6 +208,18 @@ const App = () => {
             <Route
               path="/profile/:userId"
               element={session ? <Profile /> : <Navigate to="/auth" />}
+            />
+            <Route
+              path="/purpose-discovery"
+              element={session ? <PurposeDiscoveryFlow /> : <Navigate to="/auth" />}
+            />
+            <Route
+              path="/mapping-dots"
+              element={session ? <MappingDotsPage /> : <Navigate to="/auth" />}
+            />
+            <Route
+              path="/daily-portal"
+              element={session ? <DailyPortal /> : <Navigate to="/auth" />}
             />
             <Route path="*" element={<NotFound />} />
           </Routes>

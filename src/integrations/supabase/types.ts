@@ -695,6 +695,7 @@ export type Database = {
           main_mission: string | null
           main_strengths: string[] | null
           priority_growth_area: string | null
+          purpose_path: string | null
           shadow_intensity: string | null
           updated_at: string | null
         }
@@ -715,6 +716,7 @@ export type Database = {
           main_mission?: string | null
           main_strengths?: string[] | null
           priority_growth_area?: string | null
+          purpose_path?: string | null
           shadow_intensity?: string | null
           updated_at?: string | null
         }
@@ -735,6 +737,7 @@ export type Database = {
           main_mission?: string | null
           main_strengths?: string[] | null
           priority_growth_area?: string | null
+          purpose_path?: string | null
           shadow_intensity?: string | null
           updated_at?: string | null
         }
@@ -850,6 +853,39 @@ export type Database = {
           event_id?: string
           event_name?: string
           start_date?: string
+        }
+        Relationships: []
+      }
+      self_discovery_progress: {
+        Row: {
+          answers: Json | null
+          completed: boolean | null
+          created_at: string | null
+          current_step: number | null
+          id: string
+          purpose_path: string
+          updated_at: string | null
+          user_id: string
+        }
+        Insert: {
+          answers?: Json | null
+          completed?: boolean | null
+          created_at?: string | null
+          current_step?: number | null
+          id?: string
+          purpose_path: string
+          updated_at?: string | null
+          user_id: string
+        }
+        Update: {
+          answers?: Json | null
+          completed?: boolean | null
+          created_at?: string | null
+          current_step?: number | null
+          id?: string
+          purpose_path?: string
+          updated_at?: string | null
+          user_id?: string
         }
         Relationships: []
       }
