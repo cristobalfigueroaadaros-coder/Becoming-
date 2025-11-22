@@ -12,6 +12,7 @@ import { BookOpen, Lightbulb, Sparkles, Flag, Star, Trash2, Loader2, Network, Br
 import { toast } from "sonner";
 import { cn } from "@/lib/utils";
 import { TagInput } from "@/components/TagInput";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 
 type EntryType = "book" | "idea" | "insight" | "milestone" | "memory" | "emotion" | "custom";
 
@@ -55,13 +56,19 @@ const entryTypeColors = {
   custom: "text-orange-500",
 };
 
-const lifeDomains = [
-  "Health & Energy",
-  "Career & Impact",
-  "Relationships & Love",
-  "Friends & Community",
-  "Creativity & Learning",
-  "Spiritual Growth",
+const emotionalTones = [
+  { value: "breakthrough", label: "✨ Breakthrough", intensity: "high" },
+  { value: "transformative", label: "🌟 Transformative", intensity: "high" },
+  { value: "profound", label: "💎 Profound", intensity: "high" },
+  { value: "excited", label: "🎉 Excited", intensity: "medium" },
+  { value: "inspired", label: "💡 Inspired", intensity: "medium" },
+  { value: "accomplished", label: "🏆 Accomplished", intensity: "medium" },
+  { value: "peaceful", label: "🕊️ Peaceful", intensity: "low" },
+  { value: "reflective", label: "🤔 Reflective", intensity: "low" },
+  { value: "curious", label: "🔍 Curious", intensity: "low" },
+  { value: "challenged", label: "💪 Challenged", intensity: "medium" },
+  { value: "uncertain", label: "❓ Uncertain", intensity: "low" },
+  { value: "grateful", label: "🙏 Grateful", intensity: "medium" },
 ];
 
 export const ConstellationSystem = ({ onDataChange }: { onDataChange?: () => void }) => {
@@ -385,14 +392,23 @@ export const ConstellationSystem = ({ onDataChange }: { onDataChange?: () => voi
 
                   <div>
                     <Label htmlFor="emotional-tone">How did this make you feel?</Label>
-                    <Input
-                      id="emotional-tone"
-                      placeholder="e.g., breakthrough, transformative, peaceful, challenged, excited"
+                    <Select
                       value={newEntry.emotional_tone}
-                      onChange={(e) => setNewEntry({ ...newEntry, emotional_tone: e.target.value })}
-                    />
+                      onValueChange={(value) => setNewEntry({ ...newEntry, emotional_tone: value })}
+                    >
+                      <SelectTrigger id="emotional-tone">
+                        <SelectValue placeholder="Select an emotional tone..." />
+                      </SelectTrigger>
+                      <SelectContent className="bg-popover z-50">
+                        {emotionalTones.map((tone) => (
+                          <SelectItem key={tone.value} value={tone.value}>
+                            {tone.label}
+                          </SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
                     <p className="text-xs text-muted-foreground mt-1">
-                      Emotional context helps map the impact of this moment
+                      Emotional intensity influences how this appears in your constellation
                     </p>
                   </div>
 

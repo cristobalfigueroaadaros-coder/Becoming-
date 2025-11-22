@@ -44,6 +44,12 @@ interface ConstellationTimelineProps {
 }
 
 const sourceColors: Record<string, string> = {
+  book: "hsl(220 80% 60%)",
+  idea: "hsl(45 90% 60%)",
+  insight: "hsl(270 75% 65%)",
+  milestone: "hsl(140 75% 55%)",
+  memory: "hsl(190 80% 60%)",
+  emotion: "hsl(330 80% 65%)",
   council_meeting: "hsl(220 90% 60%)",
   mentor_chat: "hsl(140 70% 50%)",
   journal: "hsl(270 70% 60%)",
@@ -56,9 +62,21 @@ const sourceColors: Record<string, string> = {
   journal_breakthrough: "hsl(280 75% 65%)",
   domain_milestone: "hsl(200 85% 60%)",
   quest_completion: "hsl(300 80% 60%)",
+  human_design_type: "hsl(240 80% 65%)",
+  human_design_strategy: "hsl(200 80% 60%)",
+  human_design_authority: "hsl(40 90% 60%)",
+  human_design_profile: "hsl(320 75% 65%)",
+  human_design_centers: "hsl(160 75% 55%)",
+  human_design_gate: "hsl(270 80% 65%)",
 };
 
 const sourceLabels: Record<string, string> = {
+  book: "📚 Book",
+  idea: "💡 Idea",
+  insight: "✨ Insight",
+  milestone: "🎯 Milestone",
+  memory: "🧠 Memory",
+  emotion: "😌 Emotion",
   council_meeting: "Council",
   mentor_chat: "1:1 Chat",
   journal: "Journal",
@@ -71,6 +89,36 @@ const sourceLabels: Record<string, string> = {
   journal_breakthrough: "Breakthrough",
   domain_milestone: "Milestone",
   quest_completion: "Quest Win",
+  human_design_type: "⭐ HD Type",
+  human_design_strategy: "⚡ HD Strategy",
+  human_design_authority: "🧭 HD Authority",
+  human_design_profile: "👤 HD Profile",
+  human_design_centers: "🔮 HD Centers",
+  human_design_gate: "🚪 HD Gate",
+};
+
+// Emotional tone colors for timeline visualization
+const emotionalToneColors: Record<string, string> = {
+  breakthrough: "hsl(280 90% 65%)",
+  transformative: "hsl(320 85% 60%)",
+  profound: "hsl(240 80% 65%)",
+  excited: "hsl(30 95% 55%)",
+  inspired: "hsl(50 90% 60%)",
+  accomplished: "hsl(140 80% 55%)",
+  peaceful: "hsl(200 70% 65%)",
+  reflective: "hsl(270 60% 60%)",
+  curious: "hsl(180 70% 55%)",
+  challenged: "hsl(0 75% 60%)",
+  uncertain: "hsl(220 40% 55%)",
+  grateful: "hsl(340 80% 65%)",
+};
+
+// Helper to get dot color prioritizing emotional tone
+const getDotColor = (dot: InsightDot): string => {
+  if (dot.emotional_tone && emotionalToneColors[dot.emotional_tone]) {
+    return emotionalToneColors[dot.emotional_tone];
+  }
+  return sourceColors[dot.source_type] || "hsl(var(--muted))";
 };
 
 export const ConstellationTimeline = ({
@@ -756,7 +804,7 @@ export const ConstellationTimeline = ({
                     cx={pos.x}
                     cy={pos.y}
                     r={dotSize + (isSelected ? 8 : 0) + (isCurrent ? 6 : 0)}
-                    fill={sourceColors[dot.source_type] || "hsl(var(--muted))"}
+                    fill={getDotColor(dot)}
                     fillOpacity={isCurrent ? 1 : 0.8}
                     filter="url(#timeline-glow)"
                     className={cn(
@@ -791,9 +839,14 @@ export const ConstellationTimeline = ({
               <Card className="bg-background/95 backdrop-blur-sm border-primary/20">
                 <CardContent className="p-4">
                   <div className="flex items-start gap-3">
-                    <Badge className="shrink-0" style={{ backgroundColor: sourceColors[currentDot.source_type] }}>
+                    <Badge className="shrink-0" style={{ backgroundColor: getDotColor(currentDot) }}>
                       {sourceLabels[currentDot.source_type]}
                     </Badge>
+                    {currentDot.emotional_tone && (
+                      <Badge variant="outline" className="shrink-0 border-pink-500/50">
+                        💫 {currentDot.emotional_tone}
+                      </Badge>
+                    )}
                     <div className="flex-1 min-w-0">
                       <p className="text-sm font-medium text-foreground mb-1">{currentDot.insight_text}</p>
                       <div className="flex items-center gap-2 text-xs text-muted-foreground flex-wrap">

@@ -89,6 +89,33 @@ const sourceLabels: Record<string, string> = {
   human_design_gate: "HD Gate",
 };
 
+// Emotional tone colors for enhanced visualization
+const emotionalToneColors: Record<string, string> = {
+  breakthrough: "hsl(280 90% 65%)", // bright purple
+  transformative: "hsl(320 85% 60%)", // magenta
+  profound: "hsl(240 80% 65%)", // deep blue
+  excited: "hsl(30 95% 55%)", // orange
+  inspired: "hsl(50 90% 60%)", // bright yellow
+  accomplished: "hsl(140 80% 55%)", // green
+  peaceful: "hsl(200 70% 65%)", // light blue
+  reflective: "hsl(270 60% 60%)", // soft purple
+  curious: "hsl(180 70% 55%)", // cyan
+  challenged: "hsl(0 75% 60%)", // red
+  uncertain: "hsl(220 40% 55%)", // gray-blue
+  grateful: "hsl(340 80% 65%)", // pink
+};
+
+// Get emotional intensity multiplier
+const getEmotionalIntensity = (tone: string | null): number => {
+  if (!tone) return 1;
+  const highIntensity = ["breakthrough", "transformative", "profound"];
+  const mediumIntensity = ["excited", "inspired", "accomplished", "challenged", "grateful"];
+  
+  if (highIntensity.includes(tone)) return 1.5;
+  if (mediumIntensity.includes(tone)) return 1.2;
+  return 1;
+};
+
 export const ConstellationCanvas = ({ 
   dots, 
   connections, 
@@ -168,8 +195,19 @@ export const ConstellationCanvas = ({
 
   const getDotSize = (dot: InsightDot) => {
     const connectionCount = getConnectedDots(dot.id).length;
+    const emotionalMultiplier = getEmotionalIntensity(dot.emotional_tone);
     const baseSize = 12;
-    return baseSize + Math.min(connectionCount * 3, 20);
+    const connectionBonus = Math.min(connectionCount * 3, 20);
+    return (baseSize + connectionBonus) * emotionalMultiplier;
+  };
+
+  const getDotColor = (dot: InsightDot) => {
+    // Prioritize emotional tone color if available
+    if (dot.emotional_tone && emotionalToneColors[dot.emotional_tone]) {
+      return emotionalToneColors[dot.emotional_tone];
+    }
+    // Fall back to source type color
+    return sourceColors[dot.source_type] || "hsl(var(--primary))";
   };
 
   return (
@@ -215,6 +253,15 @@ export const ConstellationCanvas = ({
                 const pos2 = positions.get(connection.dot_id_2);
                 if (!pos1 || !pos2) return null;
 
+                // Find the dots for this connection
+                const dot1 = dots.find(d => d.id === connection.dot_id_1);
+                const dot2 = dots.find(d => d.id === connection.dot_id_2);
+                
+                // Calculate connection strength based on emotional intensity
+                const intensity1 = dot1 ? getEmotionalIntensity(dot1.emotional_tone) : 1;
+                const intensity2 = dot2 ? getEmotionalIntensity(dot2.emotional_tone) : 1;
+                const connectionStrength = (intensity1 + intensity2) / 2;
+
                 const isHighlighted = 
                   selectedDot?.id === connection.dot_id_1 || 
                   selectedDot?.id === connection.dot_id_2 ||
@@ -229,8 +276,8 @@ export const ConstellationCanvas = ({
                     x2={pos2.x}
                     y2={pos2.y}
                     stroke={isHighlighted ? "hsl(var(--primary))" : "hsl(var(--muted-foreground))"}
-                    strokeWidth={isHighlighted ? 2 : 1}
-                    strokeOpacity={isHighlighted ? 0.8 : 0.3}
+                    strokeWidth={isHighlighted ? 2 * connectionStrength : 1 * connectionStrength}
+                    strokeOpacity={isHighlighted ? 0.8 : 0.3 * connectionStrength}
                     initial={{ pathLength: 0 }}
                     animate={{ pathLength: 1 }}
                     transition={{ duration: 1, ease: "easeInOut" }}
@@ -355,18 +402,19 @@ export const ConstellationCanvas = ({
               const size = getDotSize(dot);
               const isSelected = selectedDot?.id === dot.id;
               const isHovered = hoveredDot === dot.id;
-              const color = sourceColors[dot.source_type] || "hsl(var(--primary))";
+              const color = getDotColor(dot);
+              const hasEmotionalTone = !!dot.emotional_tone;
 
               return (
                 <g key={dot.id}>
-                  {/* Glow effect for selected/hovered */}
+                  {/* Enhanced glow for emotional tone dots */}
                   {(isSelected || isHovered) && (
                     <circle
                       cx={pos.x}
                       cy={pos.y}
-                      r={size + 8}
+                      r={size + 10}
                       fill={color}
-                      opacity="0.2"
+                      opacity={hasEmotionalTone ? 0.3 : 0.2}
                       filter="url(#glow)"
                     />
                   )}
@@ -378,7 +426,7 @@ export const ConstellationCanvas = ({
                     r={size}
                     fill="url(#dotGradient)"
                     stroke={isSelected ? "white" : color}
-                    strokeWidth={isSelected ? 3 : 2}
+                    strokeWidth={isSelected ? 3 : (hasEmotionalTone ? 2.5 : 2)}
                     className="cursor-pointer transition-all"
                     onClick={() => onDotClick(dot)}
                     onMouseEnter={() => setHoveredDot(dot.id)}
@@ -455,10 +503,18 @@ export const ConstellationCanvas = ({
                         <Badge 
                           variant="secondary" 
                           className="text-xs"
-                          style={{ backgroundColor: `${sourceColors[dot.source_type]}20` }}
+                          style={{ backgroundColor: `${getDotColor(dot)}20` }}
                         >
                           {sourceLabels[dot.source_type]}
                         </Badge>
+                        {dot.emotional_tone && (
+                          <Badge 
+                            variant="outline" 
+                            className="text-xs border-pink-500/50"
+                          >
+                            💫 {dot.emotional_tone}
+                          </Badge>
+                        )}
                         <p className="text-xs font-medium max-w-[200px] line-clamp-2">
                           {dot.insight_text}
                         </p>
@@ -475,20 +531,44 @@ export const ConstellationCanvas = ({
         </AnimatePresence>
       </div>
 
-      {/* Legend */}
-      <div className="absolute bottom-4 left-4 bg-card/80 backdrop-blur-sm border border-border/50 rounded-lg p-3 space-y-2">
-        <p className="text-xs font-semibold text-muted-foreground mb-2">Sources</p>
-        <div className="grid grid-cols-2 gap-x-4 gap-y-1">
-          {Object.entries(sourceLabels).map(([key, label]) => (
-            <div key={key} className="flex items-center gap-2">
-              <div 
-                className="w-3 h-3 rounded-full"
-                style={{ backgroundColor: sourceColors[key] }}
-              />
-              <span className="text-xs text-muted-foreground">{label}</span>
-            </div>
-          ))}
+      {/* Legend - Sources & Emotional Tones */}
+      <div className="absolute bottom-4 left-4 bg-card/80 backdrop-blur-sm border border-border/50 rounded-lg p-3 space-y-3 max-w-xs">
+        <div>
+          <p className="text-xs font-semibold text-muted-foreground mb-2">Sources</p>
+          <div className="grid grid-cols-2 gap-x-4 gap-y-1">
+            {Object.entries(sourceLabels).slice(0, 8).map(([key, label]) => (
+              <div key={key} className="flex items-center gap-2">
+                <div 
+                  className="w-3 h-3 rounded-full flex-shrink-0"
+                  style={{ backgroundColor: sourceColors[key] }}
+                />
+                <span className="text-xs text-muted-foreground truncate">{label}</span>
+              </div>
+            ))}
+          </div>
         </div>
+        
+        {dots.some(d => d.emotional_tone) && (
+          <div className="pt-2 border-t border-border/30">
+            <p className="text-xs font-semibold text-muted-foreground mb-2">
+              💫 Emotional Intensity
+            </p>
+            <div className="space-y-1 text-xs text-muted-foreground">
+              <div className="flex items-center gap-2">
+                <div className="w-4 h-4 rounded-full bg-gradient-to-r from-purple-500 to-pink-500 flex-shrink-0" />
+                <span>High (Breakthrough)</span>
+              </div>
+              <div className="flex items-center gap-2">
+                <div className="w-3 h-3 rounded-full bg-gradient-to-r from-yellow-500 to-green-500 flex-shrink-0" />
+                <span>Medium (Inspired)</span>
+              </div>
+              <div className="flex items-center gap-2">
+                <div className="w-2 h-2 rounded-full bg-gradient-to-r from-blue-400 to-cyan-400 flex-shrink-0" />
+                <span>Low (Peaceful)</span>
+              </div>
+            </div>
+          </div>
+        )}
       </div>
 
       {/* Stats */}
