@@ -63,6 +63,10 @@ const sourceColors: Record<string, string> = {
   human_design_profile: "bg-pink-500",
   human_design_centers: "bg-emerald-500",
   human_design_gate: "bg-purple-500",
+  human_design_incarnation_cross: "bg-violet-600",
+  human_design_communication: "bg-cyan-500",
+  human_design_decision_making: "bg-orange-500",
+  human_design_workflow: "bg-lime-500",
 };
 
 const sourceLabels: Record<string, string> = {
@@ -90,6 +94,10 @@ const sourceLabels: Record<string, string> = {
   human_design_profile: "👤 HD Profile",
   human_design_centers: "🔮 HD Centers",
   human_design_gate: "🚪 HD Gate",
+  human_design_incarnation_cross: "🌟 HD Cross",
+  human_design_communication: "💬 HD Communication",
+  human_design_decision_making: "🎯 HD Decisions",
+  human_design_workflow: "⚡ HD Work Flow",
 };
 
 const MappingDotsPage = () => {
