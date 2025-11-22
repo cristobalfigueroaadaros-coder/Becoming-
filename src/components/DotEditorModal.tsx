@@ -5,9 +5,10 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { Badge } from "@/components/ui/badge";
-import { X, Plus, Link as LinkIcon } from "lucide-react";
+import { X, Plus, Link as LinkIcon, Sparkles, Check } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
+import { Alert, AlertDescription } from "@/components/ui/alert";
 
 interface InsightDot {
   id: string;
@@ -45,6 +46,8 @@ export const DotEditorModal = ({ dot, isOpen, onClose, onSave, allDots, existing
   const [connectionInsight, setConnectionInsight] = useState("");
   const [selectedDotToLink, setSelectedDotToLink] = useState("");
   const [isSaving, setIsSaving] = useState(false);
+  const [isLoadingSuggestions, setIsLoadingSuggestions] = useState(false);
+  const [aiSuggestions, setAiSuggestions] = useState<any>(null);
 
   useEffect(() => {
     if (dot) {
@@ -72,6 +75,41 @@ export const DotEditorModal = ({ dot, isOpen, onClose, onSave, allDots, existing
 
   const handleRemoveTag = (tagToRemove: string) => {
     setSkillTags(skillTags.filter(tag => tag !== tagToRemove));
+  };
+
+  const handleGetAISuggestions = async () => {
+    if (!dot) return;
+
+    setIsLoadingSuggestions(true);
+    try {
+      const { data, error } = await supabase.functions.invoke("suggest-dot-improvements", {
+        body: { dotId: dot.id },
+      });
+
+      if (error) throw error;
+
+      setAiSuggestions(data.suggestions);
+      toast.success("AI suggestions generated!");
+    } catch (error) {
+      console.error("Error getting suggestions:", error);
+      toast.error("Failed to generate suggestions");
+    } finally {
+      setIsLoadingSuggestions(false);
+    }
+  };
+
+  const applyAISuggestion = (type: "text" | "theme" | "tags") => {
+    if (!aiSuggestions) return;
+
+    if (type === "text") {
+      setInsightText(aiSuggestions.refinedText);
+    } else if (type === "theme" && aiSuggestions.suggestedThemes?.length > 0) {
+      setCoreTheme(aiSuggestions.suggestedThemes[0]);
+    } else if (type === "tags") {
+      setSkillTags(aiSuggestions.recommendedTags || []);
+    }
+
+    toast.success("Applied suggestion");
   };
 
   const handleLinkDot = async () => {
@@ -141,10 +179,112 @@ export const DotEditorModal = ({ dot, isOpen, onClose, onSave, allDots, existing
     <Dialog open={isOpen} onOpenChange={onClose}>
       <DialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto">
         <DialogHeader>
-          <DialogTitle>Edit Insight Dot</DialogTitle>
+          <DialogTitle className="flex items-center justify-between">
+            <span>Edit Insight Dot</span>
+            <Button
+              onClick={handleGetAISuggestions}
+              disabled={isLoadingSuggestions}
+              size="sm"
+              variant="outline"
+              className="gap-2"
+            >
+              <Sparkles className="h-4 w-4" />
+              {isLoadingSuggestions ? "Analyzing..." : "Get AI Suggestions"}
+            </Button>
+          </DialogTitle>
         </DialogHeader>
 
         <div className="space-y-4">
+          {aiSuggestions && (
+            <Alert className="bg-primary/5 border-primary/20">
+              <Sparkles className="h-4 w-4" />
+              <AlertDescription className="space-y-3">
+                <div>
+                  <div className="flex items-center justify-between mb-1">
+                    <span className="font-semibold text-sm">Refined Text:</span>
+                    <Button
+                      onClick={() => applyAISuggestion("text")}
+                      size="sm"
+                      variant="ghost"
+                      className="h-6 gap-1"
+                    >
+                      <Check className="h-3 w-3" />
+                      Apply
+                    </Button>
+                  </div>
+                  <p className="text-xs text-muted-foreground">{aiSuggestions.refinedText}</p>
+                </div>
+
+                {aiSuggestions.suggestedThemes?.length > 0 && (
+                  <div>
+                    <div className="flex items-center justify-between mb-1">
+                      <span className="font-semibold text-sm">Suggested Themes:</span>
+                      <Button
+                        onClick={() => applyAISuggestion("theme")}
+                        size="sm"
+                        variant="ghost"
+                        className="h-6 gap-1"
+                      >
+                        <Check className="h-3 w-3" />
+                        Apply First
+                      </Button>
+                    </div>
+                    <div className="flex gap-1 flex-wrap">
+                      {aiSuggestions.suggestedThemes.map((theme: string) => (
+                        <Badge key={theme} variant="secondary" className="text-xs">
+                          {theme}
+                        </Badge>
+                      ))}
+                    </div>
+                  </div>
+                )}
+
+                {aiSuggestions.recommendedTags?.length > 0 && (
+                  <div>
+                    <div className="flex items-center justify-between mb-1">
+                      <span className="font-semibold text-sm">Recommended Tags:</span>
+                      <Button
+                        onClick={() => applyAISuggestion("tags")}
+                        size="sm"
+                        variant="ghost"
+                        className="h-6 gap-1"
+                      >
+                        <Check className="h-3 w-3" />
+                        Apply All
+                      </Button>
+                    </div>
+                    <div className="flex gap-1 flex-wrap">
+                      {aiSuggestions.recommendedTags.map((tag: string) => (
+                        <Badge key={tag} variant="outline" className="text-xs">
+                          {tag}
+                        </Badge>
+                      ))}
+                    </div>
+                  </div>
+                )}
+
+                {aiSuggestions.potentialConnections?.length > 0 && (
+                  <div>
+                    <span className="font-semibold text-sm">Potential Connections:</span>
+                    <ul className="text-xs text-muted-foreground mt-1 space-y-1">
+                      {aiSuggestions.potentialConnections.map((conn: any, idx: number) => {
+                        const connDot = allDots.find(d => d.id === conn.dotId);
+                        return connDot ? (
+                          <li key={idx}>→ {connDot.core_theme} ({conn.reason})</li>
+                        ) : null;
+                      })}
+                    </ul>
+                  </div>
+                )}
+
+                {aiSuggestions.improvementNotes && (
+                  <p className="text-xs italic text-muted-foreground">
+                    {aiSuggestions.improvementNotes}
+                  </p>
+                )}
+              </AlertDescription>
+            </Alert>
+          )}
           <div>
             <Label htmlFor="insight-text">Insight Text</Label>
             <Textarea

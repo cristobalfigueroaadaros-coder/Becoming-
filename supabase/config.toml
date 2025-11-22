@@ -38,3 +38,6 @@ verify_jwt = true
 
 [functions.analyze-constellation-insights]
 verify_jwt = true
+
+[functions.suggest-dot-improvements]
+verify_jwt = true
