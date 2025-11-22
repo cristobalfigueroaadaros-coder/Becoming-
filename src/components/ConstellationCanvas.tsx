@@ -38,6 +38,7 @@ interface ConstellationCanvasProps {
   dots: InsightDot[];
   connections: DotConnection[];
   onDotClick: (dot: InsightDot) => void;
+  onDotDoubleClick?: (dot: InsightDot) => void;
   selectedDot: InsightDot | null;
   userPurpose?: string | null;
   purposeAlignments?: PurposeAlignment[];
@@ -137,6 +138,7 @@ export const ConstellationCanvas = ({
   dots, 
   connections, 
   onDotClick,
+  onDotDoubleClick,
   selectedDot,
   userPurpose,
   purposeAlignments = [],
@@ -498,6 +500,7 @@ export const ConstellationCanvas = ({
                     strokeWidth={isSelected ? 3 : isPurposeAligned ? 3 : (hasEmotionalTone ? 2.5 : 2)}
                     className="cursor-pointer transition-all"
                     onClick={() => onDotClick(dot)}
+                    onDoubleClick={() => onDotDoubleClick?.(dot)}
                     onMouseEnter={() => setHoveredDot(dot.id)}
                     onMouseLeave={() => setHoveredDot(null)}
                     initial={{ scale: 0, opacity: 0 }}

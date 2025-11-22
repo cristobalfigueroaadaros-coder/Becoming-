@@ -14,6 +14,7 @@ import { cn } from "@/lib/utils";
 import { ConstellationCanvas } from "@/components/ConstellationCanvas";
 import { ConstellationTimeline } from "@/components/ConstellationTimeline";
 import { PurposeOnboardingModal } from "@/components/PurposeOnboardingModal";
+import { DotEditorModal } from "@/components/DotEditorModal";
 
 interface InsightDot {
   id: string;
@@ -116,6 +117,8 @@ const MappingDotsPage = () => {
   const [purposeAlignments, setPurposeAlignments] = useState<any[]>([]);
   const [showPurposeView, setShowPurposeView] = useState(false);
   const [analyzingPurpose, setAnalyzingPurpose] = useState(false);
+  const [isEditing, setIsEditing] = useState(false);
+  const [dotToEdit, setDotToEdit] = useState<InsightDot | null>(null);
 
   useEffect(() => {
     loadDots();
@@ -324,11 +327,32 @@ const MappingDotsPage = () => {
 
   const [viewMode, setViewMode] = useState<"constellation" | "list" | "timeline">("constellation");
 
+  const handleEditDot = (dot: InsightDot) => {
+    setDotToEdit(dot);
+    setIsEditing(true);
+  };
+
+  const handleEditorSave = () => {
+    loadDots();
+    loadConnections();
+  };
+
   return (
     <div className="min-h-screen bg-gradient-to-br from-primary/5 via-background to-accent/5 p-4 py-8">
       <PurposeOnboardingModal 
         open={showOnboarding} 
         onClose={handleOnboardingClose}
+      />
+      <DotEditorModal
+        dot={dotToEdit}
+        isOpen={isEditing}
+        onClose={() => {
+          setIsEditing(false);
+          setDotToEdit(null);
+        }}
+        onSave={handleEditorSave}
+        allDots={dots}
+        existingConnections={connections}
       />
       <div className="max-w-7xl mx-auto space-y-6">
         {/* Header */}
@@ -430,6 +454,7 @@ const MappingDotsPage = () => {
               setSelectedDot(dot);
               setUserReflection(dot.user_reflection || "");
             }}
+            onDotDoubleClick={(dot) => handleEditDot(dot)}
             selectedDot={selectedDot}
             userPurpose={userPurpose}
             purposeAlignments={purposeAlignments}
@@ -610,13 +635,22 @@ const MappingDotsPage = () => {
                             </div>
                           </div>
                         </div>
-                        <Button
-                          variant="ghost"
-                          size="sm"
-                          onClick={() => setSelectedDot(null)}
-                        >
-                          ✕
-                        </Button>
+                        <div className="flex gap-2">
+                          <Button
+                            variant="outline"
+                            size="sm"
+                            onClick={() => handleEditDot(selectedDot)}
+                          >
+                            Edit
+                          </Button>
+                          <Button
+                            variant="ghost"
+                            size="sm"
+                            onClick={() => setSelectedDot(null)}
+                          >
+                            ✕
+                          </Button>
+                        </div>
                       </div>
                     </CardHeader>
                     <CardContent className="space-y-6">
