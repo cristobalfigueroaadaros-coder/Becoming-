@@ -39,6 +39,12 @@ interface DotConnection {
 }
 
 const sourceColors: Record<string, string> = {
+  book: "bg-blue-500",
+  idea: "bg-yellow-500",
+  insight: "bg-purple-500",
+  milestone: "bg-green-500",
+  memory: "bg-cyan-500",
+  emotion: "bg-pink-500",
   council_meeting: "bg-blue-500",
   mentor_chat: "bg-green-500",
   journal: "bg-purple-500",
@@ -51,9 +57,21 @@ const sourceColors: Record<string, string> = {
   journal_breakthrough: "bg-violet-500",
   domain_milestone: "bg-cyan-500",
   quest_completion: "bg-fuchsia-500",
+  human_design_type: "bg-indigo-500",
+  human_design_strategy: "bg-sky-500",
+  human_design_authority: "bg-amber-500",
+  human_design_profile: "bg-pink-500",
+  human_design_centers: "bg-emerald-500",
+  human_design_gate: "bg-purple-500",
 };
 
 const sourceLabels: Record<string, string> = {
+  book: "📚 Book",
+  idea: "💡 Idea",
+  insight: "✨ Insight",
+  milestone: "🎯 Milestone",
+  memory: "🧠 Memory",
+  emotion: "😌 Emotion",
   council_meeting: "Council",
   mentor_chat: "1:1 Chat",
   journal: "Journal",
@@ -66,6 +84,12 @@ const sourceLabels: Record<string, string> = {
   journal_breakthrough: "Breakthrough",
   domain_milestone: "Milestone",
   quest_completion: "Quest Win",
+  human_design_type: "⭐ HD Type",
+  human_design_strategy: "⚡ HD Strategy",
+  human_design_authority: "🧭 HD Authority",
+  human_design_profile: "👤 HD Profile",
+  human_design_centers: "🔮 HD Centers",
+  human_design_gate: "🚪 HD Gate",
 };
 
 const MappingDotsPage = () => {
