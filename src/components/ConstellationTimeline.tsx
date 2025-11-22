@@ -68,6 +68,10 @@ const sourceColors: Record<string, string> = {
   human_design_profile: "hsl(320 75% 65%)",
   human_design_centers: "hsl(160 75% 55%)",
   human_design_gate: "hsl(270 80% 65%)",
+  human_design_incarnation_cross: "hsl(280 85% 70%)",
+  human_design_communication: "hsl(180 75% 60%)",
+  human_design_decision_making: "hsl(30 85% 65%)",
+  human_design_workflow: "hsl(140 80% 60%)",
 };
 
 const sourceLabels: Record<string, string> = {
@@ -95,6 +99,10 @@ const sourceLabels: Record<string, string> = {
   human_design_profile: "👤 HD Profile",
   human_design_centers: "🔮 HD Centers",
   human_design_gate: "🚪 HD Gate",
+  human_design_incarnation_cross: "🌟 HD Cross",
+  human_design_communication: "💬 HD Communication",
+  human_design_decision_making: "🎯 HD Decisions",
+  human_design_workflow: "⚡ HD Work Flow",
 };
 
 // Emotional tone colors for timeline visualization

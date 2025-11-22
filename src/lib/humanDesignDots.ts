@@ -300,6 +300,51 @@ export const generateHumanDesignDots = async (userId: string, data: HumanDesignD
     });
   });
 
+  // Incarnation Cross dot
+  if (data.incarnation_cross) {
+    dots.push({
+      user_id: userId,
+      source_type: "human_design_incarnation_cross",
+      insight_text: `Your Incarnation Cross: ${data.incarnation_cross}. This is your life's purpose and the role you're here to play in the world.`,
+      core_theme: "Life Purpose",
+      skill_tags: ["Incarnation Cross", "Purpose"],
+      emotional_tone: "profound",
+    });
+  }
+
+  // Communication Style dot
+  const commStyle = getCommunicationStyle(data.type, data.defined_centers);
+  dots.push({
+    user_id: userId,
+    source_type: "human_design_communication",
+    insight_text: `Communication Style: ${commStyle.style}. ${commStyle.insight}`,
+    core_theme: "Expression",
+    skill_tags: ["Communication", commStyle.style],
+    emotional_tone: "clarifying",
+  });
+
+  // Decision-making Tendencies dot
+  const decisionStyle = getDecisionMakingTendency(data.authority);
+  dots.push({
+    user_id: userId,
+    source_type: "human_design_decision_making",
+    insight_text: `Decision-Making: ${decisionStyle.tendency}. ${decisionStyle.insight}`,
+    core_theme: "Decision Making",
+    skill_tags: ["Decision Making", decisionStyle.tendency],
+    emotional_tone: "empowering",
+  });
+
+  // Work Flow Pattern dot
+  const workFlow = getWorkFlowPattern(data.type, data.defined_centers);
+  dots.push({
+    user_id: userId,
+    source_type: "human_design_workflow",
+    insight_text: `Work Flow: ${workFlow.pattern}. ${workFlow.insight}`,
+    core_theme: "Energy Management",
+    skill_tags: ["Work Flow", workFlow.pattern],
+    emotional_tone: "practical",
+  });
+
   // Insert all dots
   const { error } = await supabase.from("insight_dots").insert(dots);
   
@@ -320,4 +365,132 @@ const getTypeInsight = (type: string): string => {
     Reflector: "You mirror your environment. Give yourself time (28 days) before making major decisions.",
   };
   return insights[type] || "";
+};
+
+// Helper: Determine communication style based on type and throat center
+const getCommunicationStyle = (type: string, definedCenters: string[]): { style: string; insight: string } => {
+  const hasDefinedThroat = definedCenters.includes('Throat');
+  
+  if (type === 'Manifestor') {
+    return {
+      style: hasDefinedThroat ? "Direct & Initiating" : "Strategic & Selective",
+      insight: hasDefinedThroat 
+        ? "You communicate with natural authority and directness. Inform before you act to create flow."
+        : "Your communication is selective and strategic. Choose when and how you speak with care."
+    };
+  }
+  
+  if (type === 'Generator' || type === 'Manifesting Generator') {
+    return {
+      style: hasDefinedThroat ? "Responsive & Expressive" : "Responsive & Thoughtful",
+      insight: hasDefinedThroat
+        ? "You communicate best when responding to what excites you. Your enthusiasm is contagious."
+        : "You process through response. Give yourself time to feel into what you want to say."
+    };
+  }
+  
+  if (type === 'Projector') {
+    return {
+      style: hasDefinedThroat ? "Guiding & Clear" : "Insightful & Observant",
+      insight: hasDefinedThroat
+        ? "You communicate with natural wisdom and guidance. Wait for recognition before sharing deeply."
+        : "Your insights come from observation. Wait to be asked before offering your perspective."
+    };
+  }
+  
+  if (type === 'Reflector') {
+    return {
+      style: "Reflective & Sampling",
+      insight: "You communicate what you sense in your environment. Your perspective shifts with your surroundings."
+    };
+  }
+  
+  return {
+    style: "Unique Expression",
+    insight: "Your communication style is uniquely yours. Honor your process."
+  };
+};
+
+// Helper: Determine decision-making tendencies based on authority
+const getDecisionMakingTendency = (authority: string): { tendency: string; insight: string } => {
+  const tendencies: Record<string, { tendency: string; insight: string }> = {
+    "Emotional Authority": {
+      tendency: "Time-Based Processing",
+      insight: "You need time to ride your emotional wave before making decisions. No decision is correct in the moment. Sleep on it, process through your feelings, and clarity will emerge."
+    },
+    "Sacral Authority": {
+      tendency: "Gut Response",
+      insight: "Your gut knows instantly through sounds (uh-huh/uh-uh) or sensations. Trust your immediate body response, not your mind's logic. Your sacral is always right."
+    },
+    "Splenic Authority": {
+      tendency: "Intuitive Knowing",
+      insight: "Your decisions come from spontaneous intuitive hits in the moment. These whispers are quiet—trust the first instinct. Hesitation means it's not correct for you."
+    },
+    "Ego Authority": {
+      tendency: "Willpower Alignment",
+      insight: "Make decisions based on what you truly want and have the willpower to commit to. If you don't have the energy to back it, it's not correct for you."
+    },
+    "Self-Projected Authority": {
+      tendency: "Speaking Your Truth",
+      insight: "You need to talk it out to know your truth. Hear yourself speak in safe environments. Your voice carries your direction—listen to what you say."
+    },
+    "Mental Authority": {
+      tendency: "External Sounding Board",
+      insight: "Your mind needs to bounce ideas off trusted others. Through dialogue and contemplation, clarity emerges. Don't decide alone."
+    },
+    "Lunar Authority": {
+      tendency: "Lunar Cycle Reflection",
+      insight: "Wait through a full lunar cycle (28 days) to gain clarity. Sample different environments and perspectives. Your decision becomes clear through time and experience."
+    }
+  };
+  
+  return tendencies[authority] || {
+    tendency: "Inner Guidance",
+    insight: "Trust your unique decision-making process."
+  };
+};
+
+// Helper: Determine work flow pattern based on type and sacral
+const getWorkFlowPattern = (type: string, definedCenters: string[]): { pattern: string; insight: string } => {
+  const hasSacral = definedCenters.includes('Sacral');
+  
+  if (type === 'Generator') {
+    return {
+      pattern: "Sustained & Responsive",
+      insight: "You thrive with consistent, satisfying work that builds momentum. Respond to opportunities rather than forcing. Your energy recharges through doing what lights you up, and depletes when you push against resistance."
+    };
+  }
+  
+  if (type === 'Manifesting Generator') {
+    return {
+      pattern: "Multi-Tasking & Efficient",
+      insight: "You work in bursts with high efficiency, often juggling multiple projects. You're designed to skip steps and move quickly. Follow your gut responses and don't be afraid to pivot when something new excites you."
+    };
+  }
+  
+  if (type === 'Manifestor') {
+    return {
+      pattern: "Initiating & Bursting",
+      insight: "You work in powerful creative bursts followed by rest periods. You're not designed for consistent 9-5 energy. Initiate when inspiration strikes, then rest deeply. Inform others of your plans to reduce resistance."
+    };
+  }
+  
+  if (type === 'Projector') {
+    return {
+      pattern: "Focused & Guiding",
+      insight: "You work best in focused sessions (3-4 hours) rather than all day. Your energy is penetrating but not sustainable for 8+ hours. Guide others, manage systems, and rest regularly. You're most effective when invited into the right work."
+    };
+  }
+  
+  if (type === 'Reflector') {
+    return {
+      pattern: "Cyclical & Adaptive",
+      insight: "Your work flow changes with your environment and the lunar cycle. You need variety and flexibility. Sample different environments and rhythms. You thrive when your workspace feels right and you're not locked into rigid structures."
+    };
+  }
+  
+  return {
+    pattern: "Unique Flow",
+    insight: "Your work pattern is uniquely yours. Honor your natural rhythm."
+  };
 };
