@@ -19,6 +19,7 @@ import FutureSelf from "./pages/FutureSelf";
 import LifeDomainsPage from "./pages/LifeDomainsPage";
 import GoalStructurePage from "./pages/GoalStructurePage";
 import ConstellationPage from "./pages/ConstellationPage";
+import ConstellationInsightsDashboard from "./pages/ConstellationInsightsDashboard";
 import QuestsPage from "./pages/QuestsPage";
 import ActualSelfPage from "./pages/ActualSelfPage";
 import FutureSelfDetailPage from "./pages/FutureSelfDetailPage";
@@ -156,6 +157,10 @@ const App = () => {
             <Route
               path="/future-self/constellation"
               element={session ? <ConstellationPage /> : <Navigate to="/auth" />}
+            />
+            <Route
+              path="/constellation-insights"
+              element={session ? <ConstellationInsightsDashboard /> : <Navigate to="/auth" />}
             />
             <Route
               path="/future-self/quests"
