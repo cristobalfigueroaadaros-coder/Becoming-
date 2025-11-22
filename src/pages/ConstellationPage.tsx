@@ -2,7 +2,7 @@ import { useNavigate } from "react-router-dom";
 import { useState, useEffect } from "react";
 import { motion } from "framer-motion";
 import { Button } from "@/components/ui/button";
-import { ArrowLeft, Network, Clock, FileText, Filter, X, Sparkles, Loader2, Target, ChevronDown, ChevronUp, Eye, EyeOff } from "lucide-react";
+import { ArrowLeft, Network, Clock, FileText, Filter, X, Sparkles, Loader2, Target, ChevronDown, ChevronUp, Eye, EyeOff, BarChart3 } from "lucide-react";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@/components/ui/collapsible";
 import FutureSelfBackground from "@/components/FutureSelfBackground";
@@ -334,15 +334,27 @@ const ConstellationPage = () => {
             Back to Dashboard
           </Button>
           
-          <Button
-            variant="outline"
-            size="sm"
-            onClick={() => setShowOnboarding(true)}
-            className="gap-2"
-          >
-            <Target className="w-4 h-4" />
-            {userPurpose ? "Edit Purpose" : "Set Purpose"}
-          </Button>
+          <div className="flex gap-2">
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={() => navigate("/constellation-insights")}
+              className="gap-2"
+            >
+              <BarChart3 className="w-4 h-4" />
+              Insights Dashboard
+            </Button>
+            
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={() => setShowOnboarding(true)}
+              className="gap-2"
+            >
+              <Target className="w-4 h-4" />
+              {userPurpose ? "Edit Purpose" : "Set Purpose"}
+            </Button>
+          </div>
         </div>
       </div>
 
