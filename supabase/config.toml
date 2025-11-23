@@ -44,3 +44,6 @@ verify_jwt = true
 
 [functions.refine-purpose]
 verify_jwt = true
+
+[functions.analyze-purpose-evolution]
+verify_jwt = true
