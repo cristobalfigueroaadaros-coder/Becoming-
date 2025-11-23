@@ -144,6 +144,24 @@ export const ShadowEncounterModal = ({
         });
       }
 
+      // Link shadow to current challenge if exists
+      const { data: currentChallenge } = await supabase
+        .from("current_challenge")
+        .select("*")
+        .eq("user_id", user.id)
+        .order("created_at", { ascending: false })
+        .limit(1)
+        .single();
+
+      if (currentChallenge && !currentChallenge.shadow_tag) {
+        // Infer shadow tag from shadow name
+        const shadowTag = shadowName.toLowerCase().replace(/\s+/g, '_');
+        await supabase
+          .from("current_challenge")
+          .update({ shadow_tag: shadowTag })
+          .eq("id", currentChallenge.id);
+      }
+
       // Award XP
       const { data: futureProgress } = await supabase
         .from("future_self_progress")

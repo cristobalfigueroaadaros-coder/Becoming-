@@ -212,6 +212,78 @@ export type Database = {
         }
         Relationships: []
       }
+      current_challenge: {
+        Row: {
+          challenge_description: string
+          challenge_title: string
+          challenge_type: string
+          created_at: string
+          id: string
+          shadow_tag: string | null
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          challenge_description: string
+          challenge_title: string
+          challenge_type: string
+          created_at?: string
+          id?: string
+          shadow_tag?: string | null
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          challenge_description?: string
+          challenge_title?: string
+          challenge_type?: string
+          created_at?: string
+          id?: string
+          shadow_tag?: string | null
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
+      daily_challenge: {
+        Row: {
+          challenge_description: string
+          challenge_title: string
+          completed_at: string | null
+          created_at: string
+          date: string
+          id: string
+          reflection_text: string | null
+          source_reason: string
+          status: string
+          user_id: string
+        }
+        Insert: {
+          challenge_description: string
+          challenge_title: string
+          completed_at?: string | null
+          created_at?: string
+          date: string
+          id?: string
+          reflection_text?: string | null
+          source_reason: string
+          status?: string
+          user_id: string
+        }
+        Update: {
+          challenge_description?: string
+          challenge_title?: string
+          completed_at?: string | null
+          created_at?: string
+          date?: string
+          id?: string
+          reflection_text?: string | null
+          source_reason?: string
+          status?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
       daily_goals: {
         Row: {
           completed: boolean
