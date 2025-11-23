@@ -13,6 +13,8 @@ import { GoalHierarchy } from "@/components/GoalHierarchy";
 import { ProfileBadges } from "@/components/ProfileBadges";
 import { useProfileBadges } from "@/hooks/useProfileBadges";
 import { PurposeOnboardingModal } from "@/components/PurposeOnboardingModal";
+import { CurrentChallengeCard } from "@/components/CurrentChallengeCard";
+import { TodaysChallengeWidget } from "@/components/TodaysChallengeWidget";
 
 const mentorIcons = {
   mamba_mentor: Brain,
@@ -379,6 +381,12 @@ const Dashboard = () => {
             )}
           </CardContent>
         </Card>
+
+        {/* Challenge System */}
+        <div className="grid md:grid-cols-2 gap-4">
+          <CurrentChallengeCard />
+          <TodaysChallengeWidget />
+        </div>
 
         {/* Action Buttons Row */}
         <div className="grid md:grid-cols-2 gap-4">
