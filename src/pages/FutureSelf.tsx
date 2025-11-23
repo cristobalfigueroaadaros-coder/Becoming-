@@ -15,6 +15,7 @@ import ConstellationCard from "@/components/dashboard-cards/ConstellationCard";
 import GoalStructureCard from "@/components/dashboard-cards/GoalStructureCard";
 import QuestsCard from "@/components/dashboard-cards/QuestsCard";
 import PlaceholderCard from "@/components/dashboard-cards/PlaceholderCard";
+import ChallengeHistoryCard from "@/components/dashboard-cards/ChallengeHistoryCard";
 
 const FutureSelf = () => {
   const navigate = useNavigate();
@@ -182,14 +183,17 @@ const FutureSelf = () => {
             </FutureSelfDashboardCard>
           </motion.div>
 
-          {/* Placeholder Cards */}
+          {/* Challenge History */}
           <motion.div
             initial={{ opacity: 0, y: 20 }}
             animate={{ opacity: 1, y: 0 }}
             transition={{ duration: 0.4, delay: 0.8 }}
           >
-            <FutureSelfDashboardCard title="Coming Soon">
-              <PlaceholderCard />
+            <FutureSelfDashboardCard 
+              title="Challenge History"
+              onClick={() => navigate("/challenge-history")}
+            >
+              <ChallengeHistoryCard />
             </FutureSelfDashboardCard>
           </motion.div>
 

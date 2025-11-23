@@ -35,6 +35,7 @@ import PurposeDiscoveryFlow from "./pages/PurposeDiscoveryFlow";
 import PurposeEvolution from "./pages/PurposeEvolution";
 import MappingDotsPage from "./pages/MappingDotsPage";
 import DailyPortal from "./pages/DailyPortal";
+import ChallengeHistory from "./pages/ChallengeHistory";
 
 const queryClient = new QueryClient();
 
@@ -225,6 +226,10 @@ const App = () => {
             <Route
               path="/daily-portal"
               element={session ? <DailyPortal /> : <Navigate to="/auth" />}
+            />
+            <Route
+              path="/challenge-history"
+              element={session ? <ChallengeHistory /> : <Navigate to="/auth" />}
             />
             <Route path="*" element={<NotFound />} />
           </Routes>

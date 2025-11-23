@@ -15,6 +15,7 @@ import { useProfileBadges } from "@/hooks/useProfileBadges";
 import { PurposeOnboardingModal } from "@/components/PurposeOnboardingModal";
 import { CurrentChallengeCard } from "@/components/CurrentChallengeCard";
 import { TodaysChallengeWidget } from "@/components/TodaysChallengeWidget";
+import { History } from "lucide-react";
 
 const mentorIcons = {
   mamba_mentor: Brain,
@@ -383,9 +384,21 @@ const Dashboard = () => {
         </Card>
 
         {/* Challenge System */}
-        <div className="grid md:grid-cols-2 gap-4">
-          <CurrentChallengeCard />
-          <TodaysChallengeWidget />
+        <div className="space-y-4">
+          <div className="flex items-center justify-between">
+            <h2 className="text-2xl font-semibold">Daily Challenges</h2>
+            <Button
+              variant="outline"
+              onClick={() => navigate("/challenge-history")}
+            >
+              <History className="w-4 h-4 mr-2" />
+              View History
+            </Button>
+          </div>
+          <div className="grid md:grid-cols-2 gap-4">
+            <CurrentChallengeCard />
+            <TodaysChallengeWidget />
+          </div>
         </div>
 
         {/* Action Buttons Row */}
