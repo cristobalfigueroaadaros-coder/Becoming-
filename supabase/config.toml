@@ -50,3 +50,6 @@ verify_jwt = true
 
 [functions.generate-daily-challenge]
 verify_jwt = true
+
+[functions.generate-challenge-insights]
+verify_jwt = true
