@@ -385,21 +385,39 @@ YOUR ROLE IN THIS COUNCIL: ${mentorConfig.role}
 
 ${councilContext}
 
+🔷 CRITICAL: 2-LAYERED RESPONSE FORMAT
+
+You MUST provide BOTH layers in every response:
+
+LAYER 1 - EMOTIONAL GUIDANCE (2-3 sentences)
+Provide: empathy, presence, clarity, self-trust, reflection, deeper questioning, awareness, meaning, or resonance.
+Examples:
+- "I sense you're carrying the weight of this decision alone. That's heavy."
+- "You're asking the right question, but what I hear underneath is fear of choosing wrong."
+- "This moment matters. You're standing at a threshold, and your instinct knows the way."
+
+LAYER 2 - PRACTICAL ACTION (2-4 concrete steps)
+Provide: measurable tasks, experiments, prototypes, content ideas, product steps, creative exercises, behavioral steps, or strategic breakdowns.
+Examples:
+- "Write down 3 versions of this decision and sleep on them tonight."
+- "Record a 2-minute voice note explaining this to your future self."
+- "Test this idea with one person tomorrow. Get real feedback."
+- "Block 30 minutes today to map out the first 3 steps."
+
 INSTRUCTIONS:
-- Speak in YOUR voice (2-3 sentences max for short, 4-6 for expanded)
-- Fulfill YOUR synergy role
-- Adjust tone based on emotional state:
+- Adjust emotional tone based on state:
   ${emotionalTone === 'fear' || emotionalTone === 'anxiety' ? '→ Be softer, reassuring, clarifying' : ''}
   ${emotionalTone === 'confusion' ? '→ Be structured, simplifying, clear' : ''}
   ${emotionalTone === 'excitement' || emotionalTone === 'motivation' ? '→ Amplify energy, direct into action' : ''}
   ${emotionalTone === 'overwhelm' ? '→ Be grounding, break down, soothe' : ''}
-- If pattern detected (${detectedPattern}), address it directly
-- DO NOT give a task yet unless user explicitly asks "what should I do?" or says "I'm ready"
-- Ask deeper questions or provide perspective
+- If pattern detected (${detectedPattern}), address it directly in EMOTIONAL layer
+- ALWAYS include both layers - never skip practical action
+- Keep practical steps small, measurable, and immediately actionable
+- Speak in YOUR unique voice
 
 Format:
-SHORT: [2-3 sentence response]
-EXPANDED: [4-6 sentence deeper wisdom]
+EMOTIONAL: [2-3 sentences of emotional guidance]
+PRACTICAL: [2-4 concrete action steps, each on new line starting with "• "]
 CORE_THEME: [single word]`;
 
       // Add Future Self personalization
@@ -429,8 +447,8 @@ Speak as this achieved version.`;
 
       if (!aiResponse.ok) {
         answers[mentorType] = {
-          short: "I'm reflecting on this. Give me a moment.",
-          expanded: "I'm reflecting on this. Give me a moment.",
+          emotional: "I'm reflecting on this. Give me a moment.",
+          practical: ["Take a breath. We'll explore this together."],
           coreTheme: "reflection"
         };
         continue;
@@ -439,13 +457,21 @@ Speak as this achieved version.`;
       const aiData = await aiResponse.json();
       const mentorAnswer = aiData.choices[0].message.content;
       
-      const shortMatch = mentorAnswer.match(/SHORT:\s*(.+?)(?=EXPANDED:|$)/s);
-      const expandedMatch = mentorAnswer.match(/EXPANDED:\s*(.+?)(?=CORE_THEME:|$)/s);
+      const emotionalMatch = mentorAnswer.match(/EMOTIONAL:\s*(.+?)(?=PRACTICAL:|$)/s);
+      const practicalMatch = mentorAnswer.match(/PRACTICAL:\s*(.+?)(?=CORE_THEME:|$)/s);
       const themeMatch = mentorAnswer.match(/CORE_THEME:\s*(\w+)/);
       
+      // Extract practical steps as array
+      const practicalText = practicalMatch?.[1].trim() || '';
+      const practicalSteps = practicalText
+        .split('\n')
+        .map((line: string) => line.trim())
+        .filter((line: string) => line.startsWith('•') || line.startsWith('-'))
+        .map((line: string) => line.replace(/^[•\-]\s*/, '').trim());
+      
       answers[mentorType] = {
-        short: shortMatch?.[1].trim() || mentorAnswer,
-        expanded: expandedMatch?.[1].trim() || mentorAnswer,
+        emotional: emotionalMatch?.[1].trim() || mentorAnswer,
+        practical: practicalSteps.length > 0 ? practicalSteps : [practicalText],
         coreTheme: themeMatch?.[1].trim().toLowerCase() || "growth"
       };
     }
@@ -458,7 +484,7 @@ Speak as this achieved version.`;
 ${mentorTypes.map((type: string) => `${mentorNames[type]} (${mentorPrompts[type].personality})`).join('\n')}
 
 Their responses:
-${Object.entries(answers).map(([type, ans]) => `${mentorNames[type]}: ${ans.short}`).join("\n")}
+${Object.entries(answers).map(([type, ans]) => `${mentorNames[type]}: ${ans.emotional}`).join("\n")}
 
 Create 3-5 lines where mentors:
 - React to each other
@@ -535,7 +561,7 @@ Start with: "Your Future Self wants to add something..."`;
 Question: "${question}"
 Emotional state: ${emotionalTone}
 ${isThresholdMoment ? '🎯 THRESHOLD MOMENT - Turn clarity into action!' : ''}
-Mentor responses: ${Object.entries(answers).map(([type, ans]) => `${mentorNames[type]}: ${ans.short}`).join('; ')}
+Mentor responses: ${Object.entries(answers).map(([type, ans]) => `${mentorNames[type]}: ${ans.emotional}`).join('; ')}
 
 Deliver 2-4 sentences that:
 - Synthesize the council wisdom
@@ -577,7 +603,7 @@ ${isThresholdMoment ? 'Start with: "You are at a turning point. Let\'s turn this
               "Content-Type": "application/json",
             },
             body: JSON.stringify({
-              mentorResponse: answer.expanded,
+              mentorResponse: `${answer.emotional}\n\nAction steps:\n${answer.practical.join('\n')}`,
               mentorName: mentorNames[mentorType],
               questionContext: question,
             }),
@@ -592,7 +618,7 @@ ${isThresholdMoment ? 'Start with: "You are at a turning point. Let\'s turn this
         await supabaseClient.from('insight_dots').insert({
           user_id: user.id,
           source_type: 'council_meeting',
-          insight_text: `Council wisdom: ${question} - ${resolution || Object.values(answers)[0]?.short}`,
+          insight_text: `Council wisdom: ${question} - ${resolution || Object.values(answers)[0]?.emotional}`,
           core_theme: 'Council Guidance',
           emotional_tone: emotionalTone,
           skill_tags: Object.values(answers).map((a: any) => a.coreTheme).filter(Boolean)
