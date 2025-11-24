@@ -437,7 +437,7 @@ const Dashboard = () => {
         )}
 
         {/* Action Buttons Row */}
-        <div className="grid md:grid-cols-2 gap-4">
+        <div className="grid md:grid-cols-3 gap-4">
           {/* Council Meeting */}
           <Card className="bg-gradient-to-r from-primary to-accent text-primary-foreground shadow-xl">
             <CardContent className="p-6 flex items-center gap-4">
@@ -451,6 +451,23 @@ const Dashboard = () => {
                 onClick={() => navigate("/council-meeting")}
               >
                 Start
+              </Button>
+            </CardContent>
+          </Card>
+
+          {/* Energetic Dashboard */}
+          <Card className="bg-gradient-to-r from-accent to-secondary text-primary-foreground shadow-xl">
+            <CardContent className="p-6 flex items-center gap-4">
+              <Zap className="w-12 h-12 flex-shrink-0 animate-pulse" />
+              <div className="flex-1">
+                <h2 className="text-xl font-bold">Energy Field</h2>
+                <p className="opacity-90 text-sm">Track your vibrational state</p>
+              </div>
+              <Button
+                variant="secondary"
+                onClick={() => navigate("/energetic-dashboard")}
+              >
+                View
               </Button>
             </CardContent>
           </Card>

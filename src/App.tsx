@@ -39,6 +39,7 @@ import ChallengeHistory from "./pages/ChallengeHistory";
 import ChallengeReports from "./pages/ChallengeReports";
 import DotConnectionEngine from "./pages/DotConnectionEngine";
 import CreationLab from "./pages/CreationLab";
+import EnergeticDashboard from "./pages/EnergeticDashboard";
 
 const queryClient = new QueryClient();
 
@@ -245,6 +246,10 @@ const App = () => {
             <Route
               path="/creation-lab"
               element={session ? <CreationLab /> : <Navigate to="/auth" />}
+            />
+            <Route
+              path="/energetic-dashboard"
+              element={session ? <EnergeticDashboard /> : <Navigate to="/auth" />}
             />
             <Route path="*" element={<NotFound />} />
           </Routes>
