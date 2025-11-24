@@ -293,11 +293,19 @@ const DotConnectionEngine = () => {
             {/* Action Buttons */}
             <div className="flex flex-col sm:flex-row gap-3">
               <Button 
-                onClick={() => navigate("/future-self/constellation")}
+                onClick={() => navigate("/creation-lab")}
                 className="flex-1"
                 size="lg"
               >
-                View Full Constellation
+                <Target className="w-4 h-4 mr-2" />
+                Open Creation Lab
+              </Button>
+              <Button 
+                onClick={() => navigate("/future-self/constellation")}
+                variant="outline"
+                className="flex-1"
+              >
+                View Constellation
               </Button>
               <Button 
                 onClick={() => navigate("/council-meeting")}

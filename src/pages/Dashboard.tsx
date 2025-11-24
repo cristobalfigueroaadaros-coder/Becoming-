@@ -16,7 +16,7 @@ import { PurposeOnboardingModal } from "@/components/PurposeOnboardingModal";
 import { CurrentChallengeCard } from "@/components/CurrentChallengeCard";
 import { TodaysChallengeWidget } from "@/components/TodaysChallengeWidget";
 import { ConstellationRecommendations } from "@/components/ConstellationRecommendations";
-import { History } from "lucide-react";
+import { History, Rocket } from "lucide-react";
 
 const mentorIcons = {
   mamba_mentor: Brain,
@@ -640,6 +640,27 @@ const Dashboard = () => {
                 <div>
                   <h3 className="font-semibold">Dot Connection Engine</h3>
                   <p className="text-sm text-muted-foreground">Reveal your genius</p>
+                </div>
+              </CardContent>
+            </Card>
+          </motion.div>
+
+          <motion.div
+            whileHover={{ scale: 1.03, y: -4 }}
+            whileTap={{ scale: 0.98 }}
+            transition={{ type: "spring", stiffness: 400, damping: 17 }}
+          >
+            <Card
+              className="cursor-pointer hover:shadow-xl transition-shadow border-2 border-primary/30 bg-gradient-to-br from-primary/5 to-accent/5"
+              onClick={() => navigate("/creation-lab")}
+            >
+              <CardContent className="p-6 flex items-center gap-4">
+                <div className="w-12 h-12 bg-gradient-to-br from-primary to-accent rounded-xl flex items-center justify-center">
+                  <Rocket className="w-6 h-6 text-white" />
+                </div>
+                <div>
+                  <h3 className="font-semibold">Creation Lab</h3>
+                  <p className="text-sm text-muted-foreground">Build from insights</p>
                 </div>
               </CardContent>
             </Card>
