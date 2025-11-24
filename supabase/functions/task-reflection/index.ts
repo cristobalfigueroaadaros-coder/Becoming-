@@ -34,22 +34,39 @@ Deno.serve(async (req) => {
 
     if (taskError || !task) throw new Error("Task not found");
 
-    // Generate reflection questions
-    const reflectionPrompt = `A user just completed this task:
+    // Generate reflection questions with three-layer guidance
+    const reflectionPrompt = `A user just completed this task. Generate reflection questions with THREE-LAYER GUIDANCE (emotional + practical + energetic).
 
 Task: ${task.task_title}
 Description: ${task.task_description}
 Mentor: ${task.mentor_name}
 
-Generate 3 SHORT, powerful reflection questions (each 8-12 words max):
-1. What did you learn?
-2. What surprised you?
-3. What resistance did you feel?
+🔷 GENERATE 3 POWERFUL REFLECTION QUESTIONS:
 
-Make them personal, direct, and insightful. Format as:
-- [question 1]
-- [question 2]
-- [question 3]`;
+Question 1 - EMOTIONAL LAYER (What did they discover about themselves?)
+- Focus on emotional insight, self-awareness, truth revealed
+- Example: "What did you learn about yourself that surprised you?"
+
+Question 2 - PRACTICAL LAYER (What did they learn to apply?)
+- Focus on actionable insight, skill, next step
+- Example: "What will you do differently because of this experience?"
+
+Question 3 - ENERGETIC LAYER (What did they feel?) ✨ NEW
+- Focus on expansion/contraction, resonance, embodiment, energy shift
+- Include somatic cues
+- Example: "When did you feel most alive doing this? What does that tell you about your direction?"
+
+RULES:
+- Each question: 8-15 words max
+- Make them personal, direct, insightful
+- Use active, embodied language
+- Include "notice," "feel," "sense" in energetic questions
+- Create space for depth without overwhelming
+
+Format as:
+- [emotional question]
+- [practical question]
+- [energetic question]`;
 
     const aiResponse = await fetch("https://ai.gateway.lovable.dev/v1/chat/completions", {
       method: "POST",

@@ -58,21 +58,24 @@ serve(async (req) => {
       `- [${d.core_theme}] ${d.insight_text.substring(0, 100)}... (tags: ${d.skill_tags?.join(", ") || "none"})`
     ).join("\n") || "No other dots available";
 
-    const systemPrompt = `You are an expert insight analyst helping users refine their personal development insights. Analyze the provided insight dot and suggest improvements.
+    const systemPrompt = `You are the Dot Refinement Engine—Creative Intelligence Layer with three-layer guidance.
 
-IMPORTANT: Return ONLY valid JSON with this exact structure:
+Analyze dots through EMOTIONAL + PRACTICAL + ENERGETIC lenses.
+
+IMPORTANT: Return ONLY valid JSON:
 {
-  "refinedText": "string - improved version of the insight text",
-  "suggestedThemes": ["string - 3-5 better theme options"],
-  "recommendedTags": ["string - 5-8 relevant skill/concept tags"],
+  "refinedText": "string - improved version with emotional clarity + practical focus + energetic truth",
+  "suggestedThemes": ["string - 3-5 themes including energetic signature"],
+  "recommendedTags": ["string - 5-8 tags + energy indicators like 'expansion', 'flow', 'resonance'"],
   "potentialConnections": [
     {
       "dotId": "uuid",
-      "reason": "why these dots connect",
-      "connectionType": "reinforcing|contrasting|sequential"
+      "reason": "why these connect + energetic resonance",
+      "connectionType": "resonance|contrast|amplification|transformation"
     }
   ],
-  "improvementNotes": "brief explanation of suggestions"
+  "improvementNotes": "brief explanation including energetic dimension",
+  "energeticNote": "string - Does this dot reflect expansion/contraction? What frequency?"
 }`;
 
     const userPrompt = `Analyze this insight dot and provide suggestions:
