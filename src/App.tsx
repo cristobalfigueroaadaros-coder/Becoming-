@@ -42,6 +42,7 @@ import ChallengeReports from "./pages/ChallengeReports";
 import DotConnectionEngine from "./pages/DotConnectionEngine";
 import CreationLab from "./pages/CreationLab";
 import EnergeticDashboard from "./pages/EnergeticDashboard";
+import VibrationalPatternInsights from "./pages/VibrationalPatternInsights";
 
 const queryClient = new QueryClient();
 
@@ -264,6 +265,10 @@ const App = () => {
             <Route
               path="/energetic-dashboard"
               element={session ? <EnergeticDashboard /> : <Navigate to="/auth" />}
+            />
+            <Route
+              path="/vibrational-insights"
+              element={session ? <VibrationalPatternInsights /> : <Navigate to="/auth" />}
             />
             <Route path="*" element={<NotFound />} />
           </Routes>

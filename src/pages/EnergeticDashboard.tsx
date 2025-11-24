@@ -3,7 +3,7 @@ import { useNavigate } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
 import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
-import { ArrowLeft, Zap, TrendingUp, Heart, Target, Waves } from "lucide-react";
+import { ArrowLeft, Zap, TrendingUp, Heart, Target, Waves, Sparkles } from "lucide-react";
 import { EnergyTimeline } from "@/components/energetic/EnergyTimeline";
 import { CoherenceRadar } from "@/components/energetic/CoherenceRadar";
 import { FlowStateTracker } from "@/components/energetic/FlowStateTracker";
@@ -130,9 +130,17 @@ export default function EnergeticDashboard() {
         {/* Header */}
         <div className="mb-8">
           <Button
-            variant="ghost"
+            onClick={() => navigate("/vibrational-insights")}
+            className="w-full mb-4 bg-gradient-to-r from-secondary to-accent hover:opacity-90"
+          >
+            <Sparkles className="w-4 h-4 mr-2" />
+            View Pattern Insights
+          </Button>
+
+          <Button
+            variant="outline"
             onClick={() => navigate("/dashboard")}
-            className="mb-4"
+            className="w-full mb-4"
           >
             <ArrowLeft className="w-4 h-4 mr-2" />
             Back to Dashboard
