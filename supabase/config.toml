@@ -62,3 +62,6 @@ verify_jwt = true
 
 [functions.transcribe-audio]
 verify_jwt = true
+
+[functions.capture-energetic-moment]
+verify_jwt = true

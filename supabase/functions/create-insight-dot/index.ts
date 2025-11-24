@@ -17,7 +17,24 @@ serve(async (req) => {
       Deno.env.get("SUPABASE_SERVICE_ROLE_KEY") ?? ""
     );
 
-    const { userId, sourceType, sourceId, insightText, coreTheme, skillTags, emotionalTone, sourceMentor } = await req.json();
+    const { 
+      userId, 
+      sourceType, 
+      sourceId, 
+      insightText, 
+      coreTheme, 
+      skillTags, 
+      emotionalTone, 
+      sourceMentor,
+      // New energetic fields
+      energeticFrequency,
+      flowStateDetected,
+      resonanceLevel,
+      intuitionSignal,
+      somaticNotes,
+      coherenceIndicators,
+      vibrationalContext
+    } = await req.json();
 
     if (!userId || !sourceType || !insightText || !coreTheme) {
       return new Response(
@@ -26,19 +43,30 @@ serve(async (req) => {
       );
     }
 
-    // Create the insight dot
+    // Create the insight dot with energetic fields
+    const dotData: any = {
+      user_id: userId,
+      source_type: sourceType,
+      source_id: sourceId,
+      source_mentor: sourceMentor,
+      insight_text: insightText,
+      core_theme: coreTheme,
+      skill_tags: skillTags || [],
+      emotional_tone: emotionalTone,
+    };
+
+    // Add energetic fields if provided
+    if (energeticFrequency) dotData.energetic_frequency = energeticFrequency;
+    if (typeof flowStateDetected === 'boolean') dotData.flow_state_detected = flowStateDetected;
+    if (resonanceLevel) dotData.resonance_level = resonanceLevel;
+    if (typeof intuitionSignal === 'boolean') dotData.intuition_signal = intuitionSignal;
+    if (somaticNotes) dotData.somatic_notes = somaticNotes;
+    if (coherenceIndicators) dotData.coherence_indicators = coherenceIndicators;
+    if (vibrationalContext) dotData.vibrational_context = vibrationalContext;
+
     const { data: dot, error: dotError } = await supabaseClient
       .from("insight_dots")
-      .insert({
-        user_id: userId,
-        source_type: sourceType,
-        source_id: sourceId,
-        source_mentor: sourceMentor,
-        insight_text: insightText,
-        core_theme: coreTheme,
-        skill_tags: skillTags || [],
-        emotional_tone: emotionalTone,
-      })
+      .insert(dotData)
       .select()
       .single();
 
