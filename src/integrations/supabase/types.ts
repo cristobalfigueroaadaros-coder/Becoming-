@@ -183,31 +183,76 @@ export type Database = {
         Row: {
           answers: Json
           banter: string | null
+          clarifying_questions: Json | null
+          conversation_flow: Json | null
           created_at: string | null
+          emotional_tone: string | null
           id: string
+          pattern_detected: string | null
           question: string
           resolution: string | null
           shadow_triggers: Json | null
+          threshold_moment: boolean | null
           user_id: string
         }
         Insert: {
           answers: Json
           banter?: string | null
+          clarifying_questions?: Json | null
+          conversation_flow?: Json | null
           created_at?: string | null
+          emotional_tone?: string | null
           id?: string
+          pattern_detected?: string | null
           question: string
           resolution?: string | null
           shadow_triggers?: Json | null
+          threshold_moment?: boolean | null
           user_id: string
         }
         Update: {
           answers?: Json
           banter?: string | null
+          clarifying_questions?: Json | null
+          conversation_flow?: Json | null
           created_at?: string | null
+          emotional_tone?: string | null
           id?: string
+          pattern_detected?: string | null
           question?: string
           resolution?: string | null
           shadow_triggers?: Json | null
+          threshold_moment?: boolean | null
+          user_id?: string
+        }
+        Relationships: []
+      }
+      council_patterns: {
+        Row: {
+          context: Json | null
+          first_detected_at: string | null
+          id: string
+          last_detected_at: string | null
+          pattern_count: number | null
+          pattern_type: string
+          user_id: string
+        }
+        Insert: {
+          context?: Json | null
+          first_detected_at?: string | null
+          id?: string
+          last_detected_at?: string | null
+          pattern_count?: number | null
+          pattern_type: string
+          user_id: string
+        }
+        Update: {
+          context?: Json | null
+          first_detected_at?: string | null
+          id?: string
+          last_detected_at?: string | null
+          pattern_count?: number | null
+          pattern_type?: string
           user_id?: string
         }
         Relationships: []
@@ -1086,6 +1131,8 @@ export type Database = {
       }
       tasks: {
         Row: {
+          completion_insights: Json | null
+          completion_reflection: string | null
           created_at: string
           due_date: string
           id: string
@@ -1097,6 +1144,8 @@ export type Database = {
           xp_value: number
         }
         Insert: {
+          completion_insights?: Json | null
+          completion_reflection?: string | null
           created_at?: string
           due_date?: string
           id?: string
@@ -1108,6 +1157,8 @@ export type Database = {
           xp_value?: number
         }
         Update: {
+          completion_insights?: Json | null
+          completion_reflection?: string | null
           created_at?: string
           due_date?: string
           id?: string

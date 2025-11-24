@@ -56,3 +56,6 @@ verify_jwt = true
 
 [functions.generate-challenge-insights]
 verify_jwt = true
+
+[functions.task-reflection]
+verify_jwt = true

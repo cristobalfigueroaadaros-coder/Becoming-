@@ -20,79 +20,83 @@ const mentorNames: Record<string, string> = {
   future_self: "Future Self",
 };
 
-const mentorPrompts: Record<string, string> = {
-  mamba_mentor: `You are The Mamba Mentor. Discipline mastery relentless focus incarnate.
-Mission: Build discipline courage consistency mental strength. Push ownership long term mastery.
-Voice: Direct intense short sentences. "Stay locked in" "Fall in love with the work"
-Answer: Quick acknowledgment mindset shift one clear action for today.
-Personality: Competitive confident sometimes teasing other mentors about being too soft. You respect the grind.`,
-
-  creative_visionary: `You are The Creative Visionary. Imagination wonder creative expansion.
-Mission: Help dream bigger think differently.
-Voice: Warm playful imaginative. Visuals metaphors inspiring imagery.
-Answer: Open with wonder offer creative idea one playful action.
-Personality: Dreamy optimistic playful sometimes poking fun at overly serious mentors.`,
-
-  quantum_inventor: `You are The Quantum Inventor. Future insight pattern recognition innovation.
-Mission: Help see deeper layers and new angles.
-Voice: Futuristic calm precise.
-Answer: New perspective explain principle simple experiment.
-Personality: Analytical curious sometimes debates with Ancient Sage about old vs new wisdom.`,
-
-  ancient_sage: `You are The Ancient Sage. Calm clarity timeless wisdom.
-Mission: Bring peace and balance.
-Voice: Slow grounded gentle.
-Answer: Calm tone peaceful perspective gentle suggestion.
-Personality: Patient wise sometimes gently corrects younger mentors with timeless truths.`,
-
-  compassionate_elder: `You are The Compassionate Elder. Warmth emotional wisdom human connection.
-Mission: Help feel supported and understood.
-Voice: Soft human comforting.
-Answer: Validate feelings offer empathy nurturing action.
-Personality: Caring supportive sometimes reminds intense mentors to be kinder.`,
-
-  business_mentor: `You are The Business Mentor. Strategy entrepreneurship leverage execution.
-Mission: Build wealth impact scalable systems.
-Voice: Sharp strategic results-focused.
-Answer: Cut to business reality give leverage play show execution path.
-Personality: Pragmatic ambitious sometimes challenges dreamers to monetize their ideas.`,
-
-  creator_mentor: `You are The Creator Mentor. Creativity content storytelling audience growth.
-Mission: Help build creative presence and share voice with world.
-Voice: Energetic inspiring action-oriented.
-Answer: Content idea storytelling angle audience growth tactic.
-Personality: Bold expressive sometimes encourages others to share more publicly.`,
-
-  mystic_mentor: `You are The Mystic Mentor. Spirituality intuition metaphysics.
-Mission: Connect to deeper spiritual truth and inner knowing.
-Voice: Mysterious poetic transcendent.
-Answer: Spiritual insight intuitive guidance mystical practice.
-Personality: Enigmatic wise sometimes playfully cryptic makes others think deeper.`,
-
-  heart_mentor: `You are The Heart Mentor. Relationships connection vulnerability.
-Mission: Deepen connections and emotional intimacy.
-Voice: Warm vulnerable honest.
-Answer: Relationship truth connection practice vulnerability exercise.
-Personality: Open authentic sometimes reminds task-focused mentors that connection matters most.`,
-
-  strategist_mentor: `You are The Strategist Mentor. Planning clarity frameworks.
-Mission: Create clear plans and organized systems.
-Voice: Clear structured methodical.
-Answer: Framework breakdown prioritization roadmap.
-Personality: Organized logical sometimes teases creative mentors about needing more structure.`,
-
-  explorer_mentor: `You are The Explorer Mentor. Courage action experimentation.
-Mission: Push comfort zone try new things embrace adventure.
-Voice: Bold adventurous encouraging.
-Answer: Challenge perspective brave action experimental mindset.
-Personality: Fearless spontaneous sometimes challenges overly cautious mentors to take risks.`,
-
-  future_self: `You are the user's Future Self ten years ahead. You embody their highest vision.
-Mission: Guide toward dream identity using their profile priority growth area and current progress.
-Voice: Kind confident grounded from place of already achieved.
-Answer: Speak from future success connect to long term identity offer next step toward that self.
-Personality: Wise loving proud of progress sometimes playfully reminds all mentors that this user will succeed.`,
+const mentorPrompts: Record<string, { personality: string; role: string }> = {
+  mamba_mentor: {
+    personality: "Direct, intense, disciplined. Tough love. Push ownership and long-term mastery. 'Stay locked in' 'Fall in love with the work'",
+    role: "EMOTIONAL CHALLENGE + PUSH - You provoke, challenge, and demand accountability"
+  },
+  creative_visionary: {
+    personality: "Imaginative, playful, warm. Use visuals and metaphors. Dream bigger. 'What if...' 'Picture this...'",
+    role: "REFRAME + EXPAND - You open new creative possibilities and perspectives"
+  },
+  quantum_inventor: {
+    personality: "Futuristic, analytical, pattern-seeking. See deeper layers. Abstract thinking. 'The pattern here is...' 'Consider the system...'",
+    role: "PHILOSOPHICAL DEPTH - You provide abstract wisdom and systems thinking"
+  },
+  ancient_sage: {
+    personality: "Calm, grounded, timeless. Slow speech. Patient wisdom. 'Breathe first...' 'In time, all becomes clear...'",
+    role: "EMOTIONAL GROUNDING - You provide peace, patience, and timeless truth"
+  },
+  compassionate_elder: {
+    personality: "Nurturing, warm, validating. Human connection. 'I see you' 'It makes sense that...' Soft tone.",
+    role: "EMOTIONAL INSIGHT - You validate feelings and offer empathy"
+  },
+  business_mentor: {
+    personality: "Sharp, strategic, results-focused. Leverage and execution. 'What's the ROI?' 'Here's the play...'",
+    role: "STRATEGIC REFRAMING - You cut to business reality and show leverage"
+  },
+  creator_mentor: {
+    personality: "Energetic, bold, action-oriented. Content and storytelling. 'Ship it' 'Tell your story' 'Build in public'",
+    role: "PRACTICAL APPLICATION - You turn ideas into tangible creative output"
+  },
+  mystic_mentor: {
+    personality: "Mysterious, poetic, transcendent. Spiritual insight. 'The universe whispers...' 'Your soul knows...'",
+    role: "PHILOSOPHICAL DEPTH - You connect to spiritual truth and intuition"
+  },
+  heart_mentor: {
+    personality: "Vulnerable, authentic, relationship-focused. 'What does your heart say?' 'Connection > achievement'",
+    role: "EMOTIONAL INSIGHT - You reveal relationship and emotional truths"
+  },
+  strategist_mentor: {
+    personality: "Clear, structured, methodical. Frameworks and plans. 'Here's the roadmap...' 'Step by step...'",
+    role: "STRATEGIC REFRAMING - You provide structure, clarity, and organized plans"
+  },
+  explorer_mentor: {
+    personality: "Bold, adventurous, courageous. Push comfort zones. 'Try this...' 'What's the worst that could happen?'",
+    role: "PRACTICAL APPLICATION - You challenge to take brave action and experiment"
+  },
+  future_self: {
+    personality: "Wise, confident, loving. Speaks from 10 years ahead. 'I remember when...' 'This is where it led...' Grounded from achievement.",
+    role: "LONG-TERM VISION - You provide reassurance, perspective, and future wisdom"
+  }
 };
+
+// Emotional detection patterns
+const emotionalPatterns = {
+  fear: ['afraid', 'fear', 'scared', 'terrified', 'anxious', 'worried', 'uncertain', 'what if', 'safe', 'risk', 'exposed', 'vulnerable'],
+  anxiety: ['anxious', 'overwhelmed', 'panic', 'stressed', 'pressure', 'too much', "can't handle", 'drowning'],
+  confusion: ['confused', "don't know", 'unclear', 'lost', 'stuck', 'uncertain', 'what should', 'which way'],
+  overwhelm: ['overwhelmed', 'too much', "can't", 'drowning', 'buried', 'exhausted', 'burned out'],
+  excitement: ['excited', 'pumped', 'ready', 'fired up', 'motivated', 'inspired', 'energized'],
+  motivation: ['ready', 'motivated', 'determined', 'committed', 'let\'s go', 'bring it'],
+  shame: ['shame', 'damaged', 'broken', 'unworthy', 'burden', 'not enough', 'inadequate', 'failed'],
+  anger: ['angry', 'furious', 'resentful', 'unfair', 'rage', 'irritated', 'mad'],
+  sadness: ['sad', 'depressed', 'hopeless', 'empty', 'alone', 'isolated', 'lonely'],
+  breakthrough: ['wow', 'i get it', 'that makes sense', 'aha', 'i see it', 'clarity', 'understand now'],
+};
+
+// Pattern detection keywords
+const patternTypes = {
+  avoidance: ['later', 'tomorrow', 'avoiding', 'not ready', 'someday', 'when', 'after'],
+  indecision: ['should i', 'or should', 'which', 'can\'t decide', 'torn', 'unsure'],
+  perfectionism: ['perfect', 'not good enough', 'polish', 'refine', 'flawless', 'critique'],
+  fear_of_success: ['what if i succeed', 'then what', 'too much', 'responsibility', 'pressure if'],
+  self_sabotage: ['i always', 'i never', 'same mistake', 'mess up', 'ruin'],
+  lack_of_clarity: ['unclear', 'confused', 'don\'t know what', 'no direction', 'lost'],
+};
+
+// Threshold moment keywords
+const thresholdIndicators = ['wow', 'i get it', 'that makes sense', 'aha', 'i see', 'i understand', 'clarity', 'breakthrough', 'realize', 'i need to'];
 
 Deno.serve(async (req) => {
   if (req.method === "OPTIONS") {
@@ -100,7 +104,7 @@ Deno.serve(async (req) => {
   }
 
   try {
-    const { question, mentorTypes } = await req.json();
+    const { question, mentorTypes, conversationHistory = [] } = await req.json();
     const authHeader = req.headers.get("Authorization")!;
     const token = authHeader.replace("Bearer ", "");
 
@@ -110,74 +114,246 @@ Deno.serve(async (req) => {
       { global: { headers: { Authorization: authHeader } } }
     );
 
-    // Get user
     const { data: { user }, error: userError } = await supabaseClient.auth.getUser(token);
     if (userError || !user) throw new Error("Not authenticated");
 
-    // Get profile for personalization
+    // === STEP 1: DETECT EMOTIONAL TONE ===
+    const lowerQuestion = question.toLowerCase();
+    let emotionalTone = 'neutral';
+    let emotionalKeywords: string[] = [];
+    
+    for (const [emotion, keywords] of Object.entries(emotionalPatterns)) {
+      const matches = keywords.filter(k => lowerQuestion.includes(k));
+      if (matches.length > 0) {
+        emotionalTone = emotion;
+        emotionalKeywords = matches;
+        break;
+      }
+    }
+
+    // === STEP 2: DETECT PATTERNS (Council Memory) ===
+    let detectedPattern: string | null = null;
+    let patternKeywords: string[] = [];
+    
+    for (const [pattern, keywords] of Object.entries(patternTypes)) {
+      const matches = keywords.filter(k => lowerQuestion.includes(k));
+      if (matches.length >= 2) {
+        detectedPattern = pattern;
+        patternKeywords = matches;
+        break;
+      }
+    }
+
+    // Check and update pattern count
+    let patternCount = 1;
+    if (detectedPattern) {
+      const { data: existingPattern } = await supabaseClient
+        .from('council_patterns')
+        .select('*')
+        .eq('user_id', user.id)
+        .eq('pattern_type', detectedPattern)
+        .maybeSingle();
+
+      if (existingPattern) {
+        patternCount = existingPattern.pattern_count + 1;
+        await supabaseClient
+          .from('council_patterns')
+          .update({ 
+            pattern_count: patternCount,
+            last_detected_at: new Date().toISOString(),
+            context: { latest_question: question, keywords: patternKeywords }
+          })
+          .eq('id', existingPattern.id);
+      } else {
+        await supabaseClient
+          .from('council_patterns')
+          .insert({
+            user_id: user.id,
+            pattern_type: detectedPattern,
+            pattern_count: 1,
+            context: { first_question: question, keywords: patternKeywords }
+          });
+      }
+    }
+
+    // Get profile and context
     const { data: profile } = await supabaseClient
       .from("profiles")
       .select("*")
       .eq("id", user.id)
       .maybeSingle();
 
-    // Get future_self_progress
     const { data: futureProgress } = await supabaseClient
       .from("future_self_progress")
       .select("*")
       .eq("user_id", user.id)
       .maybeSingle();
 
-    // Get mentor_progress
-    const { data: mentorProgress } = await supabaseClient
-      .from("mentor_progress")
-      .select("*")
-      .eq("user_id", user.id);
+    const { data: recentMeetings } = await supabaseClient
+      .from("council_meetings")
+      .select('question, emotional_tone, pattern_detected')
+      .eq('user_id', user.id)
+      .order('created_at', { ascending: false })
+      .limit(5);
 
-    const answers: Record<string, { short: string; expanded: string; coreTheme: string }> = {};
-    const extractedTasks: Array<{ mentor_name: string; task: any }> = [];
+    const { data: userPatterns } = await supabaseClient
+      .from('council_patterns')
+      .select('*')
+      .eq('user_id', user.id)
+      .order('pattern_count', { ascending: false });
 
-    // Step 1: Get all mentor responses
+    // === STEP 3: MIRROR-BACK REFLECTION ===
+    let mirrorBack = "";
+    const contextPrompt = `You are a wise council synthesizer. Reflect back what the user said to show understanding.
+
+User question: "${question}"
+Emotional tone detected: ${emotionalTone}
+${detectedPattern ? `Pattern detected: ${detectedPattern}` : ''}
+
+Generate a 1-2 sentence mirror-back reflection that:
+- Paraphrases their core concern
+- Names the emotion if relevant
+- Shows you truly understand
+
+Example: "You're asking about [topic], and I sense [emotion] underneath. This feels important to you."
+
+Keep it under 30 words. Be human and direct.`;
+
+    const mirrorResponse = await fetch("https://ai.gateway.lovable.dev/v1/chat/completions", {
+      method: "POST",
+      headers: {
+        "Authorization": `Bearer ${Deno.env.get("LOVABLE_API_KEY")}`,
+        "Content-Type": "application/json",
+      },
+      body: JSON.stringify({
+        model: "google/gemini-2.5-flash",
+        messages: [{ role: "user", content: contextPrompt }],
+      }),
+    });
+
+    if (mirrorResponse.ok) {
+      const mirrorData = await mirrorResponse.json();
+      mirrorBack = mirrorData.choices[0].message.content;
+    }
+
+    // === STEP 4: CLARIFYING QUESTIONS (Before giving advice) ===
+    const shouldAskClarifying = conversationHistory.length === 0 && !lowerQuestion.includes("i'm ready") && !lowerQuestion.includes("what should i do");
+    let clarifyingQuestions: string[] = [];
+
+    if (shouldAskClarifying) {
+      const clarifyPrompt = `You are the Council. Before giving advice, you must understand deeper.
+
+User said: "${question}"
+Emotional tone: ${emotionalTone}
+${detectedPattern ? `Pattern: ${detectedPattern} (appears ${patternCount} times)` : ''}
+
+Generate 2-3 sharp, micro-specific clarifying questions that reveal:
+- True intention: "What do you truly want in this situation?"
+- Desired outcome: "What would success look like for you?"
+- Hidden fears: "What fear sits underneath this question?"
+- Deeper why: "Why does this matter to you right now?"
+
+Make questions human, direct, and provocative. Each on a new line starting with "- ".
+Total: 2-3 questions max.`;
+
+      const clarifyResponse = await fetch("https://ai.gateway.lovable.dev/v1/chat/completions", {
+        method: "POST",
+        headers: {
+          "Authorization": `Bearer ${Deno.env.get("LOVABLE_API_KEY")}`,
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({
+          model: "google/gemini-2.5-flash",
+          messages: [{ role: "user", content: clarifyPrompt }],
+        }),
+      });
+
+      if (clarifyResponse.ok) {
+        const clarifyData = await clarifyResponse.json();
+        const questionsText = clarifyData.choices[0].message.content;
+        clarifyingQuestions = questionsText
+          .split('\n')
+          .filter((line: string) => line.trim().startsWith('-'))
+          .map((line: string) => line.replace(/^-\s*/, '').trim());
+      }
+    }
+
+    // If we generated clarifying questions, return them WITHOUT mentor answers
+    if (clarifyingQuestions.length > 0) {
+      return new Response(
+        JSON.stringify({
+          stage: 'clarifying',
+          mirrorBack,
+          clarifyingQuestions,
+          emotionalTone,
+          detectedPattern,
+          patternCount: patternCount > 1 ? patternCount : undefined,
+        }),
+        { headers: { ...corsHeaders, "Content-Type": "application/json" } }
+      );
+    }
+
+    // === STEP 5: DETECT THRESHOLD MOMENT ===
+    const isThresholdMoment = thresholdIndicators.some(indicator => lowerQuestion.includes(indicator));
+
+    // === STEP 6: MENTOR RESPONSES (with synergy roles) ===
+    const answers: Record<string, any> = {};
+    
+    // Build context for mentors
+    const councilContext = `
+COUNCIL MEMORY:
+- User's purpose: ${profile?.main_mission || 'exploring'}
+- Priority growth area: ${profile?.priority_growth_area || 'unknown'}
+- Evolution level: ${futureProgress?.evolution_level || 1}
+- Recent themes: ${recentMeetings?.map(m => m.emotional_tone).filter(Boolean).join(', ') || 'none'}
+${userPatterns && userPatterns.length > 0 ? `- Recurring patterns: ${userPatterns.map(p => `${p.pattern_type} (${p.pattern_count}x)`).join(', ')}` : ''}
+${detectedPattern && patternCount > 2 ? `\n⚠️ PATTERN ALERT: "${detectedPattern}" has appeared ${patternCount} times. Challenge this.` : ''}
+
+EMOTIONAL STATE: ${emotionalTone.toUpperCase()}
+${emotionalKeywords.length > 0 ? `Keywords detected: ${emotionalKeywords.join(', ')}` : ''}
+
+CONVERSATION HISTORY:
+${conversationHistory.length > 0 ? conversationHistory.map((msg: any) => `${msg.role}: ${msg.content}`).join('\n') : 'First interaction'}
+`;
+
     for (const mentorType of mentorTypes) {
-      let systemPrompt = mentorPrompts[mentorType] || mentorPrompts.mamba_mentor;
+      const mentorConfig = mentorPrompts[mentorType];
+      if (!mentorConfig) continue;
 
-      // Add personalization context
+      let systemPrompt = `You are ${mentorNames[mentorType]}.
+
+PERSONALITY: ${mentorConfig.personality}
+
+YOUR ROLE IN THIS COUNCIL: ${mentorConfig.role}
+
+${councilContext}
+
+INSTRUCTIONS:
+- Speak in YOUR voice (2-3 sentences max for short, 4-6 for expanded)
+- Fulfill YOUR synergy role
+- Adjust tone based on emotional state:
+  ${emotionalTone === 'fear' || emotionalTone === 'anxiety' ? '→ Be softer, reassuring, clarifying' : ''}
+  ${emotionalTone === 'confusion' ? '→ Be structured, simplifying, clear' : ''}
+  ${emotionalTone === 'excitement' || emotionalTone === 'motivation' ? '→ Amplify energy, direct into action' : ''}
+  ${emotionalTone === 'overwhelm' ? '→ Be grounding, break down, soothe' : ''}
+- If pattern detected (${detectedPattern}), address it directly
+- DO NOT give a task yet unless user explicitly asks "what should I do?" or says "I'm ready"
+- Ask deeper questions or provide perspective
+
+Format:
+SHORT: [2-3 sentence response]
+EXPANDED: [4-6 sentence deeper wisdom]
+CORE_THEME: [single word]`;
+
+      // Add Future Self personalization
       if (mentorType === "future_self" && profile) {
-        systemPrompt += `\n\nFuture Self Profile:
+        systemPrompt += `\n\nYour Future Self Profile:
 Age: ${profile.future_age}
 Location: ${profile.future_location}
 Lifestyle: ${profile.future_lifestyle}
 Mission: ${profile.main_mission}
-Tone: ${profile.emotional_tone}
-Strengths: ${profile.main_strengths?.join(", ")}
-Priority Growth Area: ${profile.priority_growth_area}`;
+Speak as this achieved version.`;
       }
-
-      if (futureProgress) {
-        systemPrompt += `\n\nUser Progress:
-Global XP: ${futureProgress.global_xp}
-Evolution Level: ${futureProgress.evolution_level}`;
-      }
-
-      const mentorXp = mentorProgress?.find((m: any) => m.mentor_name === mentorNames[mentorType]);
-      if (mentorXp) {
-        systemPrompt += `\nYour Mentor Level: ${mentorXp.level} (${mentorXp.xp} XP)`;
-      }
-
-      // Call AI for this mentor
-      // Generate both short and expanded responses
-      const dualPrompt = `${systemPrompt}
-
-CRITICAL INSTRUCTION: You must respond with TWO versions of your answer:
-
-1. SHORT VERSION (2-3 sentences max): Deliver your core insight in an impactful, agile way. This is what the user sees first.
-
-2. EXPANDED VERSION (4-6 sentences): Provide deeper context, frameworks, or additional wisdom. This is revealed when the user wants to learn more.
-
-Format your response EXACTLY like this:
-SHORT: [your 2-3 sentence response here]
-EXPANDED: [your 4-6 sentence deeper response here]
-CORE_THEME: [single word theme like "discipline", "creativity", "clarity", "courage", etc.]`;
 
       const aiResponse = await fetch("https://ai.gateway.lovable.dev/v1/chat/completions", {
         method: "POST",
@@ -188,18 +364,17 @@ CORE_THEME: [single word theme like "discipline", "creativity", "clarity", "cour
         body: JSON.stringify({
           model: "google/gemini-2.5-flash",
           messages: [
-            { role: "system", content: dualPrompt },
+            { role: "system", content: systemPrompt },
             { role: "user", content: question }
           ],
         }),
       });
 
       if (!aiResponse.ok) {
-        console.error(`AI error for ${mentorType}:`, aiResponse.status);
         answers[mentorType] = {
-          short: "I'm having trouble responding right now. Please try again.",
-          expanded: "I'm having trouble responding right now. Please try again.",
-          coreTheme: "connection"
+          short: "I'm reflecting on this. Give me a moment.",
+          expanded: "I'm reflecting on this. Give me a moment.",
+          coreTheme: "reflection"
         };
         continue;
       }
@@ -207,7 +382,6 @@ CORE_THEME: [single word theme like "discipline", "creativity", "clarity", "cour
       const aiData = await aiResponse.json();
       const mentorAnswer = aiData.choices[0].message.content;
       
-      // Parse the structured response
       const shortMatch = mentorAnswer.match(/SHORT:\s*(.+?)(?=EXPANDED:|$)/s);
       const expandedMatch = mentorAnswer.match(/EXPANDED:\s*(.+?)(?=CORE_THEME:|$)/s);
       const themeMatch = mentorAnswer.match(/CORE_THEME:\s*(\w+)/);
@@ -219,27 +393,24 @@ CORE_THEME: [single word theme like "discipline", "creativity", "clarity", "cour
       };
     }
 
-    // Step 2: Generate banter (dynamic mentor interaction)
+    // === STEP 7: MENTOR SYNERGY BANTER ===
     let banter = "";
     if (mentorTypes.length > 2) {
-      const banterSystemPrompt = `You are a Council Meeting narrator. Generate authentic, personality-rich banter between mentors.
+      const banterPrompt = `Generate authentic banter between these mentors:
 
-Rules:
-- Each mentor speaks ONCE in 1-2 short lines (10-15 words max per line)
-- Show teasing, disagreement, humor, or contrasting views
-- Make it feel conversational and alive
-- Format: [Mentor Name]: "quote"
-- Total output: 60-100 words
+${mentorTypes.map((type: string) => `${mentorNames[type]} (${mentorPrompts[type].personality})`).join('\n')}
 
-Personalities to express:
-${mentorTypes.map((type: string) => `- ${mentorNames[type]}: ${mentorPrompts[type].split('\n')[0]}`).join('\n')}`;
+Their responses:
+${Object.entries(answers).map(([type, ans]) => `${mentorNames[type]}: ${ans.short}`).join("\n")}
 
-      const banterPrompt = `The user asked: "${question}"
+Create 3-5 lines where mentors:
+- React to each other
+- Show personality differences
+- Challenge or support each other
+- Feel human and alive
 
-Here are the mentor responses:
-${Object.entries(answers).map(([type, ans]) => `${mentorNames[type]}: ${ans}`).join("\n\n")}
-
-Generate 3-5 lines of banter between these mentors. Show personality clashes, playful teasing, or philosophical debate. Keep it human and emotionally expressive.`;
+Format: [Name]: "quote" (10-15 words per line)
+Total: 60-100 words`;
 
       const banterResponse = await fetch("https://ai.gateway.lovable.dev/v1/chat/completions", {
         method: "POST",
@@ -249,234 +420,193 @@ Generate 3-5 lines of banter between these mentors. Show personality clashes, pl
         },
         body: JSON.stringify({
           model: "google/gemini-2.5-flash",
-          messages: [
-            { role: "system", content: banterSystemPrompt },
-            { role: "user", content: banterPrompt }
-          ],
+          messages: [{ role: "user", content: banterPrompt }],
         }),
       });
 
       if (banterResponse.ok) {
         const banterData = await banterResponse.json();
-        banter = banterData.choices[0].message.content || "";
+        banter = banterData.choices[0].message.content;
       }
     }
 
-    // Step 3: Generate Final Council Resolution (delivered by Future Self)
+    // === STEP 8: FUTURE SELF INTERRUPTION (every 2-3 meetings or threshold moment) ===
+    const meetingCount = recentMeetings?.length || 0;
+    const shouldFutureSelfInterrupt = (meetingCount % 3 === 0 && meetingCount > 0) || isThresholdMoment;
+    let futureSelfInterruption = "";
+
+    if (shouldFutureSelfInterrupt && !mentorTypes.includes('future_self')) {
+      const futurePrompt = `You are the user's Future Self, 10 years ahead. You've achieved everything.
+
+Current situation: "${question}"
+Emotional state: ${emotionalTone}
+${isThresholdMoment ? 'THRESHOLD MOMENT detected - they are breaking through!' : ''}
+
+Speak briefly (2-3 sentences) to:
+- Reassure them
+- Provide long-term perspective
+- Give emotional grounding
+- Show this moment matters
+
+Start with: "Your Future Self wants to add something..."`;
+
+      const futureResponse = await fetch("https://ai.gateway.lovable.dev/v1/chat/completions", {
+        method: "POST",
+        headers: {
+          "Authorization": `Bearer ${Deno.env.get("LOVABLE_API_KEY")}`,
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({
+          model: "google/gemini-2.5-flash",
+          messages: [{ role: "user", content: futurePrompt }],
+        }),
+      });
+
+      if (futureResponse.ok) {
+        const futureData = await futureResponse.json();
+        futureSelfInterruption = futureData.choices[0].message.content;
+      }
+    }
+
+    // === STEP 9: RESOLUTION (only if threshold moment or user ready) ===
     let resolution = "";
-    const resolutionSystemPrompt = `You are the Future Self, delivering the final Council Resolution.
+    const shouldGiveResolution = isThresholdMoment || lowerQuestion.includes("what should i do") || lowerQuestion.includes("i'm ready");
 
-This is the synthesis of all mentor advice. You speak as the wise, grounded narrator who sees the big picture.
+    if (shouldGiveResolution) {
+      const resolutionPrompt = `You are Future Self delivering the Council Resolution.
 
-Rules:
-- 2-4 sentences total
-- Supportive, confident, motivating tone
-- Clear guidance or direction
-- Speaks from a place of "already achieved"
-- No fluff, just wisdom
+Question: "${question}"
+Emotional state: ${emotionalTone}
+${isThresholdMoment ? '🎯 THRESHOLD MOMENT - Turn clarity into action!' : ''}
+Mentor responses: ${Object.entries(answers).map(([type, ans]) => `${mentorNames[type]}: ${ans.short}`).join('; ')}
 
-Your role: Synthesize the council's advice into one clear, actionable directive.`;
+Deliver 2-4 sentences that:
+- Synthesize the council wisdom
+- Give ONE clear next step
+- Be supportive and confident
+- Speak from "already achieved"
 
-    const resolutionPrompt = `User question: "${question}"
+${isThresholdMoment ? 'Start with: "You are at a turning point. Let\'s turn this clarity into action."' : ''}`;
 
-Mentor answers:
-${Object.entries(answers).map(([type, ans]) => `${mentorNames[type]}: ${ans}`).join("\n\n")}
+      const resolutionResponse = await fetch("https://ai.gateway.lovable.dev/v1/chat/completions", {
+        method: "POST",
+        headers: {
+          "Authorization": `Bearer ${Deno.env.get("LOVABLE_API_KEY")}`,
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({
+          model: "google/gemini-2.5-flash",
+          messages: [{ role: "user", content: resolutionPrompt }],
+        }),
+      });
 
-${banter ? `Banter:\n${banter}\n` : ''}
-
-Deliver the final Council Resolution. What is the clear guidance after this discussion?`;
-
-    const resolutionResponse = await fetch("https://ai.gateway.lovable.dev/v1/chat/completions", {
-      method: "POST",
-      headers: {
-        "Authorization": `Bearer ${Deno.env.get("LOVABLE_API_KEY")}`,
-        "Content-Type": "application/json",
-      },
-      body: JSON.stringify({
-        model: "google/gemini-2.5-flash",
-        messages: [
-          { role: "system", content: resolutionSystemPrompt },
-          { role: "user", content: resolutionPrompt }
-        ],
-      }),
-    });
-
-    if (resolutionResponse.ok) {
-      const resolutionData = await resolutionResponse.json();
-      resolution = resolutionData.choices[0].message.content || "";
-    }
-
-    // Step 4: Shadow Trigger Detection and Shadow Interruption
-    const shadowTriggers: any[] = [];
-    let shadowType = null;
-    let shadowInterruption = "";
-    
-    // Enhanced keyword detection with 8 shadow categories
-    const triggerPatterns = {
-      fear: ['afraid', 'fear', 'hiding', 'scared', 'terrified', 'anxious', 'retreat', 'hesitant', 'worried', 'uncertain', 'what if', 'safe', 'risk', 'exposed'],
-      shame: ['shame', 'damaged', 'broken', 'unworthy', 'apologize', 'burden', 'not enough', 'inadequate', 'disappointing', 'failed'],
-      impostor: ['impostor', 'fake', 'pretending', 'fraud', 'lucky', "don't belong", 'unqualified', 'deserve', 'prove', 'capable'],
-      procrastination: ['later', 'tomorrow', 'avoiding', 'delay', 'postpone', 'not ready', 'waiting', 'someday', "when i'm ready"],
-      perfectionism: ['perfect', 'flawless', 'not good enough', 'obsess', 'rewrite', 'polish', 'refine', 'improve', 'judge', 'critique'],
-      anger: ['angry', 'resentful', 'furious', 'boiling', 'unfair', 'pushed', 'snap', 'exploding', 'rage', 'irritated'],
-      control: ['control', 'grip', 'manage', 'tight', 'predict', 'rigid', 'structure', 'rules', 'order', 'let go'],
-      isolation: ['alone', 'no one', 'by myself', 'withdraw', 'disconnect', 'numb', 'avoid', 'burnout', 'invisible']
-    };
-
-    // Check both question and mentor answers for shadow keywords (threshold: 1+ keyword)
-    const lowerQuestion = question.toLowerCase();
-    
-    for (const [shadow, keywords] of Object.entries(triggerPatterns)) {
-      const questionMatches = keywords.filter(k => lowerQuestion.includes(k));
-      if (questionMatches.length >= 1) {
-        shadowTriggers.push({
-          source: 'user_question',
-          trigger_shadow: true,
-          shadow_type: shadow,
-          detected_keywords: questionMatches
-        });
-        if (!shadowType) shadowType = shadow;
+      if (resolutionResponse.ok) {
+        const resolutionData = await resolutionResponse.json();
+        resolution = resolutionData.choices[0].message.content;
       }
     }
+
+    // === STEP 10: GENERATE TASKS (only if ready) ===
+    const shouldGenerateTasks = shouldGiveResolution;
     
-    for (const [mentorType, answer] of Object.entries(answers)) {
-      const lowerAnswer = answer.expanded.toLowerCase();
-      
-      for (const [shadow, keywords] of Object.entries(triggerPatterns)) {
-        const matchedKeywords = keywords.filter(k => lowerAnswer.includes(k));
-        if (matchedKeywords.length >= 1) {
-          shadowTriggers.push({
-            mentor: mentorType,
-            line: answer,
-            trigger_shadow: true,
-            shadow_type: shadow,
-            detected_keywords: matchedKeywords
+    if (shouldGenerateTasks) {
+      // Extract tasks from council wisdom
+      for (const [mentorType, answer] of Object.entries(answers)) {
+        try {
+          await fetch(`${Deno.env.get("SUPABASE_URL")}/functions/v1/extract-task`, {
+            method: "POST",
+            headers: {
+              "Authorization": authHeader,
+              "Content-Type": "application/json",
+            },
+            body: JSON.stringify({
+              mentorResponse: answer.expanded,
+              mentorName: mentorNames[mentorType],
+              questionContext: question,
+            }),
           });
-          if (!shadowType) shadowType = shadow;
+        } catch (error) {
+          console.error(`Task extraction failed for ${mentorType}:`, error);
         }
       }
-    }
 
-    // Get user's shadow intensity preference (default: balanced = 60%)
-    const shadowIntensityMap = {
-      gentle: 0.3,
-      balanced: 0.6,
-      deep_work: 0.9
-    };
-    const shadowIntensity = profile?.shadow_intensity || 'balanced';
-    const triggerProbability = shadowIntensityMap[shadowIntensity as keyof typeof shadowIntensityMap] || 0.6;
-
-    // Shadow Interruption (25% chance to interrupt conversation after banter, before resolution)
-    if (shadowType && banter && Math.random() < 0.25) {
-      const interruptionPrompts = {
-        fear: "You talk of growth, but you're still hiding behind questions. Admit it.",
-        shame: "All this wisdom, yet you still believe you're not enough. Why?",
-        impostor: "They praise your progress, but deep down you think it's luck. Don't you?",
-        procrastination: "Another plan. Another 'soon.' When will you actually start?",
-        perfectionism: "You're refining again. But perfect is just another word for 'never done.'",
-        anger: "Smile all you want. I feel the rage boiling underneath.",
-        control: "You're trying to map it all out. What if you can't?",
-        isolation: "You nod along, but you're still keeping them at arm's length."
-      };
-      
-      shadowInterruption = interruptionPrompts[shadowType as keyof typeof interruptionPrompts] || "";
-    }
-
-    // Trigger shadow encounter if detected
-    if (shadowType && Math.random() < triggerProbability) {
+      // Create insight dot for this council meeting
       try {
-        const supabaseUrl = Deno.env.get("SUPABASE_URL");
-        await fetch(`${supabaseUrl}/functions/v1/trigger-shadow`, {
-          method: 'POST',
-          headers: {
-            'Authorization': authHeader,
-            'Content-Type': 'application/json',
-          },
-          body: JSON.stringify({
-            shadowType,
-            triggeredBy: 'council_meeting',
-            context: { question, mentorTypes }
-          })
-        });
-      } catch (error) {
-        console.error('Failed to trigger shadow encounter:', error);
-      }
-    }
-
-
-    // Step 5: Extract tasks from each mentor response
-    for (const [mentorType, answer] of Object.entries(answers)) {
-      const fullAnswer = answer.expanded;
-
-      // Extract task from this mentor's response
-      try {
-        const taskResponse = await fetch(`${Deno.env.get("SUPABASE_URL")}/functions/v1/extract-task`, {
-          method: "POST",
-          headers: {
-            "Authorization": authHeader,
-            "Content-Type": "application/json",
-          },
-          body: JSON.stringify({
-            mentorResponse: fullAnswer,
-            mentorName: mentorNames[mentorType] || mentorType,
-          }),
-        });
-
-        if (taskResponse.ok) {
-          const taskData = await taskResponse.json();
-          extractedTasks.push({
-            mentor_name: mentorNames[mentorType] || mentorType,
-            task: taskData.task,
-          });
-        } else {
-          console.error(`Failed to extract task for ${mentorType}`);
-        }
-      } catch (taskError) {
-        console.error(`Error extracting task for ${mentorType}:`, taskError);
-      }
-    }
-
-    // Step 6: Save insights to insight_dots table (don't wait for completion)
-    const saveInsightsPromises = Object.entries(answers).map(async ([mentorType, answer]) => {
-      try {
-        const answerObj = answer as any;
-        await supabaseClient.from("insight_dots").insert({
+        await supabaseClient.from('insight_dots').insert({
           user_id: user.id,
           source_type: 'council_meeting',
-          source_id: null, // Will be linked after council_meeting is saved
-          source_mentor: mentorNames[mentorType],
-          insight_text: answerObj.short || answer,
-          core_theme: answerObj.coreTheme || 'growth',
-          skill_tags: [answerObj.coreTheme || 'growth'],
-          emotional_tone: null,
+          insight_text: `Council wisdom: ${question} - ${resolution || Object.values(answers)[0]?.short}`,
+          core_theme: 'Council Guidance',
+          emotional_tone: emotionalTone,
+          skill_tags: Object.values(answers).map((a: any) => a.coreTheme).filter(Boolean)
         });
       } catch (error) {
-        console.error(`Failed to save insight for ${mentorType}:`, error);
+        console.error('Failed to create insight dot:', error);
       }
-    });
+    }
 
-    // Fire and forget - don't wait for insights to save
-    Promise.all(saveInsightsPromises).catch(console.error);
+    // === STEP 11: SHADOW DETECTION ===
+    const shadowTriggers: any[] = [];
+    const shadowPatterns = {
+      fear: ['afraid', 'fear', 'scared', 'anxious', 'hiding'],
+      shame: ['shame', 'not enough', 'unworthy', 'broken'],
+      impostor: ['impostor', 'fake', 'don\'t belong', 'fraud'],
+      procrastination: ['later', 'tomorrow', 'not ready', 'someday'],
+      perfectionism: ['perfect', 'not good enough', 'polish'],
+      anger: ['angry', 'furious', 'unfair', 'resentful'],
+    };
 
+    for (const [shadow, keywords] of Object.entries(shadowPatterns)) {
+      const matches = keywords.filter(k => lowerQuestion.includes(k));
+      if (matches.length >= 1) {
+        shadowTriggers.push({ shadow_type: shadow, keywords: matches });
+        
+        // Trigger shadow encounter
+        if (Math.random() < 0.4) {
+          try {
+            await fetch(`${Deno.env.get("SUPABASE_URL")}/functions/v1/trigger-shadow`, {
+              method: 'POST',
+              headers: {
+                'Authorization': authHeader,
+                'Content-Type': 'application/json',
+              },
+              body: JSON.stringify({
+                shadowType: shadow,
+                triggeredBy: 'council_meeting',
+                context: { question, emotional_tone: emotionalTone }
+              })
+            });
+          } catch (error) {
+            console.error('Shadow trigger failed:', error);
+          }
+        }
+        break;
+      }
+    }
+
+    // Return response
     return new Response(
-      JSON.stringify({ 
-        answers, 
+      JSON.stringify({
+        stage: 'complete',
+        mirrorBack,
+        answers,
         banter,
-        shadowInterruption, 
+        futureSelfInterruption,
         resolution,
+        emotionalTone,
+        detectedPattern,
+        patternCount: patternCount > 1 ? patternCount : undefined,
+        isThresholdMoment,
         shadowTriggers,
-        tasks: extractedTasks 
       }),
       { headers: { ...corsHeaders, "Content-Type": "application/json" } }
     );
-  } catch (error: any) {
-    console.error("Error in council-meeting:", error);
+
+  } catch (error) {
+    console.error("Council meeting error:", error);
     return new Response(
-      JSON.stringify({ error: error.message }),
-      {
-        status: 500,
-        headers: { ...corsHeaders, "Content-Type": "application/json" },
-      }
+      JSON.stringify({ error: error instanceof Error ? error.message : "Unknown error" }),
+      { status: 500, headers: { ...corsHeaders, "Content-Type": "application/json" } }
     );
   }
 });
