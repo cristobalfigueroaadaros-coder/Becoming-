@@ -236,25 +236,81 @@ Keep it under 30 words. Be human and direct.`;
       mirrorBack = mirrorData.choices[0].message.content;
     }
 
-    // === STEP 4: CLARIFYING QUESTIONS (Before giving advice) ===
+    // === STEP 4: PROGRESSIVE CLARIFYING QUESTIONS (Tiered Depth) ===
     const shouldAskClarifying = conversationHistory.length === 0 && !lowerQuestion.includes("i'm ready") && !lowerQuestion.includes("what should i do");
     let clarifyingQuestions: string[] = [];
+    
+    // Determine question tier based on conversation history and user engagement
+    const totalUserMessages = conversationHistory.filter((msg: any) => msg.role === 'user').length;
+    const lastUserResponse = conversationHistory[conversationHistory.length - 1];
+    const userResponseLength = lastUserResponse?.content?.length || question.length;
+    const showsEngagement = userResponseLength > 100 || emotionalTone === 'excitement' || emotionalTone === 'motivation';
+    const showsHesitation = lowerQuestion.includes("i don't know") || lowerQuestion.includes("not sure") || lowerQuestion.includes("maybe");
+    
+    let questionTier: 1 | 2 | 3 = 1; // Default to Tier 1
+    
+    if (totalUserMessages === 0) {
+      questionTier = 1; // Always start with Tier 1
+    } else if (showsHesitation || userResponseLength < 30) {
+      questionTier = 1; // Simplify for confusion
+    } else if (showsEngagement && totalUserMessages >= 2) {
+      questionTier = 3; // Deep questions when ready
+    } else if (totalUserMessages >= 1) {
+      questionTier = 2; // Medium depth after first exchange
+    }
 
     if (shouldAskClarifying) {
-      const clarifyPrompt = `You are the Council. Before giving advice, you must understand deeper.
+      let clarifyPrompt = '';
+      
+      if (questionTier === 1) {
+        // TIER 1: Warm-up questions (low pressure, simple)
+        clarifyPrompt = `You are the Council. This is a new conversation or the user seems uncertain. Start gently.
+
+User said: "${question}"
+Emotional tone: ${emotionalTone}
+
+Generate 2 simple, low-pressure questions such as:
+- "What are you working on today?"
+- "What feels most important right now?"
+- "What's one small thing you'd like to improve?"
+- "What brought you here today?"
+
+Keep it warm, easy, and approachable. Each on a new line starting with "- ".
+Total: 2 questions.`;
+      } else if (questionTier === 2) {
+        // TIER 2: Medium depth questions
+        clarifyPrompt = `You are the Council. The user has engaged. Ask deeper questions now.
 
 User said: "${question}"
 Emotional tone: ${emotionalTone}
 ${detectedPattern ? `Pattern: ${detectedPattern} (appears ${patternCount} times)` : ''}
 
-Generate 2-3 sharp, micro-specific clarifying questions that reveal:
-- True intention: "What do you truly want in this situation?"
-- Desired outcome: "What would success look like for you?"
-- Hidden fears: "What fear sits underneath this question?"
-- Deeper why: "Why does this matter to you right now?"
+Generate 2-3 medium-depth questions such as:
+- "Why does this matter to you?"
+- "What's been slowing you down?"
+- "What would success look like in the next week?"
+- "What's the real challenge here?"
 
-Make questions human, direct, and provocative. Each on a new line starting with "- ".
-Total: 2-3 questions max.`;
+Make questions thoughtful and direct. Each on a new line starting with "- ".
+Total: 2-3 questions.`;
+      } else {
+        // TIER 3: Deep questions (only when appropriate)
+        clarifyPrompt = `You are the Council. The user is engaged and ready for depth. Ask transformative questions.
+
+User said: "${question}"
+Emotional tone: ${emotionalTone}
+${detectedPattern ? `Pattern: ${detectedPattern} (appears ${patternCount} times)` : ''}
+
+Generate 2-3 deep, transformative questions such as:
+- "What's the emotional cost of staying where you are?"
+- "Who would you become if you overcame this block?"
+- "What truth are you avoiding?"
+- "What scares you more: failing publicly or disappointing yourself privately?"
+- "If you had 7 days left to act, what would you do first?"
+
+Make questions piercing, human, and provocative. Each on a new line starting with "- ".
+Total: 2-3 questions.`;
+      }
 
       const clarifyResponse = await fetch("https://ai.gateway.lovable.dev/v1/chat/completions", {
         method: "POST",
@@ -288,6 +344,7 @@ Total: 2-3 questions max.`;
           emotionalTone,
           detectedPattern,
           patternCount: patternCount > 1 ? patternCount : undefined,
+          questionTier, // Include tier for frontend display
         }),
         { headers: { ...corsHeaders, "Content-Type": "application/json" } }
       );
