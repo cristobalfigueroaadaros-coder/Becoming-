@@ -36,6 +36,7 @@ import PurposeEvolution from "./pages/PurposeEvolution";
 import MappingDotsPage from "./pages/MappingDotsPage";
 import DailyPortal from "./pages/DailyPortal";
 import ChallengeHistory from "./pages/ChallengeHistory";
+import ChallengeReports from "./pages/ChallengeReports";
 
 const queryClient = new QueryClient();
 
@@ -230,6 +231,10 @@ const App = () => {
             <Route
               path="/challenge-history"
               element={session ? <ChallengeHistory /> : <Navigate to="/auth" />}
+            />
+            <Route
+              path="/challenge-reports"
+              element={session ? <ChallengeReports /> : <Navigate to="/auth" />}
             />
             <Route path="*" element={<NotFound />} />
           </Routes>

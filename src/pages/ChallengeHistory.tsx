@@ -3,7 +3,7 @@ import { useNavigate } from "react-router-dom";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { supabase } from "@/integrations/supabase/client";
-import { ArrowLeft, TrendingUp, Calendar, Target, Award, Lightbulb, CheckCircle2, XCircle } from "lucide-react";
+import { ArrowLeft, TrendingUp, Calendar, Target, Award, Lightbulb, CheckCircle2, XCircle, BarChart3 } from "lucide-react";
 import { format, startOfWeek, endOfWeek, eachDayOfInterval, isSameDay } from "date-fns";
 
 interface DailyChallenge {
@@ -218,6 +218,13 @@ export default function ChallengeHistory() {
               Your journey of daily purpose-aligned growth
             </p>
           </div>
+          <Button
+            onClick={() => navigate("/challenge-reports")}
+            className="mt-8"
+          >
+            <BarChart3 className="w-4 h-4 mr-2" />
+            View Reports
+          </Button>
         </div>
 
         {/* Stats Grid */}
