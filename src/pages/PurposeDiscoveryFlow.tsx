@@ -120,6 +120,7 @@ export default function PurposeDiscoveryFlow() {
   const [loadingRefinement, setLoadingRefinement] = useState(false);
   const [selectedPurpose, setSelectedPurpose] = useState<string | null>(null);
   const [customPurpose, setCustomPurpose] = useState("");
+  const [showProgression, setShowProgression] = useState(false);
 
   useEffect(() => {
     loadProgress();
@@ -231,6 +232,58 @@ export default function PurposeDiscoveryFlow() {
     }
   };
 
+  const saveDiscoveryAsBackground = async () => {
+    setSaving(true);
+    try {
+      const { data: { user } } = await supabase.auth.getUser();
+      if (!user) throw new Error("Not authenticated");
+
+      // Save answers as background data in profiles for Council to access
+      await supabase
+        .from("profiles")
+        .update({ 
+          constellation_insights: { discovery_answers: answers }
+        })
+        .eq("id", user.id);
+
+      // Create insight dots for each answer
+      const dotPromises = Object.entries(answers).map(async ([questionId, answer]) => {
+        const question = questions.find(q => q.id === questionId);
+        if (!question) return;
+
+        await supabase.from("insight_dots").insert({
+          user_id: user.id,
+          source_type: "Purpose Discovery",
+          source_mentor: "future_self",
+          insight_text: typeof answer === "string" ? answer : JSON.stringify(answer),
+          core_theme: "Self Discovery",
+          skill_tags: [purposePath.replace("_", " ")],
+          emotional_tone: "reflective"
+        });
+      });
+
+      await Promise.all(dotPromises);
+
+      // Mark progress as completed
+      await supabase
+        .from("self_discovery_progress")
+        .upsert({
+          user_id: user.id,
+          purpose_path: purposePath,
+          current_step: currentStep,
+          answers: answers,
+          completed: true
+        });
+
+      setShowProgression(true);
+    } catch (error: any) {
+      console.error("Error saving discovery:", error);
+      toast.error("Failed to save your journey");
+    } finally {
+      setSaving(false);
+    }
+  };
+
   const getRefinedPurpose = async () => {
     setLoadingRefinement(true);
     try {
@@ -252,7 +305,13 @@ export default function PurposeDiscoveryFlow() {
 
   const completeDiscovery = async () => {
     if (currentStep === questions.length - 1) {
-      // Last step - show refinement instead of completing
+      // For discovering/exploring paths, skip refinement and show progression
+      if (purposePath === "discovering_purpose" || purposePath === "not_sure") {
+        await saveDiscoveryAsBackground();
+        return;
+      }
+      
+      // For has_purpose or has_goal paths, show refinement
       await getRefinedPurpose();
       return;
     }
@@ -364,6 +423,60 @@ export default function PurposeDiscoveryFlow() {
 
   if (!currentQuestion) {
     return null;
+  }
+
+  if (showProgression) {
+    return (
+      <div className="min-h-screen bg-gradient-to-br from-background via-background to-primary/5 flex items-center justify-center p-4">
+        <Card className="max-w-2xl w-full border-2 border-primary/20">
+          <CardHeader className="text-center space-y-4 pb-6">
+            <div className="flex justify-center">
+              <div className="w-20 h-20 rounded-full bg-primary/10 flex items-center justify-center">
+                <Sparkles className="w-10 h-10 text-primary" />
+              </div>
+            </div>
+            <CardTitle className="text-3xl font-bold">
+              You've Planted the Seed
+            </CardTitle>
+            <CardDescription className="text-lg leading-relaxed">
+              Your journey starts now. Your Council will guide you step by step as you uncover your purpose over time. 
+              Keep showing up, keep reflecting, and your path will become clearer.
+            </CardDescription>
+          </CardHeader>
+          <CardContent className="space-y-6">
+            <div className="bg-primary/5 rounded-lg p-6 space-y-3">
+              <h3 className="font-semibold text-lg">What happens next?</h3>
+              <ul className="space-y-2 text-sm text-muted-foreground">
+                <li className="flex items-start gap-2">
+                  <Check className="w-5 h-5 text-primary flex-shrink-0 mt-0.5" />
+                  <span>Your Council will use your answers to guide you personally</span>
+                </li>
+                <li className="flex items-start gap-2">
+                  <Check className="w-5 h-5 text-primary flex-shrink-0 mt-0.5" />
+                  <span>Complete missions, tasks, and reflections at your own pace</span>
+                </li>
+                <li className="flex items-start gap-2">
+                  <Check className="w-5 h-5 text-primary flex-shrink-0 mt-0.5" />
+                  <span>Track your progress and unlock insights gradually</span>
+                </li>
+                <li className="flex items-start gap-2">
+                  <Check className="w-5 h-5 text-primary flex-shrink-0 mt-0.5" />
+                  <span>Your purpose will emerge naturally through your journey</span>
+                </li>
+              </ul>
+            </div>
+            
+            <Button 
+              onClick={() => navigate("/dashboard")}
+              className="w-full h-12 text-lg"
+            >
+              Continue My Journey
+              <ArrowRight className="w-5 h-5 ml-2" />
+            </Button>
+          </CardContent>
+        </Card>
+      </div>
+    );
   }
 
   if (showRefinement && refinementData) {
