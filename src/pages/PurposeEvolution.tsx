@@ -3,7 +3,7 @@ import { useNavigate } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
-import { ArrowLeft, TrendingUp, Sparkles, Loader2 } from "lucide-react";
+import { ArrowLeft, TrendingUp, Sparkles, Loader2, Check } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import { format } from "date-fns";
 import { Badge } from "@/components/ui/badge";
@@ -23,14 +23,30 @@ interface EvolutionInsights {
   nextSteps: string[];
 }
 
+interface RefinedPurpose {
+  statement: string;
+  rationale: string;
+  key_additions: string[];
+  alignment_score: number;
+}
+
+interface PurposeRefinement {
+  refined_purposes: RefinedPurpose[];
+  growth_indicators: string[];
+  integration_suggestions: string;
+}
+
 export default function PurposeEvolution() {
   const navigate = useNavigate();
   const { toast } = useToast();
   const [purposeHistory, setPurposeHistory] = useState<PurposeEntry[]>([]);
   const [currentPurpose, setCurrentPurpose] = useState<string>("");
   const [insights, setInsights] = useState<EvolutionInsights | null>(null);
+  const [refinement, setRefinement] = useState<PurposeRefinement | null>(null);
   const [loading, setLoading] = useState(true);
   const [analyzingInsights, setAnalyzingInsights] = useState(false);
+  const [isRefining, setIsRefining] = useState(false);
+  const [isSaving, setIsSaving] = useState(false);
 
   useEffect(() => {
     loadPurposeEvolution();
@@ -100,6 +116,74 @@ export default function PurposeEvolution() {
     }
   };
 
+  const refinePurpose = async () => {
+    setIsRefining(true);
+    try {
+      const { data, error } = await supabase.functions.invoke('refine-purpose-from-constellation');
+
+      if (error) throw error;
+
+      setRefinement(data);
+      toast({
+        title: "Purpose refinement generated",
+        description: "Review the AI-suggested evolutions of your purpose",
+      });
+    } catch (error: any) {
+      console.error('Error refining purpose:', error);
+      toast({
+        title: "Error refining purpose",
+        description: error.message,
+        variant: "destructive",
+      });
+    } finally {
+      setIsRefining(false);
+    }
+  };
+
+  const adoptPurpose = async (newPurpose: string) => {
+    setIsSaving(true);
+    try {
+      const { data: { user } } = await supabase.auth.getUser();
+      if (!user) throw new Error('Not authenticated');
+
+      // Save old purpose to history
+      if (currentPurpose) {
+        await supabase.from('purpose_history').insert({
+          user_id: user.id,
+          purpose_text: currentPurpose
+        });
+      }
+
+      // Update current purpose
+      const { error } = await supabase
+        .from('profiles')
+        .update({ main_mission: newPurpose })
+        .eq('id', user.id);
+
+      if (error) throw error;
+
+      setCurrentPurpose(newPurpose);
+      setRefinement(null);
+      
+      toast({
+        title: "Purpose updated",
+        description: "Your evolved purpose has been saved",
+      });
+
+      // Reload history
+      loadPurposeEvolution();
+    } catch (error: any) {
+      console.error('Error adopting purpose:', error);
+      toast({
+        title: "Error saving purpose",
+        description: error.message,
+        variant: "destructive",
+      });
+    } finally {
+      setIsSaving(false);
+    }
+  };
+
   if (loading) {
     return (
       <div className="min-h-screen bg-background flex items-center justify-center">
@@ -111,14 +195,31 @@ export default function PurposeEvolution() {
   return (
     <div className="min-h-screen bg-background">
       <div className="container max-w-4xl mx-auto py-8 px-4">
-        <Button
-          variant="ghost"
-          onClick={() => navigate(-1)}
-          className="mb-6"
-        >
-          <ArrowLeft className="h-4 w-4 mr-2" />
-          Back
-        </Button>
+        <div className="flex items-center justify-between mb-6">
+          <Button
+            variant="ghost"
+            onClick={() => navigate(-1)}
+          >
+            <ArrowLeft className="h-4 w-4 mr-2" />
+            Back
+          </Button>
+          
+          {purposeHistory.length >= 2 && (
+            <Button onClick={refinePurpose} disabled={isRefining}>
+              {isRefining ? (
+                <>
+                  <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                  Refining...
+                </>
+              ) : (
+                <>
+                  <Sparkles className="mr-2 h-4 w-4" />
+                  Refine from Constellation
+                </>
+              )}
+            </Button>
+          )}
+        </div>
 
         <div className="mb-8">
           <h1 className="text-4xl font-bold text-foreground mb-2">
@@ -141,10 +242,83 @@ export default function PurposeEvolution() {
             <CardContent>
               <p className="text-lg font-medium text-foreground">{currentPurpose}</p>
             </CardContent>
-          </Card>
-        )}
+        </Card>
+      )}
 
-        {/* AI Insights */}
+      {/* Purpose Refinement Suggestions */}
+      {refinement && (
+        <Card className="p-6 mb-8 border-primary/20 bg-gradient-to-br from-primary/5 to-transparent">
+          <div className="flex items-center gap-2 mb-4">
+            <Sparkles className="h-5 w-5 text-primary" />
+            <h2 className="text-xl font-semibold">AI-Refined Purpose Suggestions</h2>
+          </div>
+          
+          {refinement.growth_indicators.length > 0 && (
+            <div className="mb-6 p-4 bg-muted/50 rounded-lg">
+              <h3 className="font-medium mb-2">Growth Indicators</h3>
+              <ul className="space-y-1">
+                {refinement.growth_indicators.map((indicator, i) => (
+                  <li key={i} className="text-sm text-muted-foreground">• {indicator}</li>
+                ))}
+              </ul>
+            </div>
+          )}
+
+          <div className="space-y-6">
+            {refinement.refined_purposes.map((refined, index) => (
+              <Card key={index} className="p-4 border-border/50">
+                <div className="flex items-start justify-between gap-4 mb-3">
+                  <div className="flex-1">
+                    <div className="flex items-center gap-2 mb-2">
+                      <h3 className="font-semibold">Option {index + 1}</h3>
+                      <Badge variant="secondary">{refined.alignment_score}% aligned</Badge>
+                    </div>
+                    <p className="text-lg mb-2">{refined.statement}</p>
+                  </div>
+                  <Button 
+                    size="sm" 
+                    onClick={() => adoptPurpose(refined.statement)}
+                    disabled={isSaving}
+                  >
+                    {isSaving ? (
+                      <Loader2 className="h-4 w-4 animate-spin" />
+                    ) : (
+                      <>
+                        <Check className="mr-1 h-4 w-4" />
+                        Adopt
+                      </>
+                    )}
+                  </Button>
+                </div>
+                
+                <p className="text-sm text-muted-foreground mb-3">{refined.rationale}</p>
+                
+                {refined.key_additions.length > 0 && (
+                  <div className="mt-3 pt-3 border-t border-border/50">
+                    <p className="text-xs font-medium text-muted-foreground mb-1">New Elements:</p>
+                    <div className="flex flex-wrap gap-1">
+                      {refined.key_additions.map((addition, i) => (
+                        <Badge key={i} variant="outline" className="text-xs">
+                          {addition}
+                        </Badge>
+                      ))}
+                    </div>
+                  </div>
+                )}
+              </Card>
+            ))}
+          </div>
+
+          {refinement.integration_suggestions && (
+            <div className="mt-6 p-4 bg-muted/30 rounded-lg">
+              <h3 className="font-medium mb-2">Integration Suggestions</h3>
+              <p className="text-sm text-muted-foreground">{refinement.integration_suggestions}</p>
+            </div>
+          )}
+        </Card>
+      )}
+
+      {/* AI Insights */}
         {analyzingInsights ? (
           <Card className="mb-8">
             <CardContent className="py-8 flex items-center justify-center gap-3">
