@@ -5,10 +5,12 @@ import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
-import { ArrowLeft, ChevronDown, ChevronUp, Sparkles, Target, AlertCircle } from "lucide-react";
+import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
+import { ArrowLeft, ChevronDown, ChevronUp, Sparkles, Target, AlertCircle, MessageCircle } from "lucide-react";
 import { toast } from "sonner";
 import { useShadowEncounters } from "@/hooks/useShadowEncounters";
 import { motion, AnimatePresence } from "framer-motion";
+import { VoiceRecorder } from "@/components/VoiceRecorder";
 
 const mentorNames: Record<string, string> = {
   mamba_mentor: "Mamba Mentor",
@@ -59,6 +61,10 @@ const CouncilMeeting = () => {
   const [futureSelfInterruption, setFutureSelfInterruption] = useState("");
   const [resolution, setResolution] = useState("");
   const [loading, setLoading] = useState(false);
+  const [selectedQuestion, setSelectedQuestion] = useState<string | null>(null);
+  const [answerDialogOpen, setAnswerDialogOpen] = useState(false);
+  const [questionTier, setQuestionTier] = useState<number>(1);
+  const [voiceUrl, setVoiceUrl] = useState<string>("");
 
   const toggleExpand = (mentorType: string) => {
     setExpandedMentors((prev) => {
@@ -112,6 +118,8 @@ const CouncilMeeting = () => {
         setEmotionalTone(data.emotionalTone || "");
         setDetectedPattern(data.detectedPattern);
         setPatternCount(data.patternCount);
+        setQuestionTier(data.questionTier || 1);
+        setQuestion(""); // Clear input for next response
         toast.info("The Council seeks to understand deeper...");
       } else {
         // Complete response
@@ -166,6 +174,21 @@ const CouncilMeeting = () => {
     setResolution("");
     setConversationHistory([]);
     setExpandedMentors(new Set());
+    setSelectedQuestion(null);
+    setAnswerDialogOpen(false);
+    setQuestionTier(1);
+    setVoiceUrl("");
+  };
+
+  const handleQuestionSelect = (q: string) => {
+    setSelectedQuestion(q);
+    setAnswerDialogOpen(true);
+  };
+
+  const handleVoiceTranscription = (text: string, audioUrl: string) => {
+    setQuestion(text);
+    setVoiceUrl(audioUrl);
+    toast.success("Voice transcribed - ready to send");
   };
 
   return (
@@ -257,7 +280,7 @@ const CouncilMeeting = () => {
           </motion.div>
         )}
 
-        {/* Clarifying Questions Stage */}
+        {/* Clarifying Questions Stage - Tap to Answer */}
         {stage === 'clarifying' && clarifyingQuestions.length > 0 && (
           <motion.div
             initial={{ opacity: 0, scale: 0.95 }}
@@ -268,26 +291,89 @@ const CouncilMeeting = () => {
                 <CardTitle className="text-lg flex items-center gap-2">
                   <Target className="w-5 h-5 text-accent" />
                   The Council Seeks Clarity
+                  <Badge variant="outline" className="ml-auto text-xs">
+                    Tier {questionTier}
+                  </Badge>
                 </CardTitle>
               </CardHeader>
               <CardContent className="space-y-3">
                 <p className="text-sm text-muted-foreground">
-                  Before offering guidance, we need to understand your intention deeper:
+                  {questionTier === 1 && "Let's start with something simple:"}
+                  {questionTier === 2 && "Now, let's dig a bit deeper:"}
+                  {questionTier === 3 && "You're ready for deeper insight. Answer this:"}
                 </p>
                 <div className="space-y-2">
                   {clarifyingQuestions.map((q, idx) => (
-                    <div key={idx} className="p-3 rounded-lg bg-muted/50 border-l-4 border-accent">
-                      <p className="text-sm font-medium">{q}</p>
-                    </div>
+                    <motion.button
+                      key={idx}
+                      whileHover={{ scale: 1.02 }}
+                      whileTap={{ scale: 0.98 }}
+                      onClick={() => handleQuestionSelect(q)}
+                      className="w-full p-4 rounded-lg bg-gradient-to-r from-accent/10 to-primary/10 border-2 border-accent/30 hover:border-accent/60 transition-all text-left group"
+                    >
+                      <div className="flex items-start gap-3">
+                        <MessageCircle className="w-5 h-5 text-accent mt-0.5 group-hover:scale-110 transition-transform" />
+                        <p className="text-sm font-medium flex-1">{q}</p>
+                      </div>
+                    </motion.button>
                   ))}
                 </div>
-                <p className="text-xs text-muted-foreground italic">
-                  Answer the question above to continue the conversation...
+                <p className="text-xs text-muted-foreground italic flex items-center gap-2">
+                  <span>👆</span> Tap a question to answer it
                 </p>
               </CardContent>
             </Card>
           </motion.div>
         )}
+
+        {/* Answer Dialog */}
+        <Dialog open={answerDialogOpen} onOpenChange={setAnswerDialogOpen}>
+          <DialogContent className="max-w-2xl">
+            <DialogHeader>
+              <DialogTitle className="text-lg">Your Answer</DialogTitle>
+            </DialogHeader>
+            <div className="space-y-4">
+              {selectedQuestion && (
+                <div className="p-3 rounded-lg bg-muted/50 border-l-4 border-accent">
+                  <p className="text-sm font-medium">{selectedQuestion}</p>
+                </div>
+              )}
+              <Textarea
+                placeholder="Type your answer here..."
+                value={question}
+                onChange={(e) => setQuestion(e.target.value)}
+                rows={6}
+                className="resize-none"
+              />
+              <div className="flex items-center justify-between gap-3 pt-2">
+                <VoiceRecorder 
+                  onTranscription={handleVoiceTranscription}
+                  disabled={loading}
+                />
+                <div className="flex gap-2">
+                  <Button
+                    variant="outline"
+                    onClick={() => {
+                      setAnswerDialogOpen(false);
+                      setQuestion("");
+                    }}
+                  >
+                    Cancel
+                  </Button>
+                  <Button
+                    onClick={() => {
+                      setAnswerDialogOpen(false);
+                      handleAsk(true);
+                    }}
+                    disabled={loading || !question.trim()}
+                  >
+                    Submit Answer
+                  </Button>
+                </div>
+              </div>
+            </div>
+          </DialogContent>
+        </Dialog>
 
         {/* Mentor Answers (Complete Stage) */}
         {stage === 'complete' && Object.keys(answers).length > 0 && (
