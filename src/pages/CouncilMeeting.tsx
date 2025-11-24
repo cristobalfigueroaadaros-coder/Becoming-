@@ -458,7 +458,7 @@ const CouncilMeeting = () => {
               </h2>
               {Object.entries(answers).map(([mentorType, answer]) => {
                 const isExpanded = expandedMentors.has(mentorType);
-                const answerObj = typeof answer === 'object' ? answer : { short: answer, expanded: answer };
+                const answerObj = typeof answer === 'object' ? answer : { emotional: answer, practical: [answer] };
                 
                 return (
                   <Card key={mentorType} className="border-l-4 border-l-primary/50 overflow-hidden">
@@ -472,42 +472,61 @@ const CouncilMeeting = () => {
                         )}
                       </CardTitle>
                     </CardHeader>
-                    <CardContent className="space-y-3">
-                      <p className="text-sm sm:text-base leading-relaxed font-medium">
-                        {answerObj.short}
-                      </p>
+                    <CardContent className="space-y-4">
+                      {/* Emotional Guidance Layer */}
+                      <div className="space-y-2">
+                        <div className="flex items-center gap-2">
+                          <span className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">
+                            💭 Emotional Guidance
+                          </span>
+                        </div>
+                        <p className="text-sm sm:text-base leading-relaxed font-medium text-foreground/90">
+                          {answerObj.emotional}
+                        </p>
+                      </div>
                       
-                      <AnimatePresence>
-                        {isExpanded && answerObj.expanded !== answerObj.short && (
-                          <motion.div
-                            initial={{ height: 0, opacity: 0 }}
-                            animate={{ height: "auto", opacity: 1 }}
-                            exit={{ height: 0, opacity: 0 }}
-                            transition={{ duration: 0.3 }}
-                          >
-                            <div className="pt-3 border-t border-border/50">
-                              <p className="text-sm leading-relaxed text-muted-foreground">
-                                {answerObj.expanded}
-                              </p>
-                            </div>
-                          </motion.div>
-                        )}
-                      </AnimatePresence>
-                      
-                      {answerObj.expanded !== answerObj.short && (
-                        <Button
-                          variant="ghost"
-                          size="sm"
-                          onClick={() => toggleExpand(mentorType)}
-                          className="w-full text-xs"
-                        >
-                          {isExpanded ? (
-                            <><ChevronUp className="w-3 h-3 mr-1" />Show less</>
-                          ) : (
-                            <><ChevronDown className="w-3 h-3 mr-1" />Expand deeper wisdom</>
+                      {/* Practical Action Layer */}
+                      {answerObj.practical && answerObj.practical.length > 0 && (
+                        <AnimatePresence>
+                          {isExpanded && (
+                            <motion.div
+                              initial={{ height: 0, opacity: 0 }}
+                              animate={{ height: "auto", opacity: 1 }}
+                              exit={{ height: 0, opacity: 0 }}
+                              transition={{ duration: 0.3 }}
+                            >
+                              <div className="pt-3 border-t border-border/50 space-y-3">
+                                <div className="flex items-center gap-2">
+                                  <span className="text-xs font-semibold uppercase tracking-wider text-accent">
+                                    ⚡ Practical Action
+                                  </span>
+                                </div>
+                                <ul className="space-y-2">
+                                  {answerObj.practical.map((step: string, idx: number) => (
+                                    <li key={idx} className="flex items-start gap-2 text-sm text-muted-foreground">
+                                      <span className="text-accent font-bold mt-0.5">•</span>
+                                      <span className="flex-1">{step}</span>
+                                    </li>
+                                  ))}
+                                </ul>
+                              </div>
+                            </motion.div>
                           )}
-                        </Button>
+                        </AnimatePresence>
                       )}
+                      
+                      <Button
+                        variant="ghost"
+                        size="sm"
+                        onClick={() => toggleExpand(mentorType)}
+                        className="w-full text-xs"
+                      >
+                        {isExpanded ? (
+                          <><ChevronUp className="w-3 h-3 mr-1" />Hide Action Steps</>
+                        ) : (
+                          <><ChevronDown className="w-3 h-3 mr-1" />Show Action Steps</>
+                        )}
+                      </Button>
                     </CardContent>
                   </Card>
                 );
