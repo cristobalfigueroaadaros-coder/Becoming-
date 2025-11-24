@@ -257,6 +257,51 @@ export type Database = {
         }
         Relationships: []
       }
+      creation_projects: {
+        Row: {
+          completed_at: string | null
+          created_at: string
+          description: string
+          dot_connections: Json
+          first_step: string
+          id: string
+          impact: string | null
+          progress_notes: string | null
+          status: string
+          title: string
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          completed_at?: string | null
+          created_at?: string
+          description: string
+          dot_connections?: Json
+          first_step: string
+          id?: string
+          impact?: string | null
+          progress_notes?: string | null
+          status?: string
+          title: string
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          completed_at?: string | null
+          created_at?: string
+          description?: string
+          dot_connections?: Json
+          first_step?: string
+          id?: string
+          impact?: string | null
+          progress_notes?: string | null
+          status?: string
+          title?: string
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
       current_challenge: {
         Row: {
           challenge_description: string
@@ -451,6 +496,39 @@ export type Database = {
           id?: string
           mentor_type?: Database["public"]["Enums"]["mentor_type"]
           message?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
+      dot_analysis_history: {
+        Row: {
+          connections: Json
+          created_at: string
+          emerging_genius: string | null
+          id: string
+          next_steps: Json
+          patterns: Json
+          stats: Json
+          user_id: string
+        }
+        Insert: {
+          connections?: Json
+          created_at?: string
+          emerging_genius?: string | null
+          id?: string
+          next_steps?: Json
+          patterns?: Json
+          stats?: Json
+          user_id: string
+        }
+        Update: {
+          connections?: Json
+          created_at?: string
+          emerging_genius?: string | null
+          id?: string
+          next_steps?: Json
+          patterns?: Json
+          stats?: Json
           user_id?: string
         }
         Relationships: []
