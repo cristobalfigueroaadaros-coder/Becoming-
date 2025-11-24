@@ -75,12 +75,31 @@ For each pattern you identify, provide:
 - A clear, insightful explanation of the connection (2-3 sentences)
 - Which entries are connected (by their indices in the array)
 - The pattern type: "theme", "strength", "purpose", "trend", or "opportunity"
+- ACTIONABLE RECOMMENDATIONS: Specific suggestions for challenges, practices, or focus areas
 
-Return your analysis as a JSON array of connections. Each connection should have:
+Return your analysis as a JSON object with this structure:
 {
-  "insight": "Your insightful explanation of the pattern",
-  "entry_indices": [0, 2, 5],
-  "pattern_type": "theme" | "strength" | "purpose" | "trend" | "opportunity"
+  "connections": [
+    {
+      "insight": "Your insightful explanation of the pattern",
+      "entry_indices": [0, 2, 5],
+      "pattern_type": "theme" | "strength" | "purpose" | "trend" | "opportunity",
+      "recommended_actions": ["Specific action 1", "Specific action 2"]
+    }
+  ],
+  "summary": {
+    "dominant_themes": ["theme1", "theme2"],
+    "emerging_strengths": ["strength1", "strength2"],
+    "growth_direction": "One sentence about where they're heading",
+    "priority_focus": "The single most important area to focus on next"
+  },
+  "challenge_suggestions": [
+    {
+      "title": "Challenge title",
+      "description": "Why this challenge based on their patterns",
+      "related_pattern": "Which insight/theme this connects to"
+    }
+  ]
 }
 
 Be specific, encouraging, and help the user see their evolution in a new light.`;
@@ -113,18 +132,15 @@ Be specific, encouraging, and help the user see their evolution in a new light.`
     const aiData = await aiResponse.json();
     const analysisText = aiData.choices[0].message.content;
     
-    let parsedConnections;
+    let analysisResult;
     try {
-      const parsed = JSON.parse(analysisText);
-      parsedConnections = parsed.connections || parsed;
-      if (!Array.isArray(parsedConnections)) {
-        parsedConnections = [parsedConnections];
-      }
+      analysisResult = JSON.parse(analysisText);
     } catch (e) {
       console.error('Failed to parse AI response:', analysisText);
       throw new Error('Invalid AI response format');
     }
 
+    const parsedConnections = analysisResult.connections || [];
     console.log(`AI identified ${parsedConnections.length} patterns`);
 
     // Save connections to database
@@ -136,7 +152,7 @@ Be specific, encouraging, and help the user see their evolution in a new light.`
         connection_insight: conn.insight,
         pattern_type: conn.pattern_type,
       }))
-      .filter((conn: any) => conn.entry_ids.length >= 2); // Only save connections with at least 2 valid entries
+      .filter((conn: any) => conn.entry_ids.length >= 2);
 
     if (connectionsToInsert.length > 0) {
       const { error: insertError } = await supabase
@@ -151,10 +167,36 @@ Be specific, encouraging, and help the user see their evolution in a new light.`
       console.log(`Saved ${connectionsToInsert.length} connections to database`);
     }
 
+    // Save actionable insights for use in other systems
+    if (analysisResult.summary || analysisResult.challenge_suggestions) {
+      const insightsPayload = {
+        user_id: user.id,
+        summary: analysisResult.summary,
+        challenge_suggestions: analysisResult.challenge_suggestions,
+        connections: parsedConnections.map((c: any) => ({
+          insight: c.insight,
+          pattern_type: c.pattern_type,
+          actions: c.recommended_actions
+        })),
+        generated_at: new Date().toISOString()
+      };
+
+      // Store in a JSONB column on profiles or create dedicated table
+      await supabase
+        .from('profiles')
+        .update({ 
+          constellation_insights: insightsPayload 
+        })
+        .eq('id', user.id);
+    }
+
     return new Response(
       JSON.stringify({
         success: true,
         connections: connectionsToInsert,
+        summary: analysisResult.summary,
+        challenge_suggestions: analysisResult.challenge_suggestions,
+        recommended_actions: parsedConnections.flatMap((c: any) => c.recommended_actions || [])
       }),
       { headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
     );

@@ -10,6 +10,7 @@ import { ConstellationSystem } from "@/components/ConstellationSystem";
 import { ConstellationCanvas } from "@/components/ConstellationCanvas";
 import { ConstellationTimeline } from "@/components/ConstellationTimeline";
 import { PurposeOnboardingModal } from "@/components/PurposeOnboardingModal";
+import { ConstellationRecommendations } from "@/components/ConstellationRecommendations";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -124,6 +125,8 @@ const ConstellationPage = () => {
   const [purposeAlignments, setPurposeAlignments] = useState<any[]>([]);
   const [showPurposeView, setShowPurposeView] = useState(false);
   const [analyzingPurpose, setAnalyzingPurpose] = useState(false);
+  const [constellationSummary, setConstellationSummary] = useState<any>(null);
+  const [recommendedActions, setRecommendedActions] = useState<any[]>([]);
 
   useEffect(() => {
     loadAllData();
@@ -177,6 +180,15 @@ const ConstellationPage = () => {
         toast.success(`Discovered ${data.connections.length} new connections!`, {
           description: "AI found meaningful patterns in your journey"
         });
+        
+        // Store the insights
+        if (data.summary) {
+          setConstellationSummary(data.summary);
+        }
+        if (data.recommended_actions) {
+          setRecommendedActions(data.recommended_actions);
+        }
+        
         loadAllData(); // Reload to show new connections
       } else {
         toast.info("No new connections found", {
@@ -539,6 +551,23 @@ const ConstellationPage = () => {
                 </CardContent>
               </Card>
             </motion.div>
+          )}
+
+          {/* Constellation Recommendations - Show after analysis */}
+          {(constellationSummary || recommendedActions.length > 0) && activeTab !== "add" && (
+            <div className="mb-6">
+              <ConstellationRecommendations 
+                summary={constellationSummary}
+                recommendations={recommendedActions.map((action: string, idx: number) => ({
+                  title: action,
+                  description: "Based on your constellation patterns",
+                  type: idx % 3 === 0 ? "challenge" : idx % 3 === 1 ? "focus" : "practice"
+                }))}
+                onActionClick={(rec) => {
+                  toast.info("Creating challenge from recommendation...");
+                }}
+              />
+            </div>
           )}
 
           <TabsContent value="add" className="mt-0">

@@ -15,6 +15,7 @@ import { useProfileBadges } from "@/hooks/useProfileBadges";
 import { PurposeOnboardingModal } from "@/components/PurposeOnboardingModal";
 import { CurrentChallengeCard } from "@/components/CurrentChallengeCard";
 import { TodaysChallengeWidget } from "@/components/TodaysChallengeWidget";
+import { ConstellationRecommendations } from "@/components/ConstellationRecommendations";
 import { History } from "lucide-react";
 
 const mentorIcons = {
@@ -76,11 +77,13 @@ const Dashboard = () => {
   const userBadges = getUserBadgesWithDetails();
   const [purposeModalOpen, setPurposeModalOpen] = useState(false);
   const [userPurpose, setUserPurpose] = useState<string | null>(null);
+  const [constellationInsights, setConstellationInsights] = useState<any>(null);
 
   useEffect(() => {
     loadDashboardData();
     checkRitualStatus();
     checkPurposeStatus();
+    loadConstellationInsights();
   }, []);
 
   const loadDashboardData = async () => {
@@ -233,6 +236,25 @@ const Dashboard = () => {
       }
     } catch (error: any) {
       console.error("Error checking purpose status:", error);
+    }
+  };
+
+  const loadConstellationInsights = async () => {
+    try {
+      const { data: { user } } = await supabase.auth.getUser();
+      if (!user) return;
+
+      const { data: profile } = await supabase
+        .from("profiles")
+        .select("constellation_insights")
+        .eq("id", user.id)
+        .single();
+
+      if (profile?.constellation_insights) {
+        setConstellationInsights(profile.constellation_insights);
+      }
+    } catch (error: any) {
+      console.error("Error loading constellation insights:", error);
     }
   };
 
@@ -400,6 +422,19 @@ const Dashboard = () => {
             <TodaysChallengeWidget />
           </div>
         </div>
+
+        {/* Constellation Insights */}
+        {constellationInsights && (
+          <ConstellationRecommendations
+            summary={constellationInsights.summary}
+            recommendations={constellationInsights.challenge_suggestions}
+            onActionClick={(rec) => {
+              toast.info(`Opening: ${rec.title}`);
+              navigate("/constellation");
+            }}
+            compact={false}
+          />
+        )}
 
         {/* Action Buttons Row */}
         <div className="grid md:grid-cols-2 gap-4">
