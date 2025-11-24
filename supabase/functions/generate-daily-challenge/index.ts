@@ -42,14 +42,15 @@ serve(async (req) => {
       );
     }
 
-    // Gather context data
-    const [currentChallengeResult, profileResult, domainsResult, recentDotsResult, recentTasksResult, shadowsResult] = await Promise.all([
+    // Gather context data including constellation insights
+    const [currentChallengeResult, profileResult, domainsResult, recentDotsResult, recentTasksResult, shadowsResult, constellationResult] = await Promise.all([
       supabaseClient.from("current_challenge").select("*").eq("user_id", user.id).order("created_at", { ascending: false }).limit(1).single(),
-      supabaseClient.from("profiles").select("main_mission, purpose_path, human_design_data").eq("id", user.id).single(),
+      supabaseClient.from("profiles").select("main_mission, purpose_path, human_design_data, constellation_insights").eq("id", user.id).single(),
       supabaseClient.from("life_domains").select("*").eq("user_id", user.id).order("current_score", { ascending: true }).limit(3),
       supabaseClient.from("insight_dots").select("*").eq("user_id", user.id).order("created_at", { ascending: false }).limit(10),
       supabaseClient.from("tasks").select("*").eq("user_id", user.id).eq("status", "completed").order("created_at", { ascending: false }).limit(5),
-      supabaseClient.from("shadow_encounters").select("*").eq("user_id", user.id).order("created_at", { ascending: false }).limit(3)
+      supabaseClient.from("shadow_encounters").select("*").eq("user_id", user.id).order("created_at", { ascending: false }).limit(3),
+      supabaseClient.from("constellation_connections").select("*").eq("user_id", user.id).order("created_at", { ascending: false }).limit(5)
     ]);
 
     const currentChallenge = currentChallengeResult.data;
@@ -58,6 +59,8 @@ serve(async (req) => {
     const recentDots = recentDotsResult.data || [];
     const recentTasks = recentTasksResult.data || [];
     const shadows = shadowsResult.data || [];
+    const constellationPatterns = constellationResult.data || [];
+    const constellationInsights = profile?.constellation_insights as any;
 
     // Build AI prompt
     let systemPrompt = `You are a purpose-aligned challenge generator. Create ONE specific, actionable daily challenge that helps the user move forward.
@@ -122,6 +125,29 @@ IMPORTANT: Generate a challenge that helps them take one small step into or thro
       userPrompt += `\n\nRECENT SHADOW WORK:`;
       shadows.forEach(shadow => {
         userPrompt += `\n- ${shadow.shadow_name}: ${shadow.shadow_statement}`;
+      });
+    }
+
+    // CONSTELLATION INTELLIGENCE - Priority information
+    if (constellationInsights?.summary) {
+      userPrompt += `\n\n🌟 CONSTELLATION INSIGHTS (HIGH PRIORITY - Use this to guide challenge):`;
+      userPrompt += `\nDominant Themes: ${constellationInsights.summary.dominant_themes?.join(', ')}`;
+      userPrompt += `\nEmerging Strengths: ${constellationInsights.summary.emerging_strengths?.join(', ')}`;
+      userPrompt += `\nGrowth Direction: ${constellationInsights.summary.growth_direction}`;
+      userPrompt += `\nPriority Focus: ${constellationInsights.summary.priority_focus}`;
+      
+      if (constellationInsights.challenge_suggestions?.length > 0) {
+        userPrompt += `\n\nRECOMMENDED CHALLENGES FROM CONSTELLATION:`;
+        constellationInsights.challenge_suggestions.slice(0, 2).forEach((suggestion: any) => {
+          userPrompt += `\n- ${suggestion.title}: ${suggestion.description}`;
+        });
+      }
+    }
+
+    if (constellationPatterns.length > 0) {
+      userPrompt += `\n\nRECENT PATTERN DISCOVERIES:`;
+      constellationPatterns.slice(0, 3).forEach(pattern => {
+        userPrompt += `\n- ${pattern.pattern_type}: ${pattern.connection_insight}`;
       });
     }
 
