@@ -37,6 +37,7 @@ import MappingDotsPage from "./pages/MappingDotsPage";
 import DailyPortal from "./pages/DailyPortal";
 import ChallengeHistory from "./pages/ChallengeHistory";
 import ChallengeReports from "./pages/ChallengeReports";
+import DotConnectionEngine from "./pages/DotConnectionEngine";
 
 const queryClient = new QueryClient();
 
@@ -235,6 +236,10 @@ const App = () => {
             <Route
               path="/challenge-reports"
               element={session ? <ChallengeReports /> : <Navigate to="/auth" />}
+            />
+            <Route
+              path="/dot-connection-engine"
+              element={session ? <DotConnectionEngine /> : <Navigate to="/auth" />}
             />
             <Route path="*" element={<NotFound />} />
           </Routes>
