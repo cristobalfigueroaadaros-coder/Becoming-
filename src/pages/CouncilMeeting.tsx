@@ -65,6 +65,9 @@ const CouncilMeeting = () => {
   const [answerDialogOpen, setAnswerDialogOpen] = useState(false);
   const [questionTier, setQuestionTier] = useState<number>(1);
   const [voiceUrl, setVoiceUrl] = useState<string>("");
+  const [clarifyingAnswers, setClarifyingAnswers] = useState<Record<string, string>>({});
+  const [currentAnswer, setCurrentAnswer] = useState("");
+  const [readyForAction, setReadyForAction] = useState(false);
 
   const toggleExpand = (mentorType: string) => {
     setExpandedMentors((prev) => {
@@ -178,17 +181,71 @@ const CouncilMeeting = () => {
     setAnswerDialogOpen(false);
     setQuestionTier(1);
     setVoiceUrl("");
+    setClarifyingAnswers({});
+    setCurrentAnswer("");
+    setReadyForAction(false);
+  };
+
+  const continueAsking = () => {
+    setStage('input');
+    setQuestion("");
+    setAnswers({});
+    setMirrorBack("");
+    setEmotionalTone("");
+    setBanter("");
+    setFutureSelfInterruption("");
+    setResolution("");
+    setExpandedMentors(new Set());
+    setReadyForAction(false);
+    // Keep conversation history and detected patterns
   };
 
   const handleQuestionSelect = (q: string) => {
     setSelectedQuestion(q);
+    setCurrentAnswer(clarifyingAnswers[q] || "");
     setAnswerDialogOpen(true);
   };
 
   const handleVoiceTranscription = (text: string, audioUrl: string) => {
-    setQuestion(text);
+    setCurrentAnswer(text);
     setVoiceUrl(audioUrl);
     toast.success("Voice transcribed - ready to send");
+  };
+
+  const submitClarifyingAnswer = async () => {
+    if (!selectedQuestion || !currentAnswer.trim()) return;
+    
+    // Store this answer independently
+    const updatedAnswers = {
+      ...clarifyingAnswers,
+      [selectedQuestion]: currentAnswer.trim()
+    };
+    setClarifyingAnswers(updatedAnswers);
+    
+    // Save to database as independent data point
+    try {
+      const { data: { user } } = await supabase.auth.getUser();
+      if (user) {
+        await supabase.from("insight_dots").insert({
+          user_id: user.id,
+          source_type: "council_clarification",
+          core_theme: "Clarity Question",
+          insight_text: `Q: ${selectedQuestion}\nA: ${currentAnswer.trim()}`,
+          emotional_tone: emotionalTone || "reflective",
+          skill_tags: ["self_reflection", "clarity"]
+        });
+      }
+    } catch (error) {
+      console.error("Error saving clarifying answer:", error);
+    }
+    
+    // Close dialog and continue conversation
+    setAnswerDialogOpen(false);
+    setQuestion(currentAnswer.trim());
+    setCurrentAnswer("");
+    
+    // Continue the conversation with this answer
+    handleAsk(true);
   };
 
   return (
@@ -340,8 +397,8 @@ const CouncilMeeting = () => {
               )}
               <Textarea
                 placeholder="Type your answer here..."
-                value={question}
-                onChange={(e) => setQuestion(e.target.value)}
+                value={currentAnswer}
+                onChange={(e) => setCurrentAnswer(e.target.value)}
                 rows={6}
                 className="resize-none"
               />
@@ -355,17 +412,14 @@ const CouncilMeeting = () => {
                     variant="outline"
                     onClick={() => {
                       setAnswerDialogOpen(false);
-                      setQuestion("");
+                      setCurrentAnswer("");
                     }}
                   >
                     Cancel
                   </Button>
                   <Button
-                    onClick={() => {
-                      setAnswerDialogOpen(false);
-                      handleAsk(true);
-                    }}
-                    disabled={loading || !question.trim()}
+                    onClick={submitClarifyingAnswer}
+                    disabled={loading || !currentAnswer.trim()}
                   >
                     Submit Answer
                   </Button>
@@ -516,18 +570,75 @@ const CouncilMeeting = () => {
               </div>
             )}
 
-            {/* Action Buttons */}
-            <div className="flex flex-col sm:flex-row gap-3 pt-2">
-              <Button onClick={() => navigate("/my-tasks")} className="flex-1" size="lg">
-                View Tasks
-              </Button>
-              <Button onClick={() => navigate("/future-self/constellation")} variant="outline" className="flex-1">
-                View Mapping Dots
-              </Button>
-              <Button onClick={resetConversation} variant="outline" className="flex-1">
-                New Question
-              </Button>
-            </div>
+            {/* Gentle Action Prompt */}
+            {!readyForAction && (
+              <motion.div
+                initial={{ opacity: 0, y: 10 }}
+                animate={{ opacity: 1, y: 0 }}
+              >
+                <Card className="border-2 border-accent/30 bg-gradient-to-br from-accent/5 to-transparent">
+                  <CardContent className="pt-6 space-y-4">
+                    <p className="text-sm text-muted-foreground italic text-center">
+                      💭 When you feel ready, we can turn this clarity into action...
+                    </p>
+                    <div className="flex flex-col sm:flex-row gap-3">
+                      <Button 
+                        onClick={continueAsking} 
+                        variant="outline" 
+                        className="flex-1"
+                        size="lg"
+                      >
+                        <MessageCircle className="w-4 h-4 mr-2" />
+                        Keep Asking
+                      </Button>
+                      <Button 
+                        onClick={() => setReadyForAction(true)} 
+                        className="flex-1"
+                        size="lg"
+                      >
+                        <Target className="w-4 h-4 mr-2" />
+                        I'm Ready for Action
+                      </Button>
+                    </div>
+                  </CardContent>
+                </Card>
+              </motion.div>
+            )}
+
+            {/* Action Phase - Only After Confirmation */}
+            {readyForAction && (
+              <motion.div
+                initial={{ opacity: 0, scale: 0.95 }}
+                animate={{ opacity: 1, scale: 1 }}
+                className="space-y-3"
+              >
+                <Card className="border-2 border-primary/50 bg-gradient-to-br from-primary/10 to-accent/10">
+                  <CardHeader>
+                    <CardTitle className="flex items-center gap-2">
+                      <Sparkles className="w-5 h-5 text-primary" />
+                      Ready to Take Action
+                    </CardTitle>
+                  </CardHeader>
+                  <CardContent>
+                    <p className="text-sm text-muted-foreground mb-4">
+                      Your clarity has been captured. View your personalized tasks or explore the insights mapped in your constellation.
+                    </p>
+                    <div className="flex flex-col sm:flex-row gap-3">
+                      <Button onClick={() => navigate("/my-tasks")} className="flex-1" size="lg">
+                        <Target className="w-4 h-4 mr-2" />
+                        View My Tasks
+                      </Button>
+                      <Button onClick={() => navigate("/future-self/constellation")} variant="outline" className="flex-1">
+                        View Mapping Dots
+                      </Button>
+                    </div>
+                  </CardContent>
+                </Card>
+                <Button onClick={resetConversation} variant="ghost" className="w-full">
+                  Start Fresh Conversation
+                </Button>
+              </motion.div>
+            )}
           </div>
         )}
       </div>
