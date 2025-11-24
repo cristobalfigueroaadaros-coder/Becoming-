@@ -17,6 +17,7 @@ import { Badge } from './ui/badge';
 import { BookOpen, Lightbulb, Target, Heart, Sparkles, Star, BookMarked, Brain, Smile, Layers, TrendingUp } from 'lucide-react';
 import { detectClusters, getClusterForNode, type Cluster } from '@/lib/clusterDetection';
 import { ScrollArea } from './ui/scroll-area';
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from './ui/dialog';
 
 interface InsightDot {
   id: string;
@@ -158,6 +159,7 @@ export const ConstellationCanvas = ({
   const [nodes, setNodes, onNodesChange] = useNodesState([]);
   const [edges, setEdges, onEdgesChange] = useEdgesState([]);
   const [selectedCluster, setSelectedCluster] = useState<string | null>(null);
+  const [selectedConnection, setSelectedConnection] = useState<DotConnection | null>(null);
 
   // Detect clusters from connections
   const clusters = useMemo(() => {
@@ -253,6 +255,15 @@ export const ConstellationCanvas = ({
     }
   }, [dots, onDotClick]);
 
+  const onEdgeClick = useCallback((event: React.MouseEvent, edge: Edge) => {
+    const connection = connections.find(c => 
+      `${c.dot_id_1}-${c.dot_id_2}` === edge.id
+    );
+    if (connection) {
+      setSelectedConnection(connection);
+    }
+  }, [connections]);
+
   if (dots.length === 0) {
     return (
       <Card className="p-8 text-center">
@@ -275,6 +286,7 @@ export const ConstellationCanvas = ({
         onNodesChange={onNodesChange}
         onEdgesChange={onEdgesChange}
         onNodeClick={onNodeClick}
+        onEdgeClick={onEdgeClick}
         nodeTypes={nodeTypes}
         connectionLineType={ConnectionLineType.Bezier}
         fitView
@@ -390,6 +402,42 @@ export const ConstellationCanvas = ({
           </Panel>
         )}
       </ReactFlow>
+
+      <Dialog open={!!selectedConnection} onOpenChange={(open) => !open && setSelectedConnection(null)}>
+        <DialogContent className="max-w-2xl">
+          <DialogHeader>
+            <DialogTitle className="flex items-center gap-2">
+              Connection Insight
+              {selectedConnection && (
+                <Badge 
+                  variant="outline" 
+                  style={{ 
+                    borderColor: patternTypeColors[selectedConnection.connection_type],
+                    color: patternTypeColors[selectedConnection.connection_type]
+                  }}
+                >
+                  {selectedConnection.connection_type}
+                </Badge>
+              )}
+            </DialogTitle>
+            <DialogDescription>
+              AI-detected relationship between insights
+            </DialogDescription>
+          </DialogHeader>
+          {selectedConnection && (
+            <div className="space-y-4">
+              <div className="p-4 rounded-lg bg-muted/50">
+                <p className="text-sm leading-relaxed">{selectedConnection.connection_insight}</p>
+              </div>
+              <div className="flex items-center justify-start text-xs text-muted-foreground">
+                <span>
+                  {selectedConnection.ai_generated ? '✨ AI-Generated' : '👤 User-Created'}
+                </span>
+              </div>
+            </div>
+          )}
+        </DialogContent>
+      </Dialog>
     </Card>
   );
 };
