@@ -14,10 +14,14 @@ import {
 import '@xyflow/react/dist/style.css';
 import { Card } from './ui/card';
 import { Badge } from './ui/badge';
-import { BookOpen, Lightbulb, Target, Heart, Sparkles, Star, BookMarked, Brain, Smile, Layers, TrendingUp } from 'lucide-react';
+import { Button } from './ui/button';
+import { Textarea } from './ui/textarea';
+import { BookOpen, Lightbulb, Target, Heart, Sparkles, Star, BookMarked, Brain, Smile, Layers, TrendingUp, Edit, Save, X } from 'lucide-react';
 import { detectClusters, getClusterForNode, type Cluster } from '@/lib/clusterDetection';
 import { ScrollArea } from './ui/scroll-area';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from './ui/dialog';
+import { supabase } from '@/integrations/supabase/client';
+import { useToast } from '@/hooks/use-toast';
 
 interface InsightDot {
   id: string;
@@ -40,6 +44,7 @@ interface DotConnection {
   connection_type: string;
   connection_insight: string;
   ai_generated: boolean;
+  user_notes?: string | null;
 }
 
 interface PurposeAlignment {
@@ -160,6 +165,9 @@ export const ConstellationCanvas = ({
   const [edges, setEdges, onEdgesChange] = useEdgesState([]);
   const [selectedCluster, setSelectedCluster] = useState<string | null>(null);
   const [selectedConnection, setSelectedConnection] = useState<DotConnection | null>(null);
+  const [isEditingNotes, setIsEditingNotes] = useState(false);
+  const [userNotes, setUserNotes] = useState('');
+  const { toast } = useToast();
 
   // Detect clusters from connections
   const clusters = useMemo(() => {
@@ -261,8 +269,43 @@ export const ConstellationCanvas = ({
     );
     if (connection) {
       setSelectedConnection(connection);
+      setUserNotes(connection.user_notes || '');
+      setIsEditingNotes(false);
     }
   }, [connections]);
+
+  const handleSaveNotes = async () => {
+    if (!selectedConnection) return;
+
+    const { error } = await supabase
+      .from('dot_connections')
+      .update({ user_notes: userNotes })
+      .eq('id', selectedConnection.id);
+
+    if (error) {
+      toast({
+        title: "Error saving notes",
+        description: error.message,
+        variant: "destructive"
+      });
+      return;
+    }
+
+    toast({
+      title: "Notes saved",
+      description: "Your perspective has been added to this connection"
+    });
+
+    // Update the local state
+    setSelectedConnection({ ...selectedConnection, user_notes: userNotes });
+    setIsEditingNotes(false);
+  };
+
+  const handleCloseDialog = () => {
+    setSelectedConnection(null);
+    setIsEditingNotes(false);
+    setUserNotes('');
+  };
 
   if (dots.length === 0) {
     return (
@@ -403,7 +446,7 @@ export const ConstellationCanvas = ({
         )}
       </ReactFlow>
 
-      <Dialog open={!!selectedConnection} onOpenChange={(open) => !open && setSelectedConnection(null)}>
+      <Dialog open={!!selectedConnection} onOpenChange={(open) => !open && handleCloseDialog()}>
         <DialogContent className="max-w-2xl">
           <DialogHeader>
             <DialogTitle className="flex items-center gap-2">
@@ -426,13 +469,74 @@ export const ConstellationCanvas = ({
           </DialogHeader>
           {selectedConnection && (
             <div className="space-y-4">
-              <div className="p-4 rounded-lg bg-muted/50">
-                <p className="text-sm leading-relaxed">{selectedConnection.connection_insight}</p>
+              <div className="space-y-2">
+                <div className="flex items-center justify-between">
+                  <span className="text-xs font-medium text-muted-foreground">
+                    {selectedConnection.ai_generated ? '✨ AI Analysis' : '👤 User Connection'}
+                  </span>
+                </div>
+                <div className="p-4 rounded-lg bg-muted/50">
+                  <p className="text-sm leading-relaxed">{selectedConnection.connection_insight}</p>
+                </div>
               </div>
-              <div className="flex items-center justify-start text-xs text-muted-foreground">
-                <span>
-                  {selectedConnection.ai_generated ? '✨ AI-Generated' : '👤 User-Created'}
-                </span>
+
+              <div className="space-y-2">
+                <div className="flex items-center justify-between">
+                  <span className="text-xs font-medium text-muted-foreground">Your Perspective</span>
+                  {!isEditingNotes && (
+                    <Button
+                      variant="ghost"
+                      size="sm"
+                      onClick={() => setIsEditingNotes(true)}
+                      className="h-7 px-2"
+                    >
+                      <Edit className="h-3 w-3 mr-1" />
+                      {selectedConnection.user_notes ? 'Edit' : 'Add Notes'}
+                    </Button>
+                  )}
+                </div>
+
+                {isEditingNotes ? (
+                  <div className="space-y-2">
+                    <Textarea
+                      value={userNotes}
+                      onChange={(e) => setUserNotes(e.target.value)}
+                      placeholder="Add your own insights, observations, or refinements to the AI's analysis..."
+                      className="min-h-[100px] resize-none"
+                    />
+                    <div className="flex items-center gap-2 justify-end">
+                      <Button
+                        variant="ghost"
+                        size="sm"
+                        onClick={() => {
+                          setIsEditingNotes(false);
+                          setUserNotes(selectedConnection.user_notes || '');
+                        }}
+                      >
+                        <X className="h-3 w-3 mr-1" />
+                        Cancel
+                      </Button>
+                      <Button
+                        variant="default"
+                        size="sm"
+                        onClick={handleSaveNotes}
+                      >
+                        <Save className="h-3 w-3 mr-1" />
+                        Save Notes
+                      </Button>
+                    </div>
+                  </div>
+                ) : (
+                  <div className="p-4 rounded-lg bg-background border border-border min-h-[60px]">
+                    {selectedConnection.user_notes ? (
+                      <p className="text-sm leading-relaxed">{selectedConnection.user_notes}</p>
+                    ) : (
+                      <p className="text-sm text-muted-foreground italic">
+                        No notes yet. Add your perspective to refine the AI's understanding.
+                      </p>
+                    )}
+                  </div>
+                )}
               </div>
             </div>
           )}

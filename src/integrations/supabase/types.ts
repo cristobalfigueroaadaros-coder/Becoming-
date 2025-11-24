@@ -420,6 +420,7 @@ export type Database = {
           dot_id_2: string
           id: string
           user_id: string
+          user_notes: string | null
         }
         Insert: {
           ai_generated?: boolean
@@ -430,6 +431,7 @@ export type Database = {
           dot_id_2: string
           id?: string
           user_id: string
+          user_notes?: string | null
         }
         Update: {
           ai_generated?: boolean
@@ -440,6 +442,7 @@ export type Database = {
           dot_id_2?: string
           id?: string
           user_id?: string
+          user_notes?: string | null
         }
         Relationships: [
           {
