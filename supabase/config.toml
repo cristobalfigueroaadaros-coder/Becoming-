@@ -65,3 +65,7 @@ verify_jwt = true
 
 [functions.capture-energetic-moment]
 verify_jwt = true
+
+[functions.future-self-guidance]
+verify_jwt = true
+

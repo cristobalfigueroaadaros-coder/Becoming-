@@ -9,6 +9,7 @@ import { CoherenceRadar } from "@/components/energetic/CoherenceRadar";
 import { FlowStateTracker } from "@/components/energetic/FlowStateTracker";
 import { VibrationPatterns } from "@/components/energetic/VibrationPatterns";
 import { FrequencyMeter } from "@/components/energetic/FrequencyMeter";
+import { EnergyCaptureWidget } from "@/components/energetic/EnergyCaptureWidget";
 import { toast } from "@/hooks/use-toast";
 
 interface EnergeticSnapshot {
@@ -204,6 +205,9 @@ export default function EnergeticDashboard() {
           <FlowStateTracker snapshots={snapshots} />
           <VibrationPatterns snapshots={snapshots} />
         </div>
+
+        {/* Energy Capture Widget */}
+        <EnergyCaptureWidget />
       </div>
     </div>
   );
