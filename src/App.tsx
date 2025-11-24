@@ -35,6 +35,7 @@ import Profile from "./pages/Profile";
 import NotFound from "./pages/NotFound";
 import PurposeDiscoveryFlow from "./pages/PurposeDiscoveryFlow";
 import PurposeEvolution from "./pages/PurposeEvolution";
+import PurposeEvolutionEngine from "./pages/PurposeEvolutionEngine";
 import MappingDotsPage from "./pages/MappingDotsPage";
 import DailyPortal from "./pages/DailyPortal";
 import ChallengeHistory from "./pages/ChallengeHistory";
@@ -238,6 +239,10 @@ const App = () => {
             <Route
               path="/purpose-evolution"
               element={session ? <PurposeEvolution /> : <Navigate to="/auth" />}
+            />
+            <Route
+              path="/purpose-evolution-engine"
+              element={session ? <PurposeEvolutionEngine /> : <Navigate to="/auth" />}
             />
             <Route
               path="/mapping-dots"

@@ -4,7 +4,7 @@ import { motion } from "framer-motion";
 import { supabase } from "@/integrations/supabase/client";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
-import { Brain, Lightbulb, Zap, Trees, Heart, Sparkles, Users, BookOpen, Crown, LogOut, CheckSquare, Briefcase, Palette, Compass, Target, Flag, Ghost, Sunrise, Flame, User, Network, Clock } from "lucide-react";
+import { Brain, Lightbulb, Zap, Trees, Heart, Sparkles, Users, BookOpen, Crown, LogOut, CheckSquare, Briefcase, Palette, Compass, Target, Flag, Ghost, Sunrise, Flame, User, Network, Clock, Telescope } from "lucide-react";
 import { toast } from "sonner";
 import { cn } from "@/lib/utils";
 import { FutureSelfWidget } from "@/components/FutureSelfWidget";
@@ -676,6 +676,27 @@ const Dashboard = () => {
                 <div>
                   <h3 className="font-semibold">Dot Connection Engine</h3>
                   <p className="text-sm text-muted-foreground">Reveal your genius</p>
+                </div>
+              </CardContent>
+            </Card>
+          </motion.div>
+
+          <motion.div
+            whileHover={{ scale: 1.03, y: -4 }}
+            whileTap={{ scale: 0.98 }}
+            transition={{ type: "spring", stiffness: 400, damping: 17 }}
+          >
+            <Card
+              className="cursor-pointer hover:shadow-xl transition-shadow border-2 border-primary/30 bg-gradient-to-br from-primary/10 to-purple-500/10"
+              onClick={() => navigate("/purpose-evolution-engine")}
+            >
+              <CardContent className="p-6 flex items-center gap-4">
+                <div className="w-12 h-12 bg-gradient-to-br from-primary via-purple-500 to-accent rounded-xl flex items-center justify-center">
+                  <Telescope className="w-6 h-6 text-white" />
+                </div>
+                <div>
+                  <h3 className="font-semibold">Purpose Evolution</h3>
+                  <p className="text-sm text-muted-foreground">Refine from your journey</p>
                 </div>
               </CardContent>
             </Card>
