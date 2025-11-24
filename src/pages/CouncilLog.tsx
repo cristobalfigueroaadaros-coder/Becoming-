@@ -110,19 +110,47 @@ const CouncilLog = () => {
                     <div>
                       <p className="font-semibold mb-2">Question:</p>
                       <p className="text-muted-foreground">{meeting.question}</p>
+                      {meeting.emotional_tone && (
+                        <div className="mt-2 flex items-center gap-2">
+                          <span className="text-xs font-medium text-muted-foreground">Emotional Tone:</span>
+                          <span className="text-xs capitalize px-2 py-0.5 rounded-full bg-muted">
+                            {meeting.emotional_tone}
+                          </span>
+                        </div>
+                      )}
+                      {meeting.threshold_moment && (
+                        <div className="mt-2 flex items-center gap-2">
+                          <span className="text-xs font-semibold text-primary">✨ Threshold Moment</span>
+                        </div>
+                      )}
+                      {meeting.pattern_detected && (
+                        <div className="mt-2 flex items-center gap-2">
+                          <span className="text-xs font-medium text-destructive">
+                            🔄 Pattern: {meeting.pattern_detected.replace(/_/g, ' ')}
+                          </span>
+                        </div>
+                      )}
                     </div>
                     
                     {/* Mentor Responses */}
                     <div className="space-y-3">
                       <p className="font-semibold">Responses:</p>
-                      {Object.entries(meeting.answers).map(([mentorType, answer]) => (
-                        <div key={mentorType} className="pl-4 border-l-2 border-primary/20">
-                          <p className="text-sm font-medium text-primary mb-1">
-                            {mentorNames[mentorType]}
-                          </p>
-                          <p className="text-sm text-muted-foreground">{answer as string}</p>
-                        </div>
-                      ))}
+                      {Object.entries(meeting.answers).map(([mentorType, answer]) => {
+                        const answerObj = typeof answer === 'object' && answer !== null 
+                          ? (answer as any) 
+                          : { short: answer };
+                        const displayText = answerObj.short || (typeof answer === 'string' ? answer : JSON.stringify(answer));
+                        return (
+                          <div key={mentorType} className="pl-4 border-l-2 border-primary/20">
+                            <p className="text-sm font-medium text-primary mb-1">
+                              {mentorNames[mentorType]}
+                            </p>
+                            <p className="text-sm text-muted-foreground">
+                              {displayText}
+                            </p>
+                          </div>
+                        );
+                      })}
                     </div>
 
                     {/* Banter Section */}
