@@ -4,7 +4,7 @@ import { motion } from "framer-motion";
 import { supabase } from "@/integrations/supabase/client";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
-import { Brain, Lightbulb, Zap, Trees, Heart, Sparkles, Users, BookOpen, Crown, LogOut, CheckSquare, Briefcase, Palette, Compass, Target, Flag, Ghost, Sunrise, Flame, User, Network } from "lucide-react";
+import { Brain, Lightbulb, Zap, Trees, Heart, Sparkles, Users, BookOpen, Crown, LogOut, CheckSquare, Briefcase, Palette, Compass, Target, Flag, Ghost, Sunrise, Flame, User, Network, Clock } from "lucide-react";
 import { toast } from "sonner";
 import { cn } from "@/lib/utils";
 import { FutureSelfWidget } from "@/components/FutureSelfWidget";
@@ -439,7 +439,7 @@ const Dashboard = () => {
         )}
 
         {/* Action Buttons Row */}
-        <div className="grid md:grid-cols-3 gap-4">
+        <div className="grid md:grid-cols-4 gap-4">
           {/* Council Meeting */}
           <Card className="bg-gradient-to-r from-primary to-accent text-primary-foreground shadow-xl">
             <CardContent className="p-6 flex items-center gap-4">
@@ -468,6 +468,23 @@ const Dashboard = () => {
               <Button
                 variant="secondary"
                 onClick={() => navigate("/energetic-dashboard")}
+              >
+                View
+              </Button>
+            </CardContent>
+          </Card>
+
+          {/* Optimal Timing */}
+          <Card className="bg-gradient-to-r from-secondary to-primary text-primary-foreground shadow-xl">
+            <CardContent className="p-6 flex items-center gap-4">
+              <Clock className="w-12 h-12 flex-shrink-0" />
+              <div className="flex-1">
+                <h2 className="text-xl font-bold">Optimal Timing</h2>
+                <p className="opacity-90 text-sm">When to take action</p>
+              </div>
+              <Button
+                variant="secondary"
+                onClick={() => navigate("/optimal-timing")}
               >
                 View
               </Button>

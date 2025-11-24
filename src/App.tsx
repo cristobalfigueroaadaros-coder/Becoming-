@@ -43,6 +43,7 @@ import DotConnectionEngine from "./pages/DotConnectionEngine";
 import CreationLab from "./pages/CreationLab";
 import EnergeticDashboard from "./pages/EnergeticDashboard";
 import VibrationalPatternInsights from "./pages/VibrationalPatternInsights";
+import OptimalTimingDashboard from "./pages/OptimalTimingDashboard";
 
 const queryClient = new QueryClient();
 
@@ -269,6 +270,10 @@ const App = () => {
             <Route
               path="/vibrational-insights"
               element={session ? <VibrationalPatternInsights /> : <Navigate to="/auth" />}
+            />
+            <Route
+              path="/optimal-timing"
+              element={session ? <OptimalTimingDashboard /> : <Navigate to="/auth" />}
             />
             <Route path="*" element={<NotFound />} />
           </Routes>
