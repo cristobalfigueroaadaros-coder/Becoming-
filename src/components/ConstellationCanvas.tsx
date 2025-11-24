@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useMemo } from 'react';
+import { useCallback, useEffect, useMemo, useState } from 'react';
 import {
   ReactFlow,
   Node,
@@ -14,7 +14,9 @@ import {
 import '@xyflow/react/dist/style.css';
 import { Card } from './ui/card';
 import { Badge } from './ui/badge';
-import { BookOpen, Lightbulb, Target, Heart, Sparkles, Star, BookMarked, Brain, Smile } from 'lucide-react';
+import { BookOpen, Lightbulb, Target, Heart, Sparkles, Star, BookMarked, Brain, Smile, Layers, TrendingUp } from 'lucide-react';
+import { detectClusters, getClusterForNode, type Cluster } from '@/lib/clusterDetection';
+import { ScrollArea } from './ui/scroll-area';
 
 interface InsightDot {
   id: string;
@@ -75,15 +77,24 @@ const CustomNode = ({ data }: { data: any }) => {
   const Icon = config.icon;
   const isHighAlignment = data.alignmentScore >= 61;
   const isMediumAlignment = data.alignmentScore >= 31 && data.alignmentScore < 61;
+  const hasCluster = data.clusterColor;
 
   return (
     <Card 
-      className="p-3 min-w-[180px] max-w-[220px] border-2 cursor-pointer hover:shadow-lg transition-all"
+      className="p-3 min-w-[180px] max-w-[220px] border-2 cursor-pointer hover:shadow-lg transition-all relative"
       style={{ 
-        borderColor: config.color,
+        borderColor: hasCluster ? data.clusterColor : config.color,
         backgroundColor: config.bgColor,
+        boxShadow: hasCluster ? `0 0 20px ${data.clusterColor}40` : undefined,
       }}
     >
+      {hasCluster && data.clusterStrength === 'high' && (
+        <div className="absolute -top-1 -right-1">
+          <Badge variant="default" className="h-5 px-1.5 text-xs" style={{ backgroundColor: data.clusterColor }}>
+            <Layers className="h-3 w-3" />
+          </Badge>
+        </div>
+      )}
       <div className="flex items-start gap-2 mb-2">
         <Icon className="h-4 w-4 mt-0.5 flex-shrink-0" style={{ color: config.color }} />
         <div className="flex-1">
@@ -98,11 +109,26 @@ const CustomNode = ({ data }: { data: any }) => {
           )}
         </div>
       </div>
-      {data.core_theme && (
-        <Badge variant="outline" className="text-xs">
-          {data.core_theme}
-        </Badge>
-      )}
+      <div className="flex items-center gap-1 flex-wrap">
+        {data.core_theme && (
+          <Badge variant="outline" className="text-xs">
+            {data.core_theme}
+          </Badge>
+        )}
+        {hasCluster && (
+          <Badge 
+            variant="secondary" 
+            className="text-xs"
+            style={{ 
+              backgroundColor: `${data.clusterColor}20`,
+              borderColor: data.clusterColor,
+              color: data.clusterColor
+            }}
+          >
+            Cluster
+          </Badge>
+        )}
+      </div>
     </Card>
   );
 };
@@ -131,8 +157,14 @@ export const ConstellationCanvas = ({
 }: ConstellationCanvasProps) => {
   const [nodes, setNodes, onNodesChange] = useNodesState([]);
   const [edges, setEdges, onEdgesChange] = useEdgesState([]);
+  const [selectedCluster, setSelectedCluster] = useState<string | null>(null);
 
-  // Create nodes from dots with circular layout
+  // Detect clusters from connections
+  const clusters = useMemo(() => {
+    return detectClusters(dots, connections, 3);
+  }, [dots, connections]);
+
+  // Create nodes from dots with circular layout and cluster highlighting
   const initialNodes = useMemo((): Node[] => {
     if (dots.length === 0) return [];
     
@@ -147,6 +179,9 @@ export const ConstellationCanvas = ({
       const alignment = purposeAlignments.find(a => a.id === dot.id);
       const alignmentScore = alignment?.alignmentScore || 0;
 
+      // Find cluster for this node
+      const cluster = getClusterForNode(dot.id, clusters);
+
       return {
         id: dot.id,
         type: 'constellationNode',
@@ -156,10 +191,16 @@ export const ConstellationCanvas = ({
           source_type: dot.source_type,
           core_theme: dot.core_theme,
           alignmentScore,
+          clusterColor: cluster?.color,
+          clusterStrength: cluster?.strength,
         },
+        className: selectedCluster === cluster?.id ? 'ring-2 ring-offset-2' : undefined,
+        style: selectedCluster === cluster?.id ? { 
+          zIndex: 1000,
+        } : undefined,
       };
     });
-  }, [dots, purposeAlignments]);
+  }, [dots, purposeAlignments, clusters, selectedCluster]);
 
   // Create edges from connections
   const initialEdges = useMemo((): Edge[] => {
@@ -292,6 +333,59 @@ export const ConstellationCanvas = ({
                   <span>Low (0-30%)</span>
                 </div>
               </div>
+            </div>
+          </Panel>
+        )}
+        {clusters.length > 0 && (
+          <Panel position="bottom-left" className="bg-background/95 backdrop-blur-sm rounded-lg border border-border m-2 w-[280px]">
+            <div className="p-3 space-y-2">
+              <div className="flex items-center justify-between mb-2">
+                <h3 className="font-semibold text-sm flex items-center gap-2">
+                  <Layers className="w-4 h-4" />
+                  Focus Clusters
+                </h3>
+                <Badge variant="secondary" className="text-xs">
+                  {clusters.length}
+                </Badge>
+              </div>
+              <ScrollArea className="h-[200px]">
+                <div className="space-y-2 pr-3">
+                  {clusters.map((cluster) => (
+                    <button
+                      key={cluster.id}
+                      onClick={() => setSelectedCluster(selectedCluster === cluster.id ? null : cluster.id)}
+                      className={`w-full text-left p-2 rounded-lg border transition-all ${
+                        selectedCluster === cluster.id 
+                          ? 'border-2 shadow-md' 
+                          : 'border hover:border-2 hover:shadow-sm'
+                      }`}
+                      style={{ 
+                        borderColor: cluster.color,
+                        backgroundColor: `${cluster.color}10`,
+                      }}
+                    >
+                      <div className="flex items-center justify-between mb-1">
+                        <span className="font-medium text-xs" style={{ color: cluster.color }}>
+                          {cluster.dominantTheme}
+                        </span>
+                        <div className="flex items-center gap-1">
+                          {cluster.strength === 'high' && (
+                            <Badge variant="default" className="h-4 px-1 text-xs" style={{ backgroundColor: cluster.color }}>
+                              <TrendingUp className="h-3 w-3" />
+                            </Badge>
+                          )}
+                          <Badge variant="outline" className="h-4 px-1 text-xs">
+                            {cluster.size}
+                          </Badge>
+                        </div>
+                      </div>
+                      <div className="text-xs text-muted-foreground">
+                        {Math.round(cluster.density * 100)}% connected · {cluster.strength} strength
+                      </div>
+                    </button>
+                  ))}
+                </div>
+              </ScrollArea>
             </div>
           </Panel>
         )}
