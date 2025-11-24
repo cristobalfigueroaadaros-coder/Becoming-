@@ -7,6 +7,8 @@ import { useEffect, useState } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { ShadowEncounterModal } from "@/components/ShadowEncounterModal";
 import { useShadowEncounters } from "@/hooks/useShadowEncounters";
+import { FutureSelfOmnipresenceModal } from "@/components/FutureSelfOmnipresenceModal";
+import { useFutureSelfOmnipresence } from "@/hooks/useFutureSelfOmnipresence";
 import { toast } from "@/hooks/use-toast";
 import Index from "./pages/Index";
 import Auth from "./pages/Auth";
@@ -94,6 +96,17 @@ const ShadowEncounterWrapper = () => {
   );
 };
 
+const FutureSelfOmnipresenceWrapper = () => {
+  const { currentMessage, dismissMessage } = useFutureSelfOmnipresence();
+
+  return (
+    <FutureSelfOmnipresenceModal
+      message={currentMessage}
+      onDismiss={dismissMessage}
+    />
+  );
+};
+
 const App = () => {
   const [session, setSession] = useState<any>(null);
   const [loading, setLoading] = useState(true);
@@ -127,6 +140,7 @@ const App = () => {
         <Toaster />
         <Sonner />
         <ShadowEncounterWrapper />
+        <FutureSelfOmnipresenceWrapper />
         <BrowserRouter>
           <Routes>
             <Route path="/" element={session ? <Navigate to="/dashboard" /> : <Index />} />

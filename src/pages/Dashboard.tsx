@@ -16,6 +16,7 @@ import { PurposeOnboardingModal } from "@/components/PurposeOnboardingModal";
 import { CurrentChallengeCard } from "@/components/CurrentChallengeCard";
 import { TodaysChallengeWidget } from "@/components/TodaysChallengeWidget";
 import { ConstellationRecommendations } from "@/components/ConstellationRecommendations";
+import { FutureSelfTriggerButton } from "@/components/FutureSelfTriggerButton";
 import { History, Rocket } from "lucide-react";
 
 const mentorIcons = {
@@ -283,6 +284,7 @@ const Dashboard = () => {
               <User className="w-4 h-4 mr-2" />
               Profile
             </Button>
+            <FutureSelfTriggerButton context="dashboard" variant="outline" />
             <Button variant="ghost" onClick={handleSignOut}>
               <LogOut className="w-4 h-4 mr-2" />
               Sign Out
