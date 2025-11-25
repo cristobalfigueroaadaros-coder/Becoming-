@@ -276,16 +276,34 @@ export const GoalHierarchy = () => {
         triggerCelebration(tier, xp);
         
         const messages = {
-          daily: "Daily goal crushed!",
-          weekly: "Weekly milestone achieved!",
-          monthly: "Monthly objective completed!",
+          daily: "Daily goal crushed! 🎉",
+          weekly: "Weekly milestone achieved! 🌟",
+          monthly: "Monthly objective completed! ✨",
           yearly: "Yearly goal conquered! 🎆"
         };
+
+        const mentorMessages = {
+          daily: "Beautiful work! Want another small task to keep the momentum?",
+          weekly: "You're building something powerful. Keep going!",
+          monthly: "This is major progress. Feel proud of this!",
+          yearly: "Incredible dedication. You've transformed this year!"
+        };
         
+        // Show celebration toast
         toast.success(messages[tier as keyof typeof messages], {
-          description: `+${xp} XP earned!`,
-          duration: 4000
+          description: `+${xp} XP earned! ${mentorMessages[tier as keyof typeof mentorMessages]}`,
+          duration: 6000,
         });
+
+        // For daily tasks, ask if they want another
+        if (tier === "daily") {
+          setTimeout(() => {
+            toast.info("Want another micro-step?", {
+              description: "Visit Council Meeting to generate a new task",
+              duration: 5000,
+            });
+          }, 3000);
+        }
 
         // Check goal completion achievements
         const weeklyComplete = tier === "weekly" && weeklyGoals.filter(g => g.completed || g.id === goalId).length === weeklyGoals.length;

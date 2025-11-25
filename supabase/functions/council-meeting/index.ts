@@ -635,31 +635,8 @@ ${isThresholdMoment ? 'Start with: "You are at a turning point. Let\'s turn this
       }
     }
 
-    // === STEP 10: GENERATE TASKS (only if ready) ===
-    const shouldGenerateTasks = shouldGiveResolution;
-    
-    if (shouldGenerateTasks) {
-      // Extract tasks from council wisdom
-      for (const [mentorType, answer] of Object.entries(answers)) {
-        try {
-          await fetch(`${Deno.env.get("SUPABASE_URL")}/functions/v1/extract-task`, {
-            method: "POST",
-            headers: {
-              "Authorization": authHeader,
-              "Content-Type": "application/json",
-            },
-            body: JSON.stringify({
-              mentorResponse: `${answer.emotional}\n\nAction steps:\n${answer.practical.join('\n')}`,
-              mentorName: mentorNames[mentorType],
-              questionContext: question,
-            }),
-          });
-        } catch (error) {
-          console.error(`Task extraction failed for ${mentorType}:`, error);
-        }
-      }
-
-      // Create insight dot for this council meeting
+    // === STEP 10: CREATE INSIGHT DOT (always save council wisdom) ===
+    if (shouldGiveResolution) {
       try {
         await supabaseClient.from('insight_dots').insert({
           user_id: user.id,
