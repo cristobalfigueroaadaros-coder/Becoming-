@@ -611,6 +611,66 @@ export type Database = {
         }
         Relationships: []
       }
+      energetic_snapshots: {
+        Row: {
+          activity_context: string | null
+          alignment_feeling: number | null
+          captured_at: string
+          clarity_level: number | null
+          coherence_level: number | null
+          emotional_state: string | null
+          energy_level: number | null
+          expansion_level: number | null
+          id: string
+          overall_frequency: string | null
+          related_dot_id: string | null
+          related_task_id: string | null
+          snapshot_metadata: Json | null
+          snapshot_type: string
+          somatic_data: Json | null
+          user_id: string
+          user_notes: string | null
+        }
+        Insert: {
+          activity_context?: string | null
+          alignment_feeling?: number | null
+          captured_at?: string
+          clarity_level?: number | null
+          coherence_level?: number | null
+          emotional_state?: string | null
+          energy_level?: number | null
+          expansion_level?: number | null
+          id?: string
+          overall_frequency?: string | null
+          related_dot_id?: string | null
+          related_task_id?: string | null
+          snapshot_metadata?: Json | null
+          snapshot_type: string
+          somatic_data?: Json | null
+          user_id: string
+          user_notes?: string | null
+        }
+        Update: {
+          activity_context?: string | null
+          alignment_feeling?: number | null
+          captured_at?: string
+          clarity_level?: number | null
+          coherence_level?: number | null
+          emotional_state?: string | null
+          energy_level?: number | null
+          expansion_level?: number | null
+          id?: string
+          overall_frequency?: string | null
+          related_dot_id?: string | null
+          related_task_id?: string | null
+          snapshot_metadata?: Json | null
+          snapshot_type?: string
+          somatic_data?: Json | null
+          user_id?: string
+          user_notes?: string | null
+        }
+        Relationships: []
+      }
       future_self_progress: {
         Row: {
           created_at: string | null
@@ -640,49 +700,70 @@ export type Database = {
       }
       insight_dots: {
         Row: {
+          coherence_indicators: Json | null
           connection_ids: string[] | null
           core_theme: string
           created_at: string
           emotional_tone: string | null
+          energetic_frequency: string | null
+          flow_state_detected: boolean | null
           id: string
           insight_text: string
+          intuition_signal: boolean | null
+          resonance_level: number | null
           reviewed_at: string | null
           skill_tags: string[] | null
+          somatic_notes: string | null
           source_id: string | null
           source_mentor: string | null
           source_type: string
           user_id: string
           user_reflection: string | null
+          vibrational_context: Json | null
         }
         Insert: {
+          coherence_indicators?: Json | null
           connection_ids?: string[] | null
           core_theme: string
           created_at?: string
           emotional_tone?: string | null
+          energetic_frequency?: string | null
+          flow_state_detected?: boolean | null
           id?: string
           insight_text: string
+          intuition_signal?: boolean | null
+          resonance_level?: number | null
           reviewed_at?: string | null
           skill_tags?: string[] | null
+          somatic_notes?: string | null
           source_id?: string | null
           source_mentor?: string | null
           source_type: string
           user_id: string
           user_reflection?: string | null
+          vibrational_context?: Json | null
         }
         Update: {
+          coherence_indicators?: Json | null
           connection_ids?: string[] | null
           core_theme?: string
           created_at?: string
           emotional_tone?: string | null
+          energetic_frequency?: string | null
+          flow_state_detected?: boolean | null
           id?: string
           insight_text?: string
+          intuition_signal?: boolean | null
+          resonance_level?: number | null
           reviewed_at?: string | null
           skill_tags?: string[] | null
+          somatic_notes?: string | null
           source_id?: string | null
           source_mentor?: string | null
           source_type?: string
           user_id?: string
           user_reflection?: string | null
+          vibrational_context?: Json | null
         }
         Relationships: []
       }
@@ -1482,6 +1563,84 @@ export type Database = {
         }
         Relationships: []
       }
+      vibrational_patterns: {
+        Row: {
+          average_frequency: string | null
+          coherence_metrics: Json | null
+          contraction_indicators: string[] | null
+          created_at: string
+          detection_count: number
+          embodiment_notes: string | null
+          evolution_stage: string | null
+          expansion_indicators: string[] | null
+          first_detected_at: string
+          flow_conditions: string[] | null
+          frequency_trend: string | null
+          id: string
+          integration_level: number | null
+          last_detected_at: string
+          pattern_metadata: Json | null
+          pattern_name: string
+          pattern_type: string
+          related_dot_ids: string[] | null
+          related_themes: string[] | null
+          resonance_strength: number | null
+          trigger_contexts: Json | null
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          average_frequency?: string | null
+          coherence_metrics?: Json | null
+          contraction_indicators?: string[] | null
+          created_at?: string
+          detection_count?: number
+          embodiment_notes?: string | null
+          evolution_stage?: string | null
+          expansion_indicators?: string[] | null
+          first_detected_at?: string
+          flow_conditions?: string[] | null
+          frequency_trend?: string | null
+          id?: string
+          integration_level?: number | null
+          last_detected_at?: string
+          pattern_metadata?: Json | null
+          pattern_name: string
+          pattern_type: string
+          related_dot_ids?: string[] | null
+          related_themes?: string[] | null
+          resonance_strength?: number | null
+          trigger_contexts?: Json | null
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          average_frequency?: string | null
+          coherence_metrics?: Json | null
+          contraction_indicators?: string[] | null
+          created_at?: string
+          detection_count?: number
+          embodiment_notes?: string | null
+          evolution_stage?: string | null
+          expansion_indicators?: string[] | null
+          first_detected_at?: string
+          flow_conditions?: string[] | null
+          frequency_trend?: string | null
+          id?: string
+          integration_level?: number | null
+          last_detected_at?: string
+          pattern_metadata?: Json | null
+          pattern_name?: string
+          pattern_type?: string
+          related_dot_ids?: string[] | null
+          related_themes?: string[] | null
+          resonance_strength?: number | null
+          trigger_contexts?: Json | null
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
       vision_goals: {
         Row: {
           created_at: string
@@ -1594,6 +1753,18 @@ export type Database = {
           max_streak: number | null
           shadows_faced: number | null
           total_xp: number | null
+          user_id: string | null
+        }
+        Relationships: []
+      }
+      user_energetic_summary: {
+        Row: {
+          avg_resonance: number | null
+          contraction_dots: number | null
+          expansion_dots: number | null
+          expansion_percentage: number | null
+          flow_dots: number | null
+          intuition_dots: number | null
           user_id: string | null
         }
         Relationships: []
