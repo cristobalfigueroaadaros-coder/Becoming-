@@ -8,14 +8,11 @@ import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
-import { Calendar } from "@/components/ui/calendar";
-import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { Checkbox } from "@/components/ui/checkbox";
 import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from "@/components/ui/form";
 import { toast } from "sonner";
-import { CalendarIcon, Sparkles } from "lucide-react";
+import { Sparkles } from "lucide-react";
 import { format } from "date-fns";
-import { cn } from "@/lib/utils";
 
 const futureSelfSchema = z.object({
   future_age: z.number().min(18).max(150),
@@ -177,42 +174,24 @@ const OnboardingStep1 = () => {
                 />
 
                 <div className="pt-4 border-t">
-                  <h3 className="text-sm font-medium mb-4 text-muted-foreground">
-                    Human Design (Optional)
-                  </h3>
-
                   <div className="space-y-4">
                     <FormField
                       control={form.control}
                       name="birth_date"
                       render={({ field }) => (
-                        <FormItem className="flex flex-col">
-                          <FormLabel>Birth Date</FormLabel>
-                          <Popover>
-                            <PopoverTrigger asChild>
-                              <FormControl>
-                                <Button
-                                  variant="outline"
-                                  className={cn(
-                                    "w-full pl-3 text-left font-normal",
-                                    !field.value && "text-muted-foreground"
-                                  )}
-                                >
-                                  {field.value ? format(field.value, "PPP") : "Pick a date"}
-                                  <CalendarIcon className="ml-auto h-4 w-4 opacity-50" />
-                                </Button>
-                              </FormControl>
-                            </PopoverTrigger>
-                            <PopoverContent className="w-auto p-0" align="start">
-                              <Calendar
-                                mode="single"
-                                selected={field.value}
-                                onSelect={field.onChange}
-                                disabled={(date) => date > new Date() || date < new Date("1900-01-01")}
-                                initialFocus
-                              />
-                            </PopoverContent>
-                          </Popover>
+                        <FormItem>
+                          <FormLabel>Birth Date (Optional)</FormLabel>
+                          <FormControl>
+                            <Input
+                              type="date"
+                              max={format(new Date(), "yyyy-MM-dd")}
+                              value={field.value ? format(field.value, "yyyy-MM-dd") : ""}
+                              onChange={(e) => {
+                                const date = e.target.value ? new Date(e.target.value) : undefined;
+                                field.onChange(date);
+                              }}
+                            />
+                          </FormControl>
                           <FormMessage />
                         </FormItem>
                       )}
