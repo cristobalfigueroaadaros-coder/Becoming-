@@ -50,7 +50,7 @@ const CouncilMeeting = () => {
   const [conversationHistory, setConversationHistory] = useState<any[]>([]);
   
   // New state for enhanced features
-  const [stage, setStage] = useState<'input' | 'clarifying' | 'complete'>('input');
+  const [stage, setStage] = useState<'input' | 'clarifying' | 'complete' | 'action'>('input');
   const [mirrorBack, setMirrorBack] = useState("");
   const [clarifyingQuestions, setClarifyingQuestions] = useState<string[]>([]);
   const [emotionalTone, setEmotionalTone] = useState<string>("");
@@ -67,7 +67,7 @@ const CouncilMeeting = () => {
   const [voiceUrl, setVoiceUrl] = useState<string>("");
   const [clarifyingAnswers, setClarifyingAnswers] = useState<Record<string, string>>({});
   const [currentAnswer, setCurrentAnswer] = useState("");
-  const [readyForAction, setReadyForAction] = useState(false);
+  const [tasksGenerated, setTasksGenerated] = useState(false);
 
   const toggleExpand = (mentorType: string) => {
     setExpandedMentors((prev) => {
@@ -183,7 +183,7 @@ const CouncilMeeting = () => {
     setVoiceUrl("");
     setClarifyingAnswers({});
     setCurrentAnswer("");
-    setReadyForAction(false);
+    setTasksGenerated(false);
   };
 
   const continueAsking = () => {
@@ -196,8 +196,34 @@ const CouncilMeeting = () => {
     setFutureSelfInterruption("");
     setResolution("");
     setExpandedMentors(new Set());
-    setReadyForAction(false);
+    setTasksGenerated(false);
     // Keep conversation history and detected patterns
+  };
+
+  const handleReadyForAction = async () => {
+    if (tasksGenerated) return;
+    
+    setLoading(true);
+    try {
+      const { data, error } = await supabase.functions.invoke("generate-council-tasks", {
+        body: {
+          mentorAnswers: answers,
+          question,
+          emotionalTone,
+          detectedPattern,
+        },
+      });
+
+      if (error) throw error;
+
+      setTasksGenerated(true);
+      setStage('action');
+      toast.success("Tasks created on your Goal Board! 🎯");
+    } catch (error: any) {
+      toast.error(error.message);
+    } finally {
+      setLoading(false);
+    }
   };
 
   const handleQuestionSelect = (q: string) => {
@@ -590,7 +616,7 @@ const CouncilMeeting = () => {
             )}
 
             {/* Gentle Action Prompt */}
-            {!readyForAction && (
+            {!tasksGenerated && (
               <motion.div
                 initial={{ opacity: 0, y: 10 }}
                 animate={{ opacity: 1, y: 0 }}
@@ -611,12 +637,13 @@ const CouncilMeeting = () => {
                         Keep Asking
                       </Button>
                       <Button 
-                        onClick={() => setReadyForAction(true)} 
+                        onClick={handleReadyForAction}
+                        disabled={loading}
                         className="flex-1"
                         size="lg"
                       >
                         <Target className="w-4 h-4 mr-2" />
-                        I'm Ready for Action
+                        {loading ? "Creating Tasks..." : "I'm Ready for Action"}
                       </Button>
                     </div>
                   </CardContent>
@@ -625,7 +652,7 @@ const CouncilMeeting = () => {
             )}
 
             {/* Action Phase - Only After Confirmation */}
-            {readyForAction && (
+            {tasksGenerated && (
               <motion.div
                 initial={{ opacity: 0, scale: 0.95 }}
                 animate={{ opacity: 1, scale: 1 }}
@@ -635,17 +662,17 @@ const CouncilMeeting = () => {
                   <CardHeader>
                     <CardTitle className="flex items-center gap-2">
                       <Sparkles className="w-5 h-5 text-primary" />
-                      Ready to Take Action
+                      Tasks Created
                     </CardTitle>
                   </CardHeader>
                   <CardContent>
                     <p className="text-sm text-muted-foreground mb-4">
-                      Your clarity has been captured. View your personalized tasks or explore the insights mapped in your constellation.
+                      Your tasks have been added to your Goal Board. Start with today's micro-step!
                     </p>
                     <div className="flex flex-col sm:flex-row gap-3">
-                      <Button onClick={() => navigate("/my-tasks")} className="flex-1" size="lg">
+                      <Button onClick={() => navigate("/future-self/goal-structure")} className="flex-1" size="lg">
                         <Target className="w-4 h-4 mr-2" />
-                        View My Tasks
+                        View Goal Board
                       </Button>
                       <Button onClick={() => navigate("/future-self/constellation")} variant="outline" className="flex-1">
                         View Mapping Dots
