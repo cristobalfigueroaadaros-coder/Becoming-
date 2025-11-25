@@ -1,136 +1,83 @@
 import { useState } from "react";
 import { useNavigate } from "react-router-dom";
+import { useForm } from "react-hook-form";
+import { zodResolver } from "@hookform/resolvers/zod";
+import { z } from "zod";
 import { supabase } from "@/integrations/supabase/client";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
+import { Input } from "@/components/ui/input";
+import { Textarea } from "@/components/ui/textarea";
+import { Calendar } from "@/components/ui/calendar";
+import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
+import { Checkbox } from "@/components/ui/checkbox";
+import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from "@/components/ui/form";
 import { toast } from "sonner";
-import { Brain, Lightbulb, Zap, Trees, Heart, Sparkles } from "lucide-react";
+import { CalendarIcon, Sparkles } from "lucide-react";
+import { format } from "date-fns";
 import { cn } from "@/lib/utils";
 
-const mentors = [
-  {
-    id: "mamba_mentor",
-    name: "The Mamba Mentor",
-    description: "Discipline, mastery, and relentless focus",
-    icon: Brain,
-    color: "bg-mentor-mamba",
-  },
-  {
-    id: "creative_visionary",
-    name: "The Creative Visionary",
-    description: "Imagination, wonder, and creative expansion",
-    icon: Lightbulb,
-    color: "bg-mentor-creative",
-  },
-  {
-    id: "quantum_inventor",
-    name: "The Quantum Inventor",
-    description: "Future insight and pattern recognition",
-    icon: Zap,
-    color: "bg-mentor-quantum",
-  },
-  {
-    id: "ancient_sage",
-    name: "The Ancient Sage",
-    description: "Calm clarity and timeless wisdom",
-    icon: Trees,
-    color: "bg-mentor-sage",
-  },
-  {
-    id: "compassionate_elder",
-    name: "The Compassionate Elder",
-    description: "Warmth and emotional wisdom",
-    icon: Heart,
-    color: "bg-mentor-elder",
-  },
-  {
-    id: "future_self",
-    name: "Future Self",
-    description: "Your evolved self, ten years ahead",
-    icon: Sparkles,
-    color: "bg-mentor-future",
-  },
-  {
-    id: "business_mentor",
-    name: "Business Mentor",
-    description: "Strategy, entrepreneurship, and execution",
-    icon: Brain,
-    color: "bg-primary",
-  },
-  {
-    id: "creator_mentor",
-    name: "Creator Mentor",
-    description: "Content creation and personal brand",
-    icon: Lightbulb,
-    color: "bg-accent",
-  },
-  {
-    id: "mystic_mentor",
-    name: "Mystic Mentor",
-    description: "Spirituality and inner guidance",
-    icon: Sparkles,
-    color: "bg-secondary",
-  },
-  {
-    id: "heart_mentor",
-    name: "Heart Mentor",
-    description: "Relationships and emotional intelligence",
-    icon: Heart,
-    color: "bg-mentor-elder",
-  },
-  {
-    id: "strategist_mentor",
-    name: "Strategist Mentor",
-    description: "Planning and decision frameworks",
-    icon: Zap,
-    color: "bg-mentor-quantum",
-  },
-  {
-    id: "explorer_mentor",
-    name: "Explorer Mentor",
-    description: "Courage and experimentation",
-    icon: Trees,
-    color: "bg-mentor-sage",
-  },
-];
+const futureSelfSchema = z.object({
+  future_age: z.number().min(18).max(150),
+  future_location: z.string().min(1, "Location is required"),
+  future_lifestyle: z.string().max(100, "Keep it to one short sentence"),
+  main_mission: z.string().max(100, "Keep it to one short sentence"),
+  birth_date: z.date().optional(),
+  birth_time: z.string().optional(),
+  birth_location: z.string().optional(),
+  birth_time_unknown: z.boolean().default(false),
+});
+
+type FutureSelfFormData = z.infer<typeof futureSelfSchema>;
 
 const OnboardingStep1 = () => {
   const navigate = useNavigate();
-  const [selectedMentors, setSelectedMentors] = useState<string[]>([]);
   const [loading, setLoading] = useState(false);
 
-  const toggleMentor = (mentorId: string) => {
-    if (selectedMentors.includes(mentorId)) {
-      setSelectedMentors(selectedMentors.filter((id) => id !== mentorId));
-    } else {
-      setSelectedMentors([...selectedMentors, mentorId]);
-    }
-  };
+  const form = useForm<FutureSelfFormData>({
+    resolver: zodResolver(futureSelfSchema),
+    defaultValues: {
+      future_age: 35,
+      future_location: "",
+      future_lifestyle: "",
+      main_mission: "",
+      birth_time_unknown: false,
+    },
+  });
 
-  const handleContinue = async () => {
-    if (selectedMentors.length === 0) {
-      toast.error("Please select at least one mentor");
-      return;
-    }
-
+  const onSubmit = async (data: FutureSelfFormData) => {
     setLoading(true);
     try {
       const { data: { user } } = await supabase.auth.getUser();
       if (!user) throw new Error("Not authenticated");
 
-      // Save selected mentors
-      const { error } = await supabase
-        .from("user_mentors")
-        .insert(
-          selectedMentors.map((mentorType) => ({
-            user_id: user.id,
-            mentor_type: mentorType as any,
-          }))
-        );
+      const { error: profileError } = await supabase
+        .from("profiles")
+        .upsert({
+          id: user.id,
+          future_age: data.future_age,
+          future_location: data.future_location,
+          future_lifestyle: data.future_lifestyle,
+          main_mission: data.main_mission,
+          birth_date: data.birth_date ? format(data.birth_date, "yyyy-MM-dd") : null,
+          birth_time: data.birth_time_unknown ? null : data.birth_time,
+          birth_location: data.birth_location,
+          birth_time_unknown: data.birth_time_unknown,
+        });
 
-      if (error) throw error;
+      if (profileError) throw profileError;
 
-      toast.success("Mentors selected!");
+      const { error: progressError } = await supabase
+        .from("future_self_progress")
+        .upsert({
+          user_id: user.id,
+          evolution_level: 1,
+          global_xp: 0,
+        });
+
+      if (progressError) throw progressError;
+
+      toast.success("Future Self profile created!");
       navigate("/onboarding/step2");
     } catch (error: any) {
       toast.error(error.message);
@@ -141,56 +88,193 @@ const OnboardingStep1 = () => {
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-primary/5 via-background to-accent/5 p-4 py-12">
-      <div className="max-w-4xl mx-auto space-y-8">
+      <div className="max-w-2xl mx-auto space-y-8">
         <div className="text-center space-y-2">
-          <h1 className="text-4xl font-bold">Choose Your Council</h1>
-          <p className="text-muted-foreground text-lg">Select the mentors to guide your journey</p>
-          <p className="text-sm text-accent font-medium">
-            {selectedMentors.length} selected
+          <Sparkles className="w-12 h-12 mx-auto text-primary" />
+          <h1 className="text-4xl font-bold">Your Future Self Profile</h1>
+          <p className="text-muted-foreground text-lg">
+            Let's paint a light picture of where you're heading
           </p>
         </div>
 
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-          {mentors.map((mentor) => {
-            const Icon = mentor.icon;
-            const isSelected = selectedMentors.includes(mentor.id);
+        <Card>
+          <CardHeader>
+            <CardTitle>10 Years From Now</CardTitle>
+            <CardDescription>Quick snapshot of your future vision</CardDescription>
+          </CardHeader>
+          <CardContent>
+            <Form {...form}>
+              <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-6">
+                <FormField
+                  control={form.control}
+                  name="future_age"
+                  render={({ field }) => (
+                    <FormItem>
+                      <FormLabel>Future Age (Your age + 10 years)</FormLabel>
+                      <FormControl>
+                        <Input
+                          type="number"
+                          placeholder="35"
+                          {...field}
+                          onChange={(e) => field.onChange(parseInt(e.target.value))}
+                        />
+                      </FormControl>
+                      <FormMessage />
+                    </FormItem>
+                  )}
+                />
 
-            return (
-              <Card
-                key={mentor.id}
-                className={cn(
-                  "cursor-pointer transition-all hover:shadow-lg",
-                  isSelected && "ring-2 ring-primary shadow-xl"
-                )}
-                onClick={() => toggleMentor(mentor.id)}
-              >
-                <CardHeader>
-                  <div
-                    className={cn(
-                      "w-12 h-12 rounded-xl flex items-center justify-center mb-4",
-                      mentor.color
+                <FormField
+                  control={form.control}
+                  name="future_location"
+                  render={({ field }) => (
+                    <FormItem>
+                      <FormLabel>Location</FormLabel>
+                      <FormControl>
+                        <Input placeholder="e.g., Bali, Tokyo, New York" {...field} />
+                      </FormControl>
+                      <FormMessage />
+                    </FormItem>
+                  )}
+                />
+
+                <FormField
+                  control={form.control}
+                  name="future_lifestyle"
+                  render={({ field }) => (
+                    <FormItem>
+                      <FormLabel>Future Lifestyle (1 short sentence)</FormLabel>
+                      <FormControl>
+                        <Textarea
+                          placeholder="e.g., Living by the ocean, running my own business"
+                          className="resize-none"
+                          rows={2}
+                          {...field}
+                        />
+                      </FormControl>
+                      <FormMessage />
+                    </FormItem>
+                  )}
+                />
+
+                <FormField
+                  control={form.control}
+                  name="main_mission"
+                  render={({ field }) => (
+                    <FormItem>
+                      <FormLabel>Main Mission (1 short sentence)</FormLabel>
+                      <FormControl>
+                        <Textarea
+                          placeholder="e.g., Helping people find their purpose through coaching"
+                          className="resize-none"
+                          rows={2}
+                          {...field}
+                        />
+                      </FormControl>
+                      <FormMessage />
+                    </FormItem>
+                  )}
+                />
+
+                <div className="pt-4 border-t">
+                  <h3 className="text-sm font-medium mb-4 text-muted-foreground">
+                    Human Design (Optional)
+                  </h3>
+
+                  <div className="space-y-4">
+                    <FormField
+                      control={form.control}
+                      name="birth_date"
+                      render={({ field }) => (
+                        <FormItem className="flex flex-col">
+                          <FormLabel>Birth Date</FormLabel>
+                          <Popover>
+                            <PopoverTrigger asChild>
+                              <FormControl>
+                                <Button
+                                  variant="outline"
+                                  className={cn(
+                                    "w-full pl-3 text-left font-normal",
+                                    !field.value && "text-muted-foreground"
+                                  )}
+                                >
+                                  {field.value ? format(field.value, "PPP") : "Pick a date"}
+                                  <CalendarIcon className="ml-auto h-4 w-4 opacity-50" />
+                                </Button>
+                              </FormControl>
+                            </PopoverTrigger>
+                            <PopoverContent className="w-auto p-0" align="start">
+                              <Calendar
+                                mode="single"
+                                selected={field.value}
+                                onSelect={field.onChange}
+                                disabled={(date) => date > new Date() || date < new Date("1900-01-01")}
+                                initialFocus
+                              />
+                            </PopoverContent>
+                          </Popover>
+                          <FormMessage />
+                        </FormItem>
+                      )}
+                    />
+
+                    <FormField
+                      control={form.control}
+                      name="birth_time_unknown"
+                      render={({ field }) => (
+                        <FormItem className="flex flex-row items-start space-x-3 space-y-0">
+                          <FormControl>
+                            <Checkbox
+                              checked={field.value}
+                              onCheckedChange={field.onChange}
+                            />
+                          </FormControl>
+                          <FormLabel className="font-normal">
+                            I don't know my birth time
+                          </FormLabel>
+                        </FormItem>
+                      )}
+                    />
+
+                    {!form.watch("birth_time_unknown") && (
+                      <FormField
+                        control={form.control}
+                        name="birth_time"
+                        render={({ field }) => (
+                          <FormItem>
+                            <FormLabel>Birth Time</FormLabel>
+                            <FormControl>
+                              <Input type="time" {...field} />
+                            </FormControl>
+                            <FormMessage />
+                          </FormItem>
+                        )}
+                      />
                     )}
-                  >
-                    <Icon className="w-6 h-6 text-white" />
-                  </div>
-                  <CardTitle className="text-xl">{mentor.name}</CardTitle>
-                  <CardDescription>{mentor.description}</CardDescription>
-                </CardHeader>
-              </Card>
-            );
-          })}
-        </div>
 
-        <div className="flex justify-center">
-          <Button
-            size="lg"
-            onClick={handleContinue}
-            disabled={loading || selectedMentors.length === 0}
-            className="px-12"
-          >
-            {loading ? "Saving..." : "Continue"}
-          </Button>
-        </div>
+                    <FormField
+                      control={form.control}
+                      name="birth_location"
+                      render={({ field }) => (
+                        <FormItem>
+                          <FormLabel>Birth Location</FormLabel>
+                          <FormControl>
+                            <Input placeholder="City, Country" {...field} />
+                          </FormControl>
+                          <FormMessage />
+                        </FormItem>
+                      )}
+                    />
+                  </div>
+                </div>
+
+                <Button type="submit" disabled={loading} className="w-full h-12 text-lg">
+                  {loading ? "Saving..." : "Continue →"}
+                </Button>
+              </form>
+            </Form>
+          </CardContent>
+        </Card>
       </div>
     </div>
   );

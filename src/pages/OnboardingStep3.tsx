@@ -5,57 +5,53 @@ import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Label } from "@/components/ui/label";
 import { Slider } from "@/components/ui/slider";
-import { useToast } from "@/hooks/use-toast";
-import { Activity, Briefcase, Heart, Users, Lightbulb, Sparkles } from "lucide-react";
-import { PurposePathSelector } from "@/components/PurposePathSelector";
+import { toast } from "sonner";
+import { Activity, Briefcase, DollarSign, Heart, Users, Lightbulb } from "lucide-react";
 
 const lifeDomains = [
   {
     name: "Health & Energy",
     icon: Activity,
-    description: "Physical vitality, fitness, and well-being"
+    description: "Physical vitality and well-being"
   },
   {
     name: "Career & Impact",
     icon: Briefcase,
-    description: "Professional growth and meaningful contribution"
+    description: "Professional growth and contribution"
+  },
+  {
+    name: "Money & Finances",
+    icon: DollarSign,
+    description: "Financial security and abundance"
   },
   {
     name: "Relationships & Love",
     icon: Heart,
-    description: "Intimate connections and romantic fulfillment"
+    description: "Intimate connections and romance"
   },
   {
     name: "Friends & Community",
     icon: Users,
-    description: "Social bonds and sense of belonging"
+    description: "Social bonds and belonging"
   },
   {
-    name: "Creativity & Learning",
+    name: "Creativity & Personal Growth",
     icon: Lightbulb,
-    description: "Personal growth and self-expression"
-  },
-  {
-    name: "Spiritual Growth",
-    icon: Sparkles,
-    description: "Inner peace, purpose, and meaning"
+    description: "Self-expression and learning"
   }
 ];
 
 export default function OnboardingStep3() {
   const navigate = useNavigate();
-  const { toast } = useToast();
   const [loading, setLoading] = useState(false);
-  const [step, setStep] = useState<"purpose" | "domains">("purpose");
-  const [purposePath, setPurposePath] = useState<string | null>(null);
 
   const [domainScores, setDomainScores] = useState<Record<string, { current: number; future: number }>>({
     "Health & Energy": { current: 5, future: 10 },
     "Career & Impact": { current: 5, future: 10 },
+    "Money & Finances": { current: 5, future: 10 },
     "Relationships & Love": { current: 5, future: 10 },
     "Friends & Community": { current: 5, future: 10 },
-    "Creativity & Learning": { current: 5, future: 10 },
-    "Spiritual Growth": { current: 5, future: 10 }
+    "Creativity & Personal Growth": { current: 5, future: 10 }
   });
 
   const updateScore = (domain: string, type: 'current' | 'future', value: number) => {
@@ -74,25 +70,6 @@ export default function OnboardingStep3() {
       const { data: { user } } = await supabase.auth.getUser();
       if (!user) throw new Error("Not authenticated");
 
-      // Update profile with purpose path
-      const { error: profileError } = await supabase
-        .from("profiles")
-        .update({ purpose_path: purposePath })
-        .eq("id", user.id);
-
-      if (profileError) throw profileError;
-
-      // Create initial purpose path insight dot
-      await supabase.from("insight_dots").insert({
-        user_id: user.id,
-        source_type: "purpose_path",
-        insight_text: `Starting journey with: ${purposePath?.replace("_", " ")}`,
-        core_theme: "Purpose Path",
-        emotional_tone: "inspired",
-        skill_tags: ["purpose", "self-discovery"]
-      });
-
-      // Insert all domain assessments
       const domainData = Object.entries(domainScores).map(([domain, scores]) => ({
         user_id: user.id,
         domain_name: domain,
@@ -100,179 +77,85 @@ export default function OnboardingStep3() {
         future_score: scores.future
       }));
 
-      const { error } = await supabase
-        .from("life_domains")
-        .insert(domainData);
-
+      const { error } = await supabase.from("life_domains").insert(domainData);
       if (error) throw error;
 
-      toast({
-        title: "Onboarding complete! 🎯",
-        description: "Let's deepen your purpose discovery."
-      });
-
-      navigate("/purpose-discovery");
+      toast.success("Life areas mapped!");
+      navigate("/onboarding/step4");
     } catch (error: any) {
-      console.error("Error saving:", error);
-      toast({
-        title: "Error",
-        description: error.message,
-        variant: "destructive"
-      });
+      toast.error(error.message);
     } finally {
       setLoading(false);
     }
   };
 
-  const handlePurposeSelect = (path: string) => {
-    setPurposePath(path);
-  };
-
-  const handleContinueToDomains = () => {
-    if (!purposePath) {
-      toast({
-        title: "Please select a path",
-        description: "Choose what resonates with you to continue",
-        variant: "destructive"
-      });
-      return;
-    }
-    setStep("domains");
-  };
-
   return (
-    <div className="min-h-screen bg-gradient-to-br from-background via-background to-mentor-future/5 p-4 sm:p-8">
+    <div className="min-h-screen bg-gradient-to-br from-background via-background to-mentor-future/5 p-4 py-12">
       <div className="max-w-4xl mx-auto space-y-8">
-        {step === "purpose" ? (
-          <>
-            <PurposePathSelector
-              onSelect={handlePurposeSelect}
-              selectedPath={purposePath}
-            />
+        <div className="text-center space-y-2">
+          <h1 className="text-4xl font-bold">Your Life Areas</h1>
+          <p className="text-muted-foreground text-lg">
+            Quick check-in: Where are you today? Where do you want to be?
+          </p>
+        </div>
 
-            <Button
-              onClick={handleContinueToDomains}
-              disabled={!purposePath}
-              className="w-full h-12 text-lg"
-            >
-              Continue to Life Domains →
-            </Button>
-          </>
-        ) : (
-          <>
-            <div className="text-center space-y-4">
-              <h1 className="text-4xl font-bold bg-gradient-to-r from-primary to-mentor-future bg-clip-text text-transparent">
-                Map Your Life Domains
-              </h1>
-              <p className="text-lg text-muted-foreground">
-                For each domain, rate your current satisfaction and your vision for the future
-              </p>
-              <div className="flex items-center justify-center gap-8 pt-2">
-                <div className="flex items-center gap-2">
-                  <div className="w-3 h-3 rounded-full bg-primary/20 border-2 border-primary" />
-                  <span className="text-sm font-medium">Current State</span>
-                </div>
-                <div className="flex items-center gap-2">
-                  <div className="w-3 h-3 rounded-full bg-mentor-future/20 border-2 border-mentor-future" />
-                  <span className="text-sm font-medium">Future Vision</span>
-                </div>
-              </div>
-            </div>
+        <div className="grid gap-6">
+          {lifeDomains.map((domain) => {
+            const Icon = domain.icon;
+            const scores = domainScores[domain.name];
 
-            <div className="grid gap-6">
-              {lifeDomains.map((domain) => {
-                const Icon = domain.icon;
-                const scores = domainScores[domain.name];
+            return (
+              <Card key={domain.name} className="border-2 hover:border-primary/50 transition-colors">
+                <CardHeader>
+                  <CardTitle className="flex items-center gap-3">
+                    <Icon className="w-6 h-6 text-primary" />
+                    {domain.name}
+                  </CardTitle>
+                  <CardDescription>{domain.description}</CardDescription>
+                </CardHeader>
+                <CardContent className="space-y-4">
+                  <div className="space-y-2">
+                    <div className="flex justify-between items-center">
+                      <Label className="text-sm">Where are you today?</Label>
+                      <span className="text-xl font-bold text-primary">{scores.current}</span>
+                    </div>
+                    <Slider
+                      value={[scores.current]}
+                      onValueChange={([value]) => updateScore(domain.name, 'current', value)}
+                      min={1}
+                      max={10}
+                      step={1}
+                      className="w-full"
+                    />
+                  </div>
 
-                return (
-                  <Card key={domain.name} className="border-2 hover:border-primary/50 transition-colors">
-                    <CardHeader>
-                      <CardTitle className="flex items-center gap-3">
-                        <Icon className="w-6 h-6 text-primary" />
-                        {domain.name}
-                      </CardTitle>
-                      <CardDescription>{domain.description}</CardDescription>
-                    </CardHeader>
-                    <CardContent className="space-y-6">
-                      {/* Current State Section */}
-                      <div className="space-y-3 p-4 rounded-lg bg-primary/5 border border-primary/20">
-                        <div className="flex items-center gap-2 mb-2">
-                          <div className="w-2 h-2 rounded-full bg-primary" />
-                          <Label className="text-sm font-semibold text-primary">📍 Where You Are Today</Label>
-                        </div>
-                        <div className="flex justify-between items-center">
-                          <span className="text-xs text-muted-foreground">Current satisfaction level</span>
-                          <span className="text-2xl font-bold text-primary">{scores.current}</span>
-                        </div>
-                        <Slider
-                          value={[scores.current]}
-                          onValueChange={([value]) => updateScore(domain.name, 'current', value)}
-                          min={1}
-                          max={10}
-                          step={1}
-                          className="w-full"
-                        />
-                        <div className="flex justify-between text-xs text-muted-foreground">
-                          <span>Low</span>
-                          <span>High</span>
-                        </div>
-                      </div>
+                  <div className="space-y-2">
+                    <div className="flex justify-between items-center">
+                      <Label className="text-sm">Where do you want to be?</Label>
+                      <span className="text-xl font-bold text-mentor-future">{scores.future}</span>
+                    </div>
+                    <Slider
+                      value={[scores.future]}
+                      onValueChange={([value]) => updateScore(domain.name, 'future', value)}
+                      min={1}
+                      max={10}
+                      step={1}
+                      className="w-full [&_[role=slider]]:border-mentor-future [&>span>span]:bg-mentor-future"
+                    />
+                  </div>
+                </CardContent>
+              </Card>
+            );
+          })}
+        </div>
 
-                      {/* Future Vision Section */}
-                      <div className="space-y-3 p-4 rounded-lg bg-mentor-future/5 border border-mentor-future/20">
-                        <div className="flex items-center gap-2 mb-2">
-                          <div className="w-2 h-2 rounded-full bg-mentor-future" />
-                          <Label className="text-sm font-semibold text-mentor-future">🎯 Where You Want To Be (10 Years)</Label>
-                        </div>
-                        <div className="flex justify-between items-center">
-                          <span className="text-xs text-muted-foreground">Future vision level</span>
-                          <span className="text-2xl font-bold text-mentor-future">{scores.future}</span>
-                        </div>
-                        <Slider
-                          value={[scores.future]}
-                          onValueChange={([value]) => updateScore(domain.name, 'future', value)}
-                          min={1}
-                          max={10}
-                          step={1}
-                          className="w-full [&_[role=slider]]:border-mentor-future [&>span>span]:bg-mentor-future"
-                        />
-                        <div className="flex justify-between text-xs text-muted-foreground">
-                          <span>Low</span>
-                          <span>High</span>
-                        </div>
-                      </div>
-
-                      {/* Growth Indicator */}
-                      <div className="flex items-center justify-between pt-2 px-2">
-                        <span className="text-sm text-muted-foreground">Growth Potential:</span>
-                        <span className="text-lg font-bold text-foreground bg-gradient-to-r from-primary to-mentor-future bg-clip-text text-transparent">
-                          +{scores.future - scores.current} levels
-                        </span>
-                      </div>
-                    </CardContent>
-                  </Card>
-                );
-              })}
-            </div>
-
-            <div className="flex gap-4">
-              <Button
-                variant="outline"
-                onClick={() => setStep("purpose")}
-                className="h-12"
-              >
-                ← Back
-              </Button>
-              <Button
-                onClick={handleSubmit}
-                disabled={loading}
-                className="flex-1 h-12 text-lg"
-              >
-                {loading ? "Saving..." : "Continue to Discovery 🚀"}
-              </Button>
-            </div>
-          </>
-        )}
+        <Button
+          onClick={handleSubmit}
+          disabled={loading}
+          className="w-full h-12 text-lg"
+        >
+          {loading ? "Saving..." : "Continue →"}
+        </Button>
       </div>
     </div>
   );
