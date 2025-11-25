@@ -78,5 +78,8 @@ verify_jwt = true
 [functions.evolve-purpose]
 verify_jwt = true
 
+[functions.connect-all-dots]
+verify_jwt = true
+
 
 
