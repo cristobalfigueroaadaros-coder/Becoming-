@@ -105,6 +105,9 @@ const OnboardingStep2 = () => {
         skill_tags: ["onboarding", "intentions"]
       });
 
+      // Store the selected focus for highlighting in Step 3
+      localStorage.setItem("onboarding_focus", selectedOption);
+
       toast.success("Got it! Let's continue");
       navigate("/onboarding/step3");
     } catch (error: any) {

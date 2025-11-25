@@ -1,12 +1,13 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Label } from "@/components/ui/label";
 import { Slider } from "@/components/ui/slider";
+import { Badge } from "@/components/ui/badge";
 import { toast } from "sonner";
-import { Activity, Briefcase, DollarSign, Heart, Users, Lightbulb } from "lucide-react";
+import { Activity, Briefcase, DollarSign, Heart, Users, Lightbulb, Star } from "lucide-react";
 
 const lifeDomains = [
   {
@@ -44,6 +45,12 @@ const lifeDomains = [
 export default function OnboardingStep3() {
   const navigate = useNavigate();
   const [loading, setLoading] = useState(false);
+  const [userFocus, setUserFocus] = useState<string | null>(null);
+
+  useEffect(() => {
+    const focus = localStorage.getItem("onboarding_focus");
+    setUserFocus(focus);
+  }, []);
 
   const [domainScores, setDomainScores] = useState<Record<string, { current: number; future: number }>>({
     "Health & Energy": { current: 5, future: 10 },
@@ -97,19 +104,40 @@ export default function OnboardingStep3() {
           <p className="text-muted-foreground text-lg">
             Quick check-in: Where are you today? Where do you want to be?
           </p>
+          {userFocus === "financial_life" && (
+            <div className="mt-4 p-4 bg-mentor-creative/10 border-2 border-mentor-creative rounded-lg">
+              <p className="text-sm text-mentor-creative font-medium">
+                💰 We've highlighted Money & Finances based on your focus. Rate all areas to get the full picture!
+              </p>
+            </div>
+          )}
         </div>
 
         <div className="grid gap-6">
           {lifeDomains.map((domain) => {
             const Icon = domain.icon;
             const scores = domainScores[domain.name];
+            const isFinancialFocus = userFocus === "financial_life" && domain.name === "Money & Finances";
 
             return (
-              <Card key={domain.name} className="border-2 hover:border-primary/50 transition-colors">
+              <Card 
+                key={domain.name} 
+                className={`border-2 transition-all ${
+                  isFinancialFocus 
+                    ? "border-mentor-creative shadow-lg ring-2 ring-mentor-creative/50" 
+                    : "hover:border-primary/50"
+                }`}
+              >
                 <CardHeader>
                   <CardTitle className="flex items-center gap-3">
-                    <Icon className="w-6 h-6 text-primary" />
+                    <Icon className={`w-6 h-6 ${isFinancialFocus ? "text-mentor-creative" : "text-primary"}`} />
                     {domain.name}
+                    {isFinancialFocus && (
+                      <Badge className="ml-auto bg-mentor-creative hover:bg-mentor-creative">
+                        <Star className="w-3 h-3 mr-1" />
+                        Your Focus
+                      </Badge>
+                    )}
                   </CardTitle>
                   <CardDescription>{domain.description}</CardDescription>
                 </CardHeader>
