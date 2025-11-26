@@ -6,7 +6,7 @@ import { Textarea } from "@/components/ui/textarea";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
-import { ArrowLeft, ChevronDown, ChevronUp, Sparkles, Target, AlertCircle, MessageCircle } from "lucide-react";
+import { ArrowLeft, ChevronDown, ChevronUp, Sparkles, Target, AlertCircle, MessageCircle, Plus, Check, Calendar, CalendarDays } from "lucide-react";
 import { toast } from "sonner";
 import { useShadowEncounters } from "@/hooks/useShadowEncounters";
 import { motion, AnimatePresence } from "framer-motion";
@@ -68,6 +68,25 @@ const CouncilMeeting = () => {
   const [clarifyingAnswers, setClarifyingAnswers] = useState<Record<string, string>>({});
   const [currentAnswer, setCurrentAnswer] = useState("");
   const [tasksGenerated, setTasksGenerated] = useState(false);
+  const [goalData, setGoalData] = useState<{
+    userDirection: string;
+    mainGoal: {
+      title: string;
+      daily: string;
+      weekly: string;
+      monthly: string;
+    };
+    optionalGoals: Array<{
+      title: string;
+      description: string;
+      added?: boolean;
+    }>;
+    mentorWhisper: {
+      mentor: string;
+      message: string;
+      growthNeed: string;
+    };
+  } | null>(null);
 
   const toggleExpand = (mentorType: string) => {
     setExpandedMentors((prev) => {
@@ -184,6 +203,7 @@ const CouncilMeeting = () => {
     setClarifyingAnswers({});
     setCurrentAnswer("");
     setTasksGenerated(false);
+    setGoalData(null);
   };
 
   const continueAsking = () => {
@@ -197,6 +217,7 @@ const CouncilMeeting = () => {
     setResolution("");
     setExpandedMentors(new Set());
     setTasksGenerated(false);
+    setGoalData(null);
     // Keep conversation history and detected patterns
   };
 
@@ -211,18 +232,56 @@ const CouncilMeeting = () => {
           question,
           emotionalTone,
           detectedPattern,
+          conversationHistory,
         },
       });
 
       if (error) throw error;
 
+      setGoalData(data);
       setTasksGenerated(true);
       setStage('action');
-      toast.success("Tasks created on your Goal Board! 🎯");
+      toast.success("🔥 Your Guidance Is Ready!");
     } catch (error: any) {
       toast.error(error.message);
     } finally {
       setLoading(false);
+    }
+  };
+
+  const handleAddOptionalGoal = async (goalIndex: number) => {
+    if (!goalData) return;
+    
+    try {
+      const { data: { user } } = await supabase.auth.getUser();
+      if (!user) throw new Error("Not authenticated");
+
+      const goal = goalData.optionalGoals[goalIndex];
+      
+      // Add to weekly goals as optional side goal
+      const today = new Date();
+      const weekStart = new Date(today);
+      weekStart.setDate(today.getDate() - today.getDay() + 1);
+      
+      await supabase.from("weekly_goals").insert({
+        user_id: user.id,
+        goal_text: goal.title,
+        week_start: weekStart.toISOString().split('T')[0],
+        completed: false,
+        xp_awarded: false,
+      });
+
+      // Update local state
+      setGoalData({
+        ...goalData,
+        optionalGoals: goalData.optionalGoals.map((g, i) => 
+          i === goalIndex ? { ...g, added: true } : g
+        ),
+      });
+
+      toast.success("Side goal added to your Goal Board! ✨");
+    } catch (error: any) {
+      toast.error(error.message);
     }
   };
 
@@ -651,35 +710,141 @@ const CouncilMeeting = () => {
               </motion.div>
             )}
 
-            {/* Action Phase - Only After Confirmation */}
-            {tasksGenerated && (
+            {/* Action Phase - Comprehensive Goal Display */}
+            {tasksGenerated && goalData && (
               <motion.div
                 initial={{ opacity: 0, scale: 0.95 }}
                 animate={{ opacity: 1, scale: 1 }}
-                className="space-y-3"
+                className="space-y-6"
               >
+                {/* Header */}
+                <div className="text-center space-y-2">
+                  <h2 className="text-2xl font-bold bg-gradient-to-r from-primary to-accent bg-clip-text text-transparent flex items-center justify-center gap-2">
+                    <Sparkles className="w-6 h-6 text-primary" />
+                    Your Guidance Is Ready
+                  </h2>
+                  <p className="text-sm text-muted-foreground">
+                    {goalData.userDirection}
+                  </p>
+                </div>
+
+                {/* Main Goal Card */}
                 <Card className="border-2 border-primary/50 bg-gradient-to-br from-primary/10 to-accent/10">
                   <CardHeader>
                     <CardTitle className="flex items-center gap-2">
-                      <Sparkles className="w-5 h-5 text-primary" />
-                      Tasks Created
+                      <Target className="w-5 h-5 text-primary" />
+                      MAIN GOAL
                     </CardTitle>
                   </CardHeader>
-                  <CardContent>
-                    <p className="text-sm text-muted-foreground mb-4">
-                      Your tasks have been added to your Goal Board. Start with today's micro-step!
-                    </p>
-                    <div className="flex flex-col sm:flex-row gap-3">
-                      <Button onClick={() => navigate("/future-self/goal-structure")} className="flex-1" size="lg">
-                        <Target className="w-4 h-4 mr-2" />
-                        View Goal Board
-                      </Button>
-                      <Button onClick={() => navigate("/future-self/constellation")} variant="outline" className="flex-1">
-                        View Mapping Dots
-                      </Button>
+                  <CardContent className="space-y-4">
+                    <p className="text-lg font-semibold">{goalData.mainGoal.title}</p>
+                    
+                    <div className="space-y-3 pt-2">
+                      <div className="flex items-start gap-3 p-3 rounded-lg bg-background/50">
+                        <div className="w-8 h-8 rounded-full bg-primary/20 flex items-center justify-center flex-shrink-0">
+                          <Target className="w-4 h-4 text-primary" />
+                        </div>
+                        <div>
+                          <p className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">Daily Task</p>
+                          <p className="text-sm">{goalData.mainGoal.daily}</p>
+                        </div>
+                      </div>
+                      
+                      <div className="flex items-start gap-3 p-3 rounded-lg bg-background/50">
+                        <div className="w-8 h-8 rounded-full bg-accent/20 flex items-center justify-center flex-shrink-0">
+                          <Calendar className="w-4 h-4 text-accent" />
+                        </div>
+                        <div>
+                          <p className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">Weekly Milestone</p>
+                          <p className="text-sm">{goalData.mainGoal.weekly}</p>
+                        </div>
+                      </div>
+                      
+                      <div className="flex items-start gap-3 p-3 rounded-lg bg-background/50">
+                        <div className="w-8 h-8 rounded-full bg-secondary/20 flex items-center justify-center flex-shrink-0">
+                          <CalendarDays className="w-4 h-4 text-secondary-foreground" />
+                        </div>
+                        <div>
+                          <p className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">Monthly Objective</p>
+                          <p className="text-sm">{goalData.mainGoal.monthly}</p>
+                        </div>
+                      </div>
                     </div>
                   </CardContent>
                 </Card>
+
+                {/* Optional Side Goals */}
+                <Card className="border border-accent/30">
+                  <CardHeader>
+                    <CardTitle className="text-lg flex items-center gap-2">
+                      <Sparkles className="w-4 h-4 text-accent" />
+                      OPTIONAL SIDE GOALS
+                    </CardTitle>
+                    <p className="text-xs text-muted-foreground">
+                      Bonus missions to support your growth
+                    </p>
+                  </CardHeader>
+                  <CardContent className="space-y-3">
+                    {goalData.optionalGoals.map((goal, idx) => (
+                      <div 
+                        key={idx}
+                        className="flex items-start justify-between gap-3 p-3 rounded-lg border border-border/50 hover:border-accent/50 transition-colors"
+                      >
+                        <div className="flex-1">
+                          <p className="font-medium text-sm">{idx + 1}. {goal.title}</p>
+                          <p className="text-xs text-muted-foreground mt-1">{goal.description}</p>
+                        </div>
+                        <Button
+                          size="sm"
+                          variant={goal.added ? "secondary" : "outline"}
+                          onClick={() => handleAddOptionalGoal(idx)}
+                          disabled={goal.added}
+                          className="flex-shrink-0"
+                        >
+                          {goal.added ? (
+                            <>
+                              <Check className="w-3 h-3 mr-1" />
+                              Added
+                            </>
+                          ) : (
+                            <>
+                              <Plus className="w-3 h-3 mr-1" />
+                              Add to Goals
+                            </>
+                          )}
+                        </Button>
+                      </div>
+                    ))}
+                  </CardContent>
+                </Card>
+
+                {/* Mentor Whisper */}
+                <Card className="border-2 border-accent/50 bg-gradient-to-br from-accent/5 to-primary/5">
+                  <CardHeader>
+                    <CardTitle className="text-sm flex items-center gap-2">
+                      <MessageCircle className="w-4 h-4 text-accent" />
+                      Private Whisper from {mentorNames[goalData.mentorWhisper.mentor] || goalData.mentorWhisper.mentor.replace(/_/g, ' ')}
+                    </CardTitle>
+                  </CardHeader>
+                  <CardContent>
+                    <p className="text-sm leading-relaxed italic whitespace-pre-line">
+                      {goalData.mentorWhisper.message}
+                    </p>
+                  </CardContent>
+                </Card>
+
+                {/* Action Buttons */}
+                <div className="flex flex-col sm:flex-row gap-3">
+                  <Button onClick={() => navigate("/future-self/goal-structure")} className="flex-1" size="lg">
+                    <Target className="w-4 h-4 mr-2" />
+                    View Goal Board
+                  </Button>
+                  <Button onClick={() => navigate("/chat")} variant="outline" className="flex-1">
+                    <MessageCircle className="w-4 h-4 mr-2" />
+                    Reply to {mentorNames[goalData.mentorWhisper.mentor]?.split(' ')[0] || 'Mentor'}
+                  </Button>
+                </div>
+
                 <Button onClick={resetConversation} variant="ghost" className="w-full">
                   Start Fresh Conversation
                 </Button>
