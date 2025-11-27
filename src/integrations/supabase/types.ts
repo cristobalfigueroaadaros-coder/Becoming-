@@ -1787,6 +1787,11 @@ export type Database = {
         | "heart_mentor"
         | "strategist_mentor"
         | "explorer_mentor"
+        | "discipline_mentor"
+        | "marketing_mentor"
+        | "scientific_mentor"
+        | "alignment_mentor"
+        | "oracle_mother"
     }
     CompositeTypes: {
       [_ in never]: never
@@ -1927,6 +1932,11 @@ export const Constants = {
         "heart_mentor",
         "strategist_mentor",
         "explorer_mentor",
+        "discipline_mentor",
+        "marketing_mentor",
+        "scientific_mentor",
+        "alignment_mentor",
+        "oracle_mother",
       ],
     },
   },
