@@ -1,13 +1,19 @@
+/**
+ * ❗ CONSCIOUSNESS TRACKING RULES
+ * 
+ * 1. NEVER display consciousness meters, scores, levels, or numeric progression
+ * 2. NEVER show graphs/charts of spiritual/energetic states
+ * 3. Consciousness is expressed ONLY through mentor voice, reflections, and task design
+ * 4. Frequency references are SYMBOLIC METAPHORS, not metrics
+ * 5. The arc is FELT, not displayed
+ */
+
 import { useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
-import { Card } from "@/components/ui/card";
+import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
-import { ArrowLeft, Zap, TrendingUp, Heart, Target, Waves, Sparkles } from "lucide-react";
-import { EnergyTimeline } from "@/components/energetic/EnergyTimeline";
-import { CoherenceRadar } from "@/components/energetic/CoherenceRadar";
-import { FlowStateTracker } from "@/components/energetic/FlowStateTracker";
-import { VibrationPatterns } from "@/components/energetic/VibrationPatterns";
+import { ArrowLeft, Sparkles, Heart, Sun, Wind, Feather } from "lucide-react";
 import { FrequencyMeter } from "@/components/energetic/FrequencyMeter";
 import { EnergyCaptureWidget } from "@/components/energetic/EnergyCaptureWidget";
 import { toast } from "@/hooks/use-toast";
@@ -24,6 +30,91 @@ interface EnergeticSnapshot {
   overall_frequency: string | null;
   activity_context: string | null;
   snapshot_type: string;
+}
+
+// Narrative patterns based on recent snapshots - no numbers shown to user
+function getNarrativePattern(snapshots: EnergeticSnapshot[]): { pattern: string; guidance: string } {
+  if (snapshots.length < 2) {
+    return {
+      pattern: "Your journey is just beginning",
+      guidance: "Capture a few moments to start noticing your patterns."
+    };
+  }
+
+  const recentSnapshots = snapshots.slice(0, 5);
+  const hasHighEnergy = recentSnapshots.some(s => s.overall_frequency === "high" || s.overall_frequency === "very-high");
+  const hasFlowStates = recentSnapshots.some(s => s.snapshot_type === "flow_state");
+  const recentEmotions = recentSnapshots.map(s => s.emotional_state).filter(Boolean);
+  const recentActivities = recentSnapshots.map(s => s.activity_context).filter(Boolean);
+
+  if (hasFlowStates && hasHighEnergy) {
+    return {
+      pattern: "You've been touching flow states recently",
+      guidance: "Notice what activities and conditions brought you there. Trust that alignment."
+    };
+  }
+
+  if (hasHighEnergy) {
+    return {
+      pattern: "You've been showing up with openness and curiosity",
+      guidance: "Your mentors are noticing. Keep following what expands you."
+    };
+  }
+
+  if (recentEmotions.length > 0) {
+    const emotions = [...new Set(recentEmotions)].slice(0, 2).join(" and ");
+    return {
+      pattern: `You've been experiencing ${emotions}`,
+      guidance: "All feelings are valid. Notice what your body is telling you."
+    };
+  }
+
+  if (recentActivities.length > 0) {
+    return {
+      pattern: "You've been actively engaging with life",
+      guidance: "Pay attention to which activities leave you feeling expanded."
+    };
+  }
+
+  return {
+    pattern: "You're building awareness of your inner landscape",
+    guidance: "Each moment you capture deepens your self-knowledge."
+  };
+}
+
+// Get qualitative insight about flow states - no counting
+function getFlowInsight(snapshots: EnergeticSnapshot[]): string {
+  const flowSnapshots = snapshots.filter(s => s.snapshot_type === "flow_state");
+  
+  if (flowSnapshots.length === 0) {
+    return "Flow states are moments when you're fully absorbed and energized. Capture them when they happen.";
+  }
+
+  const recentFlow = flowSnapshots[0];
+  if (recentFlow.activity_context) {
+    return `You recently experienced flow during ${recentFlow.activity_context}. What conditions made that possible?`;
+  }
+
+  return "You've touched flow states. Notice what activities and environments bring you there.";
+}
+
+// Get qualitative insight about emotional patterns - no numbers
+function getEmotionalInsight(snapshots: EnergeticSnapshot[]): string {
+  const emotions = snapshots
+    .slice(0, 10)
+    .map(s => s.emotional_state)
+    .filter(Boolean);
+
+  if (emotions.length === 0) {
+    return "Start naming your emotional states to build deeper self-awareness.";
+  }
+
+  const uniqueEmotions = [...new Set(emotions)];
+  if (uniqueEmotions.length === 1) {
+    return `You've been consistently feeling ${uniqueEmotions[0]}. What does that tell you?`;
+  }
+
+  return `You're experiencing a range of emotions. Each one carries wisdom for you.`;
 }
 
 export default function EnergeticDashboard() {
@@ -53,14 +144,13 @@ export default function EnergeticDashboard() {
 
       setSnapshots((data as EnergeticSnapshot[]) || []);
       
-      // Set current frequency from most recent snapshot
       if (data && data.length > 0) {
         setCurrentFrequency((data[0] as EnergeticSnapshot).overall_frequency || "medium");
       }
     } catch (error: any) {
       console.error("Error loading snapshots:", error);
       toast({
-        title: "Error loading energetic data",
+        title: "Error loading data",
         description: error.message,
         variant: "destructive",
       });
@@ -80,17 +170,16 @@ export default function EnergeticDashboard() {
           table: "energetic_snapshots",
         },
         (payload: any) => {
-          console.log("New energetic snapshot:", payload);
           const newSnapshot = payload.new as EnergeticSnapshot;
           setSnapshots((prev) => [newSnapshot, ...prev].slice(0, 50));
           setCurrentFrequency(newSnapshot.overall_frequency || "medium");
           
-          // Show toast for significant moments
+          // Show narrative toast for significant moments
           const freq = newSnapshot.overall_frequency;
           if (freq === "very-high" || freq === "high") {
             toast({
-              title: "✨ High Frequency Moment Detected",
-              description: `${newSnapshot.emotional_state || ''} - ${newSnapshot.activity_context || ''}`,
+              title: "✨ Beautiful moment captured",
+              description: "You're in an expansive state. Notice how this feels.",
             });
           }
         }
@@ -102,23 +191,16 @@ export default function EnergeticDashboard() {
     };
   };
 
-  // Calculate current stats
-  const avgEnergy = snapshots.length > 0 
-    ? snapshots.slice(0, 10).reduce((acc, s) => acc + s.energy_level, 0) / Math.min(10, snapshots.length)
-    : 0;
-  
-  const avgCoherence = snapshots.length > 0
-    ? snapshots.slice(0, 10).reduce((acc, s) => acc + s.coherence_level, 0) / Math.min(10, snapshots.length)
-    : 0;
-
-  const flowStateCount = snapshots.filter(s => s.snapshot_type === "flow_state").length;
+  const narrativePattern = getNarrativePattern(snapshots);
+  const flowInsight = getFlowInsight(snapshots);
+  const emotionalInsight = getEmotionalInsight(snapshots);
 
   if (loading) {
     return (
       <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-background via-muted/30 to-background">
         <div className="text-center">
-          <Waves className="w-16 h-16 animate-pulse text-primary mx-auto mb-4" />
-          <p className="text-muted-foreground">Loading your energetic field...</p>
+          <Sparkles className="w-16 h-16 animate-pulse text-primary mx-auto mb-4" />
+          <p className="text-muted-foreground">Tuning into your inner landscape...</p>
         </div>
       </div>
     );
@@ -126,7 +208,7 @@ export default function EnergeticDashboard() {
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-background via-muted/30 to-background">
-      <div className="container max-w-7xl mx-auto p-4 md:p-8">
+      <div className="container max-w-4xl mx-auto p-4 md:p-8">
         {/* Header */}
         <div className="mb-8">
           <Button
@@ -134,7 +216,7 @@ export default function EnergeticDashboard() {
             className="w-full mb-4 bg-gradient-to-r from-secondary to-accent hover:opacity-90"
           >
             <Sparkles className="w-4 h-4 mr-2" />
-            View Pattern Insights
+            View Your Patterns
           </Button>
 
           <Button
@@ -146,13 +228,13 @@ export default function EnergeticDashboard() {
             Back to Dashboard
           </Button>
           
-          <div className="flex items-center justify-between">
+          <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
             <div>
               <h1 className="text-4xl font-bold mb-2 bg-gradient-to-r from-primary via-accent to-primary bg-clip-text text-transparent">
-                Energetic Intelligence
+                Inner Weather
               </h1>
               <p className="text-muted-foreground">
-                Real-time tracking of your vibrational field, flow states, and coherence patterns
+                Tune into how you're feeling. No tracking, just awareness.
               </p>
             </div>
             
@@ -160,59 +242,110 @@ export default function EnergeticDashboard() {
           </div>
         </div>
 
-        {/* Quick Stats */}
-        <div className="grid grid-cols-1 md:grid-cols-4 gap-4 mb-8">
-          <Card className="p-6 bg-card/50 backdrop-blur border-primary/20">
-            <div className="flex items-center justify-between">
-              <div>
-                <p className="text-sm text-muted-foreground mb-1">Avg Energy</p>
-                <p className="text-3xl font-bold text-primary">{avgEnergy.toFixed(1)}</p>
+        {/* Narrative Insight Cards - No Numbers */}
+        <div className="space-y-4 mb-8">
+          {/* Current Pattern */}
+          <Card className="bg-gradient-to-br from-primary/10 via-card/50 to-accent/10 border-primary/20">
+            <CardContent className="p-6">
+              <div className="flex items-start gap-4">
+                <div className="w-12 h-12 rounded-full bg-primary/20 flex items-center justify-center shrink-0">
+                  <Sun className="w-6 h-6 text-primary" />
+                </div>
+                <div>
+                  <h3 className="font-semibold text-lg mb-1">Recent Pattern</h3>
+                  <p className="text-foreground mb-2">{narrativePattern.pattern}</p>
+                  <p className="text-sm text-muted-foreground italic">{narrativePattern.guidance}</p>
+                </div>
               </div>
-              <Zap className="w-8 h-8 text-primary" />
-            </div>
+            </CardContent>
           </Card>
 
-          <Card className="p-6 bg-card/50 backdrop-blur border-accent/20">
-            <div className="flex items-center justify-between">
-              <div>
-                <p className="text-sm text-muted-foreground mb-1">Coherence</p>
-                <p className="text-3xl font-bold text-accent">{avgCoherence.toFixed(1)}</p>
+          {/* Flow Insight */}
+          <Card className="bg-card/50 backdrop-blur border-accent/20">
+            <CardContent className="p-6">
+              <div className="flex items-start gap-4">
+                <div className="w-12 h-12 rounded-full bg-accent/20 flex items-center justify-center shrink-0">
+                  <Wind className="w-6 h-6 text-accent" />
+                </div>
+                <div>
+                  <h3 className="font-semibold text-lg mb-1">Flow States</h3>
+                  <p className="text-sm text-muted-foreground">{flowInsight}</p>
+                </div>
               </div>
-              <Heart className="w-8 h-8 text-accent" />
-            </div>
+            </CardContent>
           </Card>
 
-          <Card className="p-6 bg-card/50 backdrop-blur border-secondary/20">
-            <div className="flex items-center justify-between">
-              <div>
-                <p className="text-sm text-muted-foreground mb-1">Flow States</p>
-                <p className="text-3xl font-bold text-secondary">{flowStateCount}</p>
+          {/* Emotional Insight */}
+          <Card className="bg-card/50 backdrop-blur border-secondary/20">
+            <CardContent className="p-6">
+              <div className="flex items-start gap-4">
+                <div className="w-12 h-12 rounded-full bg-secondary/20 flex items-center justify-center shrink-0">
+                  <Heart className="w-6 h-6 text-secondary" />
+                </div>
+                <div>
+                  <h3 className="font-semibold text-lg mb-1">Emotional Landscape</h3>
+                  <p className="text-sm text-muted-foreground">{emotionalInsight}</p>
+                </div>
               </div>
-              <TrendingUp className="w-8 h-8 text-secondary" />
-            </div>
+            </CardContent>
           </Card>
 
-          <Card className="p-6 bg-card/50 backdrop-blur border-muted">
-            <div className="flex items-center justify-between">
-              <div>
-                <p className="text-sm text-muted-foreground mb-1">Total Captures</p>
-                <p className="text-3xl font-bold">{snapshots.length}</p>
+          {/* Somatic Prompt */}
+          <Card className="bg-card/50 backdrop-blur border-muted">
+            <CardContent className="p-6">
+              <div className="flex items-start gap-4">
+                <div className="w-12 h-12 rounded-full bg-muted flex items-center justify-center shrink-0">
+                  <Feather className="w-6 h-6 text-muted-foreground" />
+                </div>
+                <div>
+                  <h3 className="font-semibold text-lg mb-1">Body Check</h3>
+                  <p className="text-sm text-muted-foreground">
+                    Right now, notice your breath. Is it shallow or deep? 
+                    Notice your shoulders. Relaxed or tense? 
+                    Your body holds wisdom your mind hasn't processed yet.
+                  </p>
+                </div>
               </div>
-              <Target className="w-8 h-8 text-foreground" />
-            </div>
+            </CardContent>
           </Card>
         </div>
 
-        {/* Main Visualizations */}
-        <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 mb-6">
-          <EnergyTimeline snapshots={snapshots} />
-          <CoherenceRadar snapshots={snapshots.slice(0, 1)} />
-        </div>
-
-        <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-          <FlowStateTracker snapshots={snapshots} />
-          <VibrationPatterns snapshots={snapshots} />
-        </div>
+        {/* Recent Moments - Qualitative List */}
+        {snapshots.length > 0 && (
+          <Card className="bg-card/50 backdrop-blur border-primary/20 mb-8">
+            <CardContent className="p-6">
+              <h3 className="font-semibold text-lg mb-4">Recent Moments</h3>
+              <div className="space-y-3">
+                {snapshots.slice(0, 5).map((snapshot) => (
+                  <div 
+                    key={snapshot.id} 
+                    className="flex items-center gap-3 p-3 rounded-lg bg-muted/30"
+                  >
+                    <div className={`w-3 h-3 rounded-full ${
+                      snapshot.overall_frequency === "very-high" ? "bg-secondary" :
+                      snapshot.overall_frequency === "high" ? "bg-accent" :
+                      snapshot.overall_frequency === "medium" ? "bg-primary" :
+                      "bg-muted-foreground"
+                    }`} />
+                    <div className="flex-1">
+                      <p className="text-sm font-medium">
+                        {snapshot.emotional_state || "Moment captured"}
+                      </p>
+                      {snapshot.activity_context && (
+                        <p className="text-xs text-muted-foreground">
+                          During: {snapshot.activity_context}
+                        </p>
+                      )}
+                    </div>
+                    <p className="text-xs text-muted-foreground">
+                      {new Date(snapshot.captured_at).toLocaleDateString()}
+                    </p>
+                  </div>
+                ))}
+              </div>
+            </CardContent>
+          </Card>
+        )}
 
         {/* Energy Capture Widget */}
         <EnergyCaptureWidget />
