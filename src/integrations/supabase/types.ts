@@ -482,21 +482,30 @@ export type Database = {
           id: string
           mentor_type: Database["public"]["Enums"]["mentor_type"]
           message: string
+          read_at: string | null
+          trigger_reason: string | null
           user_id: string
+          whisper_type: string | null
         }
         Insert: {
           created_at?: string | null
           id?: string
           mentor_type: Database["public"]["Enums"]["mentor_type"]
           message: string
+          read_at?: string | null
+          trigger_reason?: string | null
           user_id: string
+          whisper_type?: string | null
         }
         Update: {
           created_at?: string | null
           id?: string
           mentor_type?: Database["public"]["Enums"]["mentor_type"]
           message?: string
+          read_at?: string | null
+          trigger_reason?: string | null
           user_id?: string
+          whisper_type?: string | null
         }
         Relationships: []
       }
@@ -972,6 +981,7 @@ export type Database = {
           future_self_voice_note: string | null
           human_design_data: Json | null
           id: string
+          last_whisper_date: string | null
           main_mission: string | null
           main_strengths: string[] | null
           priority_growth_area: string | null
@@ -994,6 +1004,7 @@ export type Database = {
           future_self_voice_note?: string | null
           human_design_data?: Json | null
           id: string
+          last_whisper_date?: string | null
           main_mission?: string | null
           main_strengths?: string[] | null
           priority_growth_area?: string | null
@@ -1016,6 +1027,7 @@ export type Database = {
           future_self_voice_note?: string | null
           human_design_data?: Json | null
           id?: string
+          last_whisper_date?: string | null
           main_mission?: string | null
           main_strengths?: string[] | null
           priority_growth_area?: string | null

@@ -84,5 +84,8 @@ verify_jwt = true
 [functions.connect-all-dots]
 verify_jwt = true
 
+[functions.generate-daily-whisper]
+verify_jwt = true
+
 
 
