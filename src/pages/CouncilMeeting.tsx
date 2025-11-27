@@ -6,25 +6,33 @@ import { Textarea } from "@/components/ui/textarea";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
-import { ArrowLeft, ChevronDown, ChevronUp, Sparkles, Target, AlertCircle, MessageCircle, Plus, Check, Calendar, CalendarDays } from "lucide-react";
+import { ArrowLeft, ChevronDown, ChevronUp, Sparkles, Target, AlertCircle, MessageCircle, Plus, Check, Calendar, CalendarDays, RefreshCw, GitBranch } from "lucide-react";
 import { toast } from "sonner";
 import { useShadowEncounters } from "@/hooks/useShadowEncounters";
 import { motion, AnimatePresence } from "framer-motion";
 import { VoiceRecorder } from "@/components/VoiceRecorder";
 
+// Updated mentor names with new 12-mentor system
 const mentorNames: Record<string, string> = {
-  mamba_mentor: "Mamba Mentor",
+  // New naming
+  discipline_mentor: "Discipline Mentor",
+  mamba_mentor: "Discipline Mentor", // Legacy mapping
+  strategist_mentor: "Strategist Mentor",
   creative_visionary: "Creative Visionary",
   quantum_inventor: "Quantum Inventor",
-  ancient_sage: "Ancient Sage",
-  compassionate_elder: "Compassionate Elder",
-  future_self: "Future Self",
-  business_mentor: "Business Mentor",
-  creator_mentor: "Creator Mentor",
   mystic_mentor: "Mystic Mentor",
+  business_mentor: "Business Mentor",
+  marketing_mentor: "Marketing Mentor",
+  scientific_mentor: "Scientific Mentor",
   heart_mentor: "Heart Mentor",
-  strategist_mentor: "Strategist Mentor",
-  explorer_mentor: "Explorer Mentor",
+  ancient_sage: "Ancient Sage",
+  alignment_mentor: "Alignment Mentor",
+  oracle_mother: "Oracle Mother",
+  future_self: "Future Self",
+  // Legacy mappings
+  compassionate_elder: "Oracle Mother",
+  creator_mentor: "Marketing Mentor",
+  explorer_mentor: "Alignment Mentor",
 };
 
 const emotionalIcons: Record<string, string> = {
@@ -87,6 +95,9 @@ const CouncilMeeting = () => {
       growthNeed: string;
     };
   } | null>(null);
+
+  // Track if we have an active thread
+  const hasActiveThread = conversationHistory.length > 0;
 
   const toggleExpand = (mentorType: string) => {
     setExpandedMentors((prev) => {
@@ -349,11 +360,39 @@ const CouncilMeeting = () => {
           </div>
         </div>
 
-        {/* Question Input */}
+        {/* Active Thread Indicator */}
+        {hasActiveThread && stage === 'input' && (
+          <motion.div
+            initial={{ opacity: 0, y: -10 }}
+            animate={{ opacity: 1, y: 0 }}
+          >
+            <Card className="border-accent/30 bg-accent/5">
+              <CardContent className="pt-4">
+                <div className="flex items-center justify-between">
+                  <div className="flex items-center gap-3">
+                    <GitBranch className="w-5 h-5 text-accent" />
+                    <div>
+                      <p className="text-sm font-medium">Active Thread</p>
+                      <p className="text-xs text-muted-foreground">
+                        {conversationHistory.filter(m => m.role === 'user').length} exchanges in this conversation
+                      </p>
+                    </div>
+                  </div>
+                  <Button variant="ghost" size="sm" onClick={resetConversation}>
+                    <RefreshCw className="w-4 h-4 mr-2" />
+                    New Topic
+                  </Button>
+                </div>
+              </CardContent>
+            </Card>
+          </motion.div>
+        )}
+
+        {/* Question Input - Enhanced with Thread Options */}
         <Card>
           <CardHeader>
             <CardTitle className="flex items-center justify-between">
-              <span>Your Question</span>
+              <span>Ask the Council</span>
               {emotionalTone && (
                 <div className="flex items-center gap-2">
                   <span className="text-2xl">{emotionalIcons[emotionalTone] || emotionalIcons.neutral}</span>
@@ -366,20 +405,55 @@ const CouncilMeeting = () => {
           </CardHeader>
           <CardContent className="space-y-4">
             <Textarea
-              placeholder="What question would you like to ask your council?"
+              placeholder={hasActiveThread 
+                ? "Continue exploring this topic..." 
+                : "What question would you like to ask your council?"}
               value={question}
               onChange={(e) => setQuestion(e.target.value)}
               rows={4}
               disabled={loading || stage === 'complete'}
             />
-            <Button
-              onClick={() => handleAsk(stage === 'clarifying')}
-              disabled={loading || !question.trim() || stage === 'complete'}
-              className="w-full"
-              size="lg"
-            >
-              {loading ? "Consulting the council..." : stage === 'clarifying' ? "Answer & Continue" : "Ask the Council"}
-            </Button>
+            
+            {/* Thread Action Buttons */}
+            <div className="flex flex-col sm:flex-row gap-3">
+              {hasActiveThread ? (
+                <>
+                  <Button
+                    onClick={() => handleAsk(true)}
+                    disabled={loading || !question.trim() || stage === 'complete'}
+                    className="flex-1"
+                    size="lg"
+                  >
+                    <GitBranch className="w-4 h-4 mr-2" />
+                    {loading ? "Consulting..." : "Continue This Thread"}
+                  </Button>
+                  <Button
+                    onClick={() => {
+                      resetConversation();
+                      if (question.trim()) {
+                        setTimeout(() => handleAsk(false), 100);
+                      }
+                    }}
+                    disabled={loading || !question.trim() || stage === 'complete'}
+                    variant="outline"
+                    className="flex-1"
+                    size="lg"
+                  >
+                    <RefreshCw className="w-4 h-4 mr-2" />
+                    Start New Topic
+                  </Button>
+                </>
+              ) : (
+                <Button
+                  onClick={() => handleAsk(false)}
+                  disabled={loading || !question.trim() || stage === 'complete'}
+                  className="w-full"
+                  size="lg"
+                >
+                  {loading ? "Consulting the council..." : "Ask the Council"}
+                </Button>
+              )}
+            </div>
           </CardContent>
         </Card>
 
@@ -549,7 +623,7 @@ const CouncilMeeting = () => {
                   <Card key={mentorType} className="border-l-4 border-l-primary/50 overflow-hidden">
                     <CardHeader className="pb-3">
                       <CardTitle className="text-lg flex items-center justify-between">
-                        {mentorNames[mentorType]}
+                        {mentorNames[mentorType] || mentorType.replace(/_/g, ' ')}
                         {answerObj.coreTheme && (
                           <Badge variant="outline" className="text-xs capitalize">
                             {answerObj.coreTheme}
@@ -674,7 +748,7 @@ const CouncilMeeting = () => {
               </div>
             )}
 
-            {/* Gentle Action Prompt */}
+            {/* Thread Continuation Options */}
             {!tasksGenerated && (
               <motion.div
                 initial={{ opacity: 0, y: 10 }}
@@ -683,7 +757,7 @@ const CouncilMeeting = () => {
                 <Card className="border-2 border-accent/30 bg-gradient-to-br from-accent/5 to-transparent">
                   <CardContent className="pt-6 space-y-4">
                     <p className="text-sm text-muted-foreground italic text-center">
-                      💭 When you feel ready, we can turn this clarity into action...
+                      💭 Would you like to continue this topic or begin a new one?
                     </p>
                     <div className="flex flex-col sm:flex-row gap-3">
                       <Button 
@@ -692,13 +766,24 @@ const CouncilMeeting = () => {
                         className="flex-1"
                         size="lg"
                       >
-                        <MessageCircle className="w-4 h-4 mr-2" />
-                        Keep Asking
+                        <GitBranch className="w-4 h-4 mr-2" />
+                        Continue This Conversation
                       </Button>
+                      <Button 
+                        onClick={resetConversation} 
+                        variant="ghost" 
+                        className="flex-1"
+                        size="lg"
+                      >
+                        <RefreshCw className="w-4 h-4 mr-2" />
+                        Start New Question
+                      </Button>
+                    </div>
+                    <div className="pt-2 border-t border-border/50">
                       <Button 
                         onClick={handleReadyForAction}
                         disabled={loading}
-                        className="flex-1"
+                        className="w-full"
                         size="lg"
                       >
                         <Target className="w-4 h-4 mr-2" />
