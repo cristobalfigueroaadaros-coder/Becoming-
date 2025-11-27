@@ -17,6 +17,8 @@ import { CurrentChallengeCard } from "@/components/CurrentChallengeCard";
 import { TodaysChallengeWidget } from "@/components/TodaysChallengeWidget";
 import { ConstellationRecommendations } from "@/components/ConstellationRecommendations";
 import { FutureSelfTriggerButton } from "@/components/FutureSelfTriggerButton";
+import { MentorWhisperNotification } from "@/components/MentorWhisperNotification";
+import { useMentorWhisper } from "@/hooks/useMentorWhisper";
 import { History, Rocket } from "lucide-react";
 
 const mentorIcons = {
@@ -67,7 +69,6 @@ const mentorNames = {
 const Dashboard = () => {
   const navigate = useNavigate();
   const [mentors, setMentors] = useState<any[]>([]);
-  const [latestWhisper, setLatestWhisper] = useState<any>(null);
   const [loading, setLoading] = useState(true);
   const [ritualModalOpen, setRitualModalOpen] = useState(false);
   const [hasCompletedRitualToday, setHasCompletedRitualToday] = useState(false);
@@ -79,13 +80,33 @@ const Dashboard = () => {
   const [purposeModalOpen, setPurposeModalOpen] = useState(false);
   const [userPurpose, setUserPurpose] = useState<string | null>(null);
   const [constellationInsights, setConstellationInsights] = useState<any>(null);
+  const [showWhisperNotification, setShowWhisperNotification] = useState(false);
+  
+  const { 
+    unreadWhisper, 
+    checkAndGenerateWhisper, 
+    markAsRead,
+    latestWhisper 
+  } = useMentorWhisper();
 
   useEffect(() => {
     loadDashboardData();
     checkRitualStatus();
     checkPurposeStatus();
     loadConstellationInsights();
+    // Check for whisper after a short delay
+    const whisperTimer = setTimeout(() => {
+      checkAndGenerateWhisper();
+    }, 2000);
+    return () => clearTimeout(whisperTimer);
   }, []);
+
+  // Show notification when unread whisper arrives
+  useEffect(() => {
+    if (unreadWhisper && !showWhisperNotification) {
+      setShowWhisperNotification(true);
+    }
+  }, [unreadWhisper]);
 
   const loadDashboardData = async () => {
     try {
@@ -105,18 +126,6 @@ const Dashboard = () => {
 
       if (mentorsError) throw mentorsError;
       setMentors(mentorsData || []);
-
-      // Load latest whisper
-      const { data: whisperData, error: whisperError } = await supabase
-        .from("daily_whispers")
-        .select("*")
-        .eq("user_id", user.id)
-        .order("created_at", { ascending: false })
-        .limit(1)
-        .maybeSingle();
-
-      if (whisperError && whisperError.code !== "PGRST116") throw whisperError;
-      setLatestWhisper(whisperData);
     } catch (error: any) {
       toast.error(error.message);
     } finally {
@@ -742,6 +751,21 @@ const Dashboard = () => {
         }}
         existingPurpose={userPurpose}
       />
+
+      {/* Whisper Notification */}
+      {showWhisperNotification && unreadWhisper && (
+        <MentorWhisperNotification
+          whisper={unreadWhisper}
+          onDismiss={() => {
+            setShowWhisperNotification(false);
+            markAsRead(unreadWhisper.id);
+          }}
+          onReply={() => {
+            setShowWhisperNotification(false);
+            markAsRead(unreadWhisper.id);
+          }}
+        />
+      )}
     </div>
   );
 };

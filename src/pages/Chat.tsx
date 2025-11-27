@@ -5,10 +5,18 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Card } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
-import { ArrowLeft, Send, Sparkles } from "lucide-react";
+import { ArrowLeft, Send, Sparkles, MessageCircle } from "lucide-react";
 import { toast } from "sonner";
 import { cn } from "@/lib/utils";
 import { MentorLearningModule } from "@/components/MentorLearningModule";
+
+interface Whisper {
+  id: string;
+  mentor_type: string;
+  message: string;
+  whisper_type?: string;
+  created_at: string;
+}
 
 const mentorNames: Record<string, string> = {
   mamba_mentor: "Mamba Mentor",
@@ -23,12 +31,16 @@ const mentorNames: Record<string, string> = {
   heart_mentor: "Heart Mentor",
   strategist_mentor: "Strategist Mentor",
   explorer_mentor: "Explorer Mentor",
+  discipline_mentor: "Discipline Mentor",
+  alignment_mentor: "Alignment Mentor",
+  oracle_mother: "Oracle Mother",
 };
 
 const Chat = () => {
   const { mentorType } = useParams<{ mentorType: string }>();
   const navigate = useNavigate();
   const [messages, setMessages] = useState<any[]>([]);
+  const [whispers, setWhispers] = useState<Whisper[]>([]);
   const [input, setInput] = useState("");
   const [loading, setLoading] = useState(false);
   const [showLearningModule, setShowLearningModule] = useState(false);
@@ -38,6 +50,7 @@ const Chat = () => {
 
   useEffect(() => {
     loadMessages();
+    loadWhispers();
     subscribeToMessages();
     countExchanges();
   }, [mentorType]);
@@ -72,6 +85,26 @@ const Chat = () => {
       setExchangeCount(userMessages.length);
     } catch (error: any) {
       toast.error(error.message);
+    }
+  };
+
+  const loadWhispers = async () => {
+    try {
+      const { data: { user } } = await supabase.auth.getUser();
+      if (!user) return;
+
+      const { data, error } = await supabase
+        .from("daily_whispers")
+        .select("*")
+        .eq("user_id", user.id)
+        .eq("mentor_type", mentorType as any)
+        .order("created_at", { ascending: false })
+        .limit(5);
+
+      if (error) throw error;
+      setWhispers((data || []) as Whisper[]);
+    } catch (error: any) {
+      console.error("Error loading whispers:", error);
     }
   };
 
@@ -206,6 +239,32 @@ const Chat = () => {
       {/* Messages */}
       <div className="flex-1 overflow-y-auto p-4">
         <div className="max-w-4xl mx-auto space-y-4">
+          {/* Show recent whispers at top */}
+          {whispers.length > 0 && (
+            <div className="space-y-2 mb-6">
+              <div className="flex items-center gap-2 text-xs text-muted-foreground">
+                <MessageCircle className="w-3 h-3" />
+                <span>Recent Private Whispers</span>
+              </div>
+              {whispers.slice(0, 2).map((whisper) => (
+                <Card
+                  key={whisper.id}
+                  className="p-3 bg-gradient-to-br from-primary/10 to-accent/10 border-primary/20"
+                >
+                  <div className="flex items-start gap-2">
+                    <Sparkles className="w-4 h-4 text-primary flex-shrink-0 mt-0.5" />
+                    <div>
+                      <p className="text-xs text-muted-foreground mb-1">
+                        {whisper.whisper_type ? `${whisper.whisper_type} whisper` : 'whisper'}
+                      </p>
+                      <p className="text-sm italic">{whisper.message}</p>
+                    </div>
+                  </div>
+                </Card>
+              ))}
+            </div>
+          )}
+
           {messages.map((message) => (
             <div
               key={message.id}
