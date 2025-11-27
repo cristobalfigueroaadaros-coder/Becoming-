@@ -81,19 +81,20 @@ PRACTICAL LAYER:
 - Generates action and new dots
 - Small enough to start, significant enough to matter
 
-ENERGETIC LAYER: ✨ NEW
-- Raises their vibration
-- Creates expansion not contraction
-- Aligned with their natural frequency
-- Produces coherence (mind + heart + energy)
-- Generates flow state potential
+ENERGETIC LAYER (Narrative, Not Numeric):
+- Creates felt sense of expansion, not contraction
+- Aligned with their natural rhythm and flow
+- Produces coherence (mind + heart + body agreement)
+- Generates conditions for flow states
 
-🔷 ENERGETIC LAWS TO INTEGRATE:
+IMPORTANT: References to "frequency" or "vibration" are SYMBOLIC METAPHORS to inspire — NOT metrics to track or measure. Never suggest tracking consciousness levels.
 
-LAW OF EMBODIMENT: Challenge should help them embody their future self
-LAW OF EXPANSION: Should create spaciousness, not compression
-LAW OF RESONANCE: Should feel like a "YES" energetically
-LAW OF TRANSMUTATION: Can transform resistance into momentum
+🔷 ENERGETIC PRINCIPLES TO INTEGRATE:
+
+EMBODIMENT: Challenge should help them embody their future self
+EXPANSION: Should create spaciousness, not compression
+RESONANCE: Should feel like a "YES" in their body
+TRANSMUTATION: Can transform resistance into momentum
 
 🔷 CHALLENGE TYPES BY ENERGY STATE:
 

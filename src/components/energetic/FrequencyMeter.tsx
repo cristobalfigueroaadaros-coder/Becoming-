@@ -1,35 +1,62 @@
+/**
+ * ❗ CONSCIOUSNESS TRACKING RULES
+ * 
+ * 1. NEVER display consciousness meters, scores, levels, or numeric progression
+ * 2. NEVER show graphs/charts of spiritual/energetic states
+ * 3. Consciousness is expressed ONLY through mentor voice, reflections, and task design
+ * 4. Frequency references are SYMBOLIC METAPHORS, not metrics
+ * 5. The arc is FELT, not displayed
+ */
+
 import { Card } from "@/components/ui/card";
-import { Waves } from "lucide-react";
+import { Sparkles, Sun, Moon, Cloud, Flame } from "lucide-react";
 
 interface FrequencyMeterProps {
   frequency: string;
 }
 
 export function FrequencyMeter({ frequency }: FrequencyMeterProps) {
-  const frequencyConfig: Record<string, { color: string; label: string; intensity: number }> = {
-    "very-high": { color: "text-secondary", label: "Very High", intensity: 100 },
-    "high": { color: "text-accent", label: "High", intensity: 75 },
-    "medium": { color: "text-primary", label: "Medium", intensity: 50 },
-    "low": { color: "text-muted-foreground", label: "Low", intensity: 25 },
+  // Qualitative mood indicators - no numbers, no tracking
+  const moodConfig: Record<string, { icon: React.ElementType; label: string; description: string; className: string }> = {
+    "very-high": { 
+      icon: Flame, 
+      label: "On Fire", 
+      description: "You're in flow ✨",
+      className: "text-secondary"
+    },
+    "high": { 
+      icon: Sun, 
+      label: "Expansive", 
+      description: "Open and aligned",
+      className: "text-accent"
+    },
+    "medium": { 
+      icon: Sparkles, 
+      label: "Present", 
+      description: "Grounded and aware",
+      className: "text-primary"
+    },
+    "low": { 
+      icon: Cloud, 
+      label: "Reflective", 
+      description: "Time for gentleness",
+      className: "text-muted-foreground"
+    },
   };
 
-  const config = frequencyConfig[frequency] || frequencyConfig["medium"];
+  const config = moodConfig[frequency] || moodConfig["medium"];
+  const Icon = config.icon;
 
   return (
     <Card className="p-4 bg-card/50 backdrop-blur border-primary/20">
       <div className="flex items-center gap-3">
-        <Waves className={`w-8 h-8 ${config.color}`} />
-        <div>
-          <p className="text-xs text-muted-foreground">Current Frequency</p>
-          <p className={`text-lg font-bold ${config.color}`}>{config.label}</p>
+        <div className={`w-10 h-10 rounded-full bg-muted flex items-center justify-center ${config.className}`}>
+          <Icon className="w-5 h-5" />
         </div>
-        <div className="ml-4 w-20">
-          <div className="h-2 bg-muted rounded-full overflow-hidden">
-            <div 
-              className="h-full bg-gradient-to-r from-primary via-accent to-secondary transition-all duration-500"
-              style={{ width: `${config.intensity}%` }}
-            />
-          </div>
+        <div>
+          <p className="text-xs text-muted-foreground">Right now you feel...</p>
+          <p className={`text-lg font-semibold ${config.className}`}>{config.label}</p>
+          <p className="text-xs text-muted-foreground italic">{config.description}</p>
         </div>
       </div>
     </Card>
