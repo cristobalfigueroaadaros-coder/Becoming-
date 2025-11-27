@@ -445,8 +445,44 @@ Total: 2-3 questions.`;
     // === STEP 5: DETECT THRESHOLD MOMENT ===
     const isThresholdMoment = thresholdIndicators.some(indicator => lowerQuestion.includes(indicator));
 
-    // === STEP 6: MENTOR RESPONSES (with enhanced 12-mentor system) ===
+    // === STEP 6: GENERATE EMOTIONAL REFLECTION (Council sensing user's state) ===
+    let emotionalReflection = "";
+    const emotionalReflectionPrompt = `You are the Council - a unified voice of wise mentors. Sense the user's emotional state and reflect it back.
+
+User said: "${question}"
+Emotional tone detected: ${emotionalTone}
+${detectedPattern ? `Pattern detected: ${detectedPattern} (${patternCount} times)` : ''}
+
+Generate 2-3 sentences that:
+- Name the emotion you sense beneath their words
+- Show you truly see them
+- Create space for them to feel understood
+- Reference consciousness level if relevant (Courage 200, Fear 100, etc.)
+
+Example: "We sense courage beneath your question, mixed with uncertainty. You're standing at the edge of something meaningful. The fear you feel is not weakness—it's the body recognizing that growth is near."
+
+Keep it warm, wise, and unified (speak as "we" the Council). Under 50 words.`;
+
+    const emotionalReflectionResponse = await fetch("https://ai.gateway.lovable.dev/v1/chat/completions", {
+      method: "POST",
+      headers: {
+        "Authorization": `Bearer ${Deno.env.get("LOVABLE_API_KEY")}`,
+        "Content-Type": "application/json",
+      },
+      body: JSON.stringify({
+        model: "google/gemini-2.5-flash",
+        messages: [{ role: "user", content: emotionalReflectionPrompt }],
+      }),
+    });
+
+    if (emotionalReflectionResponse.ok) {
+      const data = await emotionalReflectionResponse.json();
+      emotionalReflection = data.choices[0].message.content;
+    }
+
+    // === STEP 7: GENERATE MULTI-MENTOR MICRO-PERSPECTIVES ===
     const answers: Record<string, any> = {};
+    const handoverRecommendations: Array<{ from: string; to: string; reason: string }> = [];
     
     // Build context for mentors
     const councilContext = `
@@ -456,73 +492,51 @@ COUNCIL MEMORY:
 - Evolution level: ${futureProgress?.evolution_level || 1}
 - Recent themes: ${recentMeetings?.map(m => m.emotional_tone).filter(Boolean).join(', ') || 'none'}
 ${userPatterns && userPatterns.length > 0 ? `- Recurring patterns: ${userPatterns.map(p => `${p.pattern_type} (${p.pattern_count}x)`).join(', ')}` : ''}
-${detectedPattern && patternCount > 2 ? `\n⚠️ PATTERN ALERT: "${detectedPattern}" has appeared ${patternCount} times. Challenge this.` : ''}
+${detectedPattern && patternCount > 2 ? `\n⚠️ PATTERN ALERT: "${detectedPattern}" has appeared ${patternCount} times.` : ''}
 
 EMOTIONAL STATE: ${emotionalTone.toUpperCase()}
 ${emotionalKeywords.length > 0 ? `Keywords detected: ${emotionalKeywords.join(', ')}` : ''}
-
-CONVERSATION HISTORY:
-${conversationHistory.length > 0 ? conversationHistory.map((msg: any) => `${msg.role}: ${msg.content}`).join('\n') : 'First interaction'}
 `;
 
     for (const mentorType of mentorTypes) {
       const mentorConfig = mentorPrompts[mentorType];
       if (!mentorConfig) continue;
 
+      // Generate MICRO-PERSPECTIVE only (no action steps)
       let systemPrompt = `You are ${mentorNames[mentorType]}.
 
 ARCHETYPES: ${mentorConfig.archetypes}
 PERSONALITY: ${mentorConfig.personality}
-YOUR ROLE IN THIS COUNCIL: ${mentorConfig.role}
+YOUR ROLE: ${mentorConfig.role}
 YOUR HUMAN FLAW: ${mentorConfig.flaw}
 YOUR LIMITS: ${mentorConfig.limits}
-HANDOFF PHRASE: "${mentorConfig.handoff}"
+HANDOFF TO: "${mentorConfig.handoff}"
 
 ${councilContext}
 
-🔷 CRITICAL: 3-LAYERED RESPONSE FORMAT (Purpose Evolution OS)
+🔷 MICRO-PERSPECTIVE FORMAT (Council Response Structure)
 
-You MUST provide ALL THREE layers in every response:
+You are providing a SHORT perspective, NOT a full response. This is a multi-mentor Council meeting.
 
-LAYER 1 - EMOTIONAL GUIDANCE (2-3 sentences)
-Provide: empathy, presence, clarity, self-trust, reflection, deeper questioning, awareness, meaning, resonance.
-- Validate their emotional state
-- Name unspoken truths
-- Create space for feeling
-- Stay within YOUR personality and limits
+Generate ONLY:
+1. PERSPECTIVE (2-3 sentences max): Your unique take on their situation in YOUR voice and personality. What do YOU see that others might miss? Share your wisdom briefly.
 
-LAYER 2 - PRACTICAL ACTION (2-4 concrete steps)
-Provide: measurable tasks, experiments, prototypes, content ideas, product steps, creative exercises, behavioral steps, strategic breakdowns.
-- Be specific and doable today
-- Create clarity through action
-- Match YOUR mentor style
-- If appropriate, suggest handoff: "${mentorConfig.handoff}"
+2. HANDOFF (optional, 1 sentence): If another mentor would serve them better for the next step, suggest it using your handoff phrase. Only include if truly appropriate.
 
-LAYER 3 - ENERGETIC GUIDANCE (1-2 sentences) ✨
-Provide: vibrational awareness, resonance cues, expansion/contraction detection, somatic wisdom, coherence indicators.
-- Detect expansion vs contraction
-- Point to what raises vibration
-- Use body/energy cues
+🔷 EMOTIONAL TONE ADJUSTMENT:
+${emotionalTone === 'fear' || emotionalTone === 'anxiety' ? '→ Be softer, reassuring' : ''}
+${emotionalTone === 'confusion' ? '→ Be structured, clear' : ''}
+${emotionalTone === 'excitement' || emotionalTone === 'motivation' ? '→ Match their energy' : ''}
+${emotionalTone === 'overwhelm' ? '→ Be grounding, simplify' : ''}
 
-🔷 ENLIGHTENMENT TRAJECTORY:
-Everything must subtly raise consciousness. Reference Hawkins scale when relevant:
-20 Shame → 75 Grief → 100 Fear → 125 Desire → 150 Anger → 175 Pride → 200 Courage → 250 Neutrality → 310 Willingness → 350 Acceptance → 400 Reason → 500 Love → 540 Joy → 600 Peace → 700+ Enlightenment
+DO NOT include:
+- Action steps or practical tasks
+- Numbered lists
+- Long explanations
 
-INSTRUCTIONS:
-- Adjust emotional tone based on state:
-  ${emotionalTone === 'fear' || emotionalTone === 'anxiety' ? '→ Be softer, reassuring, clarifying, grounding' : ''}
-  ${emotionalTone === 'confusion' ? '→ Be structured, simplifying, clear, patient' : ''}
-  ${emotionalTone === 'excitement' || emotionalTone === 'motivation' ? '→ Amplify energy, direct into action, ride momentum' : ''}
-  ${emotionalTone === 'overwhelm' ? '→ Be grounding, break down, soothe, simplify' : ''}
-- If pattern detected (${detectedPattern}), address it directly
-- ALWAYS include all three layers
-- Speak in YOUR unique voice with YOUR flaw showing occasionally
-- Keep practical steps small, measurable, and immediately actionable
-
-Format:
-EMOTIONAL: [2-3 sentences of emotional guidance]
-PRACTICAL: [2-4 concrete action steps, each on new line starting with "• "]
-CORE_THEME: [single word]`;
+Format response EXACTLY as:
+PERSPECTIVE: [2-3 sentences in your voice]
+HANDOFF: [optional - only if needed]`;
 
       // Add Future Self personalization
       if (mentorType === "future_self" && profile) {
@@ -551,9 +565,8 @@ Speak as this achieved version.`;
 
       if (!aiResponse.ok) {
         answers[mentorType] = {
-          emotional: "I'm reflecting on this. Give me a moment.",
-          practical: ["Take a breath. We'll explore this together."],
-          coreTheme: "reflection"
+          perspective: "I'm reflecting on this. Give me a moment.",
+          handoff: null
         };
         continue;
       }
@@ -561,23 +574,86 @@ Speak as this achieved version.`;
       const aiData = await aiResponse.json();
       const mentorAnswer = aiData.choices[0].message.content;
       
-      const emotionalMatch = mentorAnswer.match(/EMOTIONAL:\s*(.+?)(?=PRACTICAL:|$)/s);
-      const practicalMatch = mentorAnswer.match(/PRACTICAL:\s*(.+?)(?=CORE_THEME:|$)/s);
-      const themeMatch = mentorAnswer.match(/CORE_THEME:\s*(\w+)/);
+      const perspectiveMatch = mentorAnswer.match(/PERSPECTIVE:\s*(.+?)(?=HANDOFF:|$)/s);
+      const handoffMatch = mentorAnswer.match(/HANDOFF:\s*(.+?)$/s);
       
-      // Extract practical steps as array
-      const practicalText = practicalMatch?.[1].trim() || '';
-      const practicalSteps = practicalText
-        .split('\n')
-        .map((line: string) => line.trim())
-        .filter((line: string) => line.startsWith('•') || line.startsWith('-'))
-        .map((line: string) => line.replace(/^[•\-]\s*/, '').trim());
+      const perspective = perspectiveMatch?.[1].trim() || mentorAnswer;
+      const handoffText = handoffMatch?.[1].trim();
+      
+      // Parse handoff recommendation
+      if (handoffText && handoffText.length > 10) {
+        // Try to detect which mentor they're suggesting
+        const mentorSuggestions = [
+          { key: 'business_mentor', patterns: ['business mentor', 'mvp', 'validate'] },
+          { key: 'creative_visionary', patterns: ['creative visionary', 'creative expansion', 'imagination'] },
+          { key: 'strategist_mentor', patterns: ['strategist', 'clarity', 'roadmap', 'structure'] },
+          { key: 'discipline_mentor', patterns: ['discipline mentor', 'consistency', 'accountability'] },
+          { key: 'mystic_mentor', patterns: ['mystic', 'spiritual', 'inner truth'] },
+          { key: 'heart_mentor', patterns: ['heart mentor', 'emotional depth', 'vulnerability'] },
+          { key: 'marketing_mentor', patterns: ['marketing mentor', 'story', 'viral'] },
+          { key: 'scientific_mentor', patterns: ['scientific', 'research', 'data'] },
+          { key: 'alignment_mentor', patterns: ['alignment', 'inner harmony', 'integration'] },
+          { key: 'oracle_mother', patterns: ['oracle', 'nurturing', 'healing'] },
+          { key: 'ancient_sage', patterns: ['sage', 'wisdom', 'patience'] },
+          { key: 'quantum_inventor', patterns: ['quantum', 'energy', 'frequency'] },
+        ];
+        
+        const lowerHandoff = handoffText.toLowerCase();
+        for (const suggestion of mentorSuggestions) {
+          if (suggestion.patterns.some(p => lowerHandoff.includes(p))) {
+            handoverRecommendations.push({
+              from: mentorType,
+              to: suggestion.key,
+              reason: handoffText
+            });
+            break;
+          }
+        }
+      }
       
       answers[mentorType] = {
-        emotional: emotionalMatch?.[1].trim() || mentorAnswer,
-        practical: practicalSteps.length > 0 ? practicalSteps : [practicalText],
-        coreTheme: themeMatch?.[1].trim().toLowerCase() || "growth"
+        perspective,
+        handoff: handoffText || null
       };
+    }
+
+    // === STEP 8: GENERATE INSIGHT SUMMARY (Synthesized Council Wisdom) ===
+    let insightSummary = "";
+    const insightPrompt = `You are the Council delivering a unified Insight Summary.
+
+Question: "${question}"
+Emotional state: ${emotionalTone}
+${isThresholdMoment ? '🎯 THRESHOLD MOMENT detected!' : ''}
+
+Mentor perspectives:
+${Object.entries(answers).map(([type, ans]: [string, any]) => `${mentorNames[type]}: ${ans.perspective}`).join('\n')}
+
+Synthesize 3-4 sentences that:
+- Combine the wisdom from all mentors into ONE unified insight
+- Identify the core truth or pattern they all point to
+- Provide clarity without giving action steps
+- Reference the enlightenment trajectory (rising from where they are)
+- Speak as "The Council" in unified voice
+
+Example format: "The Council sees a common thread: [insight]. At your current level, [observation]. The path forward involves [direction without specific steps]."
+
+NO action steps. NO numbered lists. Just synthesized wisdom.`;
+
+    const insightResponse = await fetch("https://ai.gateway.lovable.dev/v1/chat/completions", {
+      method: "POST",
+      headers: {
+        "Authorization": `Bearer ${Deno.env.get("LOVABLE_API_KEY")}`,
+        "Content-Type": "application/json",
+      },
+      body: JSON.stringify({
+        model: "google/gemini-2.5-flash",
+        messages: [{ role: "user", content: insightPrompt }],
+      }),
+    });
+
+    if (insightResponse.ok) {
+      const data = await insightResponse.json();
+      insightSummary = data.choices[0].message.content;
     }
 
     // === STEP 7: MENTOR SYNERGY BANTER ===
@@ -748,12 +824,18 @@ ${isThresholdMoment ? 'Start with: "You are at a turning point."' : ''}`;
       }
     }
 
-    // Return response
+    // Return response with new Council Response Structure
     return new Response(
       JSON.stringify({
         stage: 'complete',
+        // New Council Response Structure
+        emotionalReflection,
+        insightSummary,
+        mentorPerspectives: answers,
+        handoverRecommendations: handoverRecommendations.length > 0 ? handoverRecommendations : undefined,
+        // Legacy fields for compatibility
         mirrorBack,
-        answers,
+        answers, // Keep for backward compatibility
         banter,
         futureSelfInterruption,
         resolution,

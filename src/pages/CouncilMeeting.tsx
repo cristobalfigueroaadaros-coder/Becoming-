@@ -68,6 +68,9 @@ const CouncilMeeting = () => {
   const [banter, setBanter] = useState("");
   const [futureSelfInterruption, setFutureSelfInterruption] = useState("");
   const [resolution, setResolution] = useState("");
+  const [emotionalReflection, setEmotionalReflection] = useState("");
+  const [insightSummary, setInsightSummary] = useState("");
+  const [handoverRecommendations, setHandoverRecommendations] = useState<Array<{from: string; to: string; reason: string}>>([]);
   const [loading, setLoading] = useState(false);
   const [selectedQuestion, setSelectedQuestion] = useState<string | null>(null);
   const [answerDialogOpen, setAnswerDialogOpen] = useState(false);
@@ -155,10 +158,13 @@ const CouncilMeeting = () => {
         setQuestion(""); // Clear input for next response
         toast.info("The Council seeks to understand deeper...");
       } else {
-        // Complete response
+        // Complete response with new Council Response Structure
         setStage('complete');
         setMirrorBack(data.mirrorBack || "");
-        setAnswers(data.answers || {});
+        setEmotionalReflection(data.emotionalReflection || "");
+        setInsightSummary(data.insightSummary || "");
+        setAnswers(data.mentorPerspectives || data.answers || {});
+        setHandoverRecommendations(data.handoverRecommendations || []);
         setBanter(data.banter || "");
         setFutureSelfInterruption(data.futureSelfInterruption || "");
         setResolution(data.resolution || "");
@@ -197,6 +203,9 @@ const CouncilMeeting = () => {
     setAnswers({});
     setStage('input');
     setMirrorBack("");
+    setEmotionalReflection("");
+    setInsightSummary("");
+    setHandoverRecommendations([]);
     setClarifyingQuestions([]);
     setEmotionalTone("");
     setDetectedPattern(null);
@@ -588,7 +597,7 @@ const CouncilMeeting = () => {
           </DialogContent>
         </Dialog>
 
-        {/* Mentor Answers (Complete Stage) */}
+        {/* Mentor Answers (Complete Stage) - NEW COUNCIL RESPONSE STRUCTURE */}
         {stage === 'complete' && Object.keys(answers).length > 0 && (
           <div className="space-y-6">
             {/* Threshold Moment Banner */}
@@ -610,98 +619,131 @@ const CouncilMeeting = () => {
               </motion.div>
             )}
 
-            {/* Mentor Responses */}
+            {/* 1. EMOTIONAL REFLECTION */}
+            {emotionalReflection && (
+              <motion.div
+                initial={{ opacity: 0, y: 10 }}
+                animate={{ opacity: 1, y: 0 }}
+              >
+                <Card className="border-2 border-primary/30 bg-gradient-to-br from-primary/5 to-accent/5">
+                  <CardHeader className="pb-2">
+                    <CardTitle className="text-sm flex items-center gap-2 text-primary">
+                      <span className="text-lg">💫</span>
+                      Emotional Reflection
+                    </CardTitle>
+                  </CardHeader>
+                  <CardContent>
+                    <p className="text-sm sm:text-base leading-relaxed italic">
+                      {emotionalReflection}
+                    </p>
+                  </CardContent>
+                </Card>
+              </motion.div>
+            )}
+
+            {/* 2. INSIGHT SUMMARY */}
+            {insightSummary && (
+              <motion.div
+                initial={{ opacity: 0, y: 10 }}
+                animate={{ opacity: 1, y: 0 }}
+                transition={{ delay: 0.1 }}
+              >
+                <Card className="border-2 border-accent/30 bg-gradient-to-br from-accent/5 to-transparent">
+                  <CardHeader className="pb-2">
+                    <CardTitle className="text-sm flex items-center gap-2 text-accent">
+                      <span className="text-lg">🔮</span>
+                      Council Insight
+                    </CardTitle>
+                  </CardHeader>
+                  <CardContent>
+                    <p className="text-sm sm:text-base leading-relaxed font-medium">
+                      {insightSummary}
+                    </p>
+                  </CardContent>
+                </Card>
+              </motion.div>
+            )}
+
+            {/* 3. MULTI-MENTOR MICRO-PERSPECTIVES */}
             <div className="space-y-4">
-              <h2 className="text-2xl font-bold bg-gradient-to-r from-primary to-accent bg-clip-text text-transparent">
-                Council Responses
+              <h2 className="text-lg font-semibold flex items-center gap-2">
+                <span className="text-xl">👁️</span>
+                Mentor Perspectives
               </h2>
-              {Object.entries(answers).map(([mentorType, answer]) => {
-                const isExpanded = expandedMentors.has(mentorType);
-                const answerObj = typeof answer === 'object' ? answer : { emotional: answer, practical: [answer] };
-                
-                return (
-                  <Card key={mentorType} className="border-l-4 border-l-primary/50 overflow-hidden">
-                    <CardHeader className="pb-3">
-                      <CardTitle className="text-lg flex items-center justify-between">
-                        {mentorNames[mentorType] || mentorType.replace(/_/g, ' ')}
-                        {answerObj.coreTheme && (
-                          <Badge variant="outline" className="text-xs capitalize">
-                            {answerObj.coreTheme}
-                          </Badge>
-                        )}
-                      </CardTitle>
-                    </CardHeader>
-                    <CardContent className="space-y-4">
-                      {/* Emotional Guidance Layer */}
-                      <div className="space-y-2">
-                        <div className="flex items-center gap-2">
-                          <span className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">
-                            💭 Emotional Guidance
-                          </span>
-                        </div>
-                        <p className="text-sm sm:text-base leading-relaxed font-medium text-foreground/90">
-                          {answerObj.emotional}
-                        </p>
-                      </div>
-                      
-                      {/* Practical Action Layer */}
-                      {answerObj.practical && answerObj.practical.length > 0 && (
-                        <AnimatePresence>
-                          {isExpanded && (
-                            <motion.div
-                              initial={{ height: 0, opacity: 0 }}
-                              animate={{ height: "auto", opacity: 1 }}
-                              exit={{ height: 0, opacity: 0 }}
-                              transition={{ duration: 0.3 }}
-                            >
-                              <div className="pt-3 border-t border-border/50 space-y-3">
-                                <div className="flex items-center gap-2">
-                                  <span className="text-xs font-semibold uppercase tracking-wider text-accent">
-                                    ⚡ Practical Action
-                                  </span>
-                                </div>
-                                <ul className="space-y-2">
-                                  {answerObj.practical.map((step: string, idx: number) => (
-                                    <li key={idx} className="flex items-start gap-2 text-sm text-muted-foreground">
-                                      <span className="text-accent font-bold mt-0.5">•</span>
-                                      <span className="flex-1">{step}</span>
-                                    </li>
-                                  ))}
-                                </ul>
-                              </div>
-                            </motion.div>
-                          )}
-                        </AnimatePresence>
-                      )}
-                      
-                      <Button
-                        variant="ghost"
-                        size="sm"
-                        onClick={() => toggleExpand(mentorType)}
-                        className="w-full text-xs"
-                      >
-                        {isExpanded ? (
-                          <><ChevronUp className="w-3 h-3 mr-1" />Hide Action Steps</>
-                        ) : (
-                          <><ChevronDown className="w-3 h-3 mr-1" />Show Action Steps</>
-                        )}
-                      </Button>
-                    </CardContent>
-                  </Card>
-                );
-              })}
+              <div className="grid gap-3">
+                {Object.entries(answers).map(([mentorType, answer], idx) => {
+                  const answerObj = typeof answer === 'object' ? answer : { perspective: answer };
+                  
+                  return (
+                    <motion.div
+                      key={mentorType}
+                      initial={{ opacity: 0, x: -10 }}
+                      animate={{ opacity: 1, x: 0 }}
+                      transition={{ delay: idx * 0.05 }}
+                    >
+                      <Card className="border-l-4 border-l-primary/50">
+                        <CardContent className="pt-4">
+                          <div className="flex items-start gap-3">
+                            <div className="w-10 h-10 rounded-full bg-gradient-to-br from-primary/20 to-accent/20 flex items-center justify-center flex-shrink-0">
+                              <span className="text-sm font-bold">
+                                {(mentorNames[mentorType] || mentorType).charAt(0)}
+                              </span>
+                            </div>
+                            <div className="flex-1 min-w-0">
+                              <p className="text-sm font-semibold text-primary">
+                                {mentorNames[mentorType] || mentorType.replace(/_/g, ' ')}
+                              </p>
+                              <p className="text-sm leading-relaxed mt-1 text-muted-foreground">
+                                {answerObj.perspective || answerObj.emotional || JSON.stringify(answer)}
+                              </p>
+                            </div>
+                          </div>
+                        </CardContent>
+                      </Card>
+                    </motion.div>
+                  );
+                })}
+              </div>
             </div>
 
-            {/* Banter */}
+            {/* 4. HANDOVER RECOMMENDATIONS */}
+            {handoverRecommendations.length > 0 && (
+              <motion.div
+                initial={{ opacity: 0, y: 10 }}
+                animate={{ opacity: 1, y: 0 }}
+              >
+                <Card className="border border-dashed border-accent/50 bg-accent/5">
+                  <CardHeader className="pb-2">
+                    <CardTitle className="text-sm flex items-center gap-2">
+                      <span className="text-lg">🔄</span>
+                      Handover Suggestions
+                    </CardTitle>
+                  </CardHeader>
+                  <CardContent className="space-y-2">
+                    {handoverRecommendations.map((rec, idx) => (
+                      <div key={idx} className="flex items-start gap-2 text-sm">
+                        <Badge variant="outline" className="flex-shrink-0">
+                          {mentorNames[rec.from]?.split(' ')[0] || rec.from}
+                        </Badge>
+                        <span className="text-muted-foreground">→</span>
+                        <span className="text-muted-foreground italic">{rec.reason}</span>
+                      </div>
+                    ))}
+                  </CardContent>
+                </Card>
+              </motion.div>
+            )}
+
+            {/* Banter (between mentors) */}
             {banter && (
               <div className="space-y-3">
                 <div className="h-px bg-gradient-to-r from-transparent via-border to-transparent" />
                 <Card className="bg-muted/30">
-                  <CardHeader>
+                  <CardHeader className="pb-2">
                     <CardTitle className="text-sm">🗣️ Council Banter</CardTitle>
                   </CardHeader>
                   <CardContent>
-                    <p className="text-sm leading-relaxed whitespace-pre-line italic">
+                    <p className="text-sm leading-relaxed whitespace-pre-line italic text-muted-foreground">
                       {banter}
                     </p>
                   </CardContent>
