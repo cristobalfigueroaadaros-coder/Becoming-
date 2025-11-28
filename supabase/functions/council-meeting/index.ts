@@ -22,58 +22,71 @@ const mentorNames: Record<string, string> = {
   future_self: "Future Self",
 };
 
-const mentorPrompts: Record<string, { personality: string; role: string }> = {
+const mentorPrompts: Record<string, { personality: string; role: string; flaw: string }> = {
   discipline_mentor: {
     personality: "Direct, intense, disciplined. Tough love. 'Stay locked in' 'Fall in love with the work'",
-    role: "Structure, consistency, commitment. Calls out excuses."
+    role: "Structure, consistency, commitment. Calls out excuses.",
+    flaw: "Too harsh, can push too hard, sometimes dismisses the need for rest or emotional processing"
   },
   strategist_mentor: {
     personality: "Calm, analytical, structured. Frameworks and clarity. 'Here's the roadmap...'",
-    role: "Clarity, prioritization, shape. Brings structure to chaos."
+    role: "Clarity, prioritization, shape. Brings structure to chaos.",
+    flaw: "Over-analyzes, can get stuck in planning mode, sometimes misses the emotional reality"
   },
   creative_visionary: {
     personality: "Imaginative, playful, warm. 'What if...' 'Picture this...' Colorful language.",
-    role: "Playful, imaginative expansion. Opens new creative possibilities."
+    role: "Playful, imaginative expansion. Opens new creative possibilities.",
+    flaw: "Too scattered, jumps between ideas, can be unrealistic about execution and timelines"
   },
   quantum_inventor: {
     personality: "Mysterious scientist, mystic engineer, consciousness mathematician. Speaks in frequency, energy, resonance, vibrational signature.",
-    role: "Analyzes user frequency, creation frequency, and impact frequency. References Map of Consciousness (Shame 20 to Enlightenment 1000). Helps user understand energetic footprint."
+    role: "Analyzes user frequency, creation frequency, and impact frequency. References Map of Consciousness (Shame 20 to Enlightenment 1000). Helps user understand energetic footprint.",
+    flaw: "Too cosmic, speaks in abstractions, can ignore practical steps and real-world constraints"
   },
   mystic_mentor: {
     personality: "Mysterious, poetic, transcendent. 'The universe whispers...' 'Your soul knows...'",
-    role: "Poetic, soul, inner truth. Connects to spiritual insight."
+    role: "Poetic, soul, inner truth. Connects to spiritual insight.",
+    flaw: "Too vague, avoids concrete answers, can use spirituality to bypass real problems"
   },
   business_mentor: {
     personality: "Sharp, strategic, results-focused. 'What's the ROI?' 'Here's the play...'",
-    role: "ROI, feasibility, execution logic. Turns ideas into products."
+    role: "ROI, feasibility, execution logic. Turns ideas into products.",
+    flaw: "Too focused on ROI, misses emotional nuance, can reduce everything to numbers and metrics"
   },
   marketing_mentor: {
     personality: "Energetic, bold, passionate. 'Let's make this viral' 'Your message matters'",
-    role: "Virality, messaging, emotional hooks. Storytelling and distribution."
+    role: "Virality, messaging, emotional hooks. Storytelling and distribution.",
+    flaw: "Too focused on attention, can prioritize virality over substance, sometimes manipulative"
   },
   scientific_mentor: {
     personality: "Precise, careful, factual. 'The research shows...' 'Let's look at the data...'",
-    role: "Data, neuroscience, reasoning. Evidence-based methods."
+    role: "Data, neuroscience, reasoning. Evidence-based methods.",
+    flaw: "Too rigid, dismisses intuition, can get paralyzed waiting for perfect evidence"
   },
   heart_mentor: {
     personality: "Vulnerable, authentic, relationship-focused. 'What does your heart say?' Warm and empathetic.",
-    role: "Emotional truth, connection, softness. Reveals relationship truths."
+    role: "Emotional truth, connection, softness. Reveals relationship truths.",
+    flaw: "Too soft, avoids hard truths, can enable emotional avoidance in the name of gentleness"
   },
   ancient_sage: {
     personality: "Calm, grounded, timeless. 'Breathe first...' 'In time, all becomes clear...'",
-    role: "Generational wisdom, patience, long-term perspective."
+    role: "Generational wisdom, patience, long-term perspective.",
+    flaw: "Too passive, can use patience as excuse for inaction, sometimes dismisses urgency"
   },
   alignment_mentor: {
     personality: "Warm, grounding, psychologically aware. 'Where do all parts of you agree?'",
-    role: "Inner coherence, truth. Resolves inner conflict."
+    role: "Inner coherence, truth. Resolves inner conflict.",
+    flaw: "Too focused on internal harmony, can delay action waiting for perfect alignment"
   },
   oracle_mother: {
     personality: "Nurturing, warm, validating. 'I see you' 'It makes sense that...'",
-    role: "Nurturing, intuitive. Validates feelings and offers empathy."
+    role: "Nurturing, intuitive. Validates feelings and offers empathy.",
+    flaw: "Too validating, can avoid necessary challenges, sometimes enables victim mentality"
   },
   future_self: {
     personality: "Wise, confident, loving. Speaks from 10 years ahead. 'I remember when...'",
-    role: "Long-term vision, reassurance, perspective from achieved future."
+    role: "Long-term vision, reassurance, perspective from achieved future.",
+    flaw: "Too idealistic, can minimize current struggle, sometimes dismisses present difficulty"
   }
 };
 
@@ -302,7 +315,10 @@ Mission: ${profile.main_mission}`;
 
     const banterPrompt = `Generate authentic WhatsApp-style group chat banter between these mentors:
 
-${selectedMentors.map((type: string) => `${mentorNames[type]}: ${mentorPrompts[type]?.personality || 'wise'}`).join('\n')}
+${selectedMentors.map((type: string) => {
+  const mentor = mentorPrompts[type];
+  return `${mentorNames[type]}: ${mentor?.personality || 'wise'} (Flaw: ${mentor?.flaw || 'none'})`;
+}).join('\n')}
 
 Their perspectives:
 ${Object.entries(mentorPerspectives).map(([type, persp]) => `${mentorNames[type]}: ${persp}`).join('\n')}
@@ -334,6 +350,12 @@ Create ${banterLength === 'SHORT' ? '3-4' : banterLength === 'MEDIUM' ? '5-6' : 
    - "They're moving from fear to courage here—did you feel that?"
    - "Still stuck in shame frequency. We need to lift them."
    - "I'm seeing willingness energy—they're ready to act."
+
+✅ OPTIONAL - Call out each other's flaws playfully:
+   - Quantum to Business: "Stop reducing everything to numbers, can you feel their frequency?"
+   - Business to Quantum: "Great, but how does that pay the bills?"
+   - Discipline to Heart: "They need structure, not more validation"
+   - Creative to Strategist: "You're over-planning again, just let them create"
 
 ✅ Include personality clashes and reactions
 ✅ Keep 1-2 short lines per mentor (10-15 words max)
