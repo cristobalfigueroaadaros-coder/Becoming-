@@ -350,7 +350,12 @@ For each response, structure your frequency analysis:
 
 ${conversationHistory && conversationHistory.length > 0 ? `
 Previous conversation context:
-${conversationHistory.map((msg: any, i: number) => `[${i + 1}] ${msg.role}: ${msg.content.substring(0, 150)}...`).join('\n')}
+${conversationHistory.map((msg: any, i: number) => {
+  const contentText = typeof msg.content === 'string' 
+    ? msg.content 
+    : msg.content?.councilInsight || msg.content?.clarityQuestion || JSON.stringify(msg.content);
+  return `[${i + 1}] ${msg.role}: ${contentText.substring(0, 150)}...`;
+}).join('\n')}
 
 Look for frequency patterns across time:
 - Is their frequency rising or falling?
