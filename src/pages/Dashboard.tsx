@@ -4,7 +4,7 @@ import { motion } from "framer-motion";
 import { supabase } from "@/integrations/supabase/client";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
-import { Brain, Lightbulb, Zap, Trees, Heart, Sparkles, Users, BookOpen, Crown, LogOut, CheckSquare, Briefcase, Palette, Compass, Target, Flag, Ghost, Sunrise, Flame, User, Network, Clock, Telescope } from "lucide-react";
+import { Lightbulb, Zap, Trees, Sparkles, Users, BookOpen, Crown, LogOut, CheckSquare, Briefcase, Compass, Target, Flag, Ghost, Sunrise, Flame, User, Network, Clock, Telescope, TrendingUp, Megaphone, FlaskConical, Scale, Moon } from "lucide-react";
 import { toast } from "sonner";
 import { cn } from "@/lib/utils";
 import { FutureSelfWidget } from "@/components/FutureSelfWidget";
@@ -22,48 +22,51 @@ import { useMentorWhisper } from "@/hooks/useMentorWhisper";
 import { History, Rocket } from "lucide-react";
 
 const mentorIcons = {
-  mamba_mentor: Brain,
+  discipline_mentor: Target,
   creative_visionary: Lightbulb,
   quantum_inventor: Zap,
   ancient_sage: Trees,
-  compassionate_elder: Heart,
   future_self: Sparkles,
   business_mentor: Briefcase,
-  creator_mentor: Palette,
   mystic_mentor: Compass,
-  heart_mentor: Heart,
-  strategist_mentor: Target,
+  strategist_mentor: TrendingUp,
   explorer_mentor: Flag,
+  marketing_mentor: Megaphone,
+  scientific_mentor: FlaskConical,
+  alignment_mentor: Scale,
+  oracle_mother: Moon,
 };
 
 const mentorColors = {
-  mamba_mentor: "bg-mentor-mamba",
+  discipline_mentor: "bg-primary",
   creative_visionary: "bg-mentor-creative",
   quantum_inventor: "bg-mentor-quantum",
   ancient_sage: "bg-mentor-sage",
-  compassionate_elder: "bg-mentor-elder",
   future_self: "bg-mentor-future",
   business_mentor: "bg-primary",
-  creator_mentor: "bg-accent",
   mystic_mentor: "bg-secondary",
-  heart_mentor: "bg-mentor-elder",
   strategist_mentor: "bg-mentor-quantum",
   explorer_mentor: "bg-mentor-sage",
+  marketing_mentor: "bg-accent",
+  scientific_mentor: "bg-mentor-quantum",
+  alignment_mentor: "bg-secondary",
+  oracle_mother: "bg-mentor-elder",
 };
 
 const mentorNames = {
-  mamba_mentor: "Mamba Mentor",
+  discipline_mentor: "Discipline Mentor",
   creative_visionary: "Creative Visionary",
   quantum_inventor: "Quantum Inventor",
   ancient_sage: "Ancient Sage",
-  compassionate_elder: "Compassionate Elder",
   future_self: "Future Self",
   business_mentor: "Business Mentor",
-  creator_mentor: "Creator Mentor",
   mystic_mentor: "Mystic Mentor",
-  heart_mentor: "Heart Mentor",
   strategist_mentor: "Strategist Mentor",
   explorer_mentor: "Explorer Mentor",
+  marketing_mentor: "Marketing Mentor",
+  scientific_mentor: "Scientific Mentor",
+  alignment_mentor: "Alignment Mentor",
+  oracle_mother: "Oracle Mother",
 };
 
 const Dashboard = () => {
