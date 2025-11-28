@@ -30,7 +30,7 @@ const mentorNames: Record<string, string> = {
   ancient_sage: "The Ancient Sage",
   alignment_mentor: "The Alignment Mentor",
   oracle_mother: "The Oracle Mother",
-  explorer_mentor: "The Explorer Mentor",
+  heart_mentor: "The Heart Mentor",
   future_self: "Your Future Self",
 };
 

@@ -18,39 +18,35 @@ interface MentorWhisperNotificationProps {
 }
 
 const mentorNames: Record<string, string> = {
-  mamba_mentor: "Mamba Mentor",
+  discipline_mentor: "Discipline Mentor",
+  strategist_mentor: "Strategist Mentor",
   creative_visionary: "Creative Visionary",
   quantum_inventor: "Quantum Inventor",
-  ancient_sage: "Ancient Sage",
-  compassionate_elder: "Compassionate Elder",
-  future_self: "Future Self",
-  business_mentor: "Business Mentor",
-  creator_mentor: "Creator Mentor",
   mystic_mentor: "Mystic Mentor",
+  business_mentor: "Business Mentor",
+  marketing_mentor: "Marketing Mentor",
+  scientific_mentor: "Scientific Mentor",
   heart_mentor: "Heart Mentor",
-  strategist_mentor: "Strategist Mentor",
-  explorer_mentor: "Explorer Mentor",
-  discipline_mentor: "Discipline Mentor",
+  ancient_sage: "Ancient Sage",
   alignment_mentor: "Alignment Mentor",
   oracle_mother: "Oracle Mother",
+  future_self: "Future Self",
 };
 
 const mentorColors: Record<string, string> = {
-  mamba_mentor: "from-amber-500/20 to-orange-500/20 border-amber-500/30",
+  discipline_mentor: "from-gray-500/20 to-slate-500/20 border-gray-500/30",
+  strategist_mentor: "from-teal-500/20 to-cyan-500/20 border-teal-500/30",
   creative_visionary: "from-purple-500/20 to-pink-500/20 border-purple-500/30",
   quantum_inventor: "from-blue-500/20 to-cyan-500/20 border-blue-500/30",
-  ancient_sage: "from-green-500/20 to-emerald-500/20 border-green-500/30",
-  compassionate_elder: "from-rose-500/20 to-pink-500/20 border-rose-500/30",
-  future_self: "from-violet-500/20 to-purple-500/20 border-violet-500/30",
-  business_mentor: "from-slate-500/20 to-gray-500/20 border-slate-500/30",
-  creator_mentor: "from-fuchsia-500/20 to-purple-500/20 border-fuchsia-500/30",
   mystic_mentor: "from-indigo-500/20 to-violet-500/20 border-indigo-500/30",
+  business_mentor: "from-slate-500/20 to-gray-500/20 border-slate-500/30",
+  marketing_mentor: "from-orange-500/20 to-amber-500/20 border-orange-500/30",
+  scientific_mentor: "from-blue-600/20 to-cyan-600/20 border-blue-600/30",
   heart_mentor: "from-red-500/20 to-rose-500/20 border-red-500/30",
-  strategist_mentor: "from-teal-500/20 to-cyan-500/20 border-teal-500/30",
-  explorer_mentor: "from-yellow-500/20 to-amber-500/20 border-yellow-500/30",
-  discipline_mentor: "from-gray-500/20 to-slate-500/20 border-gray-500/30",
+  ancient_sage: "from-green-500/20 to-emerald-500/20 border-green-500/30",
   alignment_mentor: "from-sky-500/20 to-blue-500/20 border-sky-500/30",
   oracle_mother: "from-violet-500/20 to-indigo-500/20 border-violet-500/30",
+  future_self: "from-violet-500/20 to-purple-500/20 border-violet-500/30",
 };
 
 const whisperTypeIcons: Record<string, string> = {
