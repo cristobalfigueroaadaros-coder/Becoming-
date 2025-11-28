@@ -629,6 +629,125 @@ const CouncilMeeting = () => {
             )}
           </div>
         )}
+
+        {/* Action Stage - Display Goals */}
+        {stage === 'action' && goalData && (
+          <motion.div
+            initial={{ opacity: 0, y: 20 }}
+            animate={{ opacity: 1, y: 0 }}
+            className="space-y-6"
+          >
+            {/* User Direction */}
+            <Card className="border-primary/20 bg-gradient-to-br from-primary/5 to-accent/5">
+              <CardHeader>
+                <CardTitle className="flex items-center gap-2">
+                  <Target className="w-5 h-5 text-primary" />
+                  Your Direction
+                </CardTitle>
+              </CardHeader>
+              <CardContent>
+                <p className="text-foreground/90">{goalData.userDirection}</p>
+              </CardContent>
+            </Card>
+
+            {/* Main Goal */}
+            <Card className="border-primary/30 bg-gradient-to-br from-primary/10 to-secondary/10">
+              <CardHeader>
+                <CardTitle className="flex items-center gap-2">
+                  <Sparkles className="w-5 h-5 text-primary" />
+                  Your Main Goal
+                </CardTitle>
+              </CardHeader>
+              <CardContent className="space-y-4">
+                <div>
+                  <h4 className="font-semibold text-lg mb-3">{goalData.mainGoal.title}</h4>
+                  
+                  <div className="space-y-3">
+                    <div className="p-3 rounded-lg bg-background/50">
+                      <p className="text-sm font-medium text-primary mb-1">Daily Micro-Step</p>
+                      <p className="text-sm text-foreground/80">{goalData.mainGoal.daily}</p>
+                    </div>
+                    
+                    <div className="p-3 rounded-lg bg-background/50">
+                      <p className="text-sm font-medium text-primary mb-1">Weekly Step</p>
+                      <p className="text-sm text-foreground/80">{goalData.mainGoal.weekly}</p>
+                    </div>
+                    
+                    <div className="p-3 rounded-lg bg-background/50">
+                      <p className="text-sm font-medium text-primary mb-1">Monthly Outcome</p>
+                      <p className="text-sm text-foreground/80">{goalData.mainGoal.monthly}</p>
+                    </div>
+                  </div>
+                </div>
+
+                <Button 
+                  onClick={() => {
+                    toast.success("Goal accepted! Navigate to My Tasks to see it.");
+                    setTimeout(() => navigate('/my-tasks'), 1000);
+                  }}
+                  className="w-full"
+                >
+                  Accept Main Goal
+                </Button>
+              </CardContent>
+            </Card>
+
+            {/* Optional Goals */}
+            {goalData.optionalGoals && goalData.optionalGoals.length > 0 && (
+              <div className="space-y-4">
+                <h3 className="text-lg font-semibold">Additional Growth Opportunities</h3>
+                <div className="grid gap-4">
+                  {goalData.optionalGoals.map((goal: any, index: number) => (
+                    <Card key={index} className="border-accent/20 bg-gradient-to-br from-accent/5 to-background">
+                      <CardHeader>
+                        <CardTitle className="text-base">{goal.title}</CardTitle>
+                      </CardHeader>
+                      <CardContent className="space-y-3">
+                        <div className="space-y-2 text-sm">
+                          <p><span className="font-medium text-primary">Daily:</span> {goal.daily}</p>
+                          <p><span className="font-medium text-primary">Weekly:</span> {goal.weekly}</p>
+                          <p><span className="font-medium text-primary">Monthly:</span> {goal.monthly}</p>
+                        </div>
+                        <Button 
+                          variant="outline" 
+                          className="w-full" 
+                          size="sm"
+                          onClick={() => toast.success("Optional goal added!")}
+                        >
+                          Add This Goal
+                        </Button>
+                      </CardContent>
+                    </Card>
+                  ))}
+                </div>
+              </div>
+            )}
+
+            {/* Mentor Whisper */}
+            {goalData.mentorWhisper && (
+              <Card className="border-secondary/20 bg-gradient-to-br from-secondary/5 to-primary/5">
+                <CardHeader>
+                  <CardTitle className="flex items-center gap-2">
+                    <MessageCircle className="w-5 h-5 text-secondary" />
+                    Message from {goalData.mentorWhisper.mentor}
+                  </CardTitle>
+                </CardHeader>
+                <CardContent>
+                  <p className="text-foreground/90 italic">"{goalData.mentorWhisper.message}"</p>
+                </CardContent>
+              </Card>
+            )}
+
+            {/* Back to Council Button */}
+            <Button 
+              variant="outline" 
+              onClick={continueAsking}
+              className="w-full"
+            >
+              Continue Conversation
+            </Button>
+          </motion.div>
+        )}
       </div>
     </div>
   );
