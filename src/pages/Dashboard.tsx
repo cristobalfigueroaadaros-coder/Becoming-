@@ -30,11 +30,11 @@ const mentorIcons = {
   business_mentor: Briefcase,
   mystic_mentor: Compass,
   strategist_mentor: TrendingUp,
-  explorer_mentor: Flag,
   marketing_mentor: Megaphone,
   scientific_mentor: FlaskConical,
   alignment_mentor: Scale,
   oracle_mother: Moon,
+  heart_mentor: Sparkles,
 };
 
 const mentorColors = {
@@ -46,11 +46,11 @@ const mentorColors = {
   business_mentor: "bg-primary",
   mystic_mentor: "bg-secondary",
   strategist_mentor: "bg-mentor-quantum",
-  explorer_mentor: "bg-mentor-sage",
   marketing_mentor: "bg-accent",
   scientific_mentor: "bg-mentor-quantum",
   alignment_mentor: "bg-secondary",
   oracle_mother: "bg-mentor-elder",
+  heart_mentor: "bg-rose-600",
 };
 
 const mentorNames = {
@@ -62,11 +62,11 @@ const mentorNames = {
   business_mentor: "Business Mentor",
   mystic_mentor: "Mystic Mentor",
   strategist_mentor: "Strategist Mentor",
-  explorer_mentor: "Explorer Mentor",
   marketing_mentor: "Marketing Mentor",
   scientific_mentor: "Scientific Mentor",
   alignment_mentor: "Alignment Mentor",
   oracle_mother: "Oracle Mother",
+  heart_mentor: "Heart Mentor",
 };
 
 const Dashboard = () => {

@@ -8,18 +8,19 @@ import { ArrowLeft } from "lucide-react";
 import { toast } from "sonner";
 
 const mentorNames: Record<string, string> = {
-  mamba_mentor: "Mamba Mentor",
+  discipline_mentor: "Discipline Mentor",
+  strategist_mentor: "Strategist Mentor",
   creative_visionary: "Creative Visionary",
   quantum_inventor: "Quantum Inventor",
-  ancient_sage: "Ancient Sage",
-  compassionate_elder: "Compassionate Elder",
-  future_self: "Future Self",
-  business_mentor: "Business Mentor",
-  creator_mentor: "Creator Mentor",
   mystic_mentor: "Mystic Mentor",
+  business_mentor: "Business Mentor",
+  marketing_mentor: "Marketing Mentor",
+  scientific_mentor: "Scientific Mentor",
   heart_mentor: "Heart Mentor",
-  strategist_mentor: "Strategist Mentor",
-  explorer_mentor: "Explorer Mentor",
+  ancient_sage: "Ancient Sage",
+  alignment_mentor: "Alignment Mentor",
+  oracle_mother: "Oracle Mother",
+  future_self: "Future Self",
 };
 
 const CouncilLog = () => {

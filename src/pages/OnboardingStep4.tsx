@@ -101,11 +101,11 @@ const mentors = [
     category: "Emotional & Spiritual",
   },
   {
-    id: "explorer_mentor",
-    name: "The Explorer Mentor",
-    description: "Courage and experimentation",
-    icon: Compass,
-    color: "bg-mentor-sage",
+    id: "heart_mentor",
+    name: "The Heart Mentor",
+    description: "Emotional truth, connection, and softness",
+    icon: Heart,
+    color: "bg-rose-600",
     category: "Emotional & Spiritual",
   },
   // ✨ Personal
