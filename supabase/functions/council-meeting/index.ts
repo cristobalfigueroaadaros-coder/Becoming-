@@ -307,19 +307,42 @@ ${selectedMentors.map((type: string) => `${mentorNames[type]}: ${mentorPrompts[t
 Their perspectives:
 ${Object.entries(mentorPerspectives).map(([type, persp]) => `${mentorNames[type]}: ${persp}`).join('\n')}
 
+🔍 DETECTED USER THEMES (reference these naturally): ${extractedTags.length > 0 ? extractedTags.join(', ') : 'general exploration'}
+
+🎯 FREQUENCY ELEVATION DETECTION:
+Analyze if user is moving UP the consciousness scale:
+- From Fear/Shame (20-150) → Courage (200+) = "They're breaking through fear"
+- From Anger/Pride (150-200) → Acceptance (350+) = "They're letting go of control"  
+- From Willingness (310) → Love/Joy (540-600) = "Their frequency is rising fast"
+- Stuck in lower state = "Still operating from [emotion]"
+
 Create ${banterLength === 'SHORT' ? '3-4' : banterLength === 'MEDIUM' ? '5-6' : '7-9'} lines where mentors:
-- Talk to each other (not to user)
-- React to each other with personality
-- Comment about the user respectfully ("Do you think they'll commit?" "This one has real potential")
-- Show personality clashes
-- Use 1-2 short lines per mentor
-- Playful, warm, dynamic
-- Highlight keywords naturally
+
+✅ REQUIRED - Talk ABOUT the user (not TO them):
+   - "I think they're finally ready to..."
+   - "Did you notice how they framed that?"
+   - "They're at a turning point here"
+   - "This one has potential, but..."
+   - "Their energy shifted when they mentioned..."
+
+✅ REQUIRED - Reference detected themes naturally:
+   - If 'discipline' detected: "They mentioned consistency—that's your domain"
+   - If 'frequency' detected: "I'm sensing a vibrational shift here"
+   - If 'overwhelm' detected: "They sound buried, we need to simplify"
+
+✅ REQUIRED - Detect frequency elevation:
+   - "They're moving from fear to courage here—did you feel that?"
+   - "Still stuck in shame frequency. We need to lift them."
+   - "I'm seeing willingness energy—they're ready to act."
+
+✅ Include personality clashes and reactions
+✅ Keep 1-2 short lines per mentor (10-15 words max)
+✅ Playful, warm, dynamic tone
 
 Format: [Name]: "quote" (10-15 words max per line)
 ${banterLength === 'SHORT' ? 'Keep it light and brief.' : ''}
-${banterLength === 'MEDIUM' ? 'More back-and-forth, deeper insights.' : ''}
-${banterLength === 'FULL' ? 'Full round table, all mentors may speak, dynamic conversation.' : ''}`;
+${banterLength === 'MEDIUM' ? 'More back-and-forth, deeper insights about user state.' : ''}
+${banterLength === 'FULL' ? 'Full round table, all mentors speak, deep analysis of user frequency and readiness.' : ''}`;
 
     const banterResponse = await fetch("https://ai.gateway.lovable.dev/v1/chat/completions", {
       method: "POST",
