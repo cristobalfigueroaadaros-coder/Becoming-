@@ -6,17 +6,15 @@ import { Textarea } from "@/components/ui/textarea";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
-import { ArrowLeft, ChevronDown, ChevronUp, Sparkles, Target, AlertCircle, MessageCircle, Plus, Check, Calendar, CalendarDays, RefreshCw, GitBranch } from "lucide-react";
+import { ArrowLeft, Sparkles, Target, MessageCircle, RefreshCw, GitBranch, Bell } from "lucide-react";
 import { toast } from "sonner";
 import { useShadowEncounters } from "@/hooks/useShadowEncounters";
-import { motion, AnimatePresence } from "framer-motion";
+import { motion } from "framer-motion";
 import { VoiceRecorder } from "@/components/VoiceRecorder";
 
 // Updated mentor names with new 12-mentor system
 const mentorNames: Record<string, string> = {
-  // New naming
   discipline_mentor: "Discipline Mentor",
-  mamba_mentor: "Discipline Mentor", // Legacy mapping
   strategist_mentor: "Strategist Mentor",
   creative_visionary: "Creative Visionary",
   quantum_inventor: "Quantum Inventor",
@@ -29,55 +27,30 @@ const mentorNames: Record<string, string> = {
   alignment_mentor: "Alignment Mentor",
   oracle_mother: "Oracle Mother",
   future_self: "Future Self",
-  // Legacy mappings
-  compassionate_elder: "Oracle Mother",
-  creator_mentor: "Marketing Mentor",
-  explorer_mentor: "Alignment Mentor",
-};
-
-const emotionalIcons: Record<string, string> = {
-  fear: "😰",
-  anxiety: "😓",
-  confusion: "🤔",
-  overwhelm: "😵",
-  excitement: "🤩",
-  motivation: "💪",
-  shame: "😔",
-  anger: "😤",
-  sadness: "😢",
-  breakthrough: "✨",
-  neutral: "💭"
 };
 
 const CouncilMeeting = () => {
   const navigate = useNavigate();
   const { refetch } = useShadowEncounters();
   const [question, setQuestion] = useState("");
-  const [answers, setAnswers] = useState<Record<string, any>>({});
-  const [expandedMentors, setExpandedMentors] = useState<Set<string>>(new Set());
   const [conversationHistory, setConversationHistory] = useState<any[]>([]);
   
-  // New state for enhanced features
-  const [stage, setStage] = useState<'input' | 'clarifying' | 'complete' | 'action'>('input');
-  const [mirrorBack, setMirrorBack] = useState("");
-  const [clarifyingQuestions, setClarifyingQuestions] = useState<string[]>([]);
-  const [emotionalTone, setEmotionalTone] = useState<string>("");
-  const [detectedPattern, setDetectedPattern] = useState<string | null>(null);
-  const [patternCount, setPatternCount] = useState<number | undefined>(undefined);
-  const [isThresholdMoment, setIsThresholdMoment] = useState(false);
-  const [banter, setBanter] = useState("");
-  const [futureSelfInterruption, setFutureSelfInterruption] = useState("");
-  const [resolution, setResolution] = useState("");
+  // New state for 3-question journey
+  const [stage, setStage] = useState<'input' | 'seeking_clarity' | 'complete' | 'action'>('input');
+  const [questionNumber, setQuestionNumber] = useState<number>(0);
+  const [clarityQuestion, setClarityQuestion] = useState<string>("");
+  const [councilInsight, setCouncilInsight] = useState("");
+  const [mentorPerspectives, setMentorPerspectives] = useState<Record<string, string>>({});
+  const [banterLines, setBanterLines] = useState<Array<{mentor: string, text: string, color: string}>>([]);
   const [emotionalReflection, setEmotionalReflection] = useState("");
-  const [insightSummary, setInsightSummary] = useState("");
-  const [handoverRecommendations, setHandoverRecommendations] = useState<Array<{from: string; to: string; reason: string}>>([]);
+  const [suggestedNextQuestion, setSuggestedNextQuestion] = useState<string | null>(null);
+  const [councilGuidance, setCouncilGuidance] = useState<string | null>(null);
+  const [recommendedMentor, setRecommendedMentor] = useState<string | null>(null);
+  const [mentorDM, setMentorDM] = useState<{mentor: string, mentorName: string, message: string, color: string} | null>(null);
   const [loading, setLoading] = useState(false);
-  const [selectedQuestion, setSelectedQuestion] = useState<string | null>(null);
-  const [answerDialogOpen, setAnswerDialogOpen] = useState(false);
-  const [questionTier, setQuestionTier] = useState<number>(1);
   const [voiceUrl, setVoiceUrl] = useState<string>("");
-  const [clarifyingAnswers, setClarifyingAnswers] = useState<Record<string, string>>({});
   const [currentAnswer, setCurrentAnswer] = useState("");
+  const [answerDialogOpen, setAnswerDialogOpen] = useState(false);
   const [tasksGenerated, setTasksGenerated] = useState(false);
   const [goalData, setGoalData] = useState<{
     userDirection: string;
@@ -101,18 +74,7 @@ const CouncilMeeting = () => {
 
   // Track if we have an active thread
   const hasActiveThread = conversationHistory.length > 0;
-
-  const toggleExpand = (mentorType: string) => {
-    setExpandedMentors((prev) => {
-      const newSet = new Set(prev);
-      if (newSet.has(mentorType)) {
-        newSet.delete(mentorType);
-      } else {
-        newSet.add(mentorType);
-      }
-      return newSet;
-    });
-  };
+  const isQ3 = questionNumber >= 3;
 
   const handleAsk = async (continueConversation = false) => {
     if (!question.trim() || loading) return;
@@ -146,49 +108,27 @@ const CouncilMeeting = () => {
         { role: 'council', content: data }
       ]);
 
-      if (data.stage === 'clarifying') {
-        // Show clarifying questions
-        setStage('clarifying');
-        setMirrorBack(data.mirrorBack || "");
-        setClarifyingQuestions(data.clarifyingQuestions || []);
-        setEmotionalTone(data.emotionalTone || "");
-        setDetectedPattern(data.detectedPattern);
-        setPatternCount(data.patternCount);
-        setQuestionTier(data.questionTier || 1);
+      if (data.stage === 'seeking_clarity') {
+        // Q2 ONLY: Council Seeking Clarity
+        setStage('seeking_clarity');
+        setClarityQuestion(data.clarityQuestion || "");
+        setQuestionNumber(data.questionNumber);
         setQuestion(""); // Clear input for next response
         toast.info("The Council seeks to understand deeper...");
       } else {
-        // Complete response with new Council Response Structure
+        // Complete response
         setStage('complete');
-        setMirrorBack(data.mirrorBack || "");
+        setQuestionNumber(data.questionNumber || 0);
+        setCouncilInsight(data.councilInsight || "");
+        setMentorPerspectives(data.mentorPerspectives || {});
+        setBanterLines(data.banterLines || []);
         setEmotionalReflection(data.emotionalReflection || "");
-        setInsightSummary(data.insightSummary || "");
-        setAnswers(data.mentorPerspectives || data.answers || {});
-        setHandoverRecommendations(data.handoverRecommendations || []);
-        setBanter(data.banter || "");
-        setFutureSelfInterruption(data.futureSelfInterruption || "");
-        setResolution(data.resolution || "");
-        setEmotionalTone(data.emotionalTone || "");
-        setDetectedPattern(data.detectedPattern);
-        setPatternCount(data.patternCount);
-        setIsThresholdMoment(data.isThresholdMoment || false);
+        setSuggestedNextQuestion(data.suggestedNextQuestion || null);
+        setCouncilGuidance(data.councilGuidance || null);
+        setRecommendedMentor(data.recommendedMentor || null);
+        setMentorDM(data.mentorDM || null);
 
-        // Save meeting to database
-        await supabase.from("council_meetings").insert({
-          user_id: user.id,
-          question: question.trim(),
-          answers: data.answers,
-          banter: data.banter || null,
-          resolution: data.resolution || null,
-          emotional_tone: data.emotionalTone,
-          threshold_moment: data.isThresholdMoment || false,
-          pattern_detected: data.detectedPattern,
-          clarifying_questions: clarifyingQuestions.length > 0 ? clarifyingQuestions : null,
-          conversation_flow: conversationHistory,
-          shadow_triggers: data.shadowTriggers || {},
-        });
-
-        toast.success(data.isThresholdMoment ? "✨ Threshold moment detected!" : "Council has responded!");
+        toast.success(data.questionNumber >= 3 ? "✨ Q3: Momentum phase!" : "Council has responded!");
         refetch();
       }
     } catch (error: any) {
@@ -200,27 +140,19 @@ const CouncilMeeting = () => {
 
   const resetConversation = () => {
     setQuestion("");
-    setAnswers({});
     setStage('input');
-    setMirrorBack("");
+    setQuestionNumber(0);
+    setClarityQuestion("");
+    setCouncilInsight("");
+    setMentorPerspectives({});
+    setBanterLines([]);
     setEmotionalReflection("");
-    setInsightSummary("");
-    setHandoverRecommendations([]);
-    setClarifyingQuestions([]);
-    setEmotionalTone("");
-    setDetectedPattern(null);
-    setPatternCount(undefined);
-    setIsThresholdMoment(false);
-    setBanter("");
-    setFutureSelfInterruption("");
-    setResolution("");
+    setSuggestedNextQuestion(null);
+    setCouncilGuidance(null);
+    setRecommendedMentor(null);
+    setMentorDM(null);
     setConversationHistory([]);
-    setExpandedMentors(new Set());
-    setSelectedQuestion(null);
-    setAnswerDialogOpen(false);
-    setQuestionTier(1);
     setVoiceUrl("");
-    setClarifyingAnswers({});
     setCurrentAnswer("");
     setTasksGenerated(false);
     setGoalData(null);
@@ -229,16 +161,14 @@ const CouncilMeeting = () => {
   const continueAsking = () => {
     setStage('input');
     setQuestion("");
-    setAnswers({});
-    setMirrorBack("");
-    setEmotionalTone("");
-    setBanter("");
-    setFutureSelfInterruption("");
-    setResolution("");
-    setExpandedMentors(new Set());
+    setCouncilInsight("");
+    setMentorPerspectives({});
+    setBanterLines([]);
+    setEmotionalReflection("");
+    setSuggestedNextQuestion(null);
     setTasksGenerated(false);
     setGoalData(null);
-    // Keep conversation history and detected patterns
+    // Keep conversation history and question number
   };
 
   const handleReadyForAction = async () => {
@@ -248,10 +178,8 @@ const CouncilMeeting = () => {
     try {
       const { data, error } = await supabase.functions.invoke("generate-council-tasks", {
         body: {
-          mentorAnswers: answers,
+          mentorAnswers: mentorPerspectives,
           question,
-          emotionalTone,
-          detectedPattern,
           conversationHistory,
         },
       });
@@ -269,82 +197,15 @@ const CouncilMeeting = () => {
     }
   };
 
-  const handleAddOptionalGoal = async (goalIndex: number) => {
-    if (!goalData) return;
-    
-    try {
-      const { data: { user } } = await supabase.auth.getUser();
-      if (!user) throw new Error("Not authenticated");
-
-      const goal = goalData.optionalGoals[goalIndex];
-      
-      // Add to weekly goals as optional side goal
-      const today = new Date();
-      const weekStart = new Date(today);
-      weekStart.setDate(today.getDate() - today.getDay() + 1);
-      
-      await supabase.from("weekly_goals").insert({
-        user_id: user.id,
-        goal_text: goal.title,
-        week_start: weekStart.toISOString().split('T')[0],
-        completed: false,
-        xp_awarded: false,
-      });
-
-      // Update local state
-      setGoalData({
-        ...goalData,
-        optionalGoals: goalData.optionalGoals.map((g, i) => 
-          i === goalIndex ? { ...g, added: true } : g
-        ),
-      });
-
-      toast.success("Side goal added to your Goal Board! ✨");
-    } catch (error: any) {
-      toast.error(error.message);
-    }
-  };
-
-  const handleQuestionSelect = (q: string) => {
-    setSelectedQuestion(q);
-    setCurrentAnswer(clarifyingAnswers[q] || "");
-    setAnswerDialogOpen(true);
-  };
-
   const handleVoiceTranscription = (text: string, audioUrl: string) => {
     setCurrentAnswer(text);
     setVoiceUrl(audioUrl);
     toast.success("Voice transcribed - ready to send");
   };
 
-  const submitClarifyingAnswer = async () => {
-    if (!selectedQuestion || !currentAnswer.trim()) return;
+  const submitClarityAnswer = async () => {
+    if (!currentAnswer.trim()) return;
     
-    // Store this answer independently
-    const updatedAnswers = {
-      ...clarifyingAnswers,
-      [selectedQuestion]: currentAnswer.trim()
-    };
-    setClarifyingAnswers(updatedAnswers);
-    
-    // Save to database as independent data point
-    try {
-      const { data: { user } } = await supabase.auth.getUser();
-      if (user) {
-        await supabase.from("insight_dots").insert({
-          user_id: user.id,
-          source_type: "council_clarification",
-          core_theme: "Clarity Question",
-          insight_text: `Q: ${selectedQuestion}\nA: ${currentAnswer.trim()}`,
-          emotional_tone: emotionalTone || "reflective",
-          skill_tags: ["self_reflection", "clarity"]
-        });
-      }
-    } catch (error) {
-      console.error("Error saving clarifying answer:", error);
-    }
-    
-    // Close dialog and continue conversation
     setAnswerDialogOpen(false);
     setQuestion(currentAnswer.trim());
     setCurrentAnswer("");
@@ -364,9 +225,21 @@ const CouncilMeeting = () => {
           <div className="flex-1">
             <h1 className="text-4xl font-bold">Council Meeting</h1>
             <p className="text-muted-foreground mt-2">
-              Deep wisdom through clarifying questions and threshold moments
+              {questionNumber === 0 && "Deep wisdom through a 3-question journey"}
+              {questionNumber === 1 && "Q1: Discovery - Light, welcoming, inspiring"}
+              {questionNumber === 2 && "Q2: Depth - Council Seeking Clarity"}
+              {questionNumber >= 3 && "Q3: Momentum - Ready for action"}
             </p>
           </div>
+          {mentorDM && (
+            <Button variant="outline" className="relative" onClick={() => toast.info(mentorDM.message)}>
+              <Bell className="w-4 h-4 mr-2" style={{ color: mentorDM.color }} />
+              {mentorDM.mentorName}
+              <Badge className="absolute -top-2 -right-2 h-5 w-5 rounded-full p-0 flex items-center justify-center" style={{ backgroundColor: mentorDM.color }}>
+                1
+              </Badge>
+            </Button>
+          )}
         </div>
 
         {/* Active Thread Indicator */}
@@ -383,7 +256,7 @@ const CouncilMeeting = () => {
                     <div>
                       <p className="text-sm font-medium">Active Thread</p>
                       <p className="text-xs text-muted-foreground">
-                        {conversationHistory.filter(m => m.role === 'user').length} exchanges in this conversation
+                        Question {questionNumber} in this conversation
                       </p>
                     </div>
                   </div>
@@ -397,20 +270,10 @@ const CouncilMeeting = () => {
           </motion.div>
         )}
 
-        {/* Question Input - Enhanced with Thread Options */}
+        {/* Question Input */}
         <Card>
           <CardHeader>
-            <CardTitle className="flex items-center justify-between">
-              <span>Ask the Council</span>
-              {emotionalTone && (
-                <div className="flex items-center gap-2">
-                  <span className="text-2xl">{emotionalIcons[emotionalTone] || emotionalIcons.neutral}</span>
-                  <Badge variant="outline" className="text-xs capitalize">
-                    {emotionalTone}
-                  </Badge>
-                </div>
-              )}
-            </CardTitle>
+            <CardTitle>Ask the Council</CardTitle>
           </CardHeader>
           <CardContent className="space-y-4">
             <Textarea
@@ -420,7 +283,7 @@ const CouncilMeeting = () => {
               value={question}
               onChange={(e) => setQuestion(e.target.value)}
               rows={4}
-              disabled={loading || stage === 'complete'}
+              disabled={loading || stage === 'complete' || stage === 'seeking_clarity'}
             />
             
             {/* Thread Action Buttons */}
@@ -429,7 +292,7 @@ const CouncilMeeting = () => {
                 <>
                   <Button
                     onClick={() => handleAsk(true)}
-                    disabled={loading || !question.trim() || stage === 'complete'}
+                    disabled={loading || !question.trim() || stage === 'complete' || stage === 'seeking_clarity'}
                     className="flex-1"
                     size="lg"
                   >
@@ -443,7 +306,7 @@ const CouncilMeeting = () => {
                         setTimeout(() => handleAsk(false), 100);
                       }
                     }}
-                    disabled={loading || !question.trim() || stage === 'complete'}
+                    disabled={loading || !question.trim() || stage === 'complete' || stage === 'seeking_clarity'}
                     variant="outline"
                     className="flex-1"
                     size="lg"
@@ -455,7 +318,7 @@ const CouncilMeeting = () => {
               ) : (
                 <Button
                   onClick={() => handleAsk(false)}
-                  disabled={loading || !question.trim() || stage === 'complete'}
+                  disabled={loading || !question.trim() || stage === 'complete' || stage === 'seeking_clarity'}
                   className="w-full"
                   size="lg"
                 >
@@ -466,85 +329,36 @@ const CouncilMeeting = () => {
           </CardContent>
         </Card>
 
-        {/* Pattern Alert */}
-        {detectedPattern && patternCount && patternCount > 2 && (
-          <motion.div
-            initial={{ opacity: 0, y: -10 }}
-            animate={{ opacity: 1, y: 0 }}
-          >
-            <Card className="border-2 border-destructive/50 bg-destructive/5">
-              <CardContent className="pt-4">
-                <div className="flex items-start gap-3">
-                  <AlertCircle className="w-5 h-5 text-destructive mt-0.5" />
-                  <div>
-                    <p className="font-semibold text-destructive">Pattern Detected</p>
-                    <p className="text-sm text-muted-foreground mt-1">
-                      "{detectedPattern.replace(/_/g, ' ')}" has appeared {patternCount} times. 
-                      The Council sees this pattern and will address it.
-                    </p>
-                  </div>
-                </div>
-              </CardContent>
-            </Card>
-          </motion.div>
-        )}
-
-        {/* Mirror-Back Reflection */}
-        {mirrorBack && (
-          <motion.div
-            initial={{ opacity: 0, y: 10 }}
-            animate={{ opacity: 1, y: 0 }}
-          >
-            <Card className="border-primary/30 bg-primary/5">
-              <CardContent className="pt-4">
-                <p className="text-sm italic leading-relaxed">
-                  💭 <strong>Council reflects:</strong> {mirrorBack}
-                </p>
-              </CardContent>
-            </Card>
-          </motion.div>
-        )}
-
-        {/* Clarifying Questions Stage - Tap to Answer */}
-        {stage === 'clarifying' && clarifyingQuestions.length > 0 && (
+        {/* Q2 ONLY: Council Seeking Clarity */}
+        {stage === 'seeking_clarity' && clarityQuestion && (
           <motion.div
             initial={{ opacity: 0, scale: 0.95 }}
             animate={{ opacity: 1, scale: 1 }}
           >
-            <Card className="border-2 border-accent/50">
+            <Card className="border-2 border-accent/50 bg-accent/5">
               <CardHeader>
                 <CardTitle className="text-lg flex items-center gap-2">
                   <Target className="w-5 h-5 text-accent" />
-                  The Council Seeks Clarity
-                  <Badge variant="outline" className="ml-auto text-xs">
-                    Tier {questionTier}
-                  </Badge>
+                  Council Seeking Clarity
                 </CardTitle>
               </CardHeader>
-              <CardContent className="space-y-3">
+              <CardContent className="space-y-4">
                 <p className="text-sm text-muted-foreground">
-                  {questionTier === 1 && "Let's start with something simple:"}
-                  {questionTier === 2 && "Now, let's dig a bit deeper:"}
-                  {questionTier === 3 && "You're ready for deeper insight. Answer this:"}
+                  Before we go deeper, the Council needs to understand:
                 </p>
-                <div className="space-y-2">
-                  {clarifyingQuestions.map((q, idx) => (
-                    <motion.button
-                      key={idx}
-                      whileHover={{ scale: 1.02 }}
-                      whileTap={{ scale: 0.98 }}
-                      onClick={() => handleQuestionSelect(q)}
-                      className="w-full p-4 rounded-lg bg-gradient-to-r from-accent/10 to-primary/10 border-2 border-accent/30 hover:border-accent/60 transition-all text-left group"
-                    >
-                      <div className="flex items-start gap-3">
-                        <MessageCircle className="w-5 h-5 text-accent mt-0.5 group-hover:scale-110 transition-transform" />
-                        <p className="text-sm font-medium flex-1">{q}</p>
-                      </div>
-                    </motion.button>
-                  ))}
-                </div>
+                <motion.button
+                  whileHover={{ scale: 1.02 }}
+                  whileTap={{ scale: 0.98 }}
+                  onClick={() => setAnswerDialogOpen(true)}
+                  className="w-full p-4 rounded-lg bg-gradient-to-r from-accent/10 to-primary/10 border-2 border-accent/30 hover:border-accent/60 transition-all text-left group"
+                >
+                  <div className="flex items-start gap-3">
+                    <MessageCircle className="w-5 h-5 text-accent mt-0.5 group-hover:scale-110 transition-transform" />
+                    <p className="text-sm font-medium flex-1">{clarityQuestion}</p>
+                  </div>
+                </motion.button>
                 <p className="text-xs text-muted-foreground italic flex items-center gap-2">
-                  <span>👆</span> Tap a question to answer it
+                  <span>👆</span> Tap to answer this question
                 </p>
               </CardContent>
             </Card>
@@ -558,9 +372,9 @@ const CouncilMeeting = () => {
               <DialogTitle className="text-lg">Your Answer</DialogTitle>
             </DialogHeader>
             <div className="space-y-4">
-              {selectedQuestion && (
+              {clarityQuestion && (
                 <div className="p-3 rounded-lg bg-muted/50 border-l-4 border-accent">
-                  <p className="text-sm font-medium">{selectedQuestion}</p>
+                  <p className="text-sm font-medium">{clarityQuestion}</p>
                 </div>
               )}
               <Textarea
@@ -586,7 +400,7 @@ const CouncilMeeting = () => {
                     Cancel
                   </Button>
                   <Button
-                    onClick={submitClarifyingAnswer}
+                    onClick={submitClarityAnswer}
                     disabled={loading || !currentAnswer.trim()}
                   >
                     Submit Answer
@@ -597,29 +411,105 @@ const CouncilMeeting = () => {
           </DialogContent>
         </Dialog>
 
-        {/* Mentor Answers (Complete Stage) - NEW COUNCIL RESPONSE STRUCTURE */}
-        {stage === 'complete' && Object.keys(answers).length > 0 && (
+        {/* Complete Stage - Council Response */}
+        {stage === 'complete' && Object.keys(mentorPerspectives).length > 0 && (
           <div className="space-y-6">
-            {/* Threshold Moment Banner */}
-            {isThresholdMoment && (
+            {/* 1. COUNCIL INSIGHT */}
+            {councilInsight && (
               <motion.div
-                initial={{ opacity: 0, scale: 0.9 }}
-                animate={{ opacity: 1, scale: 1 }}
-                className="p-4 rounded-lg bg-gradient-to-r from-primary/20 to-accent/20 border-2 border-primary/50"
+                initial={{ opacity: 0, y: 10 }}
+                animate={{ opacity: 1, y: 0 }}
               >
-                <div className="flex items-center gap-3">
-                  <Sparkles className="w-6 h-6 text-primary" />
-                  <div>
-                    <p className="font-bold text-lg">Threshold Moment Detected</p>
-                    <p className="text-sm text-muted-foreground">
-                      You're at a turning point. Let's turn this clarity into action.
+                <Card className="border-2 border-accent/30 bg-gradient-to-br from-accent/5 to-transparent">
+                  <CardHeader className="pb-2">
+                    <CardTitle className="text-sm flex items-center gap-2 text-accent">
+                      <span className="text-lg">🔮</span>
+                      Council Insight
+                    </CardTitle>
+                  </CardHeader>
+                  <CardContent>
+                    <p className="text-sm sm:text-base leading-relaxed font-medium">
+                      {councilInsight}
                     </p>
-                  </div>
-                </div>
+                  </CardContent>
+                </Card>
               </motion.div>
             )}
 
-            {/* 1. EMOTIONAL REFLECTION */}
+            {/* 2. MENTOR MICRO-PERSPECTIVES */}
+            <div className="space-y-4">
+              <h2 className="text-lg font-semibold flex items-center gap-2">
+                <span className="text-xl">👁️</span>
+                Mentor Perspectives
+              </h2>
+              <div className="grid gap-3">
+                {Object.entries(mentorPerspectives).map(([mentorType, perspective], idx) => (
+                  <motion.div
+                    key={mentorType}
+                    initial={{ opacity: 0, x: -10 }}
+                    animate={{ opacity: 1, x: 0 }}
+                    transition={{ delay: idx * 0.05 }}
+                  >
+                    <Card className="border-l-4 border-l-primary/50">
+                      <CardContent className="pt-4">
+                        <div className="flex items-start gap-3">
+                          <div className="w-10 h-10 rounded-full bg-gradient-to-br from-primary/20 to-accent/20 flex items-center justify-center flex-shrink-0">
+                            <span className="text-sm font-bold">
+                              {(mentorNames[mentorType] || mentorType).charAt(0)}
+                            </span>
+                          </div>
+                          <div className="flex-1 min-w-0">
+                            <p className="text-sm font-semibold text-primary">
+                              {mentorNames[mentorType] || mentorType.replace(/_/g, ' ')}
+                            </p>
+                            <p className="text-sm leading-relaxed mt-1 text-muted-foreground">
+                              {perspective}
+                            </p>
+                          </div>
+                        </div>
+                      </CardContent>
+                    </Card>
+                  </motion.div>
+                ))}
+              </div>
+            </div>
+
+            {/* 3. COUNCIL BANTER (WhatsApp-style) */}
+            {banterLines.length > 0 && (
+              <div className="space-y-3">
+                <div className="h-px bg-gradient-to-r from-transparent via-border to-transparent" />
+                <Card className="bg-muted/30">
+                  <CardHeader className="pb-2">
+                    <CardTitle className="text-sm">🗣️ Council Banter</CardTitle>
+                  </CardHeader>
+                  <CardContent className="space-y-2">
+                    {banterLines.map((line, idx) => (
+                      <motion.div
+                        key={idx}
+                        initial={{ opacity: 0, y: 5 }}
+                        animate={{ opacity: 1, y: 0 }}
+                        transition={{ delay: idx * 0.1 }}
+                        className="flex items-start gap-2"
+                      >
+                        <div 
+                          className="px-3 py-2 rounded-lg max-w-[80%]" 
+                          style={{ backgroundColor: line.color + '20', borderLeft: `3px solid ${line.color}` }}
+                        >
+                          <p className="text-xs font-semibold" style={{ color: line.color }}>
+                            {line.mentor}
+                          </p>
+                          <p className="text-sm mt-1 text-muted-foreground">
+                            {line.text}
+                          </p>
+                        </div>
+                      </motion.div>
+                    ))}
+                  </CardContent>
+                </Card>
+              </div>
+            )}
+
+            {/* 4. EMOTIONAL REFLECTION */}
             {emotionalReflection && (
               <motion.div
                 initial={{ opacity: 0, y: 10 }}
@@ -641,153 +531,52 @@ const CouncilMeeting = () => {
               </motion.div>
             )}
 
-            {/* 2. INSIGHT SUMMARY */}
-            {insightSummary && (
-              <motion.div
-                initial={{ opacity: 0, y: 10 }}
-                animate={{ opacity: 1, y: 0 }}
-                transition={{ delay: 0.1 }}
-              >
-                <Card className="border-2 border-accent/30 bg-gradient-to-br from-accent/5 to-transparent">
-                  <CardHeader className="pb-2">
-                    <CardTitle className="text-sm flex items-center gap-2 text-accent">
-                      <span className="text-lg">🔮</span>
-                      Council Insight
-                    </CardTitle>
-                  </CardHeader>
-                  <CardContent>
-                    <p className="text-sm sm:text-base leading-relaxed font-medium">
-                      {insightSummary}
-                    </p>
-                  </CardContent>
-                </Card>
-              </motion.div>
-            )}
-
-            {/* 3. MULTI-MENTOR MICRO-PERSPECTIVES */}
-            <div className="space-y-4">
-              <h2 className="text-lg font-semibold flex items-center gap-2">
-                <span className="text-xl">👁️</span>
-                Mentor Perspectives
-              </h2>
-              <div className="grid gap-3">
-                {Object.entries(answers).map(([mentorType, answer], idx) => {
-                  const answerObj = typeof answer === 'object' ? answer : { perspective: answer };
-                  
-                  return (
-                    <motion.div
-                      key={mentorType}
-                      initial={{ opacity: 0, x: -10 }}
-                      animate={{ opacity: 1, x: 0 }}
-                      transition={{ delay: idx * 0.05 }}
-                    >
-                      <Card className="border-l-4 border-l-primary/50">
-                        <CardContent className="pt-4">
-                          <div className="flex items-start gap-3">
-                            <div className="w-10 h-10 rounded-full bg-gradient-to-br from-primary/20 to-accent/20 flex items-center justify-center flex-shrink-0">
-                              <span className="text-sm font-bold">
-                                {(mentorNames[mentorType] || mentorType).charAt(0)}
-                              </span>
-                            </div>
-                            <div className="flex-1 min-w-0">
-                              <p className="text-sm font-semibold text-primary">
-                                {mentorNames[mentorType] || mentorType.replace(/_/g, ' ')}
-                              </p>
-                              <p className="text-sm leading-relaxed mt-1 text-muted-foreground">
-                                {answerObj.perspective || answerObj.emotional || JSON.stringify(answer)}
-                              </p>
-                            </div>
-                          </div>
-                        </CardContent>
-                      </Card>
-                    </motion.div>
-                  );
-                })}
-              </div>
-            </div>
-
-            {/* 4. HANDOVER RECOMMENDATIONS */}
-            {handoverRecommendations.length > 0 && (
+            {/* 5. SUGGESTED NEXT QUESTION (NOT in Q3) */}
+            {suggestedNextQuestion && !isQ3 && (
               <motion.div
                 initial={{ opacity: 0, y: 10 }}
                 animate={{ opacity: 1, y: 0 }}
               >
                 <Card className="border border-dashed border-accent/50 bg-accent/5">
-                  <CardHeader className="pb-2">
-                    <CardTitle className="text-sm flex items-center gap-2">
-                      <span className="text-lg">🔄</span>
-                      Handover Suggestions
-                    </CardTitle>
-                  </CardHeader>
-                  <CardContent className="space-y-2">
-                    {handoverRecommendations.map((rec, idx) => (
-                      <div key={idx} className="flex items-start gap-2 text-sm">
-                        <Badge variant="outline" className="flex-shrink-0">
-                          {mentorNames[rec.from]?.split(' ')[0] || rec.from}
-                        </Badge>
-                        <span className="text-muted-foreground">→</span>
-                        <span className="text-muted-foreground italic">{rec.reason}</span>
-                      </div>
-                    ))}
+                  <CardContent className="pt-4">
+                    <p className="text-sm text-muted-foreground mb-3">
+                      💭 The Council suggests:
+                    </p>
+                    <Button 
+                      variant="outline" 
+                      className="w-full justify-start text-left h-auto py-3"
+                      onClick={() => {
+                        setQuestion(suggestedNextQuestion);
+                        continueAsking();
+                      }}
+                    >
+                      {suggestedNextQuestion}
+                    </Button>
                   </CardContent>
                 </Card>
               </motion.div>
             )}
 
-            {/* Banter (between mentors) */}
-            {banter && (
-              <div className="space-y-3">
-                <div className="h-px bg-gradient-to-r from-transparent via-border to-transparent" />
-                <Card className="bg-muted/30">
-                  <CardHeader className="pb-2">
-                    <CardTitle className="text-sm">🗣️ Council Banter</CardTitle>
-                  </CardHeader>
-                  <CardContent>
-                    <p className="text-sm leading-relaxed whitespace-pre-line italic text-muted-foreground">
-                      {banter}
-                    </p>
-                  </CardContent>
-                </Card>
-              </div>
-            )}
-
-            {/* Future Self Interruption */}
-            {futureSelfInterruption && (
-              <div className="space-y-3">
-                <div className="h-px bg-gradient-to-r from-transparent via-accent to-transparent" />
-                <Card className="border-2 border-accent/50 bg-gradient-to-br from-accent/5 to-primary/5">
+            {/* 6. Q3 ONLY: COUNCIL GUIDANCE */}
+            {isQ3 && councilGuidance && (
+              <motion.div
+                initial={{ opacity: 0, y: 10 }}
+                animate={{ opacity: 1, y: 0 }}
+              >
+                <Card className="border-2 border-primary/50 bg-gradient-to-br from-primary/10 to-accent/10">
                   <CardHeader>
-                    <CardTitle className="text-sm flex items-center gap-2">
-                      <Sparkles className="w-4 h-4 text-accent" />
-                      Future Self Speaks
-                    </CardTitle>
-                  </CardHeader>
-                  <CardContent>
-                    <p className="text-sm leading-relaxed font-medium">
-                      {futureSelfInterruption}
-                    </p>
-                  </CardContent>
-                </Card>
-              </div>
-            )}
-
-            {/* Resolution */}
-            {resolution && (
-              <div className="space-y-3">
-                <div className="h-px bg-gradient-to-r from-transparent via-border to-transparent" />
-                <Card className="border-2 border-primary/30 bg-gradient-to-br from-primary/5 to-accent/5">
-                  <CardHeader>
-                    <CardTitle className="text-lg bg-gradient-to-r from-primary to-accent bg-clip-text text-transparent">
-                      ✨ Council Resolution
+                    <CardTitle className="flex items-center gap-2">
+                      <Sparkles className="w-5 h-5 text-primary" />
+                      Council Guidance
                     </CardTitle>
                   </CardHeader>
                   <CardContent>
                     <p className="text-sm sm:text-base leading-relaxed font-medium">
-                      {resolution}
+                      {councilGuidance}
                     </p>
                   </CardContent>
                 </Card>
-              </div>
+              </motion.div>
             )}
 
             {/* Thread Continuation Options */}
@@ -834,147 +623,6 @@ const CouncilMeeting = () => {
                     </div>
                   </CardContent>
                 </Card>
-              </motion.div>
-            )}
-
-            {/* Action Phase - Comprehensive Goal Display */}
-            {tasksGenerated && goalData && (
-              <motion.div
-                initial={{ opacity: 0, scale: 0.95 }}
-                animate={{ opacity: 1, scale: 1 }}
-                className="space-y-6"
-              >
-                {/* Header */}
-                <div className="text-center space-y-2">
-                  <h2 className="text-2xl font-bold bg-gradient-to-r from-primary to-accent bg-clip-text text-transparent flex items-center justify-center gap-2">
-                    <Sparkles className="w-6 h-6 text-primary" />
-                    Your Guidance Is Ready
-                  </h2>
-                  <p className="text-sm text-muted-foreground">
-                    {goalData.userDirection}
-                  </p>
-                </div>
-
-                {/* Main Goal Card */}
-                <Card className="border-2 border-primary/50 bg-gradient-to-br from-primary/10 to-accent/10">
-                  <CardHeader>
-                    <CardTitle className="flex items-center gap-2">
-                      <Target className="w-5 h-5 text-primary" />
-                      MAIN GOAL
-                    </CardTitle>
-                  </CardHeader>
-                  <CardContent className="space-y-4">
-                    <p className="text-lg font-semibold">{goalData.mainGoal.title}</p>
-                    
-                    <div className="space-y-3 pt-2">
-                      <div className="flex items-start gap-3 p-3 rounded-lg bg-background/50">
-                        <div className="w-8 h-8 rounded-full bg-primary/20 flex items-center justify-center flex-shrink-0">
-                          <Target className="w-4 h-4 text-primary" />
-                        </div>
-                        <div>
-                          <p className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">Daily Task</p>
-                          <p className="text-sm">{goalData.mainGoal.daily}</p>
-                        </div>
-                      </div>
-                      
-                      <div className="flex items-start gap-3 p-3 rounded-lg bg-background/50">
-                        <div className="w-8 h-8 rounded-full bg-accent/20 flex items-center justify-center flex-shrink-0">
-                          <Calendar className="w-4 h-4 text-accent" />
-                        </div>
-                        <div>
-                          <p className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">Weekly Milestone</p>
-                          <p className="text-sm">{goalData.mainGoal.weekly}</p>
-                        </div>
-                      </div>
-                      
-                      <div className="flex items-start gap-3 p-3 rounded-lg bg-background/50">
-                        <div className="w-8 h-8 rounded-full bg-secondary/20 flex items-center justify-center flex-shrink-0">
-                          <CalendarDays className="w-4 h-4 text-secondary-foreground" />
-                        </div>
-                        <div>
-                          <p className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">Monthly Objective</p>
-                          <p className="text-sm">{goalData.mainGoal.monthly}</p>
-                        </div>
-                      </div>
-                    </div>
-                  </CardContent>
-                </Card>
-
-                {/* Optional Side Goals */}
-                <Card className="border border-accent/30">
-                  <CardHeader>
-                    <CardTitle className="text-lg flex items-center gap-2">
-                      <Sparkles className="w-4 h-4 text-accent" />
-                      OPTIONAL SIDE GOALS
-                    </CardTitle>
-                    <p className="text-xs text-muted-foreground">
-                      Bonus missions to support your growth
-                    </p>
-                  </CardHeader>
-                  <CardContent className="space-y-3">
-                    {goalData.optionalGoals.map((goal, idx) => (
-                      <div 
-                        key={idx}
-                        className="flex items-start justify-between gap-3 p-3 rounded-lg border border-border/50 hover:border-accent/50 transition-colors"
-                      >
-                        <div className="flex-1">
-                          <p className="font-medium text-sm">{idx + 1}. {goal.title}</p>
-                          <p className="text-xs text-muted-foreground mt-1">{goal.description}</p>
-                        </div>
-                        <Button
-                          size="sm"
-                          variant={goal.added ? "secondary" : "outline"}
-                          onClick={() => handleAddOptionalGoal(idx)}
-                          disabled={goal.added}
-                          className="flex-shrink-0"
-                        >
-                          {goal.added ? (
-                            <>
-                              <Check className="w-3 h-3 mr-1" />
-                              Added
-                            </>
-                          ) : (
-                            <>
-                              <Plus className="w-3 h-3 mr-1" />
-                              Add to Goals
-                            </>
-                          )}
-                        </Button>
-                      </div>
-                    ))}
-                  </CardContent>
-                </Card>
-
-                {/* Mentor Whisper */}
-                <Card className="border-2 border-accent/50 bg-gradient-to-br from-accent/5 to-primary/5">
-                  <CardHeader>
-                    <CardTitle className="text-sm flex items-center gap-2">
-                      <MessageCircle className="w-4 h-4 text-accent" />
-                      Private Whisper from {mentorNames[goalData.mentorWhisper.mentor] || goalData.mentorWhisper.mentor.replace(/_/g, ' ')}
-                    </CardTitle>
-                  </CardHeader>
-                  <CardContent>
-                    <p className="text-sm leading-relaxed italic whitespace-pre-line">
-                      {goalData.mentorWhisper.message}
-                    </p>
-                  </CardContent>
-                </Card>
-
-                {/* Action Buttons */}
-                <div className="flex flex-col sm:flex-row gap-3">
-                  <Button onClick={() => navigate("/future-self/goal-structure")} className="flex-1" size="lg">
-                    <Target className="w-4 h-4 mr-2" />
-                    View Goal Board
-                  </Button>
-                  <Button onClick={() => navigate("/chat")} variant="outline" className="flex-1">
-                    <MessageCircle className="w-4 h-4 mr-2" />
-                    Reply to {mentorNames[goalData.mentorWhisper.mentor]?.split(' ')[0] || 'Mentor'}
-                  </Button>
-                </div>
-
-                <Button onClick={resetConversation} variant="ghost" className="w-full">
-                  Start Fresh Conversation
-                </Button>
               </motion.div>
             )}
           </div>
