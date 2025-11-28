@@ -4,37 +4,109 @@ import { supabase } from "@/integrations/supabase/client";
 import { Button } from "@/components/ui/button";
 import { Card, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { toast } from "sonner";
-import { Brain, Lightbulb, Zap, Trees, Heart, Sparkles } from "lucide-react";
+import { Brain, Lightbulb, Zap, Trees, Heart, Sparkles, Target, TrendingUp, Megaphone, FlaskConical, Scale, Moon, User, Compass } from "lucide-react";
 import { cn } from "@/lib/utils";
 
 const mentors = [
+  // 🔥 Action & Discipline
+  {
+    id: "discipline_mentor",
+    name: "The Discipline Mentor",
+    description: "Relentless focus, ownership, and mastery (Kobe/Goggins energy)",
+    icon: Brain,
+    color: "bg-mentor-mamba",
+    category: "Action & Discipline",
+  },
   {
     id: "mamba_mentor",
     name: "The Mamba Mentor",
     description: "Discipline, mastery, and relentless focus",
     icon: Brain,
     color: "bg-mentor-mamba",
+    category: "Action & Discipline",
   },
+  {
+    id: "strategist_mentor",
+    name: "The Strategist Mentor",
+    description: "Frameworks, clarity, and systematic planning",
+    icon: Target,
+    color: "bg-mentor-quantum",
+    category: "Action & Discipline",
+  },
+  {
+    id: "business_mentor",
+    name: "The Business Mentor",
+    description: "Strategy, leverage, and execution (Hormozi energy)",
+    icon: TrendingUp,
+    color: "bg-primary",
+    category: "Action & Discipline",
+  },
+  // 💡 Creativity & Expression
   {
     id: "creative_visionary",
     name: "The Creative Visionary",
     description: "Imagination, wonder, and creative expansion",
     icon: Lightbulb,
     color: "bg-mentor-creative",
+    category: "Creativity & Expression",
   },
+  {
+    id: "creator_mentor",
+    name: "The Creator Mentor",
+    description: "Content creation, storytelling, and personal brand",
+    icon: Lightbulb,
+    color: "bg-accent",
+    category: "Creativity & Expression",
+  },
+  {
+    id: "marketing_mentor",
+    name: "The Marketing Mentor",
+    description: "Storytelling, virality, and message craft (Gary Vee energy)",
+    icon: Megaphone,
+    color: "bg-accent",
+    category: "Creativity & Expression",
+  },
+  // 🔬 Knowledge & Insight
   {
     id: "quantum_inventor",
     name: "The Quantum Inventor",
-    description: "Future insight and pattern recognition",
+    description: "Pattern recognition and systems thinking",
     icon: Zap,
     color: "bg-mentor-quantum",
+    category: "Knowledge & Insight",
+  },
+  {
+    id: "scientific_mentor",
+    name: "The Scientific Mentor",
+    description: "Evidence-based methods and neuroscience (Huberman energy)",
+    icon: FlaskConical,
+    color: "bg-blue-600",
+    category: "Knowledge & Insight",
+  },
+  // 💜 Emotional & Spiritual
+  {
+    id: "mystic_mentor",
+    name: "The Mystic Mentor",
+    description: "Spiritual insight and inner truth",
+    icon: Sparkles,
+    color: "bg-secondary",
+    category: "Emotional & Spiritual",
+  },
+  {
+    id: "heart_mentor",
+    name: "The Heart Mentor",
+    description: "Vulnerability, connection, and emotional truth",
+    icon: Heart,
+    color: "bg-mentor-elder",
+    category: "Emotional & Spiritual",
   },
   {
     id: "ancient_sage",
     name: "The Ancient Sage",
-    description: "Calm clarity and timeless wisdom",
+    description: "Timeless wisdom, patience, and grounding",
     icon: Trees,
     color: "bg-mentor-sage",
+    category: "Emotional & Spiritual",
   },
   {
     id: "compassionate_elder",
@@ -42,55 +114,40 @@ const mentors = [
     description: "Warmth and emotional wisdom",
     icon: Heart,
     color: "bg-mentor-elder",
+    category: "Emotional & Spiritual",
   },
   {
-    id: "future_self",
-    name: "Future Self",
-    description: "Your evolved self, ten years ahead",
-    icon: Sparkles,
-    color: "bg-mentor-future",
+    id: "alignment_mentor",
+    name: "The Alignment Mentor",
+    description: "Internal coherence and resolving inner conflict",
+    icon: Scale,
+    color: "bg-green-600",
+    category: "Emotional & Spiritual",
   },
   {
-    id: "business_mentor",
-    name: "Business Mentor",
-    description: "Strategy, entrepreneurship, and execution",
-    icon: Brain,
-    color: "bg-primary",
-  },
-  {
-    id: "creator_mentor",
-    name: "Creator Mentor",
-    description: "Content creation and personal brand",
-    icon: Lightbulb,
-    color: "bg-accent",
-  },
-  {
-    id: "mystic_mentor",
-    name: "Mystic Mentor",
-    description: "Spirituality and inner guidance",
-    icon: Sparkles,
-    color: "bg-secondary",
-  },
-  {
-    id: "heart_mentor",
-    name: "Heart Mentor",
-    description: "Relationships and emotional intelligence",
-    icon: Heart,
-    color: "bg-mentor-elder",
-  },
-  {
-    id: "strategist_mentor",
-    name: "Strategist Mentor",
-    description: "Planning and decision frameworks",
-    icon: Zap,
-    color: "bg-mentor-quantum",
+    id: "oracle_mother",
+    name: "The Oracle Mother",
+    description: "Nurturing wisdom, validation, and deep empathy",
+    icon: Moon,
+    color: "bg-purple-600",
+    category: "Emotional & Spiritual",
   },
   {
     id: "explorer_mentor",
-    name: "Explorer Mentor",
+    name: "The Explorer Mentor",
     description: "Courage and experimentation",
-    icon: Trees,
+    icon: Compass,
     color: "bg-mentor-sage",
+    category: "Emotional & Spiritual",
+  },
+  // ✨ Personal
+  {
+    id: "future_self",
+    name: "Your Future Self",
+    description: "Your evolved self, ten years ahead",
+    icon: User,
+    color: "bg-mentor-future",
+    category: "Personal",
   },
 ];
 
@@ -149,33 +206,50 @@ const OnboardingStep4 = () => {
           </p>
         </div>
 
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-          {mentors.map((mentor) => {
-            const Icon = mentor.icon;
-            const isSelected = selectedMentors.includes(mentor.id);
-
+        <div className="space-y-8">
+          {["Action & Discipline", "Creativity & Expression", "Knowledge & Insight", "Emotional & Spiritual", "Personal"].map((category) => {
+            const categoryMentors = mentors.filter((m) => m.category === category);
             return (
-              <Card
-                key={mentor.id}
-                className={cn(
-                  "cursor-pointer transition-all hover:shadow-lg",
-                  isSelected && "ring-2 ring-primary shadow-xl"
-                )}
-                onClick={() => toggleMentor(mentor.id)}
-              >
-                <CardHeader>
-                  <div
-                    className={cn(
-                      "w-12 h-12 rounded-xl flex items-center justify-center mb-4",
-                      mentor.color
-                    )}
-                  >
-                    <Icon className="w-6 h-6 text-white" />
-                  </div>
-                  <CardTitle className="text-xl">{mentor.name}</CardTitle>
-                  <CardDescription>{mentor.description}</CardDescription>
-                </CardHeader>
-              </Card>
+              <div key={category}>
+                <h2 className="text-lg font-semibold mb-3 flex items-center gap-2">
+                  {category === "Action & Discipline" && "🔥"}
+                  {category === "Creativity & Expression" && "💡"}
+                  {category === "Knowledge & Insight" && "🔬"}
+                  {category === "Emotional & Spiritual" && "💜"}
+                  {category === "Personal" && "✨"}
+                  {category}
+                </h2>
+                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+                  {categoryMentors.map((mentor) => {
+                    const Icon = mentor.icon;
+                    const isSelected = selectedMentors.includes(mentor.id);
+
+                    return (
+                      <Card
+                        key={mentor.id}
+                        className={cn(
+                          "cursor-pointer transition-all hover:shadow-lg",
+                          isSelected && "ring-2 ring-primary shadow-xl"
+                        )}
+                        onClick={() => toggleMentor(mentor.id)}
+                      >
+                        <CardHeader>
+                          <div
+                            className={cn(
+                              "w-12 h-12 rounded-xl flex items-center justify-center mb-4",
+                              mentor.color
+                            )}
+                          >
+                            <Icon className="w-6 h-6 text-white" />
+                          </div>
+                          <CardTitle className="text-xl">{mentor.name}</CardTitle>
+                          <CardDescription>{mentor.description}</CardDescription>
+                        </CardHeader>
+                      </Card>
+                    );
+                  })}
+                </div>
+              </div>
             );
           })}
         </div>
