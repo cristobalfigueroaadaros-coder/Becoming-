@@ -19,23 +19,19 @@ interface Whisper {
 }
 
 const mentorNames: Record<string, string> = {
-  mamba_mentor: "Mamba Mentor",
-  creative_visionary: "Creative Visionary",
-  quantum_inventor: "Quantum Inventor",
-  ancient_sage: "Ancient Sage",
-  compassionate_elder: "Compassionate Elder",
-  future_self: "Future Self",
-  business_mentor: "Business Mentor",
-  creator_mentor: "Creator Mentor",
-  mystic_mentor: "Mystic Mentor",
-  heart_mentor: "Heart Mentor",
-  strategist_mentor: "Strategist Mentor",
-  explorer_mentor: "Explorer Mentor",
-  discipline_mentor: "Discipline Mentor",
-  marketing_mentor: "Marketing Mentor",
-  scientific_mentor: "Scientific Mentor",
-  alignment_mentor: "Alignment Mentor",
-  oracle_mother: "Oracle Mother",
+  discipline_mentor: "The Discipline Mentor",
+  strategist_mentor: "The Strategist Mentor",
+  business_mentor: "The Business Mentor",
+  creative_visionary: "The Creative Visionary",
+  marketing_mentor: "The Marketing Mentor",
+  quantum_inventor: "The Quantum Inventor",
+  scientific_mentor: "The Scientific Mentor",
+  mystic_mentor: "The Mystic Mentor",
+  ancient_sage: "The Ancient Sage",
+  alignment_mentor: "The Alignment Mentor",
+  oracle_mother: "The Oracle Mother",
+  explorer_mentor: "The Explorer Mentor",
+  future_self: "Your Future Self",
 };
 
 const Chat = () => {
