@@ -76,8 +76,9 @@ const CouncilMeeting = () => {
   const hasActiveThread = conversationHistory.length > 0;
   const isQ3 = questionNumber >= 3;
 
-  const handleAsk = async (continueConversation = false) => {
-    if (!question.trim() || loading) return;
+  const handleAsk = async (continueConversation = false, questionOverride?: string) => {
+    const actualQuestion = questionOverride ?? question.trim();
+    if (!actualQuestion || loading) return;
 
     setLoading(true);
     try {
@@ -93,7 +94,7 @@ const CouncilMeeting = () => {
 
       const { data, error } = await supabase.functions.invoke("council-meeting", {
         body: {
-          question: question.trim(),
+          question: actualQuestion,
           mentorTypes: [...(mentors?.map(m => m.mentor_type) || []), "future_self"],
           conversationHistory: currentHistory,
         },
@@ -104,7 +105,7 @@ const CouncilMeeting = () => {
       // Update conversation history
       setConversationHistory([
         ...currentHistory,
-        { role: 'user', content: question.trim() },
+        { role: 'user', content: actualQuestion },
         { role: 'council', content: data }
       ]);
 
@@ -206,12 +207,13 @@ const CouncilMeeting = () => {
   const submitClarityAnswer = async () => {
     if (!currentAnswer.trim()) return;
     
+    const answer = currentAnswer.trim();
     setAnswerDialogOpen(false);
-    setQuestion(currentAnswer.trim());
+    setQuestion(answer);  // Still set state for UI consistency
     setCurrentAnswer("");
     
-    // Continue the conversation with this answer
-    handleAsk(true);
+    // Pass the answer directly - don't rely on state update
+    handleAsk(true, answer);
   };
 
   return (
