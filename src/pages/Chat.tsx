@@ -32,6 +32,8 @@ const mentorNames: Record<string, string> = {
   strategist_mentor: "Strategist Mentor",
   explorer_mentor: "Explorer Mentor",
   discipline_mentor: "Discipline Mentor",
+  marketing_mentor: "Marketing Mentor",
+  scientific_mentor: "Scientific Mentor",
   alignment_mentor: "Alignment Mentor",
   oracle_mother: "Oracle Mother",
 };
