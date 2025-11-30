@@ -6,19 +6,7 @@ const corsHeaders = {
   "Access-Control-Allow-Headers": "authorization, x-client-info, apikey, content-type",
 };
 
-// Trigger conditions and mentor mappings
-const triggerToMentorPriority: Record<string, string[]> = {
-  low_energy: ['heart_mentor', 'mystic_mentor', 'oracle_mother'],
-  breakthrough: ['mamba_mentor', 'future_self', 'creative_visionary'],
-  stuck: ['discipline_mentor', 'strategist_mentor', 'alignment_mentor'],
-  returning: ['future_self', 'heart_mentor', 'oracle_mother'],
-  streak_risk: ['discipline_mentor', 'mamba_mentor', 'strategist_mentor'],
-  shadow_active: ['mystic_mentor', 'alignment_mentor', 'ancient_sage'],
-  celebration: ['creative_visionary', 'future_self', 'explorer_mentor'],
-  general: ['future_self', 'heart_mentor', 'ancient_sage']
-};
-
-// Whisper types based on trigger
+// Whisper types based on trigger (Future Self adapts tone)
 const triggerToWhisperType: Record<string, string> = {
   low_energy: 'nurturing',
   breakthrough: 'celebration',
@@ -170,45 +158,20 @@ serve(async (req) => {
       }
     }
 
-    // Select best mentor based on trigger and active mentors
-    const activeMentors = mentorsData.data?.map(m => m.mentor_type) || [];
-    const preferredMentors = triggerToMentorPriority[triggerCondition] || triggerToMentorPriority.general;
-    
-    let selectedMentor = "future_self"; // Default
-    for (const preferred of preferredMentors) {
-      if (activeMentors.includes(preferred)) {
-        selectedMentor = preferred;
-        break;
-      }
-    }
-    // If none matched, pick from active mentors or default
-    if (!activeMentors.includes(selectedMentor) && activeMentors.length > 0) {
-      selectedMentor = activeMentors[Math.floor(Math.random() * activeMentors.length)];
-    }
-
+    // Private whispers are ALWAYS from Future Self
+    const selectedMentor = "future_self";
     const whisperType = triggerToWhisperType[triggerCondition] || "encouragement";
 
     // Generate the whisper using AI
     const LOVABLE_API_KEY = Deno.env.get("LOVABLE_API_KEY");
     if (!LOVABLE_API_KEY) throw new Error("LOVABLE_API_KEY not configured");
 
-    const mentorPersonalities: Record<string, string> = {
-      mamba_mentor: "Intense, relentless, pushes for excellence. Speaks with confidence and fire.",
-      creative_visionary: "Imaginative, inspiring, sees possibilities everywhere. Speaks poetically.",
-      quantum_inventor: "Analytical yet intuitive, finds patterns. Speaks with precision.",
-      ancient_sage: "Wise, patient, uses metaphors and timeless wisdom. Speaks slowly, deliberately.",
-      compassionate_elder: "Warm, nurturing, unconditionally supportive. Speaks gently.",
-      future_self: "Knows the user's potential, speaks from experience of their achieved future.",
-      business_mentor: "Strategic, practical, results-focused. Speaks directly about value.",
-      creator_mentor: "Artistic, expressive, encourages authentic creation. Speaks with passion.",
-      mystic_mentor: "Deep, mysterious, connects to unseen forces. Speaks in riddles sometimes.",
-      heart_mentor: "Emotionally intelligent, compassionate, focuses on feelings. Speaks with love.",
-      strategist_mentor: "Calculated, methodical, thinks long-term. Speaks about leverage.",
-      explorer_mentor: "Adventurous, curious, encourages risks. Speaks with excitement.",
-      discipline_mentor: "Strict, structured, no excuses. Speaks firmly but fairly.",
-      alignment_mentor: "Focuses on purpose, authenticity, inner truth. Speaks about alignment.",
-      oracle_mother: "Deeply intuitive, maternal, sees the soul. Speaks with profound knowing."
-    };
+    // Future Self personality - warm, wise, grounded, supportive
+    const futureSelfPersonality = `You are the user's Future Self - their evolved version ten years ahead.
+You speak with warmth, wisdom, and unconditional belief in them.
+You are grounded, human, and emotionally intelligent.
+You never sound robotic, abstract, or mystical.
+You are their companion who knows their journey intimately.`;
 
     const whisperTypePrompts: Record<string, string> = {
       encouragement: "Write an encouraging, supportive message that validates their journey.",
@@ -220,8 +183,7 @@ serve(async (req) => {
       pattern_interruption: "Write something unexpected that breaks their usual thinking patterns."
     };
 
-    const prompt = `You are ${selectedMentor.replace(/_/g, ' ')}. 
-${mentorPersonalities[selectedMentor] || "Wise and supportive."}
+    const prompt = `${futureSelfPersonality}
 
 Context: ${triggerReason}
 User's purpose: ${profile?.main_mission || "Still discovering their mission"}
@@ -229,8 +191,13 @@ Growth focus: ${profile?.priority_growth_area || "Overall growth"}
 
 ${whisperTypePrompts[whisperType] || whisperTypePrompts.encouragement}
 
-Write a private whisper message (2-3 sentences max). Be personal, use "you" and speak directly to them.
-Do NOT include any greeting or sign-off. Just the message itself.`;
+CRITICAL RULES:
+- Write ONLY 2-4 sentences maximum
+- Be warm, wise, grounded, and supportive
+- Use "you" and speak directly to them
+- Sound human, not robotic or abstract
+- NO greeting, NO sign-off, NO mystical language
+- Just the message itself`;
 
     const aiResponse = await fetch("https://ai.gateway.lovable.dev/v1/chat/completions", {
       method: "POST",
@@ -241,10 +208,10 @@ Do NOT include any greeting or sign-off. Just the message itself.`;
       body: JSON.stringify({
         model: "google/gemini-2.5-flash",
         messages: [
-          { role: "system", content: "You are a wise mentor sending a brief daily whisper." },
+          { role: "system", content: "You are the user's Future Self - warm, wise, grounded, human. Keep messages 2-4 sentences. Never mystical or robotic." },
           { role: "user", content: prompt }
         ],
-        max_tokens: 150
+        max_tokens: 120
       }),
     });
 
@@ -279,7 +246,7 @@ Do NOT include any greeting or sign-off. Just the message itself.`;
       .update({ last_whisper_date: today })
       .eq("id", user.id);
 
-    console.log(`Generated ${whisperType} whisper from ${selectedMentor} for trigger: ${triggerCondition}`);
+    console.log(`Generated ${whisperType} whisper from Future Self for trigger: ${triggerCondition}`);
 
     return new Response(JSON.stringify({
       success: true,
