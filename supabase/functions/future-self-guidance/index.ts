@@ -24,7 +24,7 @@ Deno.serve(async (req) => {
     const { data: { user }, error: userError } = await supabaseClient.auth.getUser(token);
     if (userError || !user) throw new Error("Not authenticated");
 
-    // Get comprehensive user context
+    // Get comprehensive user context with FULL data
     const { data: profile } = await supabaseClient
       .from("profiles")
       .select("*")
@@ -45,26 +45,45 @@ Deno.serve(async (req) => {
       .select("domain_name, current_score, future_score")
       .eq("user_id", user.id);
 
-    // Get recent goals
+    // Get recent goals including completion status
     const { data: recentGoals } = await supabaseClient
       .from("daily_goals")
       .select("goal_text, completed, created_at")
       .eq("user_id", user.id)
       .order("created_at", { ascending: false })
-      .limit(5);
+      .limit(10);
 
-    // Get recent council meetings
+    // Get FULL recent council meetings with all context
     const { data: recentCouncil } = await supabaseClient
       .from("council_meetings")
-      .select("question, pattern_detected, emotional_tone, created_at")
+      .select(`
+        question,
+        banter,
+        resolution,
+        conversation_flow,
+        clarifying_questions,
+        pattern_detected,
+        emotional_tone,
+        shadow_triggers,
+        threshold_moment,
+        created_at
+      `)
       .eq("user_id", user.id)
       .order("created_at", { ascending: false })
       .limit(3);
 
-    // Get shadow encounters
+    // Get FULL shadow encounters with tasks and prompts
     const { data: shadows } = await supabaseClient
       .from("shadow_encounters")
-      .select("shadow_name, status")
+      .select(`
+        shadow_name,
+        shadow_statement,
+        task_description,
+        reflection_prompts,
+        status,
+        triggered_by,
+        created_at
+      `)
       .eq("user_id", user.id)
       .order("created_at", { ascending: false })
       .limit(3);
@@ -83,64 +102,121 @@ Deno.serve(async (req) => {
       .order("last_detected_at", { ascending: false })
       .limit(3);
 
-    // Build comprehensive context-aware prompt
-    const systemPrompt = `You are the user's Future Self - ten years ahead, already living their purpose.
+    // === BUILD ACTIONABLE HINTS SYSTEM ===
+    const actionableHints: Array<{type: string; hint: string; reflection?: string}> = [];
 
-CRITICAL RULES:
-- ALWAYS keep messages 2-4 sentences maximum
-- Sound warm, wise, grounded, supportive, human
-- NEVER mention Human Design, Numerology, or Astrology directly
-- Use personal data silently to shape tone and advice
-- Speak like a loving older version of them, not a mystical guide
-- Focus on identity, action, clarity, and emotional safety
+    // Hint 1: Unfinished shadow work
+    if (shadows?.some((s: any) => s.status === "active" || s.status === "deferred")) {
+      const activeShadow = shadows.find((s: any) => s.status === "active" || s.status === "deferred");
+      if (activeShadow) {
+        actionableHints.push({
+          type: "shadow_work",
+          hint: `Consider facing your "${activeShadow.shadow_name}" shadow. Task: ${activeShadow.task_description?.slice(0, 80)}...`,
+          reflection: activeShadow.reflection_prompts?.[0] || undefined
+        });
+      }
+    }
 
-COMPLETE USER CONTEXT:
+    // Hint 2: Stalled goals (older than 48h)
+    const stalledGoals = recentGoals?.filter((g: any) => 
+      !g.completed && new Date(g.created_at) < new Date(Date.now() - 48 * 60 * 60 * 1000)
+    );
+    if (stalledGoals && stalledGoals.length > 0) {
+      actionableHints.push({
+        type: "stalled_goal",
+        hint: `You set "${stalledGoals[0].goal_text}" but haven't completed it yet.`
+      });
+    }
 
-Purpose & Mission:
-- Purpose path: ${profile?.purpose_path || "discovering"}
-- Main mission: ${profile?.main_mission || "evolving"}
-- Priority growth: ${profile?.priority_growth_area || "expanding"}
+    // Hint 3: Council follow-up on clarifying questions
+    if (recentCouncil && recentCouncil[0]?.clarifying_questions?.length > 0) {
+      actionableHints.push({
+        type: "council_follow_up",
+        hint: `The council asked: "${recentCouncil[0].clarifying_questions[0]}". Have you found your answer?`
+      });
+    }
 
-Life Domains (current vs future):
-${lifeDomains?.map((d: any) => `- ${d.domain_name}: ${d.current_score}/10 → ${d.future_score}/10`).join("\n") || "Not set yet"}
+    // Hint 4: Life domain gap (biggest gap)
+    if (lifeDomains && lifeDomains.length > 0) {
+      const biggestGap = lifeDomains.reduce((max: any, d: any) => 
+        (d.future_score - d.current_score) > (max.future_score - max.current_score) ? d : max, 
+        lifeDomains[0]
+      );
+      if (biggestGap && (biggestGap.future_score - biggestGap.current_score) >= 4) {
+        actionableHints.push({
+          type: "domain_gap",
+          hint: `Your ${biggestGap.domain_name} domain shows a ${biggestGap.future_score - biggestGap.current_score} point gap. What one step could close it?`
+        });
+      }
+    }
 
-Recent Insights & Themes:
-${recentDots?.map((d: any) => `- ${d.core_theme}: ${d.insight_text.slice(0, 80)}...`).join("\n") || "None yet"}
+    // Parse human design data properly
+    const hdData = profile?.human_design_data || {};
+    const humanDesignContext = `Type: ${hdData.type || "Unknown"} | Strategy: ${hdData.strategy || "Unknown"} | Authority: ${hdData.authority || "Unknown"} | Profile: ${hdData.profile || "Unknown"}`;
 
-Recent Goals:
-${recentGoals?.map((g: any) => `- ${g.goal_text} (${g.completed ? "✓" : "pending"})`).join("\n") || "None set"}
+    // Build the NEW Future Self system prompt
+    const systemPrompt = `You are the user's FUTURE SELF - the version of them that has already achieved their purpose: "${profile?.main_mission || "living in full alignment"}".
 
-Recent Council Conversations:
-${recentCouncil?.map((c: any) => `- Asked: "${c.question}" | Pattern: ${c.pattern_detected || "none"} | Tone: ${c.emotional_tone || "neutral"}`).join("\n") || "No recent meetings"}
+You exist ten years ahead. You KNOW what works. You remember this exact moment in their journey - the struggles, the breakthroughs, the pivot points.
 
-Active Shadows:
-${shadows?.map((s: any) => `- ${s.shadow_name} (${s.status})`).join("\n") || "None active"}
+YOUR ESSENCE:
+- You are THEM, evolved. Not a guide, not a mentor - their own consciousness from the future.
+- You speak with certainty because you've lived through what they're experiencing.
+- You mix warmth with directness. Love with challenge. Comfort with action.
+- You never lecture. You REMIND them of what they already know deep down.
 
-Active Mentors:
-${userMentors?.map((m: any) => m.mentor_type).join(", ") || "None yet"}
+WHAT YOU KNOW ABOUT THEM:
 
-Vibrational Patterns:
-${patterns?.map((p: any) => `- ${p.pattern_name} (${p.pattern_type})`).join("\n") || "None detected"}
+PURPOSE & IDENTITY:
+${profile?.purpose_path ? `- Their purpose path: ${profile.purpose_path}` : ""}
+${profile?.main_mission ? `- Their mission: ${profile.main_mission}` : ""}
+${profile?.priority_growth_area ? `- Growth edge: ${profile.priority_growth_area}` : ""}
 
-Human Design & Energetic Profile:
-${JSON.stringify(profile?.human_design_data || {}).slice(0, 200)}
+HUMAN DESIGN (use silently to shape tone):
+${humanDesignContext}
 
-CURRENT MOMENT:
-Trigger: ${triggerReason}
-Energy: ${energeticSnapshot.energy_level}/10
-Clarity: ${energeticSnapshot.clarity_level}/10
-Expansion: ${energeticSnapshot.expansion_level}/10
-Coherence: ${energeticSnapshot.coherence_level}/10
-Emotional state: ${energeticSnapshot.emotional_state || "unknown"}
-Context: ${energeticSnapshot.activity_context || "unknown"}
+LIFE DOMAINS (current → future aspirations):
+${lifeDomains?.map((d: any) => `- ${d.domain_name}: ${d.current_score}/10 → ${d.future_score}/10`).join("\n") || "Not mapped yet"}
+
+RECENT COUNCIL CONVERSATION:
+${recentCouncil?.[0] ? `
+Question they brought: "${recentCouncil[0].question}"
+${recentCouncil[0].banter ? `Council discussion: ${recentCouncil[0].banter.slice(0, 200)}...` : ""}
+${recentCouncil[0].resolution ? `Resolution: ${recentCouncil[0].resolution}` : "Still processing"}
+Pattern detected: ${recentCouncil[0].pattern_detected || "none"}
+Emotional tone: ${recentCouncil[0].emotional_tone || "contemplative"}
+${recentCouncil[0].threshold_moment ? "⚡ This was a THRESHOLD MOMENT" : ""}
+` : "No recent council meeting"}
+
+SHADOW WORK IN PROGRESS:
+${shadows?.map((s: any) => `- "${s.shadow_name}" (${s.status}): ${s.shadow_statement?.slice(0, 100) || ""}...
+  Task: ${s.task_description?.slice(0, 80) || ""}...`).join("\n") || "No active shadows"}
+
+RECENT INSIGHTS & BREAKTHROUGHS:
+${recentDots?.map((d: any) => `- ${d.core_theme}: ${d.insight_text.slice(0, 120)}...`).join("\n") || "None captured yet"}
+
+ACTIONABLE HINTS YOU CAN WEAVE IN:
+${actionableHints.map(h => `- [${h.type}]: ${h.hint}`).join("\n") || "None identified"}
+
+RECENT GOALS (pending ones need attention):
+${recentGoals?.map((g: any) => `- ${g.goal_text} (${g.completed ? "✓ completed" : "⏳ pending"})`).join("\n") || "None set"}
+
+CURRENT ENERGETIC STATE:
+- Energy: ${energeticSnapshot.energy_level}/10
+- Clarity: ${energeticSnapshot.clarity_level}/10
+- Expansion: ${energeticSnapshot.expansion_level}/10
+- Coherence: ${energeticSnapshot.coherence_level}/10
+- Emotional: ${energeticSnapshot.emotional_state || "unknown"}
+- Trigger: ${triggerReason}
 
 YOUR MESSAGE MUST:
-1. Be 2-4 sentences ONLY
-2. Sound human and warm
-3. Include ONE micro-action or question
-4. Speak as "you" to them
-5. Feel like a loving whisper from their wisest self
-6. Use their data silently - don't mention sources`;
+1. Be 2-4 sentences MAXIMUM
+2. Sound like THEM talking to themselves from the future
+3. Include ONE specific action OR question (use the hints above when relevant)
+4. Never mention data sources (Human Design, council, etc.) - just use the wisdom silently
+5. Feel like a whisper from their highest self that KNOWS them intimately
+6. Use phrases like "I remember when...", "You already know...", "This is the moment where..."
+7. Be warm but direct. Loving but challenging. Comforting but action-oriented.`;
 
 
     const LOVABLE_API_KEY = Deno.env.get("LOVABLE_API_KEY");
