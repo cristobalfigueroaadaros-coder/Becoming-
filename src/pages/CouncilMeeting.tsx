@@ -52,6 +52,7 @@ const CouncilMeeting = () => {
   const [currentAnswer, setCurrentAnswer] = useState("");
   const [answerDialogOpen, setAnswerDialogOpen] = useState(false);
   const [tasksGenerated, setTasksGenerated] = useState(false);
+  const [mainGoalAccepted, setMainGoalAccepted] = useState(false);
   const [goalData, setGoalData] = useState<{
     userDirection: string;
     mainGoal: {
@@ -156,6 +157,7 @@ const CouncilMeeting = () => {
     setVoiceUrl("");
     setCurrentAnswer("");
     setTasksGenerated(false);
+    setMainGoalAccepted(false);
     setGoalData(null);
   };
 
@@ -168,6 +170,7 @@ const CouncilMeeting = () => {
     setEmotionalReflection("");
     setSuggestedNextQuestion(null);
     setTasksGenerated(false);
+    setMainGoalAccepted(false);
     setGoalData(null);
     // Keep conversation history and question number
   };
@@ -704,15 +707,30 @@ const CouncilMeeting = () => {
                   </div>
                 </div>
 
-                <Button 
-                  onClick={() => {
-                    toast.success("Goal accepted! Navigate to My Tasks to see it.");
-                    setTimeout(() => navigate('/my-tasks'), 1000);
-                  }}
-                  className="w-full"
-                >
-                  Accept Main Goal
-                </Button>
+                {!mainGoalAccepted ? (
+                  <Button 
+                    onClick={() => {
+                      setMainGoalAccepted(true);
+                      toast.success("Goal accepted! View your tasks or explore optional goals below.");
+                    }}
+                    className="w-full"
+                  >
+                    Accept Main Goal
+                  </Button>
+                ) : (
+                  <div className="flex gap-2">
+                    <Button 
+                      onClick={() => navigate('/my-tasks')}
+                      className="flex-1"
+                    >
+                      <Target className="w-4 h-4 mr-2" />
+                      Go to My Tasks
+                    </Button>
+                    <Badge className="bg-green-500 text-white px-4 py-2 text-sm flex items-center gap-2">
+                      ✓ Accepted
+                    </Badge>
+                  </div>
+                )}
               </CardContent>
             </Card>
 

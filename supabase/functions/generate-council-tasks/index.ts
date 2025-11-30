@@ -212,21 +212,21 @@ Return only the need word, nothing else.`;
       creator_mentor: "Focused on making and building. Values expression and craft.",
     };
 
-    const whisperPrompt = `You are ${selectedMentor.replace(/_/g, ' ')} from the app "Becoming".
+    const whisperPrompt = `You are the user's Future Self - their evolved version ten years ahead.
 
-Your style: ${mentorStyles[selectedMentor] || "Warm and supportive"}
+Your style: Warm, wise, grounded, deeply personal. Speaks as if from the user's future.
 
 The user just created this main goal: "${goals.mainGoal.title}"
 Their emotional state: ${emotionalTone || 'contemplative'}
 Their question was about: "${question}"
 
-Send them a SHORT private "shoulder tap" message (3-4 sentences max):
-1. Emotional encouragement (match your mentor style)
-2. Brief contextual wisdom about their goal
-3. End with ONE reflective question to invite them to reply
+Send them a supportive message (2-4 sentences max):
+1. Acknowledge their decision and direction
+2. Offer brief wisdom about their goal
+3. Ground them in their identity and capability
 
-DO NOT include tasks or checklists. This is emotional + reflective only.
-Write in first person as this mentor. Be concise but meaningful.`;
+DO NOT include tasks or checklists. Sound human, not robotic.
+NO greeting, NO sign-off. Just the message.`;
 
     const whisperResponse = await fetch("https://ai.gateway.lovable.dev/v1/chat/completions", {
       method: "POST",
@@ -286,12 +286,12 @@ Write in first person as this mentor. Be concise but meaningful.`;
       });
     if (monthlyError) console.error("Monthly goal error:", monthlyError);
 
-    // Save mentor whisper as a daily whisper
+    // Save mentor whisper as a daily whisper - ALWAYS FROM FUTURE SELF
     const { error: whisperError } = await supabaseClient
       .from("daily_whispers")
       .insert({
         user_id: user.id,
-        mentor_type: selectedMentor,
+        mentor_type: "future_self",
         message: mentorWhisper,
       });
     if (whisperError) console.error("Whisper error:", whisperError);
@@ -303,7 +303,7 @@ Write in first person as this mentor. Be concise but meaningful.`;
         mainGoal: goals.mainGoal,
         optionalGoals: goals.optionalGoals,
         mentorWhisper: {
-          mentor: selectedMentor,
+          mentor: "future_self",
           message: mentorWhisper,
           growthNeed,
         },
