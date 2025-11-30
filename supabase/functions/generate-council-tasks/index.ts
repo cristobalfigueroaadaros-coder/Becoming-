@@ -35,9 +35,11 @@ Deno.serve(async (req) => {
     // Get user's profile for context
     const { data: profile } = await supabaseClient
       .from("profiles")
-      .select("main_mission, priority_growth_area, purpose_path")
+      .select("main_mission, priority_growth_area, purpose_path, display_name")
       .eq("id", user.id)
       .maybeSingle();
+
+    const userName = profile?.display_name || "you";
 
     // Build context from mentor answers
     const mentorInsights = Object.entries(mentorAnswers)
@@ -47,58 +49,91 @@ Deno.serve(async (req) => {
       })
       .join('\n\n');
 
+    // Format conversation history for goal generation
+    function formatConversationForGoals(history: any[]): string {
+      if (!history || history.length === 0) return "No prior context.";
+      
+      let formatted = "";
+      for (const entry of history) {
+        if (entry.role === 'user') {
+          formatted += `\n[USER SAID]: "${entry.content}"\n`;
+        } else if (entry.role === 'council' && entry.content) {
+          if (entry.content.councilInsight) {
+            formatted += `[COUNCIL UNDERSTOOD]: ${entry.content.councilInsight}\n`;
+          }
+        }
+      }
+      return formatted;
+    }
+
+    const conversationContext = formatConversationForGoals(conversationHistory);
+
     // === PHASE 1: GENERATE MAIN GOAL + OPTIONAL SIDE GOALS ===
-    const goalPrompt = `You are the Goal Engine for a personal growth app called "Becoming".
+    const goalPrompt = `You are the Goal Engine for "Becoming" - a personal growth app.
 
-Based on the user's latest Council conversation, create personalized goals.
+=== FULL CONVERSATION HISTORY ===
+${conversationContext}
 
-USER CONTEXT:
-- Question: "${question}"
+=== CURRENT CONTEXT ===
+- User's Name: ${userName}
+- Latest Question: "${question}"
 - Emotional Tone: ${emotionalTone || 'neutral'}
-- Detected Pattern: ${detectedPattern || 'none'}
 - Main Mission: ${profile?.main_mission || 'Personal growth'}
 - Growth Area: ${profile?.priority_growth_area || 'General development'}
-- Purpose Path: ${profile?.purpose_path || 'Explorer'}
 
-MENTOR INSIGHTS:
+=== MENTOR INSIGHTS FROM THIS SESSION ===
 ${mentorInsights}
 
-YOUR TASK:
-1. Detect what the user is trying to move toward
-2. Identify what problem or desire feels most alive
-3. Find what insight or pain point stands out
+=== YOUR CRITICAL TASK ===
 
-Generate ONE MAIN GOAL that is:
-- Directly based on the conversation context
-- Meaningful but not overwhelming
-- Achievable in 2-7 days
-- Connected to their deeper purpose
+STEP 1: Analyze what ${userName} is trying to do:
+- Are they trying to BUILD/CREATE something for others? (product, app, service, business)
+- Are they trying to IMPROVE themselves personally?
+- Are they trying to SOLVE a problem in the world?
 
-Also generate 2 OPTIONAL SIDE GOALS that:
-- Support the main goal or parallel growth
-- Are smaller/lighter bonus missions
-- Feel interesting and motivating
+STEP 2: If they want to BUILD something:
+- Goals should be about RESEARCH, PROTOTYPING, TESTING, BUILDING
+- NOT about personal self-reflection
+- Include actions like: "Interview 3 divorced parents", "Research existing apps", "Sketch initial wireframes"
+
+STEP 3: If they want PERSONAL growth:
+- Goals can include reflection, habit building, mindset shifts
+
+=== GENERATE GOALS ===
+
+Create ONE MAIN GOAL that:
+- Directly addresses what ${userName} discussed in the conversation
+- References specific things they mentioned (statistics, problems, ideas)
+- Uses ${userName}'s name, not "the user"
+- Is ACTION-ORIENTED toward their actual intention
+
+Also create 2 OPTIONAL SIDE GOALS that support their journey.
 
 Return EXACTLY in this JSON format:
 {
-  "userDirection": "Brief description of what user is moving toward",
+  "userDirection": "What ${userName} is moving toward based on the full conversation",
   "mainGoal": {
-    "title": "Clear one-sentence main goal",
-    "daily": "Tiny 5-10 minute micro-step for today",
+    "title": "Clear goal directly connected to their conversation",
+    "daily": "Tiny 5-10 minute action step for today",
     "weekly": "Medium step showing visible progress",
     "monthly": "Bigger rewarding outcome"
   },
   "optionalGoals": [
     {
-      "title": "Optional side goal 1",
-      "description": "Why this supports their growth"
+      "title": "Supporting goal 1",
+      "description": "How this helps ${userName}'s journey"
     },
     {
-      "title": "Optional side goal 2", 
-      "description": "Why this supports their growth"
+      "title": "Supporting goal 2", 
+      "description": "How this helps ${userName}'s journey"
     }
   ]
-}`;
+}
+
+IMPORTANT: 
+- If ${userName} mentioned building something for parents/families, the goals MUST be about building that, not personal reflection
+- Reference specific details from their conversation
+- Make it feel like you were LISTENING to everything they shared`;
 
     const goalResponse = await fetch("https://ai.gateway.lovable.dev/v1/chat/completions", {
       method: "POST",

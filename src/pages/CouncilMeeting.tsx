@@ -185,6 +185,8 @@ const CouncilMeeting = () => {
           mentorAnswers: mentorPerspectives,
           question,
           conversationHistory,
+          emotionalTone: emotionalReflection || null,
+          detectedPattern: null,
         },
       });
 
