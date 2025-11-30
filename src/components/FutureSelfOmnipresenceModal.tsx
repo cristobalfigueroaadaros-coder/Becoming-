@@ -30,8 +30,8 @@ export function FutureSelfOmnipresenceModal({ message, onDismiss }: FutureSelfOm
 
   return (
     <Dialog open={!!message} onOpenChange={onDismiss}>
-      <DialogContent className="max-w-2xl border-2 border-primary/30 bg-gradient-to-br from-card via-card/95 to-primary/5 backdrop-blur">
-        <div className="absolute inset-0 bg-gradient-to-br from-primary/10 via-transparent to-accent/10 pointer-events-none" />
+      <DialogContent className="max-w-2xl border-2 border-[hsl(330,85%,60%)]/40 bg-gradient-to-br from-[hsl(330,85%,98%)] via-card/95 to-[hsl(330,75%,95%)] backdrop-blur dark:from-card dark:to-[hsl(330,85%,20%)]/20">
+        <div className="absolute inset-0 bg-gradient-to-br from-[hsl(330,85%,60%)]/10 via-transparent to-[hsl(330,75%,70%)]/10 pointer-events-none" />
         
         <DialogHeader className="relative">
           <div className="flex items-center gap-3 mb-2">
@@ -39,12 +39,12 @@ export function FutureSelfOmnipresenceModal({ message, onDismiss }: FutureSelfOm
               initial={{ scale: 0, rotate: -180 }}
               animate={{ scale: 1, rotate: 0 }}
               transition={{ type: "spring", duration: 0.6 }}
-              className="w-12 h-12 rounded-full bg-gradient-to-br from-primary to-accent flex items-center justify-center shadow-lg"
+              className="w-12 h-12 rounded-full bg-gradient-to-br from-[hsl(330,85%,60%)] to-[hsl(330,75%,70%)] flex items-center justify-center shadow-lg shadow-[hsl(330,85%,60%)]/30"
             >
-              <Sparkles className="w-6 h-6 text-primary-foreground" />
+              <Sparkles className="w-6 h-6 text-white" />
             </motion.div>
             <div className="flex-1">
-              <DialogTitle className="text-2xl bg-gradient-to-r from-primary via-accent to-primary bg-clip-text text-transparent">
+              <DialogTitle className="text-2xl bg-gradient-to-r from-[hsl(330,85%,60%)] via-[hsl(330,75%,70%)] to-[hsl(330,85%,60%)] bg-clip-text text-transparent font-bold">
                 Future Self
               </DialogTitle>
               <p className="text-sm text-muted-foreground">
@@ -84,7 +84,7 @@ export function FutureSelfOmnipresenceModal({ message, onDismiss }: FutureSelfOm
                   initial={{ opacity: 0, scale: 0 }}
                   animate={{ opacity: 1, scale: 1 }}
                   transition={{ delay: 0.4 + i * 0.1 }}
-                  className="w-2 h-8 rounded-full bg-gradient-to-t from-primary/20 to-accent"
+                  className="w-2 h-8 rounded-full bg-gradient-to-t from-[hsl(330,85%,60%)]/30 to-[hsl(330,75%,70%)]"
                   style={{
                     height: `${20 + i * 4}px`,
                     opacity: 0.4 + i * 0.12,
@@ -93,7 +93,7 @@ export function FutureSelfOmnipresenceModal({ message, onDismiss }: FutureSelfOm
               ))}
             </div>
             <p className="text-xs text-muted-foreground flex-1">
-              Vibrational signature: <span className="text-accent font-medium capitalize">{message.emotionalTone}</span>
+              Vibrational signature: <span className="text-[hsl(330,85%,60%)] font-medium capitalize">{message.emotionalTone}</span>
             </p>
           </div>
 
@@ -101,7 +101,7 @@ export function FutureSelfOmnipresenceModal({ message, onDismiss }: FutureSelfOm
           <div className="flex gap-3 pt-2">
             <Button
               onClick={onDismiss}
-              className="flex-1 bg-gradient-to-r from-primary to-accent hover:opacity-90"
+              className="flex-1 bg-gradient-to-r from-[hsl(330,85%,60%)] to-[hsl(330,75%,70%)] hover:opacity-90 text-white shadow-lg shadow-[hsl(330,85%,60%)]/30"
             >
               I receive this
             </Button>
@@ -119,7 +119,7 @@ export function FutureSelfOmnipresenceModal({ message, onDismiss }: FutureSelfOm
           {[...Array(12)].map((_, i) => (
             <motion.div
               key={i}
-              className="absolute w-1 h-1 rounded-full bg-accent/30"
+              className="absolute w-1 h-1 rounded-full bg-[hsl(330,85%,60%)]/40"
               initial={{
                 x: Math.random() * 100 + "%",
                 y: Math.random() * 100 + "%",

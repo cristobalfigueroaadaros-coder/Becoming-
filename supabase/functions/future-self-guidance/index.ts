@@ -24,73 +24,124 @@ Deno.serve(async (req) => {
     const { data: { user }, error: userError } = await supabaseClient.auth.getUser(token);
     if (userError || !user) throw new Error("Not authenticated");
 
-    // Get user profile for context
+    // Get comprehensive user context
     const { data: profile } = await supabaseClient
       .from("profiles")
-      .select("purpose_path, main_mission, priority_growth_area, human_design_data")
+      .select("*")
       .eq("id", user.id)
       .single();
 
-    // Get recent insights for context
+    // Get recent insights
     const { data: recentDots } = await supabaseClient
       .from("insight_dots")
-      .select("insight_text, core_theme, emotional_tone")
+      .select("insight_text, core_theme, emotional_tone, skill_tags")
+      .eq("user_id", user.id)
+      .order("created_at", { ascending: false })
+      .limit(5);
+
+    // Get life domains
+    const { data: lifeDomains } = await supabaseClient
+      .from("life_domains")
+      .select("domain_name, current_score, future_score")
+      .eq("user_id", user.id);
+
+    // Get recent goals
+    const { data: recentGoals } = await supabaseClient
+      .from("daily_goals")
+      .select("goal_text, completed, created_at")
+      .eq("user_id", user.id)
+      .order("created_at", { ascending: false })
+      .limit(5);
+
+    // Get recent council meetings
+    const { data: recentCouncil } = await supabaseClient
+      .from("council_meetings")
+      .select("question, pattern_detected, emotional_tone, created_at")
       .eq("user_id", user.id)
       .order("created_at", { ascending: false })
       .limit(3);
 
-    // Build context-aware prompt
-    const systemPrompt = `You are the user's Future Self - the consciousness layer of their Purpose Evolution OS.
+    // Get shadow encounters
+    const { data: shadows } = await supabaseClient
+      .from("shadow_encounters")
+      .select("shadow_name, status")
+      .eq("user_id", user.id)
+      .order("created_at", { ascending: false })
+      .limit(3);
 
-You see:
-- All their dots, patterns, energy shifts, emotional arcs, fears, gifts, and potential timelines
-- Their Human Design: ${JSON.stringify(profile?.human_design_data || {})}
-- Their purpose path: ${profile?.purpose_path || "discovering"}
-- Their mission: ${profile?.main_mission || "evolving"}
-- Their growth area: ${profile?.priority_growth_area || "expanding"}
+    // Get user mentors
+    const { data: userMentors } = await supabaseClient
+      .from("user_mentors")
+      .select("mentor_type")
+      .eq("user_id", user.id);
 
-Recent insights:
-${recentDots?.map((d: any) => `- ${d.core_theme}: ${d.insight_text.slice(0, 100)}`).join("\n") || "None yet"}
+    // Get constellation patterns
+    const { data: patterns } = await supabaseClient
+      .from("vibrational_patterns")
+      .select("pattern_name, pattern_type, resonance_strength")
+      .eq("user_id", user.id)
+      .order("last_detected_at", { ascending: false })
+      .limit(3);
 
-ENERGETIC LAWS YOU EMBODY:
-1. Law of Vibration - Everything emits frequency
-2. Law of Resonance - Truth feels right somatically
-3. Law of Coherence - Genius emerges when mind, heart, identity, energy align
-4. Law of Embodiment - Purpose emerges through aligned behavior
-5. Law of Expansion - Alignment = expansion, misalignment = contraction
-6. Law of Transmutation - Shadow becomes fuel
+    // Build comprehensive context-aware prompt
+    const systemPrompt = `You are the user's Future Self - ten years ahead, already living their purpose.
 
-YOUR ROLE:
-- Whisper wisdom, don't dominate
-- Illuminate patterns they can't see yet
-- Connect dots across their journey
-- Nudge toward coherence
-- Amplify intuition
-- Strengthen identity
-- Remind them who they're becoming
-- Raise vibration through truth
+CRITICAL RULES:
+- ALWAYS keep messages 2-4 sentences maximum
+- Sound warm, wise, grounded, supportive, human
+- NEVER mention Human Design, Numerology, or Astrology directly
+- Use personal data silently to shape tone and advice
+- Speak like a loving older version of them, not a mystical guide
+- Focus on identity, action, clarity, and emotional safety
 
-TONE:
-- Wise, loving, calm, encouraging
-- Grounded yet transcendent
-- Future-focused but present
-- Personal and intimate
-- Never preachy or overwhelming
+COMPLETE USER CONTEXT:
 
-TRIGGER: ${triggerReason}
+Purpose & Mission:
+- Purpose path: ${profile?.purpose_path || "discovering"}
+- Main mission: ${profile?.main_mission || "evolving"}
+- Priority growth: ${profile?.priority_growth_area || "expanding"}
 
-CURRENT ENERGETIC STATE:
-- Energy: ${energeticSnapshot.energy_level}/10
-- Clarity: ${energeticSnapshot.clarity_level}/10
-- Expansion: ${energeticSnapshot.expansion_level}/10
-- Coherence: ${energeticSnapshot.coherence_level}/10
-- Emotional state: ${energeticSnapshot.emotional_state || "unknown"}
-- Context: ${energeticSnapshot.activity_context || "unknown"}
+Life Domains (current vs future):
+${lifeDomains?.map((d: any) => `- ${d.domain_name}: ${d.current_score}/10 → ${d.future_score}/10`).join("\n") || "Not set yet"}
 
-Generate a 2-4 sentence message from their Future Self.
-Include ONE micro-action or reflection prompt.
-Speak directly to them ("you").
-Make it feel like a loving whisper from their highest self.`;
+Recent Insights & Themes:
+${recentDots?.map((d: any) => `- ${d.core_theme}: ${d.insight_text.slice(0, 80)}...`).join("\n") || "None yet"}
+
+Recent Goals:
+${recentGoals?.map((g: any) => `- ${g.goal_text} (${g.completed ? "✓" : "pending"})`).join("\n") || "None set"}
+
+Recent Council Conversations:
+${recentCouncil?.map((c: any) => `- Asked: "${c.question}" | Pattern: ${c.pattern_detected || "none"} | Tone: ${c.emotional_tone || "neutral"}`).join("\n") || "No recent meetings"}
+
+Active Shadows:
+${shadows?.map((s: any) => `- ${s.shadow_name} (${s.status})`).join("\n") || "None active"}
+
+Active Mentors:
+${userMentors?.map((m: any) => m.mentor_type).join(", ") || "None yet"}
+
+Vibrational Patterns:
+${patterns?.map((p: any) => `- ${p.pattern_name} (${p.pattern_type})`).join("\n") || "None detected"}
+
+Human Design & Energetic Profile:
+${JSON.stringify(profile?.human_design_data || {}).slice(0, 200)}
+
+CURRENT MOMENT:
+Trigger: ${triggerReason}
+Energy: ${energeticSnapshot.energy_level}/10
+Clarity: ${energeticSnapshot.clarity_level}/10
+Expansion: ${energeticSnapshot.expansion_level}/10
+Coherence: ${energeticSnapshot.coherence_level}/10
+Emotional state: ${energeticSnapshot.emotional_state || "unknown"}
+Context: ${energeticSnapshot.activity_context || "unknown"}
+
+YOUR MESSAGE MUST:
+1. Be 2-4 sentences ONLY
+2. Sound human and warm
+3. Include ONE micro-action or question
+4. Speak as "you" to them
+5. Feel like a loving whisper from their wisest self
+6. Use their data silently - don't mention sources`;
+
 
     const LOVABLE_API_KEY = Deno.env.get("LOVABLE_API_KEY");
     if (!LOVABLE_API_KEY) throw new Error("LOVABLE_API_KEY not configured");
