@@ -107,6 +107,36 @@ const mentorColors: Record<string, string> = {
   future_self: "#6366F1",
 };
 
+// Format conversation history for AI context
+function formatConversationHistory(history: any[]): string {
+  if (!history || history.length === 0) return "";
+  
+  let formatted = "\n\n=== PREVIOUS CONVERSATION (You MUST reference this) ===\n";
+  
+  for (const entry of history) {
+    if (entry.role === 'user') {
+      formatted += `\nUSER SAID: "${entry.content}"\n`;
+    } else if (entry.role === 'council' && entry.content) {
+      // Include key insights from council response
+      if (entry.content.councilInsight) {
+        formatted += `COUNCIL RESPONDED: "${entry.content.councilInsight}"\n`;
+      }
+      // Include what mentors said
+      if (entry.content.mentorPerspectives) {
+        const perspectives = Object.entries(entry.content.mentorPerspectives)
+          .map(([mentor, text]) => `${mentorNames[mentor as string]}: ${text}`)
+          .join('\n');
+        formatted += `MENTOR INSIGHTS:\n${perspectives}\n`;
+      }
+    }
+  }
+  
+  formatted += "\n=== END PREVIOUS CONVERSATION ===\n";
+  formatted += "\nIMPORTANT: Build upon what the user has already shared. Do NOT ask questions about things they already told you!\n";
+  
+  return formatted;
+}
+
 // Invisible keyword engine (user never sees these tags)
 const hiddenKeywords = {
   digital: ['online', 'digital', 'internet', 'platform', 'app', 'website', 'tech'],
@@ -181,17 +211,20 @@ Deno.serve(async (req) => {
 
     // === Q2 ONLY: COUNCIL SEEKING CLARITY ===
     if (isQ2 && !lowerQuestion.includes("i'm ready") && !lowerQuestion.includes("what should i do")) {
+      const conversationContext = formatConversationHistory(conversationHistory);
+      
       const clarityPrompt = `You are the Council. Generate ONE very simple question to understand the user better.
+${conversationContext}
 
-User said: "${question}"
+User's CURRENT message: "${question}"
+
+IMPORTANT: 
+- Do NOT ask about anything the user has already shared
+- Ask about something NEW that would help deepen understanding
+- Build upon what you already know
 
 Generate ONE simple question (not philosophical, not complex):
-- "What feels most important right now?"
-- "What part of this matters most to you?"
-- "What did you mean by that?"
-- "What would success look like?"
-
-Just return the question, nothing else. Max 10 words.`;
+Max 10 words.`;
 
       const clarityResponse = await fetch("https://ai.gateway.lovable.dev/v1/chat/completions", {
         method: "POST",
@@ -221,18 +254,25 @@ Just return the question, nothing else. Max 10 words.`;
     }
 
     // === GENERATE COUNCIL INSIGHT (2-3 sentences max) ===
+    const conversationContext = formatConversationHistory(conversationHistory);
+    
     const insightPrompt = `You are the Council delivering a unified insight.
+${conversationContext}
 
-Question: "${question}"
-Question phase: ${isQ1 ? 'Q1 Discovery (light, welcoming)' : isQ2 ? 'Q2 Depth (deeper insights)' : 'Q3 Momentum (ready for action)'}
+CURRENT Question: "${question}"
+Question phase: ${isQ1 ? 'Q1 Discovery' : isQ2 ? 'Q2 Depth' : 'Q3 Momentum'}
 Hidden tags: ${extractedTags.join(', ') || 'none'}
+
+CRITICAL RULES:
+- You MUST acknowledge and build upon what the user has already shared
+- NEVER ask about things they already told you (their goal, their idea, their problem)
+- Reference specific details from their previous messages
+- Show that you've been listening and remembering
 
 Generate 2-3 sentences that:
 ${isQ1 ? '- Light, welcoming, inspiring\n- Establish understanding of their intention' : ''}
-${isQ2 ? '- Deeper, but still accessible\n- Show you see the layers beneath' : ''}
-${isQ3 ? '- Acknowledge their readiness\n- Point toward momentum' : ''}
-- Max 3 sentences
-- Warm but not overwhelming
+${isQ2 ? '- Deeper, building on what they shared in Q1\n- Connect new insights to previous ones' : ''}
+${isQ3 ? '- Acknowledge their full journey so far\n- Synthesize all they have shared\n- Point toward action based on EVERYTHING discussed' : ''}
 
 Just the insight, no labels.`;
 
@@ -435,14 +475,23 @@ Detect the context, then respond with 1-2 sentences in simple, energetic languag
 
       } else {
         // Standard prompt for other mentors
+        const conversationContext = formatConversationHistory(conversationHistory);
+        
         systemPrompt = `You are ${mentorNames[mentorType]}.
 
 PERSONALITY: ${mentorConfig.personality}
 ROLE: ${mentorConfig.role}
+${conversationContext}
 
-Question: "${question}"
+CURRENT Question: "${question}"
 Question phase: ${isQ1 ? 'Q1 Discovery' : isQ2 ? 'Q2 Depth' : 'Q3 Momentum'}
 Hidden tags: ${extractedTags.join(', ')}
+
+CRITICAL: 
+- Build upon what the user has already shared in previous messages
+- Reference their specific goals, ideas, or problems by name
+- Do NOT ask about things they already told you
+- Show you've been paying attention throughout the conversation
 
 Generate 1-2 sentences ONLY in your unique voice.
 ${isQ1 ? 'Keep it punchy and mobile-friendly.' : ''}
@@ -487,18 +536,29 @@ Mission: ${profile.main_mission}`;
     if (isQ2) banterLength = 'MEDIUM';
     if (isQ3) banterLength = 'FULL';
 
+    const conversationContextBanter = formatConversationHistory(conversationHistory);
+
     const banterPrompt = `Generate authentic WhatsApp-style group chat banter between these mentors:
+${conversationContextBanter}
 
 ${selectedMentors.map((type: string) => {
   const mentor = mentorPrompts[type];
   return `${mentorNames[type]}: ${mentor?.personality || 'wise'} (Flaw: ${mentor?.flaw || 'none'})`;
 }).join('\n')}
 
-Their perspectives:
+Their perspectives on the CURRENT question:
 ${Object.entries(mentorPerspectives).map(([type, persp]) => `${mentorNames[type]}: ${persp}`).join('\n')}
 
-🎯 THE USER'S QUESTION/IDEA:
+🎯 THE USER'S CURRENT QUESTION:
 "${question}"
+
+CRITICAL CONTEXT RULES:
+- The mentors have been following this ENTIRE conversation
+- They KNOW what the user has already shared (goals, ideas, problems, feelings)
+- They should REFERENCE specific things from earlier in the conversation
+- They should NOT ask "what is your goal?" if the user already stated it
+- Build on the momentum of the full conversation
+- Show the user feels HEARD and UNDERSTOOD
 
 The mentors must discuss THIS specific idea/purpose/problem - not generic philosophy.
 
