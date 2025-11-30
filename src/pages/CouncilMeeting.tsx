@@ -482,30 +482,54 @@ const CouncilMeeting = () => {
                 <div className="h-px bg-gradient-to-r from-transparent via-border to-transparent" />
                 <Card className="bg-muted/30">
                   <CardHeader className="pb-2">
-                    <CardTitle className="text-sm">🗣️ Council Banter</CardTitle>
+                    <CardTitle className="text-sm">💬 Council Banter</CardTitle>
                   </CardHeader>
-                  <CardContent className="space-y-2">
-                    {banterLines.map((line, idx) => (
-                      <motion.div
-                        key={idx}
-                        initial={{ opacity: 0, y: 5 }}
-                        animate={{ opacity: 1, y: 0 }}
-                        transition={{ delay: idx * 0.1 }}
-                        className="flex items-start gap-2"
-                      >
-                        <div 
-                          className="px-3 py-2 rounded-lg max-w-[80%]" 
-                          style={{ backgroundColor: line.color + '20', borderLeft: `3px solid ${line.color}` }}
+                  <CardContent className="space-y-3 px-3 py-4">
+                    {banterLines.map((line, idx) => {
+                      const isEven = idx % 2 === 0;
+                      const cleanText = line.text.replace(/\*\*/g, '');
+                      
+                      // Add contextual emoji based on mentor and text
+                      const getEmoji = () => {
+                        if (cleanText.toLowerCase().includes('build') || cleanText.toLowerCase().includes('create')) return '🚀';
+                        if (cleanText.toLowerCase().includes('energy') || cleanText.toLowerCase().includes('frequency')) return '⚡';
+                        if (cleanText.toLowerCase().includes('vision') || cleanText.toLowerCase().includes('dream')) return '✨';
+                        if (cleanText.toLowerCase().includes('action') || cleanText.toLowerCase().includes('move')) return '🎯';
+                        if (cleanText.toLowerCase().includes('wisdom') || cleanText.toLowerCase().includes('truth')) return '🧘';
+                        if (cleanText.toLowerCase().includes('heart') || cleanText.toLowerCase().includes('love')) return '❤️';
+                        return '';
+                      };
+                      
+                      return (
+                        <motion.div
+                          key={idx}
+                          initial={{ opacity: 0, x: isEven ? -20 : 20 }}
+                          animate={{ opacity: 1, x: 0 }}
+                          transition={{ delay: idx * 0.15 }}
+                          className={`flex ${isEven ? 'justify-start' : 'justify-end'}`}
                         >
-                          <p className="text-xs font-semibold" style={{ color: line.color }}>
-                            {line.mentor}
-                          </p>
-                          <p className="text-sm mt-1 text-muted-foreground">
-                            {line.text}
-                          </p>
-                        </div>
-                      </motion.div>
-                    ))}
+                          <div 
+                            className={`px-4 py-2.5 rounded-2xl max-w-[85%] shadow-sm ${
+                              isEven 
+                                ? 'rounded-tl-sm bg-muted' 
+                                : 'rounded-tr-sm'
+                            }`}
+                            style={{ 
+                              backgroundColor: isEven ? undefined : line.color + '15',
+                              borderLeft: isEven ? `3px solid ${line.color}` : undefined,
+                              borderRight: !isEven ? `3px solid ${line.color}` : undefined,
+                            }}
+                          >
+                            <p className="text-xs font-semibold mb-1" style={{ color: line.color }}>
+                              {line.mentor}
+                            </p>
+                            <p className="text-sm leading-relaxed text-foreground">
+                              {cleanText} {getEmoji()}
+                            </p>
+                          </div>
+                        </motion.div>
+                      );
+                    })}
                   </CardContent>
                 </Card>
               </div>
