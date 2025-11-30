@@ -4,6 +4,7 @@ import { motion } from "framer-motion";
 import { supabase } from "@/integrations/supabase/client";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
+import { Badge } from "@/components/ui/badge";
 import { Lightbulb, Zap, Trees, Sparkles, Users, BookOpen, Crown, LogOut, CheckSquare, Briefcase, Compass, Target, Flag, Ghost, Sunrise, Flame, User, Network, Clock, Telescope, TrendingUp, Megaphone, FlaskConical, Scale, Moon } from "lucide-react";
 import { toast } from "sonner";
 import { cn } from "@/lib/utils";
@@ -84,6 +85,7 @@ const Dashboard = () => {
   const [userPurpose, setUserPurpose] = useState<string | null>(null);
   const [constellationInsights, setConstellationInsights] = useState<any>(null);
   const [showWhisperNotification, setShowWhisperNotification] = useState(false);
+  const [mentorNotifications, setMentorNotifications] = useState<Record<string, number>>({});
   
   const { 
     unreadWhisper, 
@@ -97,6 +99,7 @@ const Dashboard = () => {
     checkRitualStatus();
     checkPurposeStatus();
     loadConstellationInsights();
+    loadMentorNotifications();
     // Check for whisper after a short delay
     const whisperTimer = setTimeout(() => {
       checkAndGenerateWhisper();
@@ -269,6 +272,77 @@ const Dashboard = () => {
     } catch (error: any) {
       console.error("Error loading constellation insights:", error);
     }
+  };
+
+  const loadMentorNotifications = async () => {
+    try {
+      const { data: { user } } = await supabase.auth.getUser();
+      if (!user) return;
+
+      const { data: notifications } = await supabase
+        .from("mentor_private_messages")
+        .select("mentor_type")
+        .eq("user_id", user.id)
+        .eq("read", false);
+
+      if (notifications) {
+        const counts: Record<string, number> = {};
+        notifications.forEach((n) => {
+          counts[n.mentor_type] = (counts[n.mentor_type] || 0) + 1;
+        });
+        setMentorNotifications(counts);
+      }
+    } catch (error: any) {
+      console.error("Error loading mentor notifications:", error);
+    }
+  };
+
+  const handleMentorClick = async (mentorType: string) => {
+    const hasNotifications = mentorNotifications[mentorType] > 0;
+    
+    if (hasNotifications) {
+      try {
+        const { data: { user } } = await supabase.auth.getUser();
+        if (!user) throw new Error("Not authenticated");
+        
+        const { data: messages } = await supabase
+          .from("mentor_private_messages")
+          .select("message")
+          .eq("user_id", user.id)
+          .eq("mentor_type", mentorType)
+          .eq("read", false)
+          .order("created_at", { ascending: true });
+        
+        if (messages) {
+          for (const msg of messages) {
+            await supabase.from("chats").insert({
+              user_id: user.id,
+              mentor_type: mentorType as any,
+              role: "assistant",
+              content: msg.message,
+            });
+          }
+        }
+        
+        await supabase
+          .from("mentor_private_messages")
+          .update({ read: true })
+          .eq("user_id", user.id)
+          .eq("mentor_type", mentorType)
+          .eq("read", false);
+        
+        setMentorNotifications(prev => ({
+          ...prev,
+          [mentorType]: 0
+        }));
+        
+        toast.success(`${mentorNames[mentorType]} wants to chat!`);
+      } catch (error: any) {
+        console.error("Error handling mentor notifications:", error);
+      }
+    }
+    
+    navigate(`/chat/${mentorType}`);
   };
 
   if (loading) {
@@ -523,7 +597,7 @@ const Dashboard = () => {
 
         {/* Mentors Grid */}
         <div>
-          <h2 className="text-2xl font-semibold mb-4">Your AI Mentors</h2>
+          <h2 className="text-2xl font-semibold mb-4">Your Mentors</h2>
           <div className="grid grid-cols-2 md:grid-cols-4 lg:grid-cols-6 gap-4">
             {mentors.map((mentor) => {
               const Icon = mentorIcons[mentor.mentor_type as keyof typeof mentorIcons];
@@ -533,9 +607,14 @@ const Dashboard = () => {
               return (
                 <Card
                   key={mentor.id}
-                  className="cursor-pointer hover:shadow-lg transition-all hover:scale-105"
-                  onClick={() => navigate(`/chat/${mentor.mentor_type}`)}
+                  className="cursor-pointer hover:shadow-lg transition-all hover:scale-105 relative"
+                  onClick={() => handleMentorClick(mentor.mentor_type)}
                 >
+                  {mentorNotifications[mentor.mentor_type] > 0 && (
+                    <Badge className="absolute -top-2 -right-2 bg-red-500 text-white rounded-full h-6 w-6 flex items-center justify-center text-xs font-bold shadow-lg animate-pulse">
+                      {mentorNotifications[mentor.mentor_type]}
+                    </Badge>
+                  )}
                   <CardContent className="pt-6 text-center space-y-3">
                     <div className={cn("w-14 h-14 mx-auto rounded-2xl flex items-center justify-center", color)}>
                       <Icon className="w-7 h-7 text-white" />
