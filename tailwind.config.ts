@@ -53,7 +53,11 @@ export default {
           quantum: "hsl(var(--quantum))",
           sage: "hsl(var(--sage))",
           elder: "hsl(var(--elder))",
-          future: "hsl(var(--future))",
+        },
+        "future-self": {
+          DEFAULT: "hsl(var(--future-self))",
+          light: "hsl(var(--future-self-light))",
+          glow: "hsl(var(--future-self-glow))",
         },
       },
       borderRadius: {

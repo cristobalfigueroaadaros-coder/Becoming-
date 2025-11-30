@@ -48,12 +48,16 @@ All colors MUST be HSL.
     --quantum: 200 90% 55%;
     --sage: 140 35% 48%;
     --elder: 30 65% 58%;
-    --future: 270 65% 55%;
+    
+    /* Future Self - distinctive pink/rose */
+    --future-self: 330 85% 60%;
+    --future-self-light: 330 75% 70%;
+    --future-self-glow: 330 85% 85%;
 
     /* Gradients */
     --gradient-wisdom: linear-gradient(135deg, hsl(205 87% 21%), hsl(200 90% 35%));
     --gradient-guidance: linear-gradient(135deg, hsl(24 74% 58%), hsl(35 85% 65%));
-    --gradient-future: linear-gradient(135deg, hsl(270 65% 55%), hsl(200 90% 55%));
+    --gradient-future-self: linear-gradient(135deg, hsl(330 85% 60%), hsl(330 75% 70%));
     
     /* Effects */
     --shadow-soft: 0 4px 20px -4px hsl(205 87% 21% / 0.15);
