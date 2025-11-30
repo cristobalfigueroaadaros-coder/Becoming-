@@ -5,7 +5,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
-import { Lightbulb, Zap, Trees, Sparkles, Users, BookOpen, Crown, LogOut, CheckSquare, Briefcase, Compass, Target, Flag, Ghost, Sunrise, Flame, User, Network, Clock, Telescope, TrendingUp, Megaphone, FlaskConical, Scale, Moon } from "lucide-react";
+import { Lightbulb, Zap, Trees, Sparkles, Users, BookOpen, Crown, LogOut, CheckSquare, Briefcase, Compass, Target, Flag, Ghost, Sunrise, Flame, User, Network, Clock, Telescope, TrendingUp, Megaphone, FlaskConical, Scale, Moon, Loader2 } from "lucide-react";
 import { toast } from "sonner";
 import { cn } from "@/lib/utils";
 import { FutureSelfWidget } from "@/components/FutureSelfWidget";
@@ -86,6 +86,7 @@ const Dashboard = () => {
   const [constellationInsights, setConstellationInsights] = useState<any>(null);
   const [showWhisperNotification, setShowWhisperNotification] = useState(false);
   const [mentorNotifications, setMentorNotifications] = useState<Record<string, number>>({});
+  const [processingMentor, setProcessingMentor] = useState<string | null>(null);
   
   const { 
     unreadWhisper, 
@@ -298,22 +299,42 @@ const Dashboard = () => {
   };
 
   const handleMentorClick = async (mentorType: string) => {
+    // Prevent double-processing
+    if (processingMentor) return;
+    
     const hasNotifications = mentorNotifications[mentorType] > 0;
     
     if (hasNotifications) {
+      setProcessingMentor(mentorType);
       try {
         const { data: { user } } = await supabase.auth.getUser();
         if (!user) throw new Error("Not authenticated");
         
+        // Fetch messages WITH IDs
         const { data: messages } = await supabase
           .from("mentor_private_messages")
-          .select("message")
+          .select("id, message")
           .eq("user_id", user.id)
           .eq("mentor_type", mentorType)
           .eq("read", false)
           .order("created_at", { ascending: true });
         
-        if (messages) {
+        if (messages && messages.length > 0) {
+          const messageIds = messages.map(m => m.id);
+          
+          // FIRST: Mark as read (prevents race condition)
+          await supabase
+            .from("mentor_private_messages")
+            .update({ read: true })
+            .in("id", messageIds);
+          
+          // Update local state immediately
+          setMentorNotifications(prev => ({
+            ...prev,
+            [mentorType]: 0
+          }));
+          
+          // THEN: Insert into chats
           for (const msg of messages) {
             await supabase.from("chats").insert({
               user_id: user.id,
@@ -322,23 +343,13 @@ const Dashboard = () => {
               content: msg.message,
             });
           }
+          
+          toast.success(`${mentorNames[mentorType]} wants to chat!`);
         }
-        
-        await supabase
-          .from("mentor_private_messages")
-          .update({ read: true })
-          .eq("user_id", user.id)
-          .eq("mentor_type", mentorType)
-          .eq("read", false);
-        
-        setMentorNotifications(prev => ({
-          ...prev,
-          [mentorType]: 0
-        }));
-        
-        toast.success(`${mentorNames[mentorType]} wants to chat!`);
       } catch (error: any) {
         console.error("Error handling mentor notifications:", error);
+      } finally {
+        setProcessingMentor(null);
       }
     }
     
@@ -607,9 +618,18 @@ const Dashboard = () => {
               return (
                 <Card
                   key={mentor.id}
-                  className="cursor-pointer hover:shadow-lg transition-all hover:scale-105 relative"
+                  className={cn(
+                    "cursor-pointer hover:shadow-lg transition-all hover:scale-105 relative",
+                    processingMentor === mentor.mentor_type && "opacity-50 cursor-wait"
+                  )}
                   onClick={() => handleMentorClick(mentor.mentor_type)}
+                  style={{ pointerEvents: processingMentor ? 'none' : 'auto' }}
                 >
+                  {processingMentor === mentor.mentor_type && (
+                    <div className="absolute inset-0 flex items-center justify-center bg-background/50 rounded-lg z-10">
+                      <Loader2 className="w-6 h-6 animate-spin" />
+                    </div>
+                  )}
                   {mentorNotifications[mentor.mentor_type] > 0 && (
                     <Badge className="absolute -top-2 -right-2 text-red-600 rounded-full h-6 w-6 flex items-center justify-center text-xs font-bold shadow-lg animate-notification-blink border-2 border-red-500">
                       {mentorNotifications[mentor.mentor_type]}
