@@ -853,86 +853,7 @@ Just the message, no labels.`;
       }
     }
 
-    // === GENERATE PRIVATE MESSAGES (WhatsApp-style notifications) ===
-    const privateMessages: Record<string, string[]> = {};
-    
-    // Only select from user's selected mentors (not future_self)
-    const selectedUserMentors = selectedMentors.filter((m: string) => m !== "future_self");
-    
-    // Randomly pick 1-2 mentors who will reach out privately
-    if (selectedUserMentors.length > 0) {
-      const shuffled = [...selectedUserMentors].sort(() => 0.5 - Math.random());
-      const mentorsToNotify = shuffled.slice(0, Math.min(2, shuffled.length));
-      
-      console.log(`Generating private messages from: ${mentorsToNotify.join(', ')}`);
-      
-      for (const mentorType of mentorsToNotify) {
-        const mentorConfig = mentorPrompts[mentorType];
-        if (!mentorConfig) continue;
-        
-        const privatePrompt = `You are ${mentorNames[mentorType]}.
-
-Based on the council discussion about "${question}", generate 2-3 SHORT private messages as if starting a WhatsApp conversation with the user.
-
-Your personality: ${mentorConfig.personality}
-Your role: ${mentorConfig.role}
-
-Messages should be:
-- Casual (like "Hey 👋", "I was thinking...", "Quick thought...")
-- Personal to what was discussed
-- Lead toward deeper 1-to-1 conversation
-- 1-2 sentences MAX each
-- Show your unique personality
-- End with invitation to continue
-
-Format each message on its own line, no numbering or labels.`;
-
-        try {
-          const privateResponse = await fetch("https://ai.gateway.lovable.dev/v1/chat/completions", {
-            method: "POST",
-            headers: {
-              "Authorization": `Bearer ${Deno.env.get("LOVABLE_API_KEY")}`,
-              "Content-Type": "application/json",
-            },
-            body: JSON.stringify({
-              model: "google/gemini-2.5-flash",
-              messages: [{ role: "user", content: privatePrompt }],
-            }),
-          });
-          
-          if (privateResponse.ok) {
-            const privateData = await privateResponse.json();
-            const messages = privateData.choices[0].message.content
-              .split('\n')
-              .filter((m: string) => m.trim().length > 0)
-              .slice(0, 3); // Max 3 messages
-            
-            privateMessages[mentorType] = messages;
-            
-            // Save to mentor_private_messages table
-            const councilMeetingId = crypto.randomUUID();
-            for (const message of messages) {
-              try {
-                await supabaseClient.from('mentor_private_messages').insert({
-                  user_id: user.id,
-                  mentor_type: mentorType,
-                  message: message.trim(),
-                  council_meeting_id: councilMeetingId,
-                });
-              } catch (error) {
-                console.error(`Failed to save private message from ${mentorType}:`, error);
-              }
-            }
-            
-            console.log(`Generated ${messages.length} private messages from ${mentorNames[mentorType]}`);
-          }
-        } catch (error) {
-          console.error(`Failed to generate private messages from ${mentorType}:`, error);
-        }
-      }
-    }
-
-    // === SAVE COUNCIL MEETING TO DATABASE ===
+    // === SAVE COUNCIL MEETING TO DATABASE (moved up to get real meeting ID) ===
     let savedMeetingId: string | null = null;
     try {
       const { data: meetingData } = await supabaseClient.from('council_meetings').insert({
@@ -954,6 +875,179 @@ Format each message on its own line, no numbering or labels.`;
       savedMeetingId = meetingData?.id;
     } catch (error) {
       console.error('Failed to save council meeting:', error);
+    }
+
+    // === INTELLIGENT DEPTH-OPPORTUNITY DETECTION ===
+    const privateMessages: Record<string, string[]> = {};
+    
+    if (savedMeetingId) {
+      const selectedUserMentors = selectedMentors.filter((m: string) => m !== "future_self");
+      
+      if (selectedUserMentors.length > 0) {
+        // AI analyzes if there's genuine depth opportunity
+        const depthAnalysisPrompt = `You are analyzing a council meeting conversation to determine if a mentor should reach out for deeper 1-on-1 exploration.
+
+CONVERSATION CONTEXT:
+${conversationContext}
+
+CURRENT QUESTION: "${question}"
+
+COUNCIL INSIGHT: "${councilInsight}"
+
+MENTOR PERSPECTIVES:
+${Object.entries(mentorPerspectives).map(([m, p]) => `${mentorNames[m]}: ${p}`).join('\n')}
+
+AVAILABLE MENTORS (with their expertise):
+${selectedUserMentors.map((m: string) => {
+  const config = mentorPrompts[m];
+  return `- ${mentorNames[m]}: ${config.role}`;
+}).join('\n')}
+
+CRITICAL ANALYSIS CRITERIA:
+1. Is there GENUINE DEPTH to explore? Not surface-level, but real substance that would benefit from 1-on-1 conversation?
+2. Does the user seem engaged and interested in going deeper (not just asking casual questions)?
+3. Is there a specific topic/theme that one mentor is uniquely positioned to help with?
+4. Would a private conversation feel natural and valuable (not forced or intrusive)?
+
+YOU MUST RESPOND WITH VALID JSON ONLY:
+{
+  "shouldReachOut": true/false,
+  "mentorType": "mentor_key" or null,
+  "reason": "brief explanation why this mentor or why not reaching out",
+  "conversationHook": "casual 1-2 sentence opener for the private message" or null
+}
+
+EXAMPLES OF WHEN TO REACH OUT:
+- User is building something and business_mentor can help with strategy
+- User is exploring creativity and creative_visionary has specific ideas
+- User mentions frequency/energy and quantum_inventor can deepen that
+- User is stuck on discipline and discipline_mentor can provide structure
+- User is exploring purpose and mystic_mentor can guide that journey
+
+EXAMPLES OF WHEN NOT TO REACH OUT:
+- Conversation is too shallow or generic
+- User is just asking simple questions without real engagement
+- No mentor has specific expertise for the topic
+- It would feel forced or intrusive
+- Topic has already been fully addressed in the council
+
+Analyze and respond with JSON only.`;
+
+        try {
+          const depthResponse = await fetch("https://ai.gateway.lovable.dev/v1/chat/completions", {
+            method: "POST",
+            headers: {
+              "Authorization": `Bearer ${Deno.env.get("LOVABLE_API_KEY")}`,
+              "Content-Type": "application/json",
+            },
+            body: JSON.stringify({
+              model: "google/gemini-2.5-flash",
+              messages: [{ role: "user", content: depthAnalysisPrompt }],
+            }),
+          });
+
+          if (depthResponse.ok) {
+            const depthData = await depthResponse.json();
+            let depthAnalysis;
+            
+            try {
+              // Try to parse JSON from response
+              const content = depthData.choices[0].message.content;
+              // Remove markdown code blocks if present
+              const jsonMatch = content.match(/```json\n?([\s\S]*?)\n?```/) || content.match(/({[\s\S]*})/);
+              const jsonStr = jsonMatch ? jsonMatch[1] : content;
+              depthAnalysis = JSON.parse(jsonStr.trim());
+              
+              console.log('Depth analysis result:', depthAnalysis);
+              
+              // If AI recommends reaching out
+              if (depthAnalysis.shouldReachOut && depthAnalysis.mentorType) {
+                const mentorType = depthAnalysis.mentorType;
+                const mentorConfig = mentorPrompts[mentorType];
+                
+                if (mentorConfig) {
+                  console.log(`✨ Depth opportunity detected! ${mentorNames[mentorType]} will reach out.`);
+                  console.log(`Reason: ${depthAnalysis.reason}`);
+                  
+                  // Generate WhatsApp-style private messages
+                  const privatePrompt = `You are ${mentorNames[mentorType]} reaching out privately after the council meeting.
+
+Your personality: ${mentorConfig.personality}
+Your role: ${mentorConfig.role}
+
+CONVERSATION HOOK: ${depthAnalysis.conversationHook}
+
+Generate 2-3 SHORT casual messages like starting a WhatsApp chat:
+- First message: Natural opener based on the hook (e.g., "Hey 👋", "I was thinking about what you said...")
+- Second message: Add value or insight specific to their situation
+- Third message: Invitation to continue the conversation
+
+Rules:
+- Each message MAX 2 sentences
+- Casual, personal tone
+- Show your unique personality
+- Don't be pushy - feel natural
+- Reference specific things from their discussion
+
+Format: Each message on its own line, no numbering.`;
+
+                  try {
+                    const privateResponse = await fetch("https://ai.gateway.lovable.dev/v1/chat/completions", {
+                      method: "POST",
+                      headers: {
+                        "Authorization": `Bearer ${Deno.env.get("LOVABLE_API_KEY")}`,
+                        "Content-Type": "application/json",
+                      },
+                      body: JSON.stringify({
+                        model: "google/gemini-2.5-flash",
+                        messages: [{ role: "user", content: privatePrompt }],
+                      }),
+                    });
+                    
+                    if (privateResponse.ok) {
+                      const privateData = await privateResponse.json();
+                      const messages = privateData.choices[0].message.content
+                        .split('\n')
+                        .filter((m: string) => m.trim().length > 0)
+                        .slice(0, 3);
+                      
+                      privateMessages[mentorType] = messages;
+                      
+                      // Save to database with REAL meeting ID
+                      for (const message of messages) {
+                        try {
+                          await supabaseClient.from('mentor_private_messages').insert({
+                            user_id: user.id,
+                            mentor_type: mentorType,
+                            message: message.trim(),
+                            council_meeting_id: savedMeetingId,
+                          });
+                        } catch (error) {
+                          console.error(`Failed to save private message from ${mentorType}:`, error);
+                        }
+                      }
+                      
+                      console.log(`✅ Generated ${messages.length} private messages from ${mentorNames[mentorType]}`);
+                    }
+                  } catch (error) {
+                    console.error(`Failed to generate private messages from ${mentorType}:`, error);
+                  }
+                } else {
+                  console.log('⚠️ Recommended mentor not found in config:', mentorType);
+                }
+              } else {
+                console.log('ℹ️ No depth opportunity detected - no private messages generated');
+                console.log(`Reason: ${depthAnalysis.reason || 'Not specified'}`);
+              }
+            } catch (parseError) {
+              console.error('Failed to parse depth analysis JSON:', parseError);
+              console.log('Raw response:', depthData.choices[0].message.content);
+            }
+          }
+        } catch (error) {
+          console.error('Failed to analyze depth opportunity:', error);
+        }
+      }
     }
 
     // === RETURN COMPLETE RESPONSE ===
