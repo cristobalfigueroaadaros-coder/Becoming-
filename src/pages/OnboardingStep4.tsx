@@ -4,7 +4,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { Button } from "@/components/ui/button";
 import { Card, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { toast } from "sonner";
-import { Brain, Lightbulb, Zap, Trees, Heart, Sparkles, Target, TrendingUp, Megaphone, FlaskConical, Scale, Moon, User, Compass } from "lucide-react";
+import { Brain, Lightbulb, Zap, Trees, Heart, Sparkles, Target, TrendingUp, Megaphone, FlaskConical, Scale, Moon, Compass } from "lucide-react";
 import { cn } from "@/lib/utils";
 
 const mentors = [
@@ -108,15 +108,6 @@ const mentors = [
     color: "bg-rose-600",
     category: "Emotional & Spiritual",
   },
-  // ✨ Personal
-  {
-    id: "future_self",
-    name: "Your Future Self",
-    description: "Your evolved self, ten years ahead",
-    icon: User,
-    color: "bg-mentor-future",
-    category: "Personal",
-  },
 ];
 
 const OnboardingStep4 = () => {
@@ -175,7 +166,7 @@ const OnboardingStep4 = () => {
         </div>
 
         <div className="space-y-8">
-          {["Action & Discipline", "Creativity & Expression", "Knowledge & Insight", "Emotional & Spiritual", "Personal"].map((category) => {
+          {["Action & Discipline", "Creativity & Expression", "Knowledge & Insight", "Emotional & Spiritual"].map((category) => {
             const categoryMentors = mentors.filter((m) => m.category === category);
             return (
               <div key={category}>
@@ -184,7 +175,6 @@ const OnboardingStep4 = () => {
                   {category === "Creativity & Expression" && "💡"}
                   {category === "Knowledge & Insight" && "🔬"}
                   {category === "Emotional & Spiritual" && "💜"}
-                  {category === "Personal" && "✨"}
                   {category}
                 </h2>
                 <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
