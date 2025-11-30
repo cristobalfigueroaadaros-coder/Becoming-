@@ -82,10 +82,21 @@ export default {
             height: "0",
           },
         },
+        "notification-blink": {
+          "0%, 100%": {
+            backgroundColor: "rgb(239 68 68)",
+            boxShadow: "0 0 8px rgb(239 68 68)",
+          },
+          "50%": {
+            backgroundColor: "rgb(255 255 255)",
+            boxShadow: "0 0 12px rgb(239 68 68)",
+          },
+        },
       },
       animation: {
         "accordion-down": "accordion-down 0.2s ease-out",
         "accordion-up": "accordion-up 0.2s ease-out",
+        "notification-blink": "notification-blink 0.8s ease-in-out infinite",
       },
     },
   },
