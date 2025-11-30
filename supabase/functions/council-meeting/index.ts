@@ -1050,6 +1050,18 @@ Format: Each message on its own line, no numbering.`;
       }
     }
 
+    // === TRIGGER FUTURE SELF POST-COUNCIL (Strategic Silence) ===
+    // Fire and forget - don't wait for response
+    if (savedMeetingId && isQ3) {
+      console.log("Triggering Future Self post-council message...");
+      supabaseClient.functions.invoke('trigger-future-self-post-council', {
+        body: { meetingId: savedMeetingId }
+      }).catch(err => {
+        console.error("Failed to trigger Future Self:", err);
+        // Don't fail the whole request if this fails
+      });
+    }
+
     // === RETURN COMPLETE RESPONSE ===
     return new Response(
       JSON.stringify({

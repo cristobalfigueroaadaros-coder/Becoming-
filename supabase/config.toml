@@ -87,5 +87,8 @@ verify_jwt = true
 [functions.generate-daily-whisper]
 verify_jwt = true
 
+[functions.trigger-future-self-post-council]
+verify_jwt = true
+
 
 

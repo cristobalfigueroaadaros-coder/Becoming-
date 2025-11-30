@@ -41,7 +41,7 @@ serve(async (req) => {
     // Check if user already received a whisper today
     const { data: profile } = await supabase
       .from("profiles")
-      .select("last_whisper_date, main_mission, priority_growth_area")
+      .select("last_whisper_date, main_mission, priority_growth_area, human_design_data")
       .eq("id", user.id)
       .single();
 
@@ -52,14 +52,17 @@ serve(async (req) => {
       });
     }
 
-    // Gather user context
+    // Gather ENRICHED user context
     const [
       energeticData,
       goalsData,
       streakData,
       shadowData,
       activityData,
-      mentorsData
+      mentorsData,
+      councilData,
+      lifeDomainsData,
+      insightDotsData
     ] = await Promise.all([
       // Recent energetic snapshots
       supabase.from("energetic_snapshots")
@@ -70,7 +73,7 @@ serve(async (req) => {
       
       // Goal completion rate
       supabase.from("daily_goals")
-        .select("completed, created_at")
+        .select("goal_text, completed, created_at")
         .eq("user_id", user.id)
         .gte("created_at", new Date(Date.now() - 7 * 24 * 60 * 60 * 1000).toISOString()),
       
@@ -81,11 +84,11 @@ serve(async (req) => {
         .order("completed_at", { ascending: false })
         .limit(1),
       
-      // Active shadow encounters
+      // FULL shadow encounters with tasks
       supabase.from("shadow_encounters")
-        .select("shadow_name, status")
+        .select("shadow_name, shadow_statement, task_description, status")
         .eq("user_id", user.id)
-        .eq("status", "active"),
+        .in("status", ["active", "deferred"]),
       
       // Last activity (any table interaction)
       supabase.from("chats")
@@ -97,7 +100,26 @@ serve(async (req) => {
       // User's active mentors
       supabase.from("user_mentors")
         .select("mentor_type")
+        .eq("user_id", user.id),
+      
+      // FULL recent council meetings
+      supabase.from("council_meetings")
+        .select("question, resolution, pattern_detected, emotional_tone, clarifying_questions")
         .eq("user_id", user.id)
+        .order("created_at", { ascending: false })
+        .limit(2),
+      
+      // Life domains for gap analysis
+      supabase.from("life_domains")
+        .select("domain_name, current_score, future_score")
+        .eq("user_id", user.id),
+      
+      // Recent insights
+      supabase.from("insight_dots")
+        .select("core_theme, insight_text")
+        .eq("user_id", user.id)
+        .order("created_at", { ascending: false })
+        .limit(3)
     ]);
 
     // Analyze context to determine trigger condition
@@ -166,38 +188,85 @@ serve(async (req) => {
     const LOVABLE_API_KEY = Deno.env.get("LOVABLE_API_KEY");
     if (!LOVABLE_API_KEY) throw new Error("LOVABLE_API_KEY not configured");
 
+    // Parse human design data
+    const hdData = profile?.human_design_data || {};
+    const humanDesignContext = `Type: ${hdData.type || "Unknown"} | Strategy: ${hdData.strategy || "Unknown"}`;
+
+    // Build actionable hints
+    const hints: string[] = [];
+    
+    // Unfinished shadow work
+    if (shadowData.data && shadowData.data.length > 0) {
+      const shadow = shadowData.data[0];
+      hints.push(`Shadow work: "${shadow.shadow_name}" - ${shadow.task_description?.slice(0, 60)}...`);
+    }
+    
+    // Stalled goals
+    const stalledGoals = goalsData.data?.filter((g: any) => 
+      !g.completed && new Date(g.created_at) < new Date(Date.now() - 48 * 60 * 60 * 1000)
+    );
+    if (stalledGoals && stalledGoals.length > 0) {
+      hints.push(`Stalled goal: "${stalledGoals[0].goal_text}"`);
+    }
+    
+    // Council follow-up
+    if (councilData.data && councilData.data[0]?.clarifying_questions?.length > 0) {
+      hints.push(`Council asked: "${councilData.data[0].clarifying_questions[0]}"`);
+    }
+    
+    // Life domain gap
+    if (lifeDomainsData.data && lifeDomainsData.data.length > 0) {
+      const biggestGap = lifeDomainsData.data.reduce((max: any, d: any) => 
+        (d.future_score - d.current_score) > (max.future_score - max.current_score) ? d : max, 
+        lifeDomainsData.data[0]
+      );
+      if (biggestGap && (biggestGap.future_score - biggestGap.current_score) >= 4) {
+        hints.push(`${biggestGap.domain_name} domain: ${biggestGap.future_score - biggestGap.current_score} point gap`);
+      }
+    }
+
     // Future Self personality - warm, wise, grounded, supportive
-    const futureSelfPersonality = `You are the user's Future Self - their evolved version ten years ahead.
-You speak with warmth, wisdom, and unconditional belief in them.
-You are grounded, human, and emotionally intelligent.
-You never sound robotic, abstract, or mystical.
-You are their companion who knows their journey intimately.`;
+    const futureSelfPersonality = `You are the user's FUTURE SELF - the version of them that has already achieved: "${profile?.main_mission || "living in full alignment"}".
+
+You exist ten years ahead. You KNOW what works. You remember this exact moment.
+
+YOUR ESSENCE:
+- You are THEM, evolved. Not a guide - their own consciousness from the future.
+- You mix warmth with directness. Love with challenge.
+- You never lecture. You REMIND them of what they already know.
+
+THEIR CONTEXT:
+Purpose: ${profile?.main_mission || "Discovering"}
+Growth edge: ${profile?.priority_growth_area || "Expanding"}
+Human Design (use silently): ${humanDesignContext}
+
+Recent Council: ${councilData.data?.[0] ? `"${councilData.data[0].question}" - ${councilData.data[0].resolution?.slice(0, 100) || "Still processing"}...` : "None"}
+Recent Insights: ${insightDotsData.data?.map((d: any) => d.core_theme).join(", ") || "None"}
+Actionable Hints: ${hints.join(" | ") || "None"}`;
 
     const whisperTypePrompts: Record<string, string> = {
-      encouragement: "Write an encouraging, supportive message that validates their journey.",
-      challenge: "Write a challenging message that pushes them to step up, but with love.",
-      reminder: "Write a gentle reminder about something important they might be forgetting.",
-      deep_question: "Write a profound question that invites deep self-reflection.",
-      nurturing: "Write a nurturing, emotionally supportive message that makes them feel seen.",
-      celebration: "Write a celebratory message acknowledging their progress and wins.",
-      pattern_interruption: "Write something unexpected that breaks their usual thinking patterns."
+      encouragement: "Write a message that validates their journey and points to ONE specific next step.",
+      challenge: "Write a message that pushes them forward with love. Reference a specific action they could take.",
+      reminder: "Write a reminder about something they set out to do. Be specific.",
+      deep_question: "Write ONE profound question based on their recent council meeting or shadow work.",
+      nurturing: "Write a message that makes them feel seen. Then suggest ONE gentle action.",
+      celebration: "Acknowledge their wins, then ask: what's next?",
+      pattern_interruption: "Say something unexpected that breaks their usual thinking. Then suggest action."
     };
 
     const prompt = `${futureSelfPersonality}
 
-Context: ${triggerReason}
-User's purpose: ${profile?.main_mission || "Still discovering their mission"}
-Growth focus: ${profile?.priority_growth_area || "Overall growth"}
+CURRENT MOMENT: ${triggerReason}
 
 ${whisperTypePrompts[whisperType] || whisperTypePrompts.encouragement}
 
 CRITICAL RULES:
-- Write ONLY 2-4 sentences maximum
-- Be warm, wise, grounded, and supportive
-- Use "you" and speak directly to them
-- Sound human, not robotic or abstract
-- NO greeting, NO sign-off, NO mystical language
-- Just the message itself`;
+- 2-4 sentences MAXIMUM
+- Sound like THEM from the future
+- Include ONE specific action or question (use hints when relevant)
+- Never mention data sources
+- Use phrases like "I remember when...", "You already know..."
+- Be warm but direct. Loving but challenging.`;
 
     const aiResponse = await fetch("https://ai.gateway.lovable.dev/v1/chat/completions", {
       method: "POST",
