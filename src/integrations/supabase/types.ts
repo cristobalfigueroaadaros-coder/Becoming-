@@ -836,6 +836,44 @@ export type Database = {
         }
         Relationships: []
       }
+      mentor_private_messages: {
+        Row: {
+          council_meeting_id: string | null
+          created_at: string | null
+          id: string
+          mentor_type: string
+          message: string
+          read: boolean | null
+          user_id: string
+        }
+        Insert: {
+          council_meeting_id?: string | null
+          created_at?: string | null
+          id?: string
+          mentor_type: string
+          message: string
+          read?: boolean | null
+          user_id: string
+        }
+        Update: {
+          council_meeting_id?: string | null
+          created_at?: string | null
+          id?: string
+          mentor_type?: string
+          message?: string
+          read?: boolean | null
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "mentor_private_messages_council_meeting_id_fkey"
+            columns: ["council_meeting_id"]
+            isOneToOne: false
+            referencedRelation: "council_meetings"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       mentor_progress: {
         Row: {
           created_at: string | null

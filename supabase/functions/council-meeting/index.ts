@@ -793,9 +793,89 @@ Just the message, no labels.`;
       }
     }
 
+    // === GENERATE PRIVATE MESSAGES (WhatsApp-style notifications) ===
+    const privateMessages: Record<string, string[]> = {};
+    
+    // Only select from user's selected mentors (not future_self)
+    const selectedUserMentors = selectedMentors.filter((m: string) => m !== "future_self");
+    
+    // Randomly pick 1-2 mentors who will reach out privately
+    if (selectedUserMentors.length > 0) {
+      const shuffled = [...selectedUserMentors].sort(() => 0.5 - Math.random());
+      const mentorsToNotify = shuffled.slice(0, Math.min(2, shuffled.length));
+      
+      console.log(`Generating private messages from: ${mentorsToNotify.join(', ')}`);
+      
+      for (const mentorType of mentorsToNotify) {
+        const mentorConfig = mentorPrompts[mentorType];
+        if (!mentorConfig) continue;
+        
+        const privatePrompt = `You are ${mentorNames[mentorType]}.
+
+Based on the council discussion about "${question}", generate 2-3 SHORT private messages as if starting a WhatsApp conversation with the user.
+
+Your personality: ${mentorConfig.personality}
+Your role: ${mentorConfig.role}
+
+Messages should be:
+- Casual (like "Hey 👋", "I was thinking...", "Quick thought...")
+- Personal to what was discussed
+- Lead toward deeper 1-to-1 conversation
+- 1-2 sentences MAX each
+- Show your unique personality
+- End with invitation to continue
+
+Format each message on its own line, no numbering or labels.`;
+
+        try {
+          const privateResponse = await fetch("https://ai.gateway.lovable.dev/v1/chat/completions", {
+            method: "POST",
+            headers: {
+              "Authorization": `Bearer ${Deno.env.get("LOVABLE_API_KEY")}`,
+              "Content-Type": "application/json",
+            },
+            body: JSON.stringify({
+              model: "google/gemini-2.5-flash",
+              messages: [{ role: "user", content: privatePrompt }],
+            }),
+          });
+          
+          if (privateResponse.ok) {
+            const privateData = await privateResponse.json();
+            const messages = privateData.choices[0].message.content
+              .split('\n')
+              .filter((m: string) => m.trim().length > 0)
+              .slice(0, 3); // Max 3 messages
+            
+            privateMessages[mentorType] = messages;
+            
+            // Save to mentor_private_messages table
+            const councilMeetingId = crypto.randomUUID();
+            for (const message of messages) {
+              try {
+                await supabaseClient.from('mentor_private_messages').insert({
+                  user_id: user.id,
+                  mentor_type: mentorType,
+                  message: message.trim(),
+                  council_meeting_id: councilMeetingId,
+                });
+              } catch (error) {
+                console.error(`Failed to save private message from ${mentorType}:`, error);
+              }
+            }
+            
+            console.log(`Generated ${messages.length} private messages from ${mentorNames[mentorType]}`);
+          }
+        } catch (error) {
+          console.error(`Failed to generate private messages from ${mentorType}:`, error);
+        }
+      }
+    }
+
     // === SAVE COUNCIL MEETING TO DATABASE ===
+    let savedMeetingId: string | null = null;
     try {
-      await supabaseClient.from('council_meetings').insert({
+      const { data: meetingData } = await supabaseClient.from('council_meetings').insert({
         user_id: user.id,
         question,
         answers: mentorPerspectives,
@@ -809,7 +889,9 @@ Just the message, no labels.`;
           councilGuidance,
           recommendedMentor
         }
-      });
+      }).select('id').single();
+      
+      savedMeetingId = meetingData?.id;
     } catch (error) {
       console.error('Failed to save council meeting:', error);
     }
@@ -828,6 +910,7 @@ Just the message, no labels.`;
         councilGuidance: isQ3 ? councilGuidance : null,
         recommendedMentor: isQ3 ? recommendedMentor : null,
         mentorDM: isQ3 ? mentorDM : null,
+        privateMessages, // WhatsApp-style notifications
         extractedTags, // For debugging, remove in production
       }),
       { headers: { ...corsHeaders, "Content-Type": "application/json" } }
