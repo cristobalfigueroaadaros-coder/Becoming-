@@ -376,6 +376,11 @@ ${selectedMentors.map((type: string) => {
 Their perspectives:
 ${Object.entries(mentorPerspectives).map(([type, persp]) => `${mentorNames[type]}: ${persp}`).join('\n')}
 
+🎯 THE USER'S QUESTION/IDEA:
+"${question}"
+
+The mentors must discuss THIS specific idea/purpose/problem - not generic philosophy.
+
 🔍 DETECTED USER THEMES (reference these naturally): ${extractedTags.length > 0 ? extractedTags.join(', ') : 'general exploration'}
 
 🎯 FREQUENCY ELEVATION DETECTION:
@@ -387,32 +392,60 @@ Analyze if user is moving UP the consciousness scale:
 
 Create ${banterLength === 'SHORT' ? '3-4' : banterLength === 'MEDIUM' ? '5-6' : '7-9'} lines where mentors:
 
-✅ REQUIRED - Talk ABOUT the user (not TO them):
-   - "I think they're finally ready to..."
-   - "Did you notice how they framed that?"
-   - "They're at a turning point here"
-   - "This one has potential, but..."
-   - "Their energy shifted when they mentioned..."
+✅ REQUIRED - DISCUSS BOTH THE USER AND THEIR IDEA:
 
-✅ REQUIRED - Reference detected themes naturally:
-   - If 'discipline' detected: "They mentioned consistency—that's your domain"
-   - If 'frequency' detected: "I'm sensing a vibrational shift here"
-   - If 'overwhelm' detected: "They sound buried, we need to simplify"
+REACT TO THE IDEA/PURPOSE/PROBLEM:
+- What do they think of the idea itself?
+- Is it viable? Is it meaningful? Is it unique?
+- What potential does this idea have?
+- What are the challenges with this specific goal?
 
-✅ REQUIRED - Detect frequency elevation:
-   - "They're moving from fear to courage here—did you feel that?"
-   - "Still stuck in shame frequency. We need to lift them."
-   - "I'm seeing willingness energy—they're ready to act."
+CHALLENGE THE USER'S COMMITMENT:
+- Do they think the user will actually follow through?
+- Is this just talk or real intention?
+- What would prove they're serious?
 
-✅ OPTIONAL - Call out each other's flaws playfully:
-   - Quantum to Business: "Stop reducing everything to numbers, can you feel their frequency?"
-   - Business to Quantum: "Great, but how does that pay the bills?"
-   - Discipline to Heart: "They need structure, not more validation"
-   - Creative to Strategist: "You're over-planning again, just let them create"
+ROOT FOR THE USER:
+- Express belief in their potential
+- See something special in them
+- Want them to succeed
 
-✅ Include personality clashes and reactions
-✅ Keep 1-2 short lines per mentor (10-15 words max)
-✅ Playful, warm, dynamic tone
+CHALLENGE TO ACTION:
+- Demand they prove it
+- Ask for the first step
+- Say they want to see results
+
+🎭 EXAMPLE BANTER FLOW:
+
+If user says "I want to start a meditation app to help people with anxiety":
+
+[Business Mentor]: "A meditation app? That market is crowded. But anxiety... that's real pain. What's going to make theirs different?"
+[Heart Mentor]: "I felt it when they said it - this isn't about money for them. They genuinely want to help people."
+[Discipline Mentor]: "Wanting to help is beautiful. But have they even meditated consistently themselves? You can't teach what you don't live."
+[Quantum Inventor]: "Their field is resonating with service. This idea didn't come from the mind - it came from something deeper."
+[Business Mentor]: "Okay, I'm intrigued. But they need to build ONE feature, not dream about the whole app. What's step one?"
+[Heart Mentor]: "We're rooting for you! Now show us you can do the work. Come back with progress."
+
+🎭 TONE RULES:
+- PLAYFUL: Like coaches who believe in you but won't let you off easy
+- PUNCHY: Short, direct statements (1-2 sentences max per message)
+- SPECIFIC: Reference the actual idea/goal, not generic advice
+- WARM: Never mean - they WANT the user to succeed
+- CHALLENGING: Push them to prove themselves
+
+❌ NEVER:
+- Generic philosophy without mentioning the user's specific idea
+- Being mean, dismissive, or discouraging
+- Only talking about the user without discussing their idea
+- Only talking about the idea without challenging the user
+- Long paragraphs or lectures
+
+✅ ALWAYS:
+- Reference the SPECIFIC idea/purpose/problem the user mentioned
+- Include debate about the idea's potential/challenges
+- Include at least ONE challenge to the user ("prove it", "show us")
+- Include at least ONE vote of confidence
+- Make it feel like a real conversation about a real person with a real idea
 
 Format: [Name]: "quote" (10-15 words max per line)
 ${banterLength === 'SHORT' ? 'Keep it light and brief.' : ''}
@@ -441,10 +474,18 @@ ${banterLength === 'FULL' ? 'Full round table, all mentors speak, deep analysis 
       // Parse banter into structured format with colors
       const lines = banter.split('\n').filter(line => line.trim());
       for (const line of lines) {
-        const match = line.match(/\[(.+?)\]:\s*"(.+?)"/);
+        // Handle multiple formats: **Name:** text, [Name]: "text", Name: text
+        let match = line.match(/\*\*(.+?)\*\*:\s*"?(.+?)"?\s*$/);
+        if (!match) {
+          match = line.match(/\[(.+?)\]:\s*"?(.+?)"?\s*$/);
+        }
+        if (!match) {
+          match = line.match(/^([A-Z][a-z]+(?:\s[A-Z][a-z]+)?):\s*"?(.+?)"?\s*$/);
+        }
+        
         if (match) {
           const mentorName = match[1];
-          const text = match[2];
+          const text = match[2].replace(/"+$/g, '').trim(); // Remove trailing quotes and trim
           const mentorKey = Object.keys(mentorNames).find(k => mentorNames[k] === mentorName);
           const color = mentorKey ? mentorColors[mentorKey] : '#6B7280';
           banterLines.push({ mentor: mentorName, text, color });
