@@ -519,6 +519,35 @@ Deno.serve(async (req) => {
     const { data: { user }, error: userError } = await supabaseClient.auth.getUser(token);
     if (userError || !user) throw new Error("Not authenticated");
 
+    // 1. Fetch recent chat history for context (last 20 messages)
+    const { data: chatHistory } = await supabaseClient
+      .from("chats")
+      .select("role, content, created_at")
+      .eq("user_id", user.id)
+      .eq("mentor_type", mentorType)
+      .order("created_at", { ascending: true })
+      .limit(20);
+
+    // 2. Find the most recent private message from this mentor (links to council meeting)
+    const { data: privateMessage } = await supabaseClient
+      .from("mentor_private_messages")
+      .select(`
+        id, message, council_meeting_id,
+        council_meetings (
+          question,
+          banter,
+          resolution,
+          conversation_flow,
+          emotional_tone,
+          pattern_detected
+        )
+      `)
+      .eq("user_id", user.id)
+      .eq("mentor_type", mentorType)
+      .order("created_at", { ascending: false })
+      .limit(1)
+      .maybeSingle();
+
     let systemPrompt = mentorPrompts[mentorType] || mentorPrompts.mamba_mentor;
 
     // If Future Self, get profile data
@@ -542,7 +571,55 @@ Embody this future version when responding.`;
       }
     }
 
-    // Call Lovable AI
+    // 3. Add council meeting context if available
+    let councilContext = "";
+    if (privateMessage?.council_meetings && Array.isArray(privateMessage.council_meetings) && privateMessage.council_meetings.length > 0) {
+      const meeting = privateMessage.council_meetings[0];
+      councilContext = `
+
+=== COUNCIL MEETING CONTEXT ===
+The user recently had a council meeting where they discussed:
+
+QUESTION: "${meeting.question}"
+
+COUNCIL DISCUSSION:
+${meeting.banter || "No discussion details available"}
+
+${meeting.conversation_flow?.councilInsight ? `COUNCIL INSIGHT: ${meeting.conversation_flow.councilInsight}` : ''}
+${meeting.resolution ? `RESOLUTION: ${meeting.resolution}` : ''}
+${meeting.pattern_detected ? `PATTERN DETECTED: ${meeting.pattern_detected}` : ''}
+${meeting.emotional_tone ? `EMOTIONAL TONE: ${meeting.emotional_tone}` : ''}
+
+YOUR PRIVATE MESSAGE TO THE USER:
+"${privateMessage.message}"
+
+IMPORTANT: Continue this conversation naturally. You reached out to the user about this specific topic from the council meeting. Help them dig deeper into this insight, explore practical next steps, and leverage your unique perspective to expand their understanding.
+=== END COUNCIL CONTEXT ===
+`;
+    }
+
+    // Add council context to system prompt
+    systemPrompt += councilContext;
+
+    // 4. Build messages array with full conversation history
+    const messages = [
+      { role: "system", content: systemPrompt },
+    ];
+
+    // Add conversation history
+    if (chatHistory && chatHistory.length > 0) {
+      for (const msg of chatHistory) {
+        messages.push({
+          role: msg.role as "user" | "assistant",
+          content: msg.content
+        });
+      }
+    }
+
+    // Add the new user message
+    messages.push({ role: "user", content: message });
+
+    // Call Lovable AI with full context
     const aiResponse = await fetch("https://ai.gateway.lovable.dev/v1/chat/completions", {
       method: "POST",
       headers: {
@@ -551,10 +628,7 @@ Embody this future version when responding.`;
       },
       body: JSON.stringify({
         model: "google/gemini-2.5-flash",
-        messages: [
-          { role: "system", content: systemPrompt },
-          { role: "user", content: message },
-        ],
+        messages: messages,
       }),
     });
 
