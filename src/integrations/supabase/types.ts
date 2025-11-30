@@ -1011,6 +1011,7 @@ export type Database = {
           birth_time_unknown: boolean | null
           constellation_insights: Json | null
           created_at: string | null
+          display_name: string | null
           emotional_tone: string | null
           future_age: number | null
           future_lifestyle: string | null
@@ -1034,6 +1035,7 @@ export type Database = {
           birth_time_unknown?: boolean | null
           constellation_insights?: Json | null
           created_at?: string | null
+          display_name?: string | null
           emotional_tone?: string | null
           future_age?: number | null
           future_lifestyle?: string | null
@@ -1057,6 +1059,7 @@ export type Database = {
           birth_time_unknown?: boolean | null
           constellation_insights?: Json | null
           created_at?: string | null
+          display_name?: string | null
           emotional_tone?: string | null
           future_age?: number | null
           future_lifestyle?: string | null
