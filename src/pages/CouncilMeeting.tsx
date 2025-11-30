@@ -71,9 +71,6 @@ const CouncilMeeting = () => {
       growthNeed: string;
     };
   } | null>(null);
-  
-  // Private mentor notifications (WhatsApp-style)
-  const [mentorNotifications, setMentorNotifications] = useState<Record<string, string[]>>({});
 
   // Track if we have an active thread
   const hasActiveThread = conversationHistory.length > 0;
@@ -131,11 +128,6 @@ const CouncilMeeting = () => {
         setCouncilGuidance(data.councilGuidance || null);
         setRecommendedMentor(data.recommendedMentor || null);
         setMentorDM(data.mentorDM || null);
-        
-        // Store private mentor notifications (WhatsApp-style)
-        if (data.privateMessages) {
-          setMentorNotifications(data.privateMessages);
-        }
 
         toast.success(data.questionNumber >= 3 ? "✨ Q3: Momentum phase!" : "Council has responded!");
         refetch();
@@ -222,50 +214,6 @@ const CouncilMeeting = () => {
     
     // Pass the answer directly - don't rely on state update
     handleAsk(true, answer);
-  };
-
-  // Handle mentor click to open chat with private messages
-  const handleMentorClick = async (mentorType: string) => {
-    const messages = mentorNotifications[mentorType];
-    
-    if (messages?.length > 0) {
-      try {
-        const { data: { user } } = await supabase.auth.getUser();
-        if (!user) throw new Error("Not authenticated");
-        
-        // Save private messages to chats table as assistant messages
-        const chatInserts = messages.map(msg => ({
-          user_id: user.id,
-          mentor_type: mentorType as any,
-          role: "assistant",
-          content: msg,
-        }));
-        
-        await supabase.from("chats").insert(chatInserts);
-        
-        // Mark notifications as read
-        await supabase
-          .from("mentor_private_messages")
-          .update({ read: true })
-          .eq("user_id", user.id)
-          .eq("mentor_type", mentorType)
-          .eq("read", false);
-        
-        // Clear notification badge locally
-        setMentorNotifications(prev => ({
-          ...prev,
-          [mentorType]: []
-        }));
-        
-        toast.success(`Opening chat with ${mentorNames[mentorType]}`);
-        
-        // Navigate to chat
-        navigate(`/chat/${mentorType}`);
-      } catch (error) {
-        console.error("Failed to open mentor chat:", error);
-        toast.error("Failed to open chat");
-      }
-    }
   };
 
   return (
@@ -504,16 +452,7 @@ const CouncilMeeting = () => {
                     animate={{ opacity: 1, x: 0 }}
                     transition={{ delay: idx * 0.05 }}
                   >
-                    <Card 
-                      className={`border-l-4 border-l-primary/50 ${mentorNotifications[mentorType]?.length > 0 ? 'cursor-pointer hover:bg-muted/50 transition-colors' : ''} relative`}
-                      onClick={() => mentorNotifications[mentorType]?.length > 0 && handleMentorClick(mentorType)}
-                    >
-                      {/* Red notification badge (WhatsApp-style) */}
-                      {mentorNotifications[mentorType]?.length > 0 && (
-                        <Badge className="absolute -top-2 -right-2 bg-red-500 hover:bg-red-600 text-white rounded-full h-6 w-6 flex items-center justify-center text-xs font-bold shadow-lg animate-pulse">
-                          {mentorNotifications[mentorType].length}
-                        </Badge>
-                      )}
+                    <Card className="border-l-4 border-l-primary/50">
                       <CardContent className="pt-4">
                         <div className="flex items-start gap-3">
                           <div className="w-10 h-10 rounded-full bg-gradient-to-br from-primary/20 to-accent/20 flex items-center justify-center flex-shrink-0">
@@ -522,11 +461,8 @@ const CouncilMeeting = () => {
                             </span>
                           </div>
                           <div className="flex-1 min-w-0">
-                            <p className="text-sm font-semibold text-primary flex items-center gap-2">
+                            <p className="text-sm font-semibold text-primary">
                               {mentorNames[mentorType] || mentorType.replace(/_/g, ' ')}
-                              {mentorNotifications[mentorType]?.length > 0 && (
-                                <MessageCircle className="h-3.5 w-3.5 text-red-500" />
-                              )}
                             </p>
                             <p className="text-sm leading-relaxed mt-1 text-muted-foreground">
                               {perspective}
