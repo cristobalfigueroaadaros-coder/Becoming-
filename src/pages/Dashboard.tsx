@@ -611,7 +611,7 @@ const Dashboard = () => {
                   onClick={() => handleMentorClick(mentor.mentor_type)}
                 >
                   {mentorNotifications[mentor.mentor_type] > 0 && (
-                    <Badge className="absolute -top-2 -right-2 bg-red-500 text-white rounded-full h-6 w-6 flex items-center justify-center text-xs font-bold shadow-lg animate-pulse">
+                    <Badge className="absolute -top-2 -right-2 text-red-600 rounded-full h-6 w-6 flex items-center justify-center text-xs font-bold shadow-lg animate-notification-blink border-2 border-red-500">
                       {mentorNotifications[mentor.mentor_type]}
                     </Badge>
                   )}
