@@ -49,8 +49,12 @@ const Chat = () => {
   useEffect(() => {
     loadMessages();
     loadWhispers();
-    subscribeToMessages();
+    const unsubscribe = subscribeToMessages();
     countExchanges();
+    
+    return () => {
+      unsubscribe();
+    };
   }, [mentorType]);
 
   const countExchanges = () => {
@@ -108,17 +112,23 @@ const Chat = () => {
 
   const subscribeToMessages = () => {
     const channel = supabase
-      .channel("chats")
+      .channel(`chats-${mentorType}`)
       .on(
         "postgres_changes",
         {
           event: "INSERT",
           schema: "public",
           table: "chats",
+          filter: `mentor_type=eq.${mentorType}`,
         },
-        (payload) => {
-          if (payload.new.mentor_type === mentorType) {
-            setMessages((prev) => [...prev, payload.new]);
+        async (payload) => {
+          const { data: { user } } = await supabase.auth.getUser();
+          if (payload.new.mentor_type === mentorType && payload.new.user_id === user?.id) {
+            setMessages((prev) => {
+              // Prevent duplicates
+              if (prev.some(m => m.id === payload.new.id)) return prev;
+              return [...prev, payload.new];
+            });
           }
         }
       )
@@ -140,13 +150,17 @@ const Chat = () => {
       const { data: { user } } = await supabase.auth.getUser();
       if (!user) throw new Error("Not authenticated");
 
-      // Save user message
-      await supabase.from("chats").insert({
+      // Save user message and add to state immediately
+      const { data: userMsgData } = await supabase.from("chats").insert({
         user_id: user.id,
         mentor_type: mentorType as any,
         role: "user",
         content: userMessage,
-      });
+      }).select().single();
+      
+      if (userMsgData) {
+        setMessages((prev) => [...prev, userMsgData]);
+      }
 
       // Call AI function
       const { data, error } = await supabase.functions.invoke("chat-mentor", {
@@ -158,13 +172,17 @@ const Chat = () => {
 
       if (error) throw error;
 
-      // Save assistant response
-      await supabase.from("chats").insert({
+      // Save assistant response and add to state immediately
+      const { data: assistantMsgData } = await supabase.from("chats").insert({
         user_id: user.id,
         mentor_type: mentorType as any,
         role: "assistant",
         content: data.response,
-      });
+      }).select().single();
+
+      if (assistantMsgData) {
+        setMessages((prev) => [...prev, assistantMsgData]);
+      }
 
       // Check if we should offer learning module (after 4-6 exchanges)
       const newExchangeCount = exchangeCount + 1;
@@ -172,15 +190,21 @@ const Chat = () => {
       
       if (newExchangeCount >= 4 && newExchangeCount <= 6 && Math.random() > 0.5) {
         // Suggest learning module
-        await supabase.from("chats").insert({
+        const { data: quizMsgData } = await supabase.from("chats").insert({
           user_id: user.id,
           mentor_type: mentorType as any,
           role: "assistant",
           content: "🎓 I sense you're learning a lot! Would you like to test your understanding with a quick quiz? You might earn a badge!",
-        });
+        }).select().single();
+        
+        if (quizMsgData) {
+          setMessages((prev) => [...prev, quizMsgData]);
+        }
       }
     } catch (error: any) {
       toast.error(error.message);
+      // Reload messages on error to sync state
+      await loadMessages();
     } finally {
       setLoading(false);
     }
