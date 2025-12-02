@@ -137,6 +137,48 @@ function formatConversationHistory(history: any[]): string {
   return formatted;
 }
 
+// Smart mentor selection based on question relevance
+function selectRelevantMentors(allMentors: string[], tags: string[]): string[] {
+  // Define mentor expertise areas
+  const mentorExpertise: Record<string, string[]> = {
+    scientific_mentor: ["data", "research", "evidence", "science", "study", "analysis", "logic"],
+    creative_visionary: ["creativity", "creative", "imagine", "design", "art", "beautiful", "innovation"],
+    quantum_inventor: ["frequency", "energy", "vibe", "feeling", "resonance", "transformation"],
+    ancient_sage: ["long_term", "future", "years", "legacy", "lasting", "sustainable", "wisdom"],
+    heart_mentor: ["emotional_safety", "safe", "trust", "comfortable", "relationships", "feelings"],
+    business_mentor: ["structure", "plan", "organize", "system", "framework", "execution", "ROI"],
+    marketing_mentor: ["virality", "viral", "explosive", "massive", "spread", "attention", "distribution"],
+    mystic_mentor: ["purpose", "meaning", "why", "mission", "calling", "spiritual", "soul"],
+    strategist_mentor: ["clarity", "clear", "direction", "plan", "organize", "prioritization"],
+    discipline_mentor: ["discipline", "consistency", "daily", "routine", "habit", "practice"],
+    alignment_mentor: ["intention", "want", "desire", "hope", "wish", "coherence", "alignment"],
+    oracle_mother: ["emotional_safety", "nurturing", "support", "validation", "empathy"],
+    future_self: ["long_term", "future", "vision", "evolution", "transformation"],
+  };
+
+  // Score each mentor based on tag matches
+  const mentorScores = allMentors.map(mentor => {
+    const expertise = mentorExpertise[mentor] || [];
+    const score = tags.reduce((acc, tag) => {
+      return acc + (expertise.includes(tag) ? 1 : 0);
+    }, 0);
+    return { mentor, score };
+  });
+
+  // Sort by relevance score (highest first)
+  mentorScores.sort((a, b) => b.score - a.score);
+
+  // Take top 6 mentors
+  const topMentors = mentorScores.slice(0, 6).map(m => m.mentor);
+  
+  // If no mentors scored, just take the first 6
+  if (mentorScores.every(m => m.score === 0)) {
+    return allMentors.slice(0, 6);
+  }
+
+  return topMentors;
+}
+
 // Invisible keyword engine (user never sees these tags)
 const hiddenKeywords = {
   digital: ['online', 'digital', 'internet', 'platform', 'app', 'website', 'tech'],
@@ -294,8 +336,14 @@ Just the insight, no labels.`;
       councilInsight = data.choices[0].message.content;
     }
 
-    // === GENERATE MENTOR MICRO-PERSPECTIVES (4-5 mentors max, 1-2 sentences each) ===
-    const selectedMentors = mentorTypes.slice(0, 5); // Only first 4-5 mentors respond
+    // === GENERATE MENTOR MICRO-PERSPECTIVES ===
+    // Smart selection: use all if 6 or fewer, otherwise prioritize based on relevance
+    const selectedMentors = mentorTypes.length <= 6 
+      ? mentorTypes 
+      : selectRelevantMentors(mentorTypes, extractedTags);
+    
+    console.log(`Selected ${selectedMentors.length} mentors from ${mentorTypes.length} total:`, selectedMentors);
+    
     const mentorPerspectives: Record<string, string> = {};
 
     for (const mentorType of selectedMentors) {
