@@ -5,6 +5,17 @@ const corsHeaders = {
   "Access-Control-Allow-Headers": "authorization, x-client-info, apikey, content-type",
 };
 
+// Message archetypes for variety
+const MESSAGE_ARCHETYPES = [
+  { name: "CELEBRATION", instruction: "Acknowledge their progress warmly. Make them feel SEEN and celebrated. Reference specific wins." },
+  { name: "CHALLENGE", instruction: "Lovingly push them to take action NOW. Be direct but caring. Issue a specific challenge." },
+  { name: "REFLECTION", instruction: "Ask ONE deep question that stops them in their tracks. Make them think." },
+  { name: "MEMORY", instruction: "Share a 'memory' from the future about this exact moment being pivotal. Be specific." },
+  { name: "PRACTICAL", instruction: "Give ONE concrete micro-action they can do in < 5 minutes RIGHT NOW." },
+  { name: "EMOTIONAL", instruction: "Validate their feelings deeply. Be the warmth and understanding they need. No advice, just presence." },
+  { name: "SURPRISE", instruction: "Say something unexpected that shifts their perspective completely. Be bold and unconventional." },
+];
+
 Deno.serve(async (req) => {
   if (req.method === "OPTIONS") {
     return new Response(null, { headers: corsHeaders });
@@ -30,6 +41,14 @@ Deno.serve(async (req) => {
       .select("*")
       .eq("id", user.id)
       .single();
+
+    // Get recent Future Self messages to avoid repetition
+    const { data: recentFSMessages } = await supabaseClient
+      .from("future_self_messages")
+      .select("message, trigger_reason, emotional_tone, created_at")
+      .eq("user_id", user.id)
+      .order("created_at", { ascending: false })
+      .limit(5);
 
     // Get recent insights
     const { data: recentDots } = await supabaseClient
@@ -168,6 +187,40 @@ Their story in their own words (excerpt):
 "${profile.user_foundation_story.substring(0, 400)}${profile.user_foundation_story.length > 400 ? '...' : ''}"
 ` : '';
 
+    // === MESSAGE VARIETY SYSTEM ===
+    // Detect archetypes from recent messages to avoid repetition
+    const recentArchetypes: string[] = [];
+    if (recentFSMessages && recentFSMessages.length > 0) {
+      for (const msg of recentFSMessages) {
+        const msgLower = msg.message.toLowerCase();
+        if (msgLower.includes("remember when") || msgLower.includes("this moment")) {
+          recentArchetypes.push("MEMORY");
+        } else if (msgLower.includes("?") && msgLower.length < 150) {
+          recentArchetypes.push("REFLECTION");
+        } else if (msgLower.includes("celebrate") || msgLower.includes("proud") || msgLower.includes("amazing")) {
+          recentArchetypes.push("CELEBRATION");
+        } else if (msgLower.includes("challenge") || msgLower.includes("push") || msgLower.includes("now")) {
+          recentArchetypes.push("CHALLENGE");
+        } else if (msgLower.includes("minutes") || msgLower.includes("try") || msgLower.includes("step")) {
+          recentArchetypes.push("PRACTICAL");
+        } else if (msgLower.includes("feel") || msgLower.includes("okay") || msgLower.includes("valid")) {
+          recentArchetypes.push("EMOTIONAL");
+        }
+      }
+    }
+
+    // Pick archetype they haven't seen recently
+    const availableArchetypes = MESSAGE_ARCHETYPES.filter(a => !recentArchetypes.includes(a.name));
+    const chosenArchetype = availableArchetypes.length > 0 
+      ? availableArchetypes[Math.floor(Math.random() * availableArchetypes.length)]
+      : MESSAGE_ARCHETYPES[Math.floor(Math.random() * MESSAGE_ARCHETYPES.length)];
+
+    // Build recent messages context
+    const recentMessagesContext = recentFSMessages && recentFSMessages.length > 0
+      ? `\nRECENT MESSAGES YOU'VE SENT (DO NOT REPEAT THESE - be completely different):
+${recentFSMessages.map((m: any, i: number) => `${i + 1}. "${m.message.slice(0, 100)}..." (${m.trigger_reason})`).join("\n")}`
+      : "";
+
     // Build the NEW Future Self system prompt
     const systemPrompt = `You are the user's FUTURE SELF - the version of them that has already achieved their purpose: "${profile?.main_mission || "living in full alignment"}".
 
@@ -225,15 +278,27 @@ CURRENT ENERGETIC STATE:
 - Coherence: ${energeticSnapshot.coherence_level}/10
 - Emotional: ${energeticSnapshot.emotional_state || "unknown"}
 - Trigger: ${triggerReason}
+${recentMessagesContext}
+
+=== MESSAGE ARCHETYPE FOR THIS MESSAGE ===
+Use this archetype: ${chosenArchetype.name}
+Instructions: ${chosenArchetype.instruction}
+
+=== CRITICAL VARIETY RULES ===
+1. NEVER repeat the same opening phrase you've used before
+2. NEVER give the same advice twice
+3. Reference DIFFERENT aspects of their story each time
+4. Vary your sentence structure: questions, statements, memories, challenges
+5. If recent messages were warm, be more challenging. If practical, be emotional. CONTRAST.
+6. Make them feel like you SEE them in THIS EXACT MOMENT
 
 YOUR MESSAGE MUST:
 1. Be 2-4 sentences MAXIMUM
 2. Sound like THEM talking to themselves from the future
-3. Include ONE specific action OR question (use the hints above when relevant)
+3. Follow the archetype instructions above
 4. Never mention data sources (Human Design, council, etc.) - just use the wisdom silently
 5. Feel like a whisper from their highest self that KNOWS them intimately
-6. Use phrases like "I remember when...", "You already know...", "This is the moment where..."
-7. Be warm but direct. Loving but challenging. Comforting but action-oriented.`;
+6. Use varied phrases like "I remember...", "You already know...", "This is the moment where...", "What if...", "Here's what I learned..."`;
 
 
     const LOVABLE_API_KEY = Deno.env.get("LOVABLE_API_KEY");
@@ -249,7 +314,7 @@ YOUR MESSAGE MUST:
         model: "google/gemini-2.5-flash",
         messages: [
           { role: "system", content: systemPrompt },
-          { role: "user", content: `Generate Future Self guidance for: ${triggerReason}` }
+          { role: "user", content: `Generate Future Self guidance for: ${triggerReason}. Use the ${chosenArchetype.name} archetype.` }
         ],
       }),
     });
@@ -263,14 +328,18 @@ YOUR MESSAGE MUST:
     const aiData = await aiResponse.json();
     const message = aiData.choices[0].message.content;
 
-    // Determine emotional tone based on trigger
+    // Determine emotional tone based on trigger and archetype
     let emotionalTone = "present";
-    if (triggerReason === "breakthrough" || triggerReason === "flow_state") {
+    if (triggerReason === "breakthrough" || triggerReason === "flow_state" || chosenArchetype.name === "CELEBRATION") {
       emotionalTone = "celebratory";
-    } else if (triggerReason === "low_energy" || triggerReason === "energy_decline") {
+    } else if (triggerReason === "low_energy" || triggerReason === "energy_decline" || chosenArchetype.name === "EMOTIONAL") {
       emotionalTone = "supportive";
     } else if (triggerReason === "expansion" || triggerReason === "high_coherence") {
       emotionalTone = "amplifying";
+    } else if (chosenArchetype.name === "CHALLENGE") {
+      emotionalTone = "challenging";
+    } else if (chosenArchetype.name === "REFLECTION") {
+      emotionalTone = "contemplative";
     }
 
     return new Response(
@@ -278,6 +347,7 @@ YOUR MESSAGE MUST:
         message,
         emotional_tone: emotionalTone,
         trigger: triggerReason,
+        archetype: chosenArchetype.name,
       }),
       { headers: { ...corsHeaders, "Content-Type": "application/json" } }
     );

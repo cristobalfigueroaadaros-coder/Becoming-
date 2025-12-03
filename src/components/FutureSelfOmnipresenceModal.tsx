@@ -12,7 +12,7 @@ interface FutureSelfMessage {
 
 interface FutureSelfOmnipresenceModalProps {
   message: FutureSelfMessage | null;
-  onDismiss: () => void;
+  onDismiss: (wasReceived: boolean) => void;
 }
 
 const triggerReasonLabels: Record<string, string> = {
@@ -29,7 +29,7 @@ export function FutureSelfOmnipresenceModal({ message, onDismiss }: FutureSelfOm
   if (!message) return null;
 
   return (
-    <Dialog open={!!message} onOpenChange={onDismiss}>
+    <Dialog open={!!message} onOpenChange={() => onDismiss(false)}>
       <DialogContent className="max-w-2xl border-2 border-[hsl(330,85%,60%)]/40 bg-gradient-to-br from-[hsl(330,85%,98%)] via-card/95 to-[hsl(330,75%,95%)] backdrop-blur dark:from-card dark:to-[hsl(330,85%,20%)]/20">
         <div className="absolute inset-0 bg-gradient-to-br from-[hsl(330,85%,60%)]/10 via-transparent to-[hsl(330,75%,70%)]/10 pointer-events-none" />
         
@@ -54,7 +54,7 @@ export function FutureSelfOmnipresenceModal({ message, onDismiss }: FutureSelfOm
             <Button
               variant="ghost"
               size="icon"
-              onClick={onDismiss}
+              onClick={() => onDismiss(false)}
               className="absolute top-0 right-0"
             >
               <X className="w-4 h-4" />
@@ -100,13 +100,13 @@ export function FutureSelfOmnipresenceModal({ message, onDismiss }: FutureSelfOm
           {/* Actions */}
           <div className="flex gap-3 pt-2">
             <Button
-              onClick={onDismiss}
+              onClick={() => onDismiss(true)}
               className="flex-1 bg-gradient-to-r from-[hsl(330,85%,60%)] to-[hsl(330,75%,70%)] hover:opacity-90 text-white shadow-lg shadow-[hsl(330,85%,60%)]/30"
             >
               I receive this
             </Button>
             <Button
-              onClick={onDismiss}
+              onClick={() => onDismiss(false)}
               variant="outline"
             >
               Not now
