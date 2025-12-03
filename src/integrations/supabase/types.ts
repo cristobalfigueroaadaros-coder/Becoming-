@@ -680,6 +680,45 @@ export type Database = {
         }
         Relationships: []
       }
+      future_self_messages: {
+        Row: {
+          created_at: string | null
+          dismissed_at: string | null
+          emotional_tone: string | null
+          id: string
+          message: string
+          shown_at: string | null
+          snapshot_id: string | null
+          trigger_reason: string
+          user_id: string
+          was_received: boolean | null
+        }
+        Insert: {
+          created_at?: string | null
+          dismissed_at?: string | null
+          emotional_tone?: string | null
+          id?: string
+          message: string
+          shown_at?: string | null
+          snapshot_id?: string | null
+          trigger_reason: string
+          user_id: string
+          was_received?: boolean | null
+        }
+        Update: {
+          created_at?: string | null
+          dismissed_at?: string | null
+          emotional_tone?: string | null
+          id?: string
+          message?: string
+          shown_at?: string | null
+          snapshot_id?: string | null
+          trigger_reason?: string
+          user_id?: string
+          was_received?: boolean | null
+        }
+        Relationships: []
+      }
       future_self_progress: {
         Row: {
           created_at: string | null
@@ -1021,6 +1060,7 @@ export type Database = {
           future_self_voice_note: string | null
           human_design_data: Json | null
           id: string
+          last_future_self_message_at: string | null
           last_whisper_date: string | null
           main_mission: string | null
           main_strengths: string[] | null
@@ -1049,6 +1089,7 @@ export type Database = {
           future_self_voice_note?: string | null
           human_design_data?: Json | null
           id: string
+          last_future_self_message_at?: string | null
           last_whisper_date?: string | null
           main_mission?: string | null
           main_strengths?: string[] | null
@@ -1077,6 +1118,7 @@ export type Database = {
           future_self_voice_note?: string | null
           human_design_data?: Json | null
           id?: string
+          last_future_self_message_at?: string | null
           last_whisper_date?: string | null
           main_mission?: string | null
           main_strengths?: string[] | null
