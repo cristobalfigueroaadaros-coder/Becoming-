@@ -5,6 +5,24 @@ const corsHeaders = {
   "Access-Control-Allow-Headers": "authorization, x-client-info, apikey, content-type",
 };
 
+// Global keyword highlighting rules - add to all AI prompts
+const KEYWORD_HIGHLIGHTING_RULES = `
+=== KEYWORD HIGHLIGHTING RULES (ALWAYS APPLY) ===
+1. Highlight 1-3 important concepts per message using **bold** markdown
+2. ONLY highlight meaningful concepts:
+   - Purpose themes (e.g., **clarity**, **impact**, **legacy**)
+   - Fears (e.g., **rejection**, **failure**, **visibility**)
+   - Bottlenecks (e.g., **consistency**, **perfectionism**, **overthinking**)
+   - Values (e.g., **authenticity**, **freedom**, **connection**)
+   - Action drivers (e.g., **momentum**, **accountability**, **focus**)
+   - Strategic insights (e.g., **viral potential**, **positioning**, **leverage**)
+3. DO NOT highlight more than 3 words per message
+4. Keywords must be contextual and directly relevant to what the user said
+5. Example: "Your block right now is **consistency**."
+6. Example: "This idea has strong **viral potential**."
+=== END RULES ===
+`;
+
 Deno.serve(async (req) => {
   if (req.method === "OPTIONS") {
     return new Response(null, { headers: corsHeaders });
@@ -255,10 +273,13 @@ The user just created this main goal: "${goals.mainGoal.title}"
 Their emotional state: ${emotionalTone || 'contemplative'}
 Their question was about: "${question}"
 
+${KEYWORD_HIGHLIGHTING_RULES}
+
 Send them a supportive message (2-4 sentences max):
 1. Acknowledge their decision and direction
 2. Offer brief wisdom about their goal
 3. Ground them in their identity and capability
+4. Highlight 1-3 key concepts with **bold** markdown
 
 DO NOT include tasks or checklists. Sound human, not robotic.
 NO greeting, NO sign-off. Just the message.`;

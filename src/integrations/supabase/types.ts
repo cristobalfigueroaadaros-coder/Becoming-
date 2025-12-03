@@ -1577,6 +1577,45 @@ export type Database = {
         }
         Relationships: []
       }
+      user_keywords: {
+        Row: {
+          context: string | null
+          created_at: string | null
+          frequency_count: number | null
+          id: string
+          keyword: string
+          keyword_type: string
+          last_seen_at: string | null
+          source: string
+          source_id: string | null
+          user_id: string
+        }
+        Insert: {
+          context?: string | null
+          created_at?: string | null
+          frequency_count?: number | null
+          id?: string
+          keyword: string
+          keyword_type: string
+          last_seen_at?: string | null
+          source: string
+          source_id?: string | null
+          user_id: string
+        }
+        Update: {
+          context?: string | null
+          created_at?: string | null
+          frequency_count?: number | null
+          id?: string
+          keyword?: string
+          keyword_type?: string
+          last_seen_at?: string | null
+          source?: string
+          source_id?: string | null
+          user_id?: string
+        }
+        Relationships: []
+      }
       user_mentor_badges: {
         Row: {
           badge_icon: string

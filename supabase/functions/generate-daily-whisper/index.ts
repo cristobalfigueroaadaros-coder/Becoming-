@@ -6,6 +6,24 @@ const corsHeaders = {
   "Access-Control-Allow-Headers": "authorization, x-client-info, apikey, content-type",
 };
 
+// Global keyword highlighting rules - add to all AI prompts
+const KEYWORD_HIGHLIGHTING_RULES = `
+=== KEYWORD HIGHLIGHTING RULES (ALWAYS APPLY) ===
+1. Highlight 1-3 important concepts per message using **bold** markdown
+2. ONLY highlight meaningful concepts:
+   - Purpose themes (e.g., **clarity**, **impact**, **legacy**)
+   - Fears (e.g., **rejection**, **failure**, **visibility**)
+   - Bottlenecks (e.g., **consistency**, **perfectionism**, **overthinking**)
+   - Values (e.g., **authenticity**, **freedom**, **connection**)
+   - Action drivers (e.g., **momentum**, **accountability**, **focus**)
+   - Strategic insights (e.g., **viral potential**, **positioning**, **leverage**)
+3. DO NOT highlight more than 3 words per message
+4. Keywords must be contextual and directly relevant to what the user said
+5. Example: "Your block right now is **consistency**."
+6. Example: "This idea has strong **viral potential**."
+=== END RULES ===
+`;
+
 // Whisper types based on trigger (Future Self adapts tone)
 const triggerToWhisperType: Record<string, string> = {
   low_energy: 'nurturing',
@@ -272,13 +290,16 @@ CURRENT MOMENT: ${triggerReason}
 
 ${whisperTypePrompts[whisperType] || whisperTypePrompts.encouragement}
 
+${KEYWORD_HIGHLIGHTING_RULES}
+
 CRITICAL RULES:
 - 2-4 sentences MAXIMUM
 - Sound like THEM from the future
 - Include ONE specific action or question (use hints when relevant)
 - Never mention data sources
 - Use phrases like "I remember when...", "You already know..."
-- Be warm but direct. Loving but challenging.`;
+- Be warm but direct. Loving but challenging.
+- Highlight 1-3 key concepts with **bold** markdown`;
 
     const aiResponse = await fetch("https://ai.gateway.lovable.dev/v1/chat/completions", {
       method: "POST",

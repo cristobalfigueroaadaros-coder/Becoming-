@@ -1,10 +1,11 @@
-import { useState, useEffect } from "react";
+import { useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { motion, AnimatePresence } from "framer-motion";
-import { X, MessageCircle, Sparkles, ArrowRight } from "lucide-react";
+import { X, MessageCircle, ArrowRight } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
 import { cn } from "@/lib/utils";
+import { HighlightedText } from "@/components/HighlightedText";
 
 interface MentorWhisperNotificationProps {
   whisper: {
@@ -118,9 +119,7 @@ export function MentorWhisperNotification({ whisper, onDismiss, onReply }: Mento
 
             {/* Message */}
             <div className="mb-4">
-              <p className="text-sm leading-relaxed">
-                {whisper.message}
-              </p>
+              <HighlightedText text={whisper.message} className="text-sm leading-relaxed" />
             </div>
 
             {/* Actions */}

@@ -9,6 +9,7 @@ import { ArrowLeft, Send, Sparkles, MessageCircle } from "lucide-react";
 import { toast } from "sonner";
 import { cn } from "@/lib/utils";
 import { MentorLearningModule } from "@/components/MentorLearningModule";
+import { HighlightedText } from "@/components/HighlightedText";
 
 interface Whisper {
   id: string;
@@ -300,7 +301,11 @@ const Chat = () => {
                     : "bg-card"
                 )}
               >
-                <p className="whitespace-pre-wrap">{message.content}</p>
+                {message.role === "user" ? (
+                  <p className="whitespace-pre-wrap">{message.content}</p>
+                ) : (
+                  <HighlightedText text={message.content} />
+                )}
               </Card>
             </div>
           ))}

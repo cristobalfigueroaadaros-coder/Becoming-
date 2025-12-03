@@ -5,6 +5,24 @@ const corsHeaders = {
   "Access-Control-Allow-Headers": "authorization, x-client-info, apikey, content-type",
 };
 
+// Global keyword highlighting rules - add to all AI prompts
+const KEYWORD_HIGHLIGHTING_RULES = `
+=== KEYWORD HIGHLIGHTING RULES (ALWAYS APPLY) ===
+1. Highlight 1-3 important concepts per message using **bold** markdown
+2. ONLY highlight meaningful concepts:
+   - Purpose themes (e.g., **clarity**, **impact**, **legacy**)
+   - Fears (e.g., **rejection**, **failure**, **visibility**)
+   - Bottlenecks (e.g., **consistency**, **perfectionism**, **overthinking**)
+   - Values (e.g., **authenticity**, **freedom**, **connection**)
+   - Action drivers (e.g., **momentum**, **accountability**, **focus**)
+   - Strategic insights (e.g., **viral potential**, **positioning**, **leverage**)
+3. DO NOT highlight more than 3 words per message
+4. Keywords must be contextual and directly relevant to what the user said
+5. Example: "Your block right now is **consistency**."
+6. Example: "This idea has strong **viral potential**."
+=== END RULES ===
+`;
+
 // 12-mentor system with updated personalities
 const mentorNames: Record<string, string> = {
   discipline_mentor: "Discipline Mentor",
@@ -569,7 +587,9 @@ ${isQ2 ? 'Slightly deeper, but still concise.' : ''}
 ${isQ3 ? 'Acknowledge readiness, build momentum.' : ''}
 
 Strong personality. Sharp. Clear. No fluff.
-Just your perspective, no labels or format.`;
+Just your perspective, no labels or format.
+
+${KEYWORD_HIGHLIGHTING_RULES}`;
       }
 
       if (mentorType === "future_self" && profile) {
