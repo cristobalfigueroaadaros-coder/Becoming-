@@ -12,6 +12,7 @@ import { useShadowEncounters } from "@/hooks/useShadowEncounters";
 import { motion } from "framer-motion";
 import { VoiceRecorder } from "@/components/VoiceRecorder";
 import { CouncilIntroductionModal } from "@/components/CouncilIntroductionModal";
+import { HighlightedText } from "@/components/HighlightedText";
 
 // Updated mentor names with new 12-mentor system
 const mentorNames: Record<string, string> = {
@@ -475,9 +476,7 @@ const CouncilMeeting = () => {
                     </CardTitle>
                   </CardHeader>
                   <CardContent>
-                    <p className="text-sm sm:text-base leading-relaxed font-medium">
-                      {councilInsight}
-                    </p>
+                    <HighlightedText text={councilInsight} className="text-sm sm:text-base leading-relaxed font-medium" />
                   </CardContent>
                 </Card>
               </motion.div>
@@ -509,9 +508,7 @@ const CouncilMeeting = () => {
                             <p className="text-sm font-semibold text-primary">
                               {mentorNames[mentorType] || mentorType.replace(/_/g, ' ')}
                             </p>
-                            <p className="text-sm leading-relaxed mt-1 text-muted-foreground">
-                              {perspective}
-                            </p>
+                            <HighlightedText text={perspective} className="text-sm leading-relaxed mt-1 text-muted-foreground" />
                           </div>
                         </div>
                       </CardContent>
@@ -532,16 +529,16 @@ const CouncilMeeting = () => {
                   <CardContent className="space-y-3 px-3 py-4">
                     {banterLines.map((line, idx) => {
                       const isEven = idx % 2 === 0;
-                      const cleanText = line.text.replace(/\*\*/g, '');
                       
                       // Add contextual emoji based on mentor and text
                       const getEmoji = () => {
-                        if (cleanText.toLowerCase().includes('build') || cleanText.toLowerCase().includes('create')) return '🚀';
-                        if (cleanText.toLowerCase().includes('energy') || cleanText.toLowerCase().includes('frequency')) return '⚡';
-                        if (cleanText.toLowerCase().includes('vision') || cleanText.toLowerCase().includes('dream')) return '✨';
-                        if (cleanText.toLowerCase().includes('action') || cleanText.toLowerCase().includes('move')) return '🎯';
-                        if (cleanText.toLowerCase().includes('wisdom') || cleanText.toLowerCase().includes('truth')) return '🧘';
-                        if (cleanText.toLowerCase().includes('heart') || cleanText.toLowerCase().includes('love')) return '❤️';
+                        const textLower = line.text.toLowerCase();
+                        if (textLower.includes('build') || textLower.includes('create')) return '🚀';
+                        if (textLower.includes('energy') || textLower.includes('frequency')) return '⚡';
+                        if (textLower.includes('vision') || textLower.includes('dream')) return '✨';
+                        if (textLower.includes('action') || textLower.includes('move')) return '🎯';
+                        if (textLower.includes('wisdom') || textLower.includes('truth')) return '🧘';
+                        if (textLower.includes('heart') || textLower.includes('love')) return '❤️';
                         return '';
                       };
                       
@@ -568,9 +565,9 @@ const CouncilMeeting = () => {
                             <p className="text-xs font-semibold mb-1" style={{ color: line.color }}>
                               {line.mentor}
                             </p>
-                            <p className="text-sm leading-relaxed text-foreground">
-                              {cleanText} {getEmoji()}
-                            </p>
+                            <span className="text-sm leading-relaxed text-foreground">
+                              <HighlightedText text={line.text} /> {getEmoji()}
+                            </span>
                           </div>
                         </motion.div>
                       );
@@ -594,9 +591,7 @@ const CouncilMeeting = () => {
                     </CardTitle>
                   </CardHeader>
                   <CardContent>
-                    <p className="text-sm sm:text-base leading-relaxed italic">
-                      {emotionalReflection}
-                    </p>
+                    <HighlightedText text={emotionalReflection} className="text-sm sm:text-base leading-relaxed italic" />
                   </CardContent>
                 </Card>
               </motion.div>
@@ -642,9 +637,7 @@ const CouncilMeeting = () => {
                     </CardTitle>
                   </CardHeader>
                   <CardContent>
-                    <p className="text-sm sm:text-base leading-relaxed font-medium">
-                      {councilGuidance}
-                    </p>
+                    <HighlightedText text={councilGuidance} className="text-sm sm:text-base leading-relaxed font-medium" />
                   </CardContent>
                 </Card>
               </motion.div>

@@ -5,6 +5,24 @@ const corsHeaders = {
   "Access-Control-Allow-Headers": "authorization, x-client-info, apikey, content-type",
 };
 
+// Global keyword highlighting rules - add to all AI prompts
+const KEYWORD_HIGHLIGHTING_RULES = `
+=== KEYWORD HIGHLIGHTING RULES (ALWAYS APPLY) ===
+1. Highlight 1-3 important concepts per message using **bold** markdown
+2. ONLY highlight meaningful concepts:
+   - Purpose themes (e.g., **clarity**, **impact**, **legacy**)
+   - Fears (e.g., **rejection**, **failure**, **visibility**)
+   - Bottlenecks (e.g., **consistency**, **perfectionism**, **overthinking**)
+   - Values (e.g., **authenticity**, **freedom**, **connection**)
+   - Action drivers (e.g., **momentum**, **accountability**, **focus**)
+   - Strategic insights (e.g., **viral potential**, **positioning**, **leverage**)
+3. DO NOT highlight more than 3 words per message
+4. Keywords must be contextual and directly relevant to what the user said
+5. Example: "Your block right now is **consistency**."
+6. Example: "This idea has strong **viral potential**."
+=== END RULES ===
+`;
+
 // Message archetypes for variety
 const MESSAGE_ARCHETYPES = [
   { name: "CELEBRATION", instruction: "Acknowledge their progress warmly. Make them feel SEEN and celebrated. Reference specific wins." },
@@ -298,8 +316,10 @@ YOUR MESSAGE MUST:
 3. Follow the archetype instructions above
 4. Never mention data sources (Human Design, council, etc.) - just use the wisdom silently
 5. Feel like a whisper from their highest self that KNOWS them intimately
-6. Use varied phrases like "I remember...", "You already know...", "This is the moment where...", "What if...", "Here's what I learned..."`;
+6. Use varied phrases like "I remember...", "You already know...", "This is the moment where...", "What if...", "Here's what I learned..."
+7. Highlight 1-3 key concepts using **bold** markdown
 
+${KEYWORD_HIGHLIGHTING_RULES}`;
 
     const LOVABLE_API_KEY = Deno.env.get("LOVABLE_API_KEY");
     if (!LOVABLE_API_KEY) throw new Error("LOVABLE_API_KEY not configured");

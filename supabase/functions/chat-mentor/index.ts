@@ -5,6 +5,24 @@ const corsHeaders = {
   "Access-Control-Allow-Headers": "authorization, x-client-info, apikey, content-type",
 };
 
+// Global keyword highlighting rules - add to all AI prompts
+const KEYWORD_HIGHLIGHTING_RULES = `
+=== KEYWORD HIGHLIGHTING RULES (ALWAYS APPLY) ===
+1. Highlight 1-3 important concepts per message using **bold** markdown
+2. ONLY highlight meaningful concepts:
+   - Purpose themes (e.g., **clarity**, **impact**, **legacy**)
+   - Fears (e.g., **rejection**, **failure**, **visibility**)
+   - Bottlenecks (e.g., **consistency**, **perfectionism**, **overthinking**)
+   - Values (e.g., **authenticity**, **freedom**, **connection**)
+   - Action drivers (e.g., **momentum**, **accountability**, **focus**)
+   - Strategic insights (e.g., **viral potential**, **positioning**, **leverage**)
+3. DO NOT highlight more than 3 words per message
+4. Keywords must be contextual and directly relevant to what the user said
+5. Example: "Your block right now is **consistency**."
+6. Example: "This idea has strong **viral potential**."
+=== END RULES ===
+`;
+
 const mentorPrompts: Record<string, string> = {
   // ============= LEGACY REDIRECTS (for backwards compatibility) =============
   // These mentors were removed but kept as aliases to prevent errors
@@ -549,6 +567,9 @@ Deno.serve(async (req) => {
       .maybeSingle();
 
     let systemPrompt = mentorPrompts[mentorType] || mentorPrompts.mamba_mentor;
+    
+    // Add keyword highlighting rules to all prompts
+    systemPrompt += `\n\n${KEYWORD_HIGHLIGHTING_RULES}`;
 
     // If Future Self, get profile data
     if (mentorType === "future_self") {

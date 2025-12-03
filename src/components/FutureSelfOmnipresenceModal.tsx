@@ -2,6 +2,7 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/u
 import { Button } from "@/components/ui/button";
 import { Sparkles, X } from "lucide-react";
 import { motion } from "framer-motion";
+import { HighlightedText } from "@/components/HighlightedText";
 
 interface FutureSelfMessage {
   message: string;
@@ -70,8 +71,8 @@ export function FutureSelfOmnipresenceModal({ message, onDismiss }: FutureSelfOm
         >
           {/* Message */}
           <div className="prose prose-sm max-w-none">
-            <p className="text-lg leading-relaxed text-foreground whitespace-pre-line">
-              {message.message}
+            <p className="text-lg leading-relaxed text-foreground">
+              <HighlightedText text={message.message} highlightClassName="font-semibold text-[hsl(330,85%,60%)]" />
             </p>
           </div>
 
