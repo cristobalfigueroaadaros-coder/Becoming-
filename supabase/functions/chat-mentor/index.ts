@@ -559,15 +559,46 @@ Deno.serve(async (req) => {
         .single();
 
       if (profile) {
+        const foundationSummary = profile.user_foundation_summary || {};
+        const foundationContext = profile.user_foundation_story ? `
+
+THEIR FOUNDATION STORY (Reference this to personalize deeply):
+- Who they are: ${foundationSummary.who_they_are || 'Unknown'}
+- Background: ${foundationSummary.background || 'Unknown'}
+- Struggles: ${foundationSummary.struggles?.join(', ') || 'Unknown'}
+- Aspirations: ${foundationSummary.aspirations?.join(', ') || 'Unknown'}
+- Key themes: ${foundationSummary.key_themes?.join(', ') || 'Unknown'}
+` : '';
+
         systemPrompt += `\n\nFuture Self Profile:
 Age: ${profile.future_age}
 Location: ${profile.future_location}
 Lifestyle: ${profile.future_lifestyle}
 Mission: ${profile.main_mission}
 Emotional Tone: ${profile.emotional_tone}
-Main Strengths: ${profile.main_strengths.join(", ")}
+Main Strengths: ${profile.main_strengths?.join(", ") || "Not specified"}
+${foundationContext}
+Embody this future version when responding. Reference their foundation story naturally - you REMEMBER who they were.`;
+      }
+    } else {
+      // For non-Future Self mentors, still get foundation story
+      const { data: profile } = await supabaseClient
+        .from("profiles")
+        .select("user_foundation_story, user_foundation_summary")
+        .eq("id", user.id)
+        .single();
 
-Embody this future version when responding.`;
+      if (profile?.user_foundation_story) {
+        const foundationSummary = profile.user_foundation_summary || {};
+        systemPrompt += `
+
+=== USER'S FOUNDATION STORY (Use to personalize your guidance) ===
+Who they are: ${foundationSummary.who_they_are || 'Not specified'}
+Struggles: ${foundationSummary.struggles?.join(', ') || 'Not specified'}
+Aspirations: ${foundationSummary.aspirations?.join(', ') || 'Not specified'}
+=== END FOUNDATION ===
+
+IMPORTANT: Reference their specific struggles and aspirations naturally in your guidance.`;
       }
     }
 

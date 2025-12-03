@@ -41,7 +41,7 @@ serve(async (req) => {
     // Check if user already received a whisper today
     const { data: profile } = await supabase
       .from("profiles")
-      .select("last_whisper_date, main_mission, priority_growth_area, human_design_data")
+      .select("last_whisper_date, main_mission, priority_growth_area, human_design_data, user_foundation_story, user_foundation_summary")
       .eq("id", user.id)
       .single();
 
@@ -225,6 +225,17 @@ serve(async (req) => {
       }
     }
 
+    // Build foundation context
+    const foundationSummary = profile?.user_foundation_summary || {};
+    const foundationContext = profile?.user_foundation_story ? `
+THEIR FOUNDATION STORY (Reference this to personalize):
+- Who they are: ${foundationSummary.who_they_are || 'Unknown'}
+- Background: ${foundationSummary.background || 'Unknown'}
+- Struggles: ${foundationSummary.struggles?.join(', ') || 'Unknown'}
+- Aspirations: ${foundationSummary.aspirations?.join(', ') || 'Unknown'}
+- Key themes: ${foundationSummary.key_themes?.join(', ') || 'Unknown'}
+` : '';
+
     // Future Self personality - warm, wise, grounded, supportive
     const futureSelfPersonality = `You are the user's FUTURE SELF - the version of them that has already achieved: "${profile?.main_mission || "living in full alignment"}".
 
@@ -234,12 +245,13 @@ YOUR ESSENCE:
 - You are THEM, evolved. Not a guide - their own consciousness from the future.
 - You mix warmth with directness. Love with challenge.
 - You never lecture. You REMIND them of what they already know.
+- Reference their foundation story - you REMEMBER who they were and what they struggled with.
 
 THEIR CONTEXT:
 Purpose: ${profile?.main_mission || "Discovering"}
 Growth edge: ${profile?.priority_growth_area || "Expanding"}
 Human Design (use silently): ${humanDesignContext}
-
+${foundationContext}
 Recent Council: ${councilData.data?.[0] ? `"${councilData.data[0].question}" - ${councilData.data[0].resolution?.slice(0, 100) || "Still processing"}...` : "None"}
 Recent Insights: ${insightDotsData.data?.map((d: any) => d.core_theme).join(", ") || "None"}
 Actionable Hints: ${hints.join(" | ") || "None"}`;

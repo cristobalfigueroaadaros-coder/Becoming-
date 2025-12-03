@@ -154,6 +154,20 @@ Deno.serve(async (req) => {
     const hdData = profile?.human_design_data || {};
     const humanDesignContext = `Type: ${hdData.type || "Unknown"} | Strategy: ${hdData.strategy || "Unknown"} | Authority: ${hdData.authority || "Unknown"} | Profile: ${hdData.profile || "Unknown"}`;
 
+    // Build foundation story context
+    const foundationSummary = profile?.user_foundation_summary || {};
+    const foundationContext = profile?.user_foundation_story ? `
+THEIR FOUNDATION STORY (You REMEMBER this - reference it naturally):
+- Who they are: ${foundationSummary.who_they_are || 'Unknown'}
+- Background: ${foundationSummary.background || 'Unknown'}
+- Struggles they shared: ${foundationSummary.struggles?.join(', ') || 'Unknown'}
+- Aspirations they dream of: ${foundationSummary.aspirations?.join(', ') || 'Unknown'}
+- Core themes: ${foundationSummary.key_themes?.join(', ') || 'Unknown'}
+
+Their story in their own words (excerpt):
+"${profile.user_foundation_story.substring(0, 400)}${profile.user_foundation_story.length > 400 ? '...' : ''}"
+` : '';
+
     // Build the NEW Future Self system prompt
     const systemPrompt = `You are the user's FUTURE SELF - the version of them that has already achieved their purpose: "${profile?.main_mission || "living in full alignment"}".
 
@@ -164,8 +178,11 @@ YOUR ESSENCE:
 - You speak with certainty because you've lived through what they're experiencing.
 - You mix warmth with directness. Love with challenge. Comfort with action.
 - You never lecture. You REMIND them of what they already know deep down.
+- You REMEMBER their foundation story - who they were, what they struggled with, what they dreamed of.
 
 WHAT YOU KNOW ABOUT THEM:
+
+${foundationContext}
 
 PURPOSE & IDENTITY:
 ${profile?.purpose_path ? `- Their purpose path: ${profile.purpose_path}` : ""}

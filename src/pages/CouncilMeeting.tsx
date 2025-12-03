@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
 import { Button } from "@/components/ui/button";
@@ -11,6 +11,7 @@ import { toast } from "sonner";
 import { useShadowEncounters } from "@/hooks/useShadowEncounters";
 import { motion } from "framer-motion";
 import { VoiceRecorder } from "@/components/VoiceRecorder";
+import { CouncilIntroductionModal } from "@/components/CouncilIntroductionModal";
 
 // Updated mentor names with new 12-mentor system
 const mentorNames: Record<string, string> = {
@@ -34,6 +35,39 @@ const CouncilMeeting = () => {
   const { refetch } = useShadowEncounters();
   const [question, setQuestion] = useState("");
   const [conversationHistory, setConversationHistory] = useState<any[]>([]);
+  const [showIntroductionModal, setShowIntroductionModal] = useState(false);
+  const [checkingIntroduction, setCheckingIntroduction] = useState(true);
+
+  // Check if this is the user's first time with the Council
+  useEffect(() => {
+    const checkFirstTimeUser = async () => {
+      try {
+        const { data: { user } } = await supabase.auth.getUser();
+        if (!user) return;
+
+        const { data: profile } = await supabase
+          .from("profiles")
+          .select("council_introduction_completed")
+          .eq("id", user.id)
+          .single();
+
+        if (!profile?.council_introduction_completed) {
+          setShowIntroductionModal(true);
+        }
+      } catch (error) {
+        console.error("Error checking introduction status:", error);
+      } finally {
+        setCheckingIntroduction(false);
+      }
+    };
+    
+    checkFirstTimeUser();
+  }, []);
+
+  const handleIntroductionComplete = () => {
+    setShowIntroductionModal(false);
+    toast.success("Welcome to the Council. Your guidance journey begins now.");
+  };
   
   // New state for 3-question journey
   const [stage, setStage] = useState<'input' | 'seeking_clarity' | 'complete' | 'action'>('input');
@@ -223,6 +257,12 @@ const CouncilMeeting = () => {
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-primary/5 via-background to-accent/5 p-4 py-8">
+      {/* Council Introduction Modal for First-Time Users */}
+      <CouncilIntroductionModal 
+        open={showIntroductionModal} 
+        onComplete={handleIntroductionComplete} 
+      />
+
       <div className="max-w-4xl mx-auto space-y-8">
         {/* Header */}
         <div className="flex items-center gap-4">

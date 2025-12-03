@@ -1010,6 +1010,7 @@ export type Database = {
           birth_time: string | null
           birth_time_unknown: boolean | null
           constellation_insights: Json | null
+          council_introduction_completed: boolean | null
           created_at: string | null
           display_name: string | null
           emotional_tone: string | null
@@ -1027,6 +1028,9 @@ export type Database = {
           purpose_path: string | null
           shadow_intensity: string | null
           updated_at: string | null
+          user_foundation_audio_url: string | null
+          user_foundation_story: string | null
+          user_foundation_summary: Json | null
         }
         Insert: {
           birth_date?: string | null
@@ -1034,6 +1038,7 @@ export type Database = {
           birth_time?: string | null
           birth_time_unknown?: boolean | null
           constellation_insights?: Json | null
+          council_introduction_completed?: boolean | null
           created_at?: string | null
           display_name?: string | null
           emotional_tone?: string | null
@@ -1051,6 +1056,9 @@ export type Database = {
           purpose_path?: string | null
           shadow_intensity?: string | null
           updated_at?: string | null
+          user_foundation_audio_url?: string | null
+          user_foundation_story?: string | null
+          user_foundation_summary?: Json | null
         }
         Update: {
           birth_date?: string | null
@@ -1058,6 +1066,7 @@ export type Database = {
           birth_time?: string | null
           birth_time_unknown?: boolean | null
           constellation_insights?: Json | null
+          council_introduction_completed?: boolean | null
           created_at?: string | null
           display_name?: string | null
           emotional_tone?: string | null
@@ -1075,6 +1084,9 @@ export type Database = {
           purpose_path?: string | null
           shadow_intensity?: string | null
           updated_at?: string | null
+          user_foundation_audio_url?: string | null
+          user_foundation_story?: string | null
+          user_foundation_summary?: Json | null
         }
         Relationships: []
       }
