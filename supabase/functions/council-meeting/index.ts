@@ -251,19 +251,38 @@ Deno.serve(async (req) => {
       .eq("user_id", user.id)
       .maybeSingle();
 
+    // === BUILD USER FOUNDATION CONTEXT ===
+    const foundationSummary = profile?.user_foundation_summary || {};
+    const userFoundationContext = profile?.user_foundation_story ? `
+=== USER'S FOUNDATION STORY (Use this to personalize ALL responses) ===
+Who they are: ${foundationSummary.who_they_are || 'Not specified'}
+Background: ${foundationSummary.background || 'Not specified'}
+Struggles: ${foundationSummary.struggles?.join(', ') || 'Not specified'}
+Aspirations: ${foundationSummary.aspirations?.join(', ') || 'Not specified'}
+Key themes: ${foundationSummary.key_themes?.join(', ') || 'Not specified'}
+
+THEIR STORY (in their own words):
+"${profile.user_foundation_story.substring(0, 500)}${profile.user_foundation_story.length > 500 ? '...' : ''}"
+=== END FOUNDATION ===
+
+CRITICAL: Reference specific details from their foundation story. Use their actual words when possible. Show that you KNOW them.
+` : '';
+
     // === Q2 ONLY: COUNCIL SEEKING CLARITY ===
     if (isQ2 && !lowerQuestion.includes("i'm ready") && !lowerQuestion.includes("what should i do")) {
       const conversationContext = formatConversationHistory(conversationHistory);
       
       const clarityPrompt = `You are the Council. Generate ONE very simple question to understand the user better.
+${userFoundationContext}
 ${conversationContext}
 
 User's CURRENT message: "${question}"
 
 IMPORTANT: 
-- Do NOT ask about anything the user has already shared
+- Do NOT ask about anything the user has already shared (including their foundation story)
 - Ask about something NEW that would help deepen understanding
-- Build upon what you already know
+- Build upon what you already know about them
+- Reference their background/struggles/aspirations when relevant
 
 Generate ONE simple question (not philosophical, not complex):
 Max 10 words.`;
@@ -299,6 +318,7 @@ Max 10 words.`;
     const conversationContext = formatConversationHistory(conversationHistory);
     
     const insightPrompt = `You are the Council delivering a unified insight.
+${userFoundationContext}
 ${conversationContext}
 
 CURRENT Question: "${question}"
@@ -307,14 +327,16 @@ Hidden tags: ${extractedTags.join(', ') || 'none'}
 
 CRITICAL RULES:
 - You MUST acknowledge and build upon what the user has already shared
+- Reference their foundation story - their struggles, aspirations, background
 - NEVER ask about things they already told you (their goal, their idea, their problem)
 - Reference specific details from their previous messages
 - Show that you've been listening and remembering
+- Use their actual words from their foundation story when relevant
 
 Generate 2-3 sentences that:
-${isQ1 ? '- Light, welcoming, inspiring\n- Establish understanding of their intention' : ''}
-${isQ2 ? '- Deeper, building on what they shared in Q1\n- Connect new insights to previous ones' : ''}
-${isQ3 ? '- Acknowledge their full journey so far\n- Synthesize all they have shared\n- Point toward action based on EVERYTHING discussed' : ''}
+${isQ1 ? '- Light, welcoming, inspiring\n- Establish understanding of their intention\n- Show you know their background' : ''}
+${isQ2 ? '- Deeper, building on what they shared in Q1\n- Connect new insights to their foundation story' : ''}
+${isQ3 ? '- Acknowledge their full journey so far\n- Synthesize all they have shared including their foundation\n- Point toward action based on EVERYTHING discussed' : ''}
 
 Just the insight, no labels.`;
 

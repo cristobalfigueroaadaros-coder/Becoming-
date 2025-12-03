@@ -90,5 +90,5 @@ verify_jwt = true
 [functions.trigger-future-self-post-council]
 verify_jwt = true
 
-
-
+[functions.process-user-foundation]
+verify_jwt = true
