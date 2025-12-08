@@ -179,6 +179,39 @@ export type Database = {
         }
         Relationships: []
       }
+      conversation_handoffs: {
+        Row: {
+          created_at: string
+          handoff_summary: string | null
+          id: string
+          processed: boolean
+          source_mentor_type: string
+          source_messages: Json
+          target_mentor_type: string
+          user_id: string
+        }
+        Insert: {
+          created_at?: string
+          handoff_summary?: string | null
+          id?: string
+          processed?: boolean
+          source_mentor_type: string
+          source_messages?: Json
+          target_mentor_type: string
+          user_id: string
+        }
+        Update: {
+          created_at?: string
+          handoff_summary?: string | null
+          id?: string
+          processed?: boolean
+          source_mentor_type?: string
+          source_messages?: Json
+          target_mentor_type?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
       council_meetings: {
         Row: {
           answers: Json

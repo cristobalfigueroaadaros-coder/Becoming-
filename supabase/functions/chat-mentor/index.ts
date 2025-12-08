@@ -236,13 +236,29 @@ SPECIAL RULE: Can send even shorter reminders (1-2 sentences) like:
 - "You forgot to add your idea to the map."`,
 };
 
+const mentorDescriptions: Record<string, string> = {
+  discipline_mentor: "firm, accountability-focused, no excuses",
+  business_mentor: "strategic, results-focused, ROI-driven",
+  creative_visionary: "playful, imaginative, possibility-focused",
+  strategist_mentor: "structured, framework-thinking, methodical",
+  marketing_mentor: "high-energy, story-driven, audience-focused",
+  heart_mentor: "soft, caring, emotionally validating",
+  mystic_mentor: "spiritual, symbolic, intuition-focused",
+  ancient_sage: "timeless, wise, grounding",
+  oracle_mother: "nurturing, protective, unconditionally accepting",
+  alignment_mentor: "integrative, balanced, parts-work focused",
+  quantum_inventor: "scientific mystic, frequency-focused",
+  scientific_mentor: "evidence-based, protocol-focused",
+  future_self: "wise future version, long-term perspective",
+};
+
 Deno.serve(async (req) => {
   if (req.method === "OPTIONS") {
     return new Response(null, { headers: corsHeaders });
   }
 
   try {
-    const { mentorType, message } = await req.json();
+    const { mentorType, message, handoffId } = await req.json();
     const authHeader = req.headers.get("Authorization")!;
     const token = authHeader.replace("Bearer ", "");
 
@@ -255,6 +271,47 @@ Deno.serve(async (req) => {
     // Get user
     const { data: { user }, error: userError } = await supabaseClient.auth.getUser(token);
     if (userError || !user) throw new Error("Not authenticated");
+
+    // Check for handoff context
+    let handoffContext = "";
+    if (handoffId) {
+      const { data: handoff } = await supabaseClient
+        .from("conversation_handoffs")
+        .select("*")
+        .eq("id", handoffId)
+        .eq("user_id", user.id)
+        .eq("processed", false)
+        .single();
+
+      if (handoff) {
+        const sourceMessages = handoff.source_messages as Array<{ role: string; content: string }>;
+        const conversationSummary = sourceMessages
+          .map(m => `${m.role === 'user' ? 'USER' : 'MENTOR'}: ${m.content}`)
+          .join('\n\n');
+
+        const sourceMentorName = mentorDescriptions[handoff.source_mentor_type] || handoff.source_mentor_type;
+        
+        handoffContext = `
+=== CONVERSATION HANDOFF ===
+You are receiving this conversation from ${handoff.source_mentor_type.replace('_', ' ').toUpperCase()} (${sourceMentorName}).
+
+The user has been discussing the following with them:
+
+${conversationSummary}
+
+YOUR ROLE: You are being asked to provide YOUR unique perspective on what they've been discussing. Don't repeat what was already said - BUILD on it with your distinct viewpoint.
+
+IMPORTANT INSTRUCTIONS:
+1. Start by briefly acknowledging you've reviewed their conversation (1 sentence)
+2. Immediately offer YOUR fresh angle on the topic
+3. Ask a probing question that reflects YOUR mentoring style
+4. Keep it short and actionable
+
+Example opening: "I've been following your conversation with [Source Mentor]. From my perspective as [Your Role], here's what jumps out at me..."
+=== END HANDOFF ===
+`;
+      }
+    }
 
     // 1. Fetch recent chat history for context (last 20 messages)
     const { data: chatHistory } = await supabaseClient
@@ -289,6 +346,11 @@ Deno.serve(async (req) => {
     
     // Add keyword highlighting rules to all prompts
     systemPrompt += `\n\n${KEYWORD_HIGHLIGHTING_RULES}`;
+
+    // Add handoff context if present
+    if (handoffContext) {
+      systemPrompt += `\n\n${handoffContext}`;
+    }
 
     // If Future Self, get profile data
     if (mentorType === "future_self") {
@@ -342,9 +404,9 @@ IMPORTANT: Reference their specific struggles and aspirations naturally in your 
       }
     }
 
-    // 3. Add council meeting context if available
+    // 3. Add council meeting context if available (only if no handoff)
     let councilContext = "";
-    if (privateMessage?.council_meetings && Array.isArray(privateMessage.council_meetings) && privateMessage.council_meetings.length > 0) {
+    if (!handoffContext && privateMessage?.council_meetings && Array.isArray(privateMessage.council_meetings) && privateMessage.council_meetings.length > 0) {
       const meeting = privateMessage.council_meetings[0];
       councilContext = `
 
@@ -377,8 +439,8 @@ IMPORTANT: Continue this conversation naturally. You reached out to the user abo
       { role: "system", content: systemPrompt },
     ];
 
-    // Add conversation history
-    if (chatHistory && chatHistory.length > 0) {
+    // Add conversation history (only if not a handoff init)
+    if (chatHistory && chatHistory.length > 0 && message !== "__HANDOFF_INIT__") {
       for (const msg of chatHistory) {
         messages.push({
           role: msg.role as "user" | "assistant",
@@ -387,8 +449,15 @@ IMPORTANT: Continue this conversation naturally. You reached out to the user abo
       }
     }
 
-    // Add the new user message
-    messages.push({ role: "user", content: message });
+    // Add the new user message (or handoff init prompt)
+    if (message === "__HANDOFF_INIT__") {
+      messages.push({ 
+        role: "user", 
+        content: "I'd like to hear your perspective on what I was just discussing with the other mentor." 
+      });
+    } else {
+      messages.push({ role: "user", content: message });
+    }
 
     // Call Lovable AI with full context
     const aiResponse = await fetch("https://ai.gateway.lovable.dev/v1/chat/completions", {
