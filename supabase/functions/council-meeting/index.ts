@@ -801,16 +801,191 @@ Keep it under 25 words. Just the reflection, no labels.`;
     let suggestedNextQuestion = null;
     
     if ((isQ1 || isQ2) && !lowerQuestion.includes("i'm ready")) {
-      const nextQuestionPrompt = `You are the Council. Generate ONE simple question to help user continue.
+      // === STEP 1: Detect user's JOURNEY STAGE ===
+      const journeyStagePrompt = `Analyze this conversation to detect the user's current JOURNEY STAGE.
+
+User's current question: "${question}"
+Conversation history: ${formatConversationHistory(conversationHistory || [])}
+Hidden tags from question: ${extractedTags.join(', ')}
+
+STAGES:
+1. DISCOVERY - User is exploring, unclear about direction, asking "what" questions
+   Signs: vague ideas, exploring possibilities, seeking understanding, purpose-seeking
+   Examples: "I want to find my purpose", "I'm not sure what I should do", "What should I focus on?"
+
+2. CLARITY - User has some direction, needs to sharpen focus, asking "how" or "who" questions
+   Signs: has an idea but needs validation, choosing between options, gaining insights
+   Examples: "I think I want to help people with anxiety", "Should I focus on X or Y?", "Who would benefit from this?"
+
+3. ACTION - User has clarity AND commitment, ready to build/test/execute, asking "what's next" questions
+   Signs: specific idea, commitment language, wants concrete steps, ready to create something tangible
+   Examples: "I want to build an app that...", "How do I start testing this?", "What's my first step to launch?"
+
+Return ONLY ONE word: DISCOVERY, CLARITY, or ACTION`;
+
+      const journeyStageResponse = await fetch("https://ai.gateway.lovable.dev/v1/chat/completions", {
+        method: "POST",
+        headers: {
+          "Authorization": `Bearer ${Deno.env.get("LOVABLE_API_KEY")}`,
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({
+          model: "google/gemini-2.5-flash",
+          messages: [{ role: "user", content: journeyStagePrompt }],
+        }),
+      });
+
+      let journeyStage = "DISCOVERY";
+      if (journeyStageResponse.ok) {
+        const data = await journeyStageResponse.json();
+        const stageText = data.choices[0].message.content.trim().toUpperCase();
+        if (["DISCOVERY", "CLARITY", "ACTION"].includes(stageText)) {
+          journeyStage = stageText;
+        }
+      }
+      console.log("Detected journey stage:", journeyStage);
+
+      // === STEP 2: Detect PRIMARY DOMAIN FOCUS ===
+      const domainFocusPrompt = `Classify this user's PRIMARY focus domain:
 
 Question: "${question}"
-Phase: ${isQ1 ? 'Q1 - optional suggestion' : 'Q2 - recommended next step'}
+Hidden tags: ${extractedTags.join(', ')}
 
-Generate ONE short, helpful question (max 12 words):
-${isQ1 ? '- "What part of this vision feels most real right now?"\n- "What would make this feel more clear?"' : ''}
-${isQ2 ? '- "What\'s the first small step you could take?"\n- "What would success look like in the next week?"' : ''}
+CREATION: Building something external - product, business, app, course, content, system, framework, tool, service
+PERSONAL: Inner journey - relationships, emotions, healing, purpose discovery, career direction, life meaning, self-understanding
+
+Return ONLY: CREATION or PERSONAL`;
+
+      const domainFocusResponse = await fetch("https://ai.gateway.lovable.dev/v1/chat/completions", {
+        method: "POST",
+        headers: {
+          "Authorization": `Bearer ${Deno.env.get("LOVABLE_API_KEY")}`,
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({
+          model: "google/gemini-2.5-flash",
+          messages: [{ role: "user", content: domainFocusPrompt }],
+        }),
+      });
+
+      let domainFocus = "PERSONAL";
+      if (domainFocusResponse.ok) {
+        const data = await domainFocusResponse.json();
+        const domainText = data.choices[0].message.content.trim().toUpperCase();
+        if (["CREATION", "PERSONAL"].includes(domainText)) {
+          domainFocus = domainText;
+        }
+      }
+      console.log("Detected domain focus:", domainFocus);
+
+      // === STEP 3: Extract ACTIONABLE keywords from banter (only for CLARITY/ACTION + CREATION) ===
+      let banterKeywords = "";
+      if (journeyStage !== "DISCOVERY" && domainFocus === "CREATION" && banter) {
+        const keywordPrompt = `Extract 3-5 ACTIONABLE keywords from this mentor banter:
+
+Banter: ${banter}
+
+Focus on words that represent:
+- Concepts the mentors emphasized (blueprint, framework, system, structure)
+- Action words (test, build, iterate, measure, prototype)
+- Meaningful outcomes (impact, transformation, results, measurable)
+
+Return ONLY a comma-separated list of 3-5 keywords, nothing else.`;
+
+        const keywordResponse = await fetch("https://ai.gateway.lovable.dev/v1/chat/completions", {
+          method: "POST",
+          headers: {
+            "Authorization": `Bearer ${Deno.env.get("LOVABLE_API_KEY")}`,
+            "Content-Type": "application/json",
+          },
+          body: JSON.stringify({
+            model: "google/gemini-2.5-flash",
+            messages: [{ role: "user", content: keywordPrompt }],
+          }),
+        });
+
+        if (keywordResponse.ok) {
+          const data = await keywordResponse.json();
+          banterKeywords = data.choices[0].message.content.trim();
+        }
+        console.log("Extracted banter keywords:", banterKeywords);
+      }
+
+      // === STEP 4: Generate STAGE-AWARE suggested question ===
+      let nextQuestionPrompt = "";
+
+      if (journeyStage === "DISCOVERY") {
+        // DISCOVERY: Guide toward self-understanding and exploration
+        nextQuestionPrompt = `You are the Council. The user is in DISCOVERY stage - exploring, seeking understanding.
+
+User's question: "${question}"
+Domain: ${domainFocus}
+
+Generate ONE short question (max 15 words) that helps them dig deeper into understanding themselves.
+${domainFocus === "PERSONAL" ? 
+  'Examples:\n- "What part of this feels most alive when you imagine it?"\n- "What pattern do you notice keeps showing up here?"' :
+  'Examples:\n- "What kind of problem do you most want to solve?"\n- "Who would you want to help with this?"'}
 
 Just the question, nothing else.`;
+      } else if (journeyStage === "CLARITY") {
+        // CLARITY: Guide toward commitment and sharpening focus
+        if (domainFocus === "PERSONAL") {
+          nextQuestionPrompt = `You are the Council. The user is in CLARITY stage on a PERSONAL journey - gaining insight, needs commitment.
+
+User's question: "${question}"
+
+Generate ONE short question (max 15 words) that guides toward commitment and making it feel real.
+Examples:
+- "What would need to be true for you to fully commit to this?"
+- "What's one thing you could try this week to test this?"
+- "What would make this path feel more real to you?"
+
+Just the question, nothing else.`;
+        } else {
+          // CLARITY + CREATION: Guide toward simplifying and defining
+          nextQuestionPrompt = `You are the Council. The user is in CLARITY stage about CREATION - has direction but needs focus.
+
+User's question: "${question}"
+
+Generate ONE short question (max 15 words) that helps them define and simplify their creation idea.
+Examples:
+- "Who specifically is suffering from this problem right now?"
+- "What would this look like if it was 10x simpler?"
+- "What's the smallest version of this you could test?"
+
+Just the question, nothing else.`;
+        }
+      } else if (journeyStage === "ACTION") {
+        // ACTION: Ready for concrete steps
+        if (domainFocus === "PERSONAL") {
+          nextQuestionPrompt = `You are the Council. The user is in ACTION stage on a PERSONAL journey - ready for concrete first steps.
+
+User's question: "${question}"
+
+Generate ONE short question (max 15 words) that guides toward a meaningful first step or experiment.
+Examples:
+- "What's one conversation you could have this week to test this?"
+- "What would be the smallest step that still feels meaningful?"
+- "What could you do tomorrow to start living this?"
+
+Just the question, nothing else.`;
+        } else {
+          // ACTION + CREATION: NOW trigger creation/testing/iteration questions!
+          nextQuestionPrompt = `You are the Council. The user is in ACTION stage about CREATION - ready to build and test!
+
+User's question: "${question}"
+Keywords from mentors: ${banterKeywords || "build, test, iterate, measure"}
+
+Generate ONE short question (max 18 words) that guides toward creating something testable.
+The question MUST encourage building a tangible prototype/MVP they can test and iterate on.
+Examples:
+- "What kind of tool could you build this week with measurable outcomes you can test fast?"
+- "What's the simplest version of this you could launch in 7 days?"
+- "Who are 3 people you could test this with by Friday?"
+
+Just the question, nothing else.`;
+        }
+      }
 
       const nextQuestionResponse = await fetch("https://ai.gateway.lovable.dev/v1/chat/completions", {
         method: "POST",
@@ -827,6 +1002,7 @@ Just the question, nothing else.`;
       if (nextQuestionResponse.ok) {
         const data = await nextQuestionResponse.json();
         suggestedNextQuestion = data.choices[0].message.content;
+        console.log("Generated stage-aware suggested question:", suggestedNextQuestion, "| Stage:", journeyStage, "| Domain:", domainFocus);
       }
     }
 
