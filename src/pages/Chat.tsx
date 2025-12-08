@@ -1,15 +1,20 @@
 import { useEffect, useState, useRef } from "react";
-import { useNavigate, useParams } from "react-router-dom";
+import { useNavigate, useParams, useLocation } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Card } from "@/components/ui/card";
-import { Badge } from "@/components/ui/badge";
-import { ArrowLeft, Send, Sparkles, MessageCircle } from "lucide-react";
+import { ArrowLeft, Send, Sparkles, MessageCircle, RefreshCw, ChevronDown } from "lucide-react";
 import { toast } from "sonner";
 import { cn } from "@/lib/utils";
 import { MentorLearningModule } from "@/components/MentorLearningModule";
 import { HighlightedText } from "@/components/HighlightedText";
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu";
 
 interface Whisper {
   id: string;
@@ -35,9 +40,27 @@ const mentorNames: Record<string, string> = {
   future_self: "Your Future Self",
 };
 
+// Mentors that make sense for handoffs based on different perspectives
+const handoffMentors: Record<string, string[]> = {
+  creative_visionary: ["business_mentor", "strategist_mentor", "marketing_mentor", "discipline_mentor"],
+  business_mentor: ["creative_visionary", "strategist_mentor", "marketing_mentor", "discipline_mentor"],
+  strategist_mentor: ["business_mentor", "creative_visionary", "discipline_mentor", "marketing_mentor"],
+  marketing_mentor: ["business_mentor", "creative_visionary", "strategist_mentor"],
+  discipline_mentor: ["strategist_mentor", "business_mentor", "heart_mentor"],
+  heart_mentor: ["oracle_mother", "alignment_mentor", "mystic_mentor", "ancient_sage"],
+  mystic_mentor: ["ancient_sage", "oracle_mother", "heart_mentor", "quantum_inventor"],
+  ancient_sage: ["mystic_mentor", "heart_mentor", "oracle_mother"],
+  oracle_mother: ["heart_mentor", "ancient_sage", "alignment_mentor"],
+  alignment_mentor: ["heart_mentor", "strategist_mentor", "oracle_mother"],
+  quantum_inventor: ["creative_visionary", "mystic_mentor", "scientific_mentor"],
+  scientific_mentor: ["strategist_mentor", "quantum_inventor", "discipline_mentor"],
+  future_self: ["discipline_mentor", "strategist_mentor", "heart_mentor"],
+};
+
 const Chat = () => {
   const { mentorType } = useParams<{ mentorType: string }>();
   const navigate = useNavigate();
+  const location = useLocation();
   const [messages, setMessages] = useState<any[]>([]);
   const [whispers, setWhispers] = useState<Whisper[]>([]);
   const [input, setInput] = useState("");
@@ -45,7 +68,63 @@ const Chat = () => {
   const [showLearningModule, setShowLearningModule] = useState(false);
   const [learningModuleData, setLearningModuleData] = useState<any>(null);
   const [exchangeCount, setExchangeCount] = useState(0);
+  const [isHandoffProcessed, setIsHandoffProcessed] = useState(false);
   const messagesEndRef = useRef<HTMLDivElement>(null);
+
+  // Check for handoff state on mount
+  useEffect(() => {
+    const handoffState = location.state as { handoffId?: string } | null;
+    if (handoffState?.handoffId && !isHandoffProcessed) {
+      processHandoff(handoffState.handoffId);
+    }
+  }, [location.state, mentorType]);
+
+  const processHandoff = async (handoffId: string) => {
+    setLoading(true);
+    try {
+      const { data: { user } } = await supabase.auth.getUser();
+      if (!user) return;
+
+      // Call the edge function with handoff context
+      const { data, error } = await supabase.functions.invoke("chat-mentor", {
+        body: {
+          mentorType,
+          message: "__HANDOFF_INIT__",
+          handoffId,
+        },
+      });
+
+      if (error) throw error;
+
+      // Save and display the welcome message from new mentor
+      const { data: welcomeMsgData } = await supabase.from("chats").insert({
+        user_id: user.id,
+        mentor_type: mentorType as any,
+        role: "assistant",
+        content: data.response,
+      }).select().single();
+
+      if (welcomeMsgData) {
+        setMessages((prev) => [...prev, welcomeMsgData]);
+      }
+
+      // Mark handoff as processed
+      await supabase
+        .from("conversation_handoffs")
+        .update({ processed: true })
+        .eq("id", handoffId);
+
+      setIsHandoffProcessed(true);
+      
+      // Clear the location state to prevent re-processing
+      navigate(location.pathname, { replace: true, state: {} });
+    } catch (error: any) {
+      console.error("Error processing handoff:", error);
+      toast.error("Failed to process handoff");
+    } finally {
+      setLoading(false);
+    }
+  };
 
   useEffect(() => {
     loadMessages();
@@ -59,7 +138,6 @@ const Chat = () => {
   }, [mentorType]);
 
   const countExchanges = () => {
-    // Count user messages to track exchanges
     const userMessages = messages.filter(m => m.role === "user");
     setExchangeCount(userMessages.length);
   };
@@ -83,7 +161,6 @@ const Chat = () => {
       if (error) throw error;
       setMessages(data || []);
       
-      // Count exchanges
       const userMessages = data?.filter((m: any) => m.role === "user") || [];
       setExchangeCount(userMessages.length);
     } catch (error: any) {
@@ -126,7 +203,6 @@ const Chat = () => {
           const { data: { user } } = await supabase.auth.getUser();
           if (payload.new.mentor_type === mentorType && payload.new.user_id === user?.id) {
             setMessages((prev) => {
-              // Prevent duplicates
               if (prev.some(m => m.id === payload.new.id)) return prev;
               return [...prev, payload.new];
             });
@@ -140,6 +216,52 @@ const Chat = () => {
     };
   };
 
+  const handleHandoff = async (targetMentor: string) => {
+    if (messages.length < 2) {
+      toast.error("Have a conversation first before switching perspectives");
+      return;
+    }
+
+    setLoading(true);
+    try {
+      const { data: { user } } = await supabase.auth.getUser();
+      if (!user) throw new Error("Not authenticated");
+
+      // Get last 20 messages for context
+      const recentMessages = messages.slice(-20).map(m => ({
+        role: m.role,
+        content: m.content,
+        created_at: m.created_at
+      }));
+
+      // Create handoff record
+      const { data: handoff, error } = await supabase
+        .from("conversation_handoffs")
+        .insert({
+          user_id: user.id,
+          source_mentor_type: mentorType,
+          target_mentor_type: targetMentor,
+          source_messages: recentMessages,
+        })
+        .select()
+        .single();
+
+      if (error) throw error;
+
+      toast.success(`Handing off to ${mentorNames[targetMentor]}...`);
+      
+      // Navigate to new mentor with handoff context
+      navigate(`/chat/${targetMentor}`, { 
+        state: { handoffId: handoff.id }
+      });
+    } catch (error: any) {
+      console.error("Error creating handoff:", error);
+      toast.error("Failed to handoff conversation");
+    } finally {
+      setLoading(false);
+    }
+  };
+
   const handleSend = async () => {
     if (!input.trim() || loading) return;
 
@@ -151,7 +273,6 @@ const Chat = () => {
       const { data: { user } } = await supabase.auth.getUser();
       if (!user) throw new Error("Not authenticated");
 
-      // Save user message and add to state immediately
       const { data: userMsgData } = await supabase.from("chats").insert({
         user_id: user.id,
         mentor_type: mentorType as any,
@@ -163,7 +284,6 @@ const Chat = () => {
         setMessages((prev) => [...prev, userMsgData]);
       }
 
-      // Call AI function
       const { data, error } = await supabase.functions.invoke("chat-mentor", {
         body: {
           mentorType,
@@ -173,7 +293,6 @@ const Chat = () => {
 
       if (error) throw error;
 
-      // Save assistant response and add to state immediately
       const { data: assistantMsgData } = await supabase.from("chats").insert({
         user_id: user.id,
         mentor_type: mentorType as any,
@@ -185,12 +304,10 @@ const Chat = () => {
         setMessages((prev) => [...prev, assistantMsgData]);
       }
 
-      // Check if we should offer learning module (after 4-6 exchanges)
       const newExchangeCount = exchangeCount + 1;
       setExchangeCount(newExchangeCount);
       
       if (newExchangeCount >= 4 && newExchangeCount <= 6 && Math.random() > 0.5) {
-        // Suggest learning module
         const { data: quizMsgData } = await supabase.from("chats").insert({
           user_id: user.id,
           mentor_type: mentorType as any,
@@ -204,7 +321,6 @@ const Chat = () => {
       }
     } catch (error: any) {
       toast.error(error.message);
-      // Reload messages on error to sync state
       await loadMessages();
     } finally {
       setLoading(false);
@@ -232,6 +348,8 @@ const Chat = () => {
     }
   };
 
+  const availableHandoffs = handoffMentors[mentorType || ""] || [];
+
   return (
     <div className="min-h-screen bg-gradient-to-br from-primary/5 via-background to-accent/5 flex flex-col">
       {/* Header */}
@@ -244,18 +362,57 @@ const Chat = () => {
             <h1 className="text-xl font-bold">{mentorNames[mentorType || ""]}</h1>
             <p className="text-sm text-muted-foreground">Your personal mentor</p>
           </div>
-          {exchangeCount >= 3 && (
-            <Button
-              variant="outline"
-              size="sm"
-              onClick={handleStartLearningModule}
-              disabled={loading}
-              className="gap-2"
-            >
-              <Sparkles className="w-4 h-4" />
-              Take Quiz
-            </Button>
-          )}
+          <div className="flex items-center gap-2">
+            {/* Handoff Dropdown */}
+            {availableHandoffs.length > 0 && messages.length >= 2 && (
+              <DropdownMenu>
+                <DropdownMenuTrigger asChild>
+                  <Button 
+                    variant="outline" 
+                    size="sm" 
+                    disabled={loading}
+                    className="gap-2"
+                  >
+                    <RefreshCw className="w-4 h-4" />
+                    <span className="hidden sm:inline">Get Perspective</span>
+                    <ChevronDown className="w-3 h-3" />
+                  </Button>
+                </DropdownMenuTrigger>
+                <DropdownMenuContent align="end" className="w-56 bg-popover z-50">
+                  <div className="px-2 py-1.5 text-xs text-muted-foreground font-medium">
+                    Continue with another mentor
+                  </div>
+                  {availableHandoffs.map((mentor) => (
+                    <DropdownMenuItem 
+                      key={mentor}
+                      onClick={() => handleHandoff(mentor)}
+                      className="cursor-pointer"
+                    >
+                      <div className="flex flex-col">
+                        <span className="font-medium">{mentorNames[mentor]}</span>
+                        <span className="text-xs text-muted-foreground">
+                          Get their unique perspective
+                        </span>
+                      </div>
+                    </DropdownMenuItem>
+                  ))}
+                </DropdownMenuContent>
+              </DropdownMenu>
+            )}
+            
+            {exchangeCount >= 3 && (
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={handleStartLearningModule}
+                disabled={loading}
+                className="gap-2"
+              >
+                <Sparkles className="w-4 h-4" />
+                <span className="hidden sm:inline">Take Quiz</span>
+              </Button>
+            )}
+          </div>
         </div>
       </div>
 
