@@ -92,3 +92,6 @@ verify_jwt = true
 
 [functions.process-user-foundation]
 verify_jwt = true
+
+[functions.generate-daily-mentor-outreach]
+verify_jwt = true

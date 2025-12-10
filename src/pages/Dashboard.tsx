@@ -20,6 +20,8 @@ import { ConstellationRecommendations } from "@/components/ConstellationRecommen
 import { FutureSelfTriggerButton } from "@/components/FutureSelfTriggerButton";
 import { MentorWhisperNotification } from "@/components/MentorWhisperNotification";
 import { useMentorWhisper } from "@/hooks/useMentorWhisper";
+import { MentorOutreachCard } from "@/components/MentorOutreachCard";
+import { useMentorOutreach } from "@/hooks/useMentorOutreach";
 import { History, Rocket } from "lucide-react";
 
 const mentorIcons = {
@@ -95,6 +97,13 @@ const Dashboard = () => {
     latestWhisper 
   } = useMentorWhisper();
 
+  const {
+    outreach: mentorOutreach,
+    dismissOutreach,
+    markAsResponded: respondToOutreach,
+    generateOutreach
+  } = useMentorOutreach();
+
   useEffect(() => {
     loadDashboardData();
     checkRitualStatus();
@@ -105,7 +114,14 @@ const Dashboard = () => {
     const whisperTimer = setTimeout(() => {
       checkAndGenerateWhisper();
     }, 2000);
-    return () => clearTimeout(whisperTimer);
+    // Generate daily mentor outreach if not already generated
+    const outreachTimer = setTimeout(() => {
+      generateOutreach().catch(() => {});
+    }, 3000);
+    return () => {
+      clearTimeout(whisperTimer);
+      clearTimeout(outreachTimer);
+    };
   }, []);
 
   // Show notification when unread whisper arrives
@@ -388,6 +404,15 @@ const Dashboard = () => {
             </Button>
           </div>
         </div>
+
+        {/* Daily Mentor Outreach Card */}
+        {mentorOutreach && (
+          <MentorOutreachCard
+            outreach={mentorOutreach}
+            onDismiss={dismissOutreach}
+            onRespond={respondToOutreach}
+          />
+        )}
 
         {/* Future Self - Primary Navigation Card */}
         <Card 

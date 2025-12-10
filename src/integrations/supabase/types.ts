@@ -181,9 +181,12 @@ export type Database = {
       }
       conversation_handoffs: {
         Row: {
+          chain_position: number | null
           created_at: string
+          handoff_chain_id: string | null
           handoff_summary: string | null
           id: string
+          journey_topic: string | null
           processed: boolean
           source_mentor_type: string
           source_messages: Json
@@ -191,9 +194,12 @@ export type Database = {
           user_id: string
         }
         Insert: {
+          chain_position?: number | null
           created_at?: string
+          handoff_chain_id?: string | null
           handoff_summary?: string | null
           id?: string
+          journey_topic?: string | null
           processed?: boolean
           source_mentor_type: string
           source_messages?: Json
@@ -201,9 +207,12 @@ export type Database = {
           user_id: string
         }
         Update: {
+          chain_position?: number | null
           created_at?: string
+          handoff_chain_id?: string | null
           handoff_summary?: string | null
           id?: string
+          journey_topic?: string | null
           processed?: boolean
           source_mentor_type?: string
           source_messages?: Json
@@ -874,6 +883,45 @@ export type Database = {
           future_score?: number
           id?: string
           updated_at?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
+      mentor_daily_outreach: {
+        Row: {
+          context_data: Json | null
+          context_source: string | null
+          created_at: string
+          id: string
+          mentor_type: string
+          message: string
+          message_type: string
+          read_at: string | null
+          responded: boolean | null
+          user_id: string
+        }
+        Insert: {
+          context_data?: Json | null
+          context_source?: string | null
+          created_at?: string
+          id?: string
+          mentor_type: string
+          message: string
+          message_type: string
+          read_at?: string | null
+          responded?: boolean | null
+          user_id: string
+        }
+        Update: {
+          context_data?: Json | null
+          context_source?: string | null
+          created_at?: string
+          id?: string
+          mentor_type?: string
+          message?: string
+          message_type?: string
+          read_at?: string | null
+          responded?: boolean | null
           user_id?: string
         }
         Relationships: []
