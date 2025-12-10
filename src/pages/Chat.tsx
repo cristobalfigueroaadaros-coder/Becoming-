@@ -234,7 +234,23 @@ const Chat = () => {
         created_at: m.created_at
       }));
 
-      // Create handoff record
+      // Check if there's a recent handoff TO this mentor (to continue the chain)
+      const { data: existingChainHandoff } = await supabase
+        .from("conversation_handoffs")
+        .select("handoff_chain_id, chain_position, journey_topic")
+        .eq("user_id", user.id)
+        .eq("target_mentor_type", mentorType)
+        .eq("processed", true)
+        .order("created_at", { ascending: false })
+        .limit(1)
+        .maybeSingle();
+
+      // Extract topic from first user message for journey tracking
+      const firstUserMessage = messages.find(m => m.role === "user");
+      const journeyTopic = existingChainHandoff?.journey_topic || 
+        (firstUserMessage?.content?.substring(0, 100) + "...");
+
+      // Create handoff record with chain tracking
       const { data: handoff, error } = await supabase
         .from("conversation_handoffs")
         .insert({
@@ -242,13 +258,21 @@ const Chat = () => {
           source_mentor_type: mentorType,
           target_mentor_type: targetMentor,
           source_messages: recentMessages,
+          handoff_chain_id: existingChainHandoff?.handoff_chain_id || undefined,
+          chain_position: (existingChainHandoff?.chain_position || 0) + 1,
+          journey_topic: journeyTopic,
         })
         .select()
         .single();
 
       if (error) throw error;
 
-      toast.success(`Handing off to ${mentorNames[targetMentor]}...`);
+      const chainPosition = (existingChainHandoff?.chain_position || 0) + 1;
+      const journeyMessage = chainPosition > 1 
+        ? `Continuing journey (step ${chainPosition + 1}) with ${mentorNames[targetMentor]}...`
+        : `Getting fresh perspective from ${mentorNames[targetMentor]}...`;
+      
+      toast.success(journeyMessage);
       
       // Navigate to new mentor with handoff context
       navigate(`/chat/${targetMentor}`, { 

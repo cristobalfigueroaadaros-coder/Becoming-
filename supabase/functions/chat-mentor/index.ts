@@ -272,8 +272,10 @@ Deno.serve(async (req) => {
     const { data: { user }, error: userError } = await supabaseClient.auth.getUser(token);
     if (userError || !user) throw new Error("Not authenticated");
 
-    // Check for handoff context
+    // Check for handoff context - WITH FULL CHAIN MEMORY
     let handoffContext = "";
+    let journeyPath: string[] = [];
+    
     if (handoffId) {
       const { data: handoff } = await supabaseClient
         .from("conversation_handoffs")
@@ -284,30 +286,71 @@ Deno.serve(async (req) => {
         .single();
 
       if (handoff) {
+        // Get all handoffs in this chain for full journey context
+        const chainId = handoff.handoff_chain_id;
+        const { data: chainHandoffs } = await supabaseClient
+          .from("conversation_handoffs")
+          .select("*")
+          .eq("handoff_chain_id", chainId)
+          .eq("user_id", user.id)
+          .order("chain_position", { ascending: true });
+
+        // Build the full journey context from all handoffs in the chain
+        let fullJourneyContext = "";
+        if (chainHandoffs && chainHandoffs.length > 0) {
+          journeyPath = chainHandoffs.map(h => h.source_mentor_type);
+          journeyPath.push(handoff.target_mentor_type); // Add current mentor
+          
+          fullJourneyContext = `
+=== FULL MENTOR JOURNEY ===
+The user has been exploring this topic across multiple mentors:
+Journey: ${journeyPath.map(m => m.replace(/_/g, ' ').toUpperCase()).join(' → ')}
+Topic: ${handoff.journey_topic || 'Exploring ideas and growth'}
+
+`;
+          for (const chainHandoff of chainHandoffs) {
+            const mentorName = chainHandoff.source_mentor_type.replace(/_/g, ' ').toUpperCase();
+            const description = mentorDescriptions[chainHandoff.source_mentor_type] || '';
+            const chainMessages = chainHandoff.source_messages as Array<{ role: string; content: string }>;
+            
+            fullJourneyContext += `
+--- ${mentorName} (${description}) ---
+${chainMessages.slice(-6).map(m => `${m.role === 'user' ? 'USER' : mentorName}: ${m.content.substring(0, 200)}${m.content.length > 200 ? '...' : ''}`).join('\n')}
+`;
+          }
+          fullJourneyContext += `
+=== END JOURNEY CONTEXT ===
+`;
+        }
+
+        // Build current handoff context
         const sourceMessages = handoff.source_messages as Array<{ role: string; content: string }>;
         const conversationSummary = sourceMessages
           .map(m => `${m.role === 'user' ? 'USER' : 'MENTOR'}: ${m.content}`)
           .join('\n\n');
 
         const sourceMentorName = mentorDescriptions[handoff.source_mentor_type] || handoff.source_mentor_type;
+        const chainPosition = chainHandoffs?.length || 1;
         
         handoffContext = `
-=== CONVERSATION HANDOFF ===
-You are receiving this conversation from ${handoff.source_mentor_type.replace('_', ' ').toUpperCase()} (${sourceMentorName}).
+${fullJourneyContext}
+=== DIRECT HANDOFF FROM ${handoff.source_mentor_type.replace('_', ' ').toUpperCase()} ===
+${sourceMentorName}
 
-The user has been discussing the following with them:
-
+THEIR CONVERSATION:
 ${conversationSummary}
 
-YOUR ROLE: You are being asked to provide YOUR unique perspective on what they've been discussing. Don't repeat what was already said - BUILD on it with your distinct viewpoint.
+YOUR ROLE: You are mentor #${chainPosition + 1} in their exploration journey. BUILD on everything that came before. Don't repeat - EXPAND with your unique ${mentorDescriptions[mentorType] || 'perspective'}.
 
-IMPORTANT INSTRUCTIONS:
-1. Start by briefly acknowledging you've reviewed their conversation (1 sentence)
-2. Immediately offer YOUR fresh angle on the topic
-3. Ask a probing question that reflects YOUR mentoring style
-4. Keep it short and actionable
+${chainPosition > 1 ? `JOURNEY AWARENESS: This user is deeply exploring this topic. Honor their commitment by offering your BEST, most specific insight. Reference what other mentors said where relevant.` : ''}
 
-Example opening: "I've been following your conversation with [Source Mentor]. From my perspective as [Your Role], here's what jumps out at me..."
+INSTRUCTIONS:
+1. Acknowledge you understand their full journey (1 sentence referencing the path they've taken)
+2. Offer YOUR unique angle that adds NEW value
+3. Ask a probing question from YOUR perspective
+4. If relevant, suggest which mentor they might talk to NEXT
+
+Example: "I see you've been building on this idea from ${journeyPath[0]?.replace(/_/g, ' ') || 'your first mentor'} through to now. From my ${mentorDescriptions[mentorType] || 'perspective'}, here's what stands out..."
 === END HANDOFF ===
 `;
       }
