@@ -95,3 +95,6 @@ verify_jwt = true
 
 [functions.generate-daily-mentor-outreach]
 verify_jwt = true
+
+[functions.detect-breakthrough]
+verify_jwt = true

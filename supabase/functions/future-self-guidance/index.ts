@@ -32,6 +32,8 @@ const MESSAGE_ARCHETYPES = [
   { name: "PRACTICAL", instruction: "Give ONE concrete micro-action they can do in < 5 minutes RIGHT NOW." },
   { name: "EMOTIONAL", instruction: "Validate their feelings deeply. Be the warmth and understanding they need. No advice, just presence." },
   { name: "SURPRISE", instruction: "Say something unexpected that shifts their perspective completely. Be bold and unconventional." },
+  { name: "QUESTION_GUIDE", instruction: "Suggest 1-2 powerful questions they should ask the mentors. Connect their unique background (traveler, psychologist, etc.) to opportunities. Example: 'Because you're a [background], ask: What problems do [target group] face that you could solve?'" },
+  { name: "JOURNEY_ORCHESTRATOR", instruction: "Suggest a specific mentor journey for their current topic. Example: 'Start with Creative Visionary to explore ideas, then Business Mentor for validation, then Marketing for distribution.' Be specific about WHY each mentor in the journey." },
 ];
 
 Deno.serve(async (req) => {

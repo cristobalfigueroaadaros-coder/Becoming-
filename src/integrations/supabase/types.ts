@@ -179,6 +179,48 @@ export type Database = {
         }
         Relationships: []
       }
+      conversation_breakthroughs: {
+        Row: {
+          actionable_next_step: string | null
+          breakthrough_description: string
+          breakthrough_title: string
+          converted_to_goal: boolean
+          created_at: string
+          dismissed: boolean
+          goal_id: string | null
+          id: string
+          mentor_type: string
+          source_conversation: Json
+          user_id: string
+        }
+        Insert: {
+          actionable_next_step?: string | null
+          breakthrough_description: string
+          breakthrough_title: string
+          converted_to_goal?: boolean
+          created_at?: string
+          dismissed?: boolean
+          goal_id?: string | null
+          id?: string
+          mentor_type: string
+          source_conversation?: Json
+          user_id: string
+        }
+        Update: {
+          actionable_next_step?: string | null
+          breakthrough_description?: string
+          breakthrough_title?: string
+          converted_to_goal?: boolean
+          created_at?: string
+          dismissed?: boolean
+          goal_id?: string | null
+          id?: string
+          mentor_type?: string
+          source_conversation?: Json
+          user_id?: string
+        }
+        Relationships: []
+      }
       conversation_handoffs: {
         Row: {
           chain_position: number | null
@@ -268,6 +310,53 @@ export type Database = {
           user_id?: string
         }
         Relationships: []
+      }
+      council_notifications: {
+        Row: {
+          breakthrough_id: string | null
+          context_data: Json | null
+          created_at: string
+          dismissed: boolean
+          id: string
+          message: string
+          notification_type: string
+          read_at: string | null
+          title: string
+          user_id: string
+        }
+        Insert: {
+          breakthrough_id?: string | null
+          context_data?: Json | null
+          created_at?: string
+          dismissed?: boolean
+          id?: string
+          message: string
+          notification_type?: string
+          read_at?: string | null
+          title: string
+          user_id: string
+        }
+        Update: {
+          breakthrough_id?: string | null
+          context_data?: Json | null
+          created_at?: string
+          dismissed?: boolean
+          id?: string
+          message?: string
+          notification_type?: string
+          read_at?: string | null
+          title?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "council_notifications_breakthrough_id_fkey"
+            columns: ["breakthrough_id"]
+            isOneToOne: false
+            referencedRelation: "conversation_breakthroughs"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       council_patterns: {
         Row: {

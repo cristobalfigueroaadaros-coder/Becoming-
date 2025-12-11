@@ -9,6 +9,8 @@ import { toast } from "sonner";
 import { cn } from "@/lib/utils";
 import { MentorLearningModule } from "@/components/MentorLearningModule";
 import { HighlightedText } from "@/components/HighlightedText";
+import { BreakthroughDetectedCard } from "@/components/BreakthroughDetectedCard";
+import { useBreakthroughDetection } from "@/hooks/useBreakthroughDetection";
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -70,6 +72,14 @@ const Chat = () => {
   const [exchangeCount, setExchangeCount] = useState(0);
   const [isHandoffProcessed, setIsHandoffProcessed] = useState(false);
   const messagesEndRef = useRef<HTMLDivElement>(null);
+  
+  // Breakthrough detection
+  const {
+    latestBreakthrough,
+    checkForBreakthrough,
+    dismissBreakthrough,
+    clearBreakthrough,
+  } = useBreakthroughDetection(mentorType);
 
   // Check for handoff state on mount
   useEffect(() => {
@@ -331,6 +341,15 @@ const Chat = () => {
       const newExchangeCount = exchangeCount + 1;
       setExchangeCount(newExchangeCount);
       
+      // Check for breakthrough every 5 messages
+      if (newExchangeCount >= 5 && newExchangeCount % 5 === 0 && mentorType) {
+        const allMessages = [...messages, { role: "user", content: userMessage }, { role: "assistant", content: data.response }];
+        checkForBreakthrough(
+          allMessages.map(m => ({ role: m.role, content: m.content })),
+          mentorType
+        ).catch(console.error);
+      }
+      
       if (newExchangeCount >= 4 && newExchangeCount <= 6 && Math.random() > 0.5) {
         const { data: quizMsgData } = await supabase.from("chats").insert({
           user_id: user.id,
@@ -443,6 +462,15 @@ const Chat = () => {
       {/* Messages */}
       <div className="flex-1 overflow-y-auto p-4">
         <div className="max-w-4xl mx-auto space-y-4">
+          {/* Breakthrough Detection Card */}
+          {latestBreakthrough && (
+            <BreakthroughDetectedCard
+              breakthrough={latestBreakthrough}
+              onDismiss={dismissBreakthrough}
+              onConvertToGoal={clearBreakthrough}
+            />
+          )}
+
           {/* Show recent whispers at top */}
           {whispers.length > 0 && (
             <div className="space-y-2 mb-6">
