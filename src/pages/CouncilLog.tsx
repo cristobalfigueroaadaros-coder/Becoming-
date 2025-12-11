@@ -4,8 +4,10 @@ import { supabase } from "@/integrations/supabase/client";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { ArrowLeft } from "lucide-react";
+import { ArrowLeft, Bell } from "lucide-react";
 import { toast } from "sonner";
+import { CouncilNotificationCard } from "@/components/CouncilNotificationCard";
+import { useCouncilNotifications } from "@/hooks/useCouncilNotifications";
 
 const mentorNames: Record<string, string> = {
   discipline_mentor: "Discipline Mentor",
@@ -28,6 +30,13 @@ const CouncilLog = () => {
   const [meetings, setMeetings] = useState<any[]>([]);
   const [whispers, setWhispers] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
+  
+  const {
+    notifications: councilNotifications,
+    dismissNotification,
+    markAsRead,
+    refresh: refreshNotifications,
+  } = useCouncilNotifications();
 
   useEffect(() => {
     loadData();
@@ -87,10 +96,44 @@ const CouncilLog = () => {
         </div>
 
         <Tabs defaultValue="meetings" className="w-full">
-          <TabsList className="grid w-full grid-cols-2">
+          <TabsList className="grid w-full grid-cols-3">
+            <TabsTrigger value="notifications" className="relative">
+              Notifications
+              {councilNotifications.length > 0 && (
+                <span className="absolute -top-1 -right-1 w-5 h-5 rounded-full bg-primary text-primary-foreground text-xs flex items-center justify-center">
+                  {councilNotifications.length}
+                </span>
+              )}
+            </TabsTrigger>
             <TabsTrigger value="meetings">Council Meetings</TabsTrigger>
             <TabsTrigger value="whispers">Daily Whispers</TabsTrigger>
           </TabsList>
+
+          <TabsContent value="notifications" className="space-y-4 mt-6">
+            {councilNotifications.length === 0 ? (
+              <Card>
+                <CardContent className="pt-6 text-center text-muted-foreground">
+                  <Bell className="w-12 h-12 mx-auto mb-4 opacity-50" />
+                  <p>No council notifications yet.</p>
+                  <p className="text-sm mt-2">When you have breakthroughs in mentor conversations, the council will reach out!</p>
+                </CardContent>
+              </Card>
+            ) : (
+              <div className="space-y-3">
+                {councilNotifications.map((notification) => (
+                  <CouncilNotificationCard
+                    key={notification.id}
+                    notification={notification}
+                    onDismiss={() => dismissNotification(notification.id)}
+                    onRespond={() => {
+                      markAsRead(notification.id);
+                      refreshNotifications();
+                    }}
+                  />
+                ))}
+              </div>
+            )}
+          </TabsContent>
 
           <TabsContent value="meetings" className="space-y-4 mt-6">
             {meetings.length === 0 ? (

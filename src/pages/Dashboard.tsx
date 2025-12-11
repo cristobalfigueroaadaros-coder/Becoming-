@@ -5,7 +5,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
-import { Lightbulb, Zap, Trees, Sparkles, Users, BookOpen, Crown, LogOut, CheckSquare, Briefcase, Compass, Target, Flag, Ghost, Sunrise, Flame, User, Network, Clock, Telescope, TrendingUp, Megaphone, FlaskConical, Scale, Moon, Loader2 } from "lucide-react";
+import { Lightbulb, Zap, Trees, Sparkles, Users, BookOpen, Crown, LogOut, CheckSquare, Briefcase, Compass, Target, Flag, Ghost, Sunrise, Flame, User, Network, Clock, Telescope, TrendingUp, Megaphone, FlaskConical, Scale, Moon, Loader2, Bell } from "lucide-react";
 import { toast } from "sonner";
 import { cn } from "@/lib/utils";
 import { FutureSelfWidget } from "@/components/FutureSelfWidget";
@@ -22,6 +22,7 @@ import { MentorWhisperNotification } from "@/components/MentorWhisperNotificatio
 import { useMentorWhisper } from "@/hooks/useMentorWhisper";
 import { MentorOutreachCard } from "@/components/MentorOutreachCard";
 import { useMentorOutreach } from "@/hooks/useMentorOutreach";
+import { useCouncilNotifications } from "@/hooks/useCouncilNotifications";
 import { History, Rocket } from "lucide-react";
 
 const mentorIcons = {
@@ -103,6 +104,8 @@ const Dashboard = () => {
     markAsResponded: respondToOutreach,
     generateOutreach
   } = useMentorOutreach();
+
+  const { unreadCount: councilNotificationCount } = useCouncilNotifications();
 
   useEffect(() => {
     loadDashboardData();
@@ -563,12 +566,27 @@ const Dashboard = () => {
         {/* Action Buttons Row */}
         <div className="grid md:grid-cols-4 gap-4">
           {/* Council Meeting */}
-          <Card className="bg-gradient-to-r from-primary to-accent text-primary-foreground shadow-xl">
+          <Card className="bg-gradient-to-r from-primary to-accent text-primary-foreground shadow-xl relative">
+            {councilNotificationCount > 0 && (
+              <div className="absolute -top-2 -right-2 w-6 h-6 rounded-full bg-destructive text-destructive-foreground text-xs flex items-center justify-center font-bold animate-pulse">
+                {councilNotificationCount}
+              </div>
+            )}
             <CardContent className="p-6 flex items-center gap-4">
-              <Users className="w-12 h-12 flex-shrink-0" />
+              <div className="relative">
+                <Users className="w-12 h-12 flex-shrink-0" />
+                {councilNotificationCount > 0 && (
+                  <Bell className="w-4 h-4 absolute -top-1 -right-1 text-white animate-bounce" />
+                )}
+              </div>
               <div className="flex-1">
                 <h2 className="text-xl font-bold">Ask the Council</h2>
-                <p className="opacity-90 text-sm">Get wisdom from all mentors</p>
+                <p className="opacity-90 text-sm">
+                  {councilNotificationCount > 0 
+                    ? `${councilNotificationCount} notification${councilNotificationCount > 1 ? 's' : ''} waiting`
+                    : "Get wisdom from all mentors"
+                  }
+                </p>
               </div>
               <Button
                 variant="secondary"
