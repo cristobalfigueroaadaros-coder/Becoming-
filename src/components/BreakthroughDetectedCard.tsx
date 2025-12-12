@@ -2,10 +2,11 @@ import { useState } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
-import { Sparkles, Target, X, Loader2 } from "lucide-react";
+import { Sparkles, Target, X, Loader2, Rocket } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
 import { useNavigate } from "react-router-dom";
+import { IntegratorTimeframeModal } from "@/components/integrator/IntegratorTimeframeModal";
 
 interface Breakthrough {
   id: string;
@@ -28,63 +29,45 @@ export const BreakthroughDetectedCard = ({
 }: BreakthroughDetectedCardProps) => {
   const navigate = useNavigate();
   const [converting, setConverting] = useState(false);
+  const [showTimeframeModal, setShowTimeframeModal] = useState(false);
 
-  const handleMakeGoal = async () => {
+  const handleStartJourney = async (timeframeDays: number) => {
     setConverting(true);
     try {
       const { data: { user } } = await supabase.auth.getUser();
       if (!user) throw new Error("Not authenticated");
 
-      // Create a yearly goal from the breakthrough
-      const currentYear = new Date().getFullYear();
-      const { data: goalData, error: goalError } = await supabase
-        .from("yearly_goals")
-        .insert({
-          user_id: user.id,
-          goal_text: breakthrough.breakthrough_title,
-          year: currentYear,
-        })
-        .select()
-        .single();
+      // Call the integrator-setup edge function
+      const { data, error } = await supabase.functions.invoke('integrator-setup', {
+        body: {
+          breakthroughId: breakthrough.id,
+          projectTitle: breakthrough.breakthrough_title,
+          projectDescription: breakthrough.breakthrough_description,
+          timeframeDays
+        }
+      });
 
-      if (goalError) throw goalError;
-
-      // Mark breakthrough as converted
-      await supabase
-        .from("conversation_breakthroughs")
-        .update({ 
-          converted_to_goal: true,
-          goal_id: goalData.id
-        })
-        .eq("id", breakthrough.id);
-
-      // Create a council notification about the new goal
-      await supabase
-        .from("council_notifications")
-        .insert({
-          user_id: user.id,
-          notification_type: "goal_created",
-          title: "New Goal Created!",
-          message: `You've turned "${breakthrough.breakthrough_title}" into a goal. The council is ready to help you break it down into actionable steps.`,
-          breakthrough_id: breakthrough.id,
-          context_data: {
-            goal_id: goalData.id,
-            description: breakthrough.breakthrough_description,
-            next_step: breakthrough.actionable_next_step
-          }
-        });
-
-      toast.success("Breakthrough converted to goal!");
-      onConvertToGoal();
+      if (error) throw error;
       
-      // Navigate to goal structure page
-      navigate("/goal-structure");
+      if (data.success) {
+        toast.success("Your journey has begun! Let's go to your Creation Lab.");
+        onConvertToGoal();
+        setShowTimeframeModal(false);
+        navigate("/creation-lab");
+      } else {
+        throw new Error(data.error || 'Failed to create project');
+      }
     } catch (error: any) {
-      console.error("Error converting breakthrough to goal:", error);
-      toast.error("Failed to create goal");
+      console.error("Error creating integrator project:", error);
+      toast.error("Failed to create project. Please try again.");
     } finally {
       setConverting(false);
     }
+  };
+
+  const handleMakeGoalLegacy = async () => {
+    // Show the timeframe modal instead of directly creating a goal
+    setShowTimeframeModal(true);
   };
 
   const handleDismiss = async () => {
@@ -137,16 +120,16 @@ export const BreakthroughDetectedCard = ({
                   <div className="flex items-center gap-2 pt-2">
                     <Button
                       size="sm"
-                      onClick={handleMakeGoal}
+                      onClick={handleMakeGoalLegacy}
                       disabled={converting}
                       className="gap-2 bg-gradient-to-r from-primary to-accent hover:opacity-90"
                     >
                       {converting ? (
                         <Loader2 className="w-4 h-4 animate-spin" />
                       ) : (
-                        <Target className="w-4 h-4" />
+                        <Rocket className="w-4 h-4" />
                       )}
-                      Make this my goal
+                      Start this journey
                     </Button>
                     <Button
                       size="sm"
@@ -170,6 +153,14 @@ export const BreakthroughDetectedCard = ({
             </div>
           </CardContent>
         </Card>
+
+        <IntegratorTimeframeModal
+          open={showTimeframeModal}
+          onOpenChange={setShowTimeframeModal}
+          projectTitle={breakthrough.breakthrough_title}
+          onConfirm={handleStartJourney}
+          isLoading={converting}
+        />
       </motion.div>
     </AnimatePresence>
   );

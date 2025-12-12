@@ -98,3 +98,6 @@ verify_jwt = true
 
 [functions.detect-breakthrough]
 verify_jwt = true
+
+[functions.integrator-setup]
+verify_jwt = true
