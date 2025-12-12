@@ -946,6 +946,190 @@ export type Database = {
         }
         Relationships: []
       }
+      integrator_daily_steps: {
+        Row: {
+          completed_at: string | null
+          created_at: string
+          day_number: number
+          encouragement: string | null
+          estimated_minutes: number
+          id: string
+          insight_shared_with_mentors: boolean
+          insight_text: string | null
+          phase_id: string
+          project_id: string
+          scheduled_date: string
+          status: string
+          step_description: string
+          step_title: string
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          completed_at?: string | null
+          created_at?: string
+          day_number: number
+          encouragement?: string | null
+          estimated_minutes?: number
+          id?: string
+          insight_shared_with_mentors?: boolean
+          insight_text?: string | null
+          phase_id: string
+          project_id: string
+          scheduled_date: string
+          status?: string
+          step_description: string
+          step_title: string
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          completed_at?: string | null
+          created_at?: string
+          day_number?: number
+          encouragement?: string | null
+          estimated_minutes?: number
+          id?: string
+          insight_shared_with_mentors?: boolean
+          insight_text?: string | null
+          phase_id?: string
+          project_id?: string
+          scheduled_date?: string
+          status?: string
+          step_description?: string
+          step_title?: string
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "integrator_daily_steps_phase_id_fkey"
+            columns: ["phase_id"]
+            isOneToOne: false
+            referencedRelation: "integrator_phases"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "integrator_daily_steps_project_id_fkey"
+            columns: ["project_id"]
+            isOneToOne: false
+            referencedRelation: "integrator_projects"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      integrator_phases: {
+        Row: {
+          completed_at: string | null
+          created_at: string
+          end_day: number
+          id: string
+          order_index: number
+          phase_color: string
+          phase_description: string
+          phase_name: string
+          project_id: string
+          start_day: number
+          started_at: string | null
+          user_id: string
+        }
+        Insert: {
+          completed_at?: string | null
+          created_at?: string
+          end_day: number
+          id?: string
+          order_index: number
+          phase_color: string
+          phase_description: string
+          phase_name: string
+          project_id: string
+          start_day: number
+          started_at?: string | null
+          user_id: string
+        }
+        Update: {
+          completed_at?: string | null
+          created_at?: string
+          end_day?: number
+          id?: string
+          order_index?: number
+          phase_color?: string
+          phase_description?: string
+          phase_name?: string
+          project_id?: string
+          start_day?: number
+          started_at?: string | null
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "integrator_phases_project_id_fkey"
+            columns: ["project_id"]
+            isOneToOne: false
+            referencedRelation: "integrator_projects"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      integrator_projects: {
+        Row: {
+          completion_summary: string | null
+          created_at: string
+          current_day: number
+          current_phase: string
+          id: string
+          project_description: string
+          project_title: string
+          seed_breakthrough_id: string | null
+          start_date: string
+          status: string
+          target_end_date: string
+          timeframe_days: number
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          completion_summary?: string | null
+          created_at?: string
+          current_day?: number
+          current_phase?: string
+          id?: string
+          project_description: string
+          project_title: string
+          seed_breakthrough_id?: string | null
+          start_date?: string
+          status?: string
+          target_end_date: string
+          timeframe_days?: number
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          completion_summary?: string | null
+          created_at?: string
+          current_day?: number
+          current_phase?: string
+          id?: string
+          project_description?: string
+          project_title?: string
+          seed_breakthrough_id?: string | null
+          start_date?: string
+          status?: string
+          target_end_date?: string
+          timeframe_days?: number
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "integrator_projects_seed_breakthrough_id_fkey"
+            columns: ["seed_breakthrough_id"]
+            isOneToOne: false
+            referencedRelation: "conversation_breakthroughs"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       life_domains: {
         Row: {
           created_at: string

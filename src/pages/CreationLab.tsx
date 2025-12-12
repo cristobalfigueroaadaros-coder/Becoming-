@@ -6,9 +6,14 @@ import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/com
 import { Badge } from "@/components/ui/badge";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from "@/components/ui/dialog";
 import { Textarea } from "@/components/ui/textarea";
-import { ArrowLeft, Lightbulb, Rocket, CheckCircle2, Trash2, Edit, Plus, Target, Sparkles, TrendingUp } from "lucide-react";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { ArrowLeft, Lightbulb, Rocket, CheckCircle2, Trash2, Edit, Plus, Target, Sparkles, TrendingUp, Calendar, Clock, Play } from "lucide-react";
 import { toast } from "sonner";
 import { motion, AnimatePresence } from "framer-motion";
+import { useIntegratorProjects } from "@/hooks/useIntegratorProjects";
+import { IntegratorPhaseTimeline } from "@/components/integrator/IntegratorPhaseTimeline";
+import { IntegratorCalendar } from "@/components/integrator/IntegratorCalendar";
+import { IntegratorDailyStepCard } from "@/components/integrator/IntegratorDailyStepCard";
 
 const statusOptions = [
   { value: 'idea', label: 'Idea', icon: Lightbulb, color: 'bg-muted' },
@@ -25,6 +30,21 @@ const CreationLab = () => {
   const [editDialogOpen, setEditDialogOpen] = useState(false);
   const [progressNotes, setProgressNotes] = useState("");
   const [importDialogOpen, setImportDialogOpen] = useState(false);
+  const [activeTab, setActiveTab] = useState("journey");
+
+  // Integrator hook
+  const {
+    activeProject: integratorProject,
+    phases,
+    steps,
+    loading: integratorLoading,
+    completeStep,
+    getTodaysStep,
+    getCurrentPhase
+  } = useIntegratorProjects();
+
+  const todaysStep = getTodaysStep();
+  const currentPhase = getCurrentPhase();
 
   useEffect(() => {
     loadData();
@@ -35,7 +55,6 @@ const CreationLab = () => {
       const { data: { user } } = await supabase.auth.getUser();
       if (!user) return;
 
-      // Load projects
       const { data: projectsData, error: projectsError } = await supabase
         .from('creation_projects')
         .select('*')
@@ -45,7 +64,6 @@ const CreationLab = () => {
       if (projectsError) throw projectsError;
       setProjects(projectsData || []);
 
-      // Load latest analysis for import
       const { data: analysisData, error: analysisError } = await supabase
         .from('dot_analysis_history')
         .select('*')
@@ -190,7 +208,11 @@ const CreationLab = () => {
     return acc;
   }, {} as Record<string, any[]>);
 
-  if (loading) {
+  const handleCompleteStep = async (stepId: string, insight?: string) => {
+    await completeStep(stepId, insight);
+  };
+
+  if (loading || integratorLoading) {
     return (
       <div className="min-h-screen flex items-center justify-center">
         <p className="text-muted-foreground">Loading...</p>
@@ -246,166 +268,286 @@ const CreationLab = () => {
               Turn your insights into reality. Track projects from idea to completion.
             </CardDescription>
           </CardHeader>
-          <CardContent>
-            <div className="grid grid-cols-3 gap-4 text-center">
-              <div>
-                <div className="text-3xl font-bold text-muted-foreground">{groupedProjects.idea?.length || 0}</div>
-                <div className="text-xs text-muted-foreground">Ideas</div>
-              </div>
-              <div>
-                <div className="text-3xl font-bold text-accent">{groupedProjects.building?.length || 0}</div>
-                <div className="text-xs text-muted-foreground">Building</div>
-              </div>
-              <div>
-                <div className="text-3xl font-bold text-primary">{groupedProjects.completed?.length || 0}</div>
-                <div className="text-xs text-muted-foreground">Completed</div>
-              </div>
-            </div>
-          </CardContent>
         </Card>
 
-        {/* Projects by Status */}
-        {statusOptions.map(statusOption => {
-          const StatusIcon = statusOption.icon;
-          const projectsInStatus = groupedProjects[statusOption.value] || [];
+        {/* Tabs for Active Journey vs Legacy Ideas */}
+        <Tabs value={activeTab} onValueChange={setActiveTab} className="space-y-6">
+          <TabsList className="grid w-full max-w-md grid-cols-2">
+            <TabsTrigger value="journey" className="gap-2">
+              <Play className="w-4 h-4" />
+              Active Journey
+              {integratorProject && (
+                <Badge variant="secondary" className="ml-2">1</Badge>
+              )}
+            </TabsTrigger>
+            <TabsTrigger value="ideas" className="gap-2">
+              <Lightbulb className="w-4 h-4" />
+              Ideas
+              <Badge variant="outline" className="ml-2">{projects.length}</Badge>
+            </TabsTrigger>
+          </TabsList>
 
-          return (
-            <div key={statusOption.value} className="space-y-4">
-              <div className="flex items-center gap-3">
-                <div className={`w-10 h-10 rounded-lg ${statusOption.color} flex items-center justify-center`}>
-                  <StatusIcon className="w-5 h-5 text-foreground" />
-                </div>
-                <div>
-                  <h2 className="text-xl font-bold">{statusOption.label}</h2>
-                  <p className="text-sm text-muted-foreground">{projectsInStatus.length} projects</p>
-                </div>
-              </div>
+          {/* Active Journey Tab */}
+          <TabsContent value="journey" className="space-y-6">
+            {integratorProject ? (
+              <>
+                {/* Project Header */}
+                <Card>
+                  <CardHeader>
+                    <div className="flex items-start justify-between">
+                      <div>
+                        <CardTitle className="text-xl">{integratorProject.project_title}</CardTitle>
+                        <CardDescription>{integratorProject.project_description}</CardDescription>
+                      </div>
+                      <Badge 
+                        variant="secondary" 
+                        className="capitalize"
+                        style={{ 
+                          backgroundColor: currentPhase?.phase_color ? `${currentPhase.phase_color}60` : undefined 
+                        }}
+                      >
+                        {integratorProject.current_phase}
+                      </Badge>
+                    </div>
+                  </CardHeader>
+                  <CardContent>
+                    <IntegratorPhaseTimeline
+                      phases={phases}
+                      currentDay={integratorProject.current_day}
+                      totalDays={integratorProject.timeframe_days}
+                    />
+                  </CardContent>
+                </Card>
 
-              <div className="grid md:grid-cols-2 gap-4">
-                <AnimatePresence mode="popLayout">
-                  {projectsInStatus.map((project) => (
-                    <motion.div
-                      key={project.id}
-                      layout
-                      initial={{ opacity: 0, scale: 0.9 }}
-                      animate={{ opacity: 1, scale: 1 }}
-                      exit={{ opacity: 0, scale: 0.9 }}
+                {/* Today's Step */}
+                {todaysStep && currentPhase && (
+                  <div className="space-y-2">
+                    <h3 className="font-semibold text-lg flex items-center gap-2">
+                      <Clock className="w-5 h-5 text-primary" />
+                      Today's Step
+                    </h3>
+                    <IntegratorDailyStepCard
+                      step={todaysStep}
+                      phase={currentPhase}
+                      totalDays={integratorProject.timeframe_days}
+                      onComplete={handleCompleteStep}
+                    />
+                  </div>
+                )}
+
+                {/* Calendar View */}
+                <Card>
+                  <CardHeader>
+                    <CardTitle className="text-lg flex items-center gap-2">
+                      <Calendar className="w-5 h-5" />
+                      Your Journey Calendar
+                    </CardTitle>
+                    <CardDescription>
+                      Click any day to see details or add insights
+                    </CardDescription>
+                  </CardHeader>
+                  <CardContent>
+                    <IntegratorCalendar
+                      steps={steps}
+                      phases={phases}
+                      onCompleteStep={handleCompleteStep}
+                      currentDay={integratorProject.current_day}
+                    />
+                  </CardContent>
+                </Card>
+              </>
+            ) : (
+              <Card className="border-dashed border-2">
+                <CardContent className="py-16 text-center">
+                  <Rocket className="w-16 h-16 mx-auto text-muted-foreground/30 mb-4" />
+                  <h3 className="text-xl font-semibold mb-2">No Active Journey</h3>
+                  <p className="text-muted-foreground mb-6 max-w-md mx-auto">
+                    Start a journey from a breakthrough in your mentor conversations, or run a dot connection analysis to discover new ideas.
+                  </p>
+                  <div className="flex gap-3 justify-center">
+                    <Button 
+                      variant="outline" 
+                      onClick={() => navigate("/chat")}
+                      className="gap-2"
                     >
-                      <Card className="border-l-4 border-l-accent/50 hover:shadow-lg transition-shadow">
-                        <CardHeader>
-                          <CardTitle className="text-lg flex items-center justify-between">
-                            <span>{project.title}</span>
-                            <div className="flex gap-1">
-                              <Button
-                                variant="ghost"
-                                size="sm"
-                                onClick={() => {
-                                  setSelectedProject(project);
-                                  setProgressNotes(project.progress_notes || "");
-                                  setEditDialogOpen(true);
-                                }}
-                              >
-                                <Edit className="w-4 h-4" />
-                              </Button>
-                              <Button
-                                variant="ghost"
-                                size="sm"
-                                onClick={() => deleteProject(project.id)}
-                              >
-                                <Trash2 className="w-4 h-4 text-destructive" />
-                              </Button>
-                            </div>
-                          </CardTitle>
-                        </CardHeader>
-                        <CardContent className="space-y-4">
-                          <p className="text-sm text-muted-foreground leading-relaxed">
-                            {project.description}
-                          </p>
+                      <Sparkles className="w-4 h-4" />
+                      Talk to Mentors
+                    </Button>
+                    <Button 
+                      onClick={() => navigate("/dot-connection-engine")}
+                      className="gap-2"
+                    >
+                      <TrendingUp className="w-4 h-4" />
+                      Analyze Dots
+                    </Button>
+                  </div>
+                </CardContent>
+              </Card>
+            )}
+          </TabsContent>
 
-                          {project.dot_connections && project.dot_connections.length > 0 && (
-                            <div className="flex flex-wrap gap-1.5">
-                              {project.dot_connections.map((conn: string, i: number) => (
-                                <Badge key={i} variant="secondary" className="text-xs">
-                                  {conn}
-                                </Badge>
-                              ))}
-                            </div>
-                          )}
+          {/* Ideas Tab (Legacy Projects) */}
+          <TabsContent value="ideas" className="space-y-6">
+            {/* Stats */}
+            <div className="grid grid-cols-3 gap-4">
+              <Card className="text-center p-4">
+                <div className="text-3xl font-bold text-muted-foreground">{groupedProjects.idea?.length || 0}</div>
+                <div className="text-xs text-muted-foreground">Ideas</div>
+              </Card>
+              <Card className="text-center p-4">
+                <div className="text-3xl font-bold text-accent">{groupedProjects.building?.length || 0}</div>
+                <div className="text-xs text-muted-foreground">Building</div>
+              </Card>
+              <Card className="text-center p-4">
+                <div className="text-3xl font-bold text-primary">{groupedProjects.completed?.length || 0}</div>
+                <div className="text-xs text-muted-foreground">Completed</div>
+              </Card>
+            </div>
 
-                          <div className="space-y-2 pt-3 border-t border-border/30">
-                            <div className="flex items-start gap-2">
-                              <Target className="w-4 h-4 mt-0.5 text-accent flex-shrink-0" />
-                              <div className="flex-1">
-                                <p className="text-xs font-semibold uppercase tracking-wider text-accent">
-                                  First Step
-                                </p>
-                                <p className="text-sm">{project.first_step}</p>
-                              </div>
-                            </div>
+            {/* Projects by Status */}
+            {statusOptions.map(statusOption => {
+              const StatusIcon = statusOption.icon;
+              const projectsInStatus = groupedProjects[statusOption.value] || [];
 
-                            {project.impact && (
-                              <div className="flex items-start gap-2">
-                                <TrendingUp className="w-4 h-4 mt-0.5 text-primary flex-shrink-0" />
-                                <div className="flex-1">
-                                  <p className="text-xs font-semibold uppercase tracking-wider text-primary">
-                                    Impact
-                                  </p>
-                                  <p className="text-sm">{project.impact}</p>
+              return (
+                <div key={statusOption.value} className="space-y-4">
+                  <div className="flex items-center gap-3">
+                    <div className={`w-10 h-10 rounded-lg ${statusOption.color} flex items-center justify-center`}>
+                      <StatusIcon className="w-5 h-5 text-foreground" />
+                    </div>
+                    <div>
+                      <h2 className="text-xl font-bold">{statusOption.label}</h2>
+                      <p className="text-sm text-muted-foreground">{projectsInStatus.length} projects</p>
+                    </div>
+                  </div>
+
+                  <div className="grid md:grid-cols-2 gap-4">
+                    <AnimatePresence mode="popLayout">
+                      {projectsInStatus.map((project) => (
+                        <motion.div
+                          key={project.id}
+                          layout
+                          initial={{ opacity: 0, scale: 0.9 }}
+                          animate={{ opacity: 1, scale: 1 }}
+                          exit={{ opacity: 0, scale: 0.9 }}
+                        >
+                          <Card className="border-l-4 border-l-accent/50 hover:shadow-lg transition-shadow">
+                            <CardHeader>
+                              <CardTitle className="text-lg flex items-center justify-between">
+                                <span>{project.title}</span>
+                                <div className="flex gap-1">
+                                  <Button
+                                    variant="ghost"
+                                    size="sm"
+                                    onClick={() => {
+                                      setSelectedProject(project);
+                                      setProgressNotes(project.progress_notes || "");
+                                      setEditDialogOpen(true);
+                                    }}
+                                  >
+                                    <Edit className="w-4 h-4" />
+                                  </Button>
+                                  <Button
+                                    variant="ghost"
+                                    size="sm"
+                                    onClick={() => deleteProject(project.id)}
+                                  >
+                                    <Trash2 className="w-4 h-4 text-destructive" />
+                                  </Button>
                                 </div>
+                              </CardTitle>
+                            </CardHeader>
+                            <CardContent className="space-y-4">
+                              <p className="text-sm text-muted-foreground leading-relaxed">
+                                {project.description}
+                              </p>
+
+                              {project.dot_connections && project.dot_connections.length > 0 && (
+                                <div className="flex flex-wrap gap-1.5">
+                                  {project.dot_connections.map((conn: string, i: number) => (
+                                    <Badge key={i} variant="secondary" className="text-xs">
+                                      {conn}
+                                    </Badge>
+                                  ))}
+                                </div>
+                              )}
+
+                              <div className="space-y-2 pt-3 border-t border-border/30">
+                                <div className="flex items-start gap-2">
+                                  <Target className="w-4 h-4 mt-0.5 text-accent flex-shrink-0" />
+                                  <div className="flex-1">
+                                    <p className="text-xs font-semibold uppercase tracking-wider text-accent">
+                                      First Step
+                                    </p>
+                                    <p className="text-sm">{project.first_step}</p>
+                                  </div>
+                                </div>
+
+                                {project.impact && (
+                                  <div className="flex items-start gap-2">
+                                    <TrendingUp className="w-4 h-4 mt-0.5 text-primary flex-shrink-0" />
+                                    <div className="flex-1">
+                                      <p className="text-xs font-semibold uppercase tracking-wider text-primary">
+                                        Impact
+                                      </p>
+                                      <p className="text-sm">{project.impact}</p>
+                                    </div>
+                                  </div>
+                                )}
                               </div>
-                            )}
-                          </div>
 
-                          {project.progress_notes && (
-                            <div className="p-3 rounded-lg bg-muted/30 text-sm">
-                              <p className="font-semibold text-xs mb-1">Progress Notes:</p>
-                              <p className="text-muted-foreground">{project.progress_notes}</p>
-                            </div>
-                          )}
+                              {project.progress_notes && (
+                                <div className="p-3 rounded-lg bg-muted/30 text-sm">
+                                  <p className="font-semibold text-xs mb-1">Progress Notes:</p>
+                                  <p className="text-muted-foreground">{project.progress_notes}</p>
+                                </div>
+                              )}
 
-                          <div className="flex gap-2">
-                            {statusOptions
-                              .filter(s => s.value !== project.status)
-                              .map(nextStatus => (
+                              <div className="flex gap-2">
+                                {statusOptions
+                                  .filter(s => s.value !== project.status)
+                                  .map(nextStatus => (
+                                    <Button
+                                      key={nextStatus.value}
+                                      variant="outline"
+                                      size="sm"
+                                      onClick={() => updateProjectStatus(project.id, nextStatus.value)}
+                                      className="flex-1"
+                                    >
+                                      Move to {nextStatus.label}
+                                    </Button>
+                                  ))}
                                 <Button
-                                  key={nextStatus.value}
-                                  variant="outline"
+                                  variant="default"
                                   size="sm"
-                                  onClick={() => updateProjectStatus(project.id, nextStatus.value)}
-                                  className="flex-1"
+                                  onClick={() => convertToTask(project)}
                                 >
-                                  Move to {nextStatus.label}
+                                  <Target className="w-3 h-3 mr-1" />
+                                  Task
                                 </Button>
-                              ))}
-                            <Button
-                              variant="default"
-                              size="sm"
-                              onClick={() => convertToTask(project)}
-                            >
-                              <Target className="w-3 h-3 mr-1" />
-                              Task
-                            </Button>
-                          </div>
+                              </div>
+                            </CardContent>
+                          </Card>
+                        </motion.div>
+                      ))}
+                    </AnimatePresence>
+
+                    {projectsInStatus.length === 0 && (
+                      <Card className="border-dashed border-2 col-span-full">
+                        <CardContent className="pt-12 pb-12 text-center">
+                          <StatusIcon className="w-12 h-12 mx-auto text-muted-foreground/50 mb-3" />
+                          <p className="text-sm text-muted-foreground">
+                            No {statusOption.label.toLowerCase()} projects yet
+                          </p>
                         </CardContent>
                       </Card>
-                    </motion.div>
-                  ))}
-                </AnimatePresence>
-
-                {projectsInStatus.length === 0 && (
-                  <Card className="border-dashed border-2 col-span-full">
-                    <CardContent className="pt-12 pb-12 text-center">
-                      <StatusIcon className="w-12 h-12 mx-auto text-muted-foreground/50 mb-3" />
-                      <p className="text-sm text-muted-foreground">
-                        No {statusOption.label.toLowerCase()} projects yet
-                      </p>
-                    </CardContent>
-                  </Card>
-                )}
-              </div>
-            </div>
-          );
-        })}
+                    )}
+                  </div>
+                </div>
+              );
+            })}
+          </TabsContent>
+        </Tabs>
 
         {/* Edit Dialog */}
         <Dialog open={editDialogOpen} onOpenChange={setEditDialogOpen}>
