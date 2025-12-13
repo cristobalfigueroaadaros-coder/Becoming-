@@ -86,15 +86,104 @@ serve(async (req) => {
       { data: dailyGoals },
       { data: lifeDomains },
       { data: recentOutreach },
-      { data: recentChats }
+      { data: recentChats },
+      { data: pendingFollowups }
     ] = await Promise.all([
       supabase.from('profiles').select('*').eq('id', user.id).single(),
       supabase.from('council_meetings').select('*').eq('user_id', user.id).order('created_at', { ascending: false }).limit(3),
       supabase.from('daily_goals').select('*').eq('user_id', user.id).eq('completed', false).limit(5),
       supabase.from('life_domains').select('*').eq('user_id', user.id),
       supabase.from('mentor_daily_outreach').select('mentor_type, created_at').eq('user_id', user.id).order('created_at', { ascending: false }).limit(7),
-      supabase.from('chats').select('mentor_type, content, created_at').eq('user_id', user.id).order('created_at', { ascending: false }).limit(20)
+      supabase.from('chats').select('mentor_type, content, created_at').eq('user_id', user.id).order('created_at', { ascending: false }).limit(20),
+      supabase.from('mentor_followup_queue').select('*, saved_insights(*)').eq('user_id', user.id).eq('status', 'pending').lte('scheduled_for', new Date().toISOString()).limit(3)
     ]);
+
+    // PRIORITY 1: Check for pending insight follow-ups
+    if (pendingFollowups && pendingFollowups.length > 0) {
+      const followup = pendingFollowups[0];
+      const mentorConfig = mentorOutreachPrompts[followup.mentor_type] || { personality: 'Wise and caring mentor.' };
+      
+      // Generate follow-up message referencing the saved insight
+      const LOVABLE_API_KEY = Deno.env.get('LOVABLE_API_KEY');
+      if (!LOVABLE_API_KEY) {
+        throw new Error('LOVABLE_API_KEY not configured');
+      }
+
+      const systemPrompt = `You are ${followup.mentor_type.replace(/_/g, ' ')}. ${mentorConfig.personality}
+
+You are following up on an insight the user saved from a previous conversation. They asked you to reach out to discuss this more deeply.
+
+THE INSIGHT THEY SAVED:
+"${followup.insight_text}"
+
+RULES:
+- Open by referencing the insight they saved - they wanted to explore this with you
+- Be warm and inviting, showing you've been thinking about their insight
+- Ask an open question that invites deeper exploration
+- Keep it to 3-4 sentences MAX
+- Use **bold** for 1-2 key phrases`;
+
+      const response = await fetch('https://ai.gateway.lovable.dev/v1/chat/completions', {
+        method: 'POST',
+        headers: {
+          'Authorization': `Bearer ${LOVABLE_API_KEY}`,
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          model: 'google/gemini-2.5-flash',
+          messages: [
+            { role: 'system', content: systemPrompt },
+            { role: 'user', content: 'Generate a follow-up message about the insight they saved.' }
+          ],
+          max_tokens: 400,
+        }),
+      });
+
+      if (!response.ok) {
+        throw new Error('Failed to generate follow-up message');
+      }
+
+      const aiData = await response.json();
+      const generatedMessage = aiData.choices?.[0]?.message?.content || `I've been thinking about what you saved: "${followup.insight_text}". Let's explore this together.`;
+
+      // Save the outreach message
+      const { data: outreach, error: insertError } = await supabase
+        .from('mentor_daily_outreach')
+        .insert({
+          user_id: user.id,
+          mentor_type: followup.mentor_type,
+          message: generatedMessage,
+          message_type: 'insight_followup',
+          context_source: 'saved_insight',
+          context_data: { saved_insight_id: followup.saved_insight_id, insight_text: followup.insight_text }
+        })
+        .select()
+        .single();
+
+      if (insertError) throw insertError;
+
+      // Mark the follow-up as sent
+      await supabase
+        .from('mentor_followup_queue')
+        .update({ status: 'sent', sent_at: new Date().toISOString() })
+        .eq('id', followup.id);
+
+      // Update the saved insight
+      await supabase
+        .from('saved_insights')
+        .update({ followup_triggered_at: new Date().toISOString() })
+        .eq('id', followup.saved_insight_id);
+
+      console.log(`Generated insight follow-up from ${followup.mentor_type} for user ${user.id}`);
+
+      return new Response(JSON.stringify({ 
+        success: true,
+        outreach,
+        isFollowup: true
+      }), {
+        headers: { ...corsHeaders, 'Content-Type': 'application/json' }
+      });
+    }
 
     // Determine which mentor should reach out (avoid recent ones)
     const recentMentors = recentOutreach?.map(o => o.mentor_type) || [];
