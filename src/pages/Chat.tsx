@@ -11,6 +11,7 @@ import { MentorLearningModule } from "@/components/MentorLearningModule";
 import { HighlightedText } from "@/components/HighlightedText";
 import { BreakthroughDetectedCard } from "@/components/BreakthroughDetectedCard";
 import { useBreakthroughDetection } from "@/hooks/useBreakthroughDetection";
+import { InsightActionButton } from "@/components/InsightActionButton";
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -485,10 +486,18 @@ const Chat = () => {
                 >
                   <div className="flex items-start gap-2">
                     <Sparkles className="w-4 h-4 text-primary flex-shrink-0 mt-0.5" />
-                    <div>
-                      <p className="text-xs text-muted-foreground mb-1">
-                        {whisper.whisper_type ? `${whisper.whisper_type} whisper` : 'whisper'}
-                      </p>
+                    <div className="flex-1">
+                      <div className="flex items-center justify-between">
+                        <p className="text-xs text-muted-foreground mb-1">
+                          {whisper.whisper_type ? `${whisper.whisper_type} whisper` : 'whisper'}
+                        </p>
+                        <InsightActionButton
+                          insightText={whisper.message}
+                          sourceType="mentor_whisper"
+                          sourceMentor={whisper.mentor_type}
+                          sourceContext={{ whisperId: whisper.id }}
+                        />
+                      </div>
                       <p className="text-sm italic">{whisper.message}</p>
                     </div>
                   </div>
@@ -513,7 +522,17 @@ const Chat = () => {
                 {message.role === "user" ? (
                   <p className="whitespace-pre-wrap">{message.content}</p>
                 ) : (
-                  <HighlightedText text={message.content} />
+                  <div className="space-y-2">
+                    <HighlightedText text={message.content} />
+                    <div className="flex justify-end pt-1">
+                      <InsightActionButton
+                        insightText={message.content}
+                        sourceType="mentor_message"
+                        sourceMentor={mentorType}
+                        sourceContext={{ messageId: message.id }}
+                      />
+                    </div>
+                  </div>
                 )}
               </Card>
             </div>

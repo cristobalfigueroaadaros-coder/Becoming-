@@ -13,6 +13,7 @@ import { motion } from "framer-motion";
 import { VoiceRecorder } from "@/components/VoiceRecorder";
 import { CouncilIntroductionModal } from "@/components/CouncilIntroductionModal";
 import { HighlightedText } from "@/components/HighlightedText";
+import { InsightActionButton } from "@/components/InsightActionButton";
 
 // Updated mentor names with new 12-mentor system
 const mentorNames: Record<string, string> = {
@@ -470,10 +471,17 @@ const CouncilMeeting = () => {
               >
                 <Card className="border-2 border-accent/30 bg-gradient-to-br from-accent/5 to-transparent">
                   <CardHeader className="pb-2">
-                    <CardTitle className="text-sm flex items-center gap-2 text-accent">
-                      <span className="text-lg">🔮</span>
-                      Council Insight
-                    </CardTitle>
+                    <div className="flex items-center justify-between">
+                      <CardTitle className="text-sm flex items-center gap-2 text-accent">
+                        <span className="text-lg">🔮</span>
+                        Council Insight
+                      </CardTitle>
+                      <InsightActionButton
+                        insightText={councilInsight}
+                        sourceType="council_insight"
+                        sourceContext={{ question }}
+                      />
+                    </div>
                   </CardHeader>
                   <CardContent>
                     <HighlightedText text={councilInsight} className="text-sm sm:text-base leading-relaxed font-medium" />
@@ -505,9 +513,17 @@ const CouncilMeeting = () => {
                             </span>
                           </div>
                           <div className="flex-1 min-w-0">
-                            <p className="text-sm font-semibold text-primary">
-                              {mentorNames[mentorType] || mentorType.replace(/_/g, ' ')}
-                            </p>
+                            <div className="flex items-center justify-between">
+                              <p className="text-sm font-semibold text-primary">
+                                {mentorNames[mentorType] || mentorType.replace(/_/g, ' ')}
+                              </p>
+                              <InsightActionButton
+                                insightText={perspective}
+                                sourceType="mentor_perspective"
+                                sourceMentor={mentorType}
+                                sourceContext={{ question }}
+                              />
+                            </div>
                             <HighlightedText text={perspective} className="text-sm leading-relaxed mt-1 text-muted-foreground" />
                           </div>
                         </div>
@@ -585,10 +601,17 @@ const CouncilMeeting = () => {
               >
                 <Card className="border-2 border-primary/30 bg-gradient-to-br from-primary/5 to-accent/5">
                   <CardHeader className="pb-2">
-                    <CardTitle className="text-sm flex items-center gap-2 text-primary">
-                      <span className="text-lg">💫</span>
-                      Emotional Reflection
-                    </CardTitle>
+                    <div className="flex items-center justify-between">
+                      <CardTitle className="text-sm flex items-center gap-2 text-primary">
+                        <span className="text-lg">💫</span>
+                        Emotional Reflection
+                      </CardTitle>
+                      <InsightActionButton
+                        insightText={emotionalReflection}
+                        sourceType="emotional_reflection"
+                        sourceContext={{ question }}
+                      />
+                    </div>
                   </CardHeader>
                   <CardContent>
                     <HighlightedText text={emotionalReflection} className="text-sm sm:text-base leading-relaxed italic" />
@@ -631,10 +654,17 @@ const CouncilMeeting = () => {
               >
                 <Card className="border-2 border-primary/50 bg-gradient-to-br from-primary/10 to-accent/10">
                   <CardHeader>
-                    <CardTitle className="flex items-center gap-2">
-                      <Sparkles className="w-5 h-5 text-primary" />
-                      Council Guidance
-                    </CardTitle>
+                    <div className="flex items-center justify-between">
+                      <CardTitle className="flex items-center gap-2">
+                        <Sparkles className="w-5 h-5 text-primary" />
+                        Council Guidance
+                      </CardTitle>
+                      <InsightActionButton
+                        insightText={councilGuidance}
+                        sourceType="council_guidance"
+                        sourceContext={{ question }}
+                      />
+                    </div>
                   </CardHeader>
                   <CardContent>
                     <HighlightedText text={councilGuidance} className="text-sm sm:text-base leading-relaxed font-medium" />

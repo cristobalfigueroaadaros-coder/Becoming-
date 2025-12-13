@@ -7,13 +7,14 @@ import { Badge } from "@/components/ui/badge";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from "@/components/ui/dialog";
 import { Textarea } from "@/components/ui/textarea";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { ArrowLeft, Lightbulb, Rocket, CheckCircle2, Trash2, Edit, Plus, Target, Sparkles, TrendingUp, Calendar, Clock, Play } from "lucide-react";
+import { ArrowLeft, Lightbulb, Rocket, CheckCircle2, Trash2, Edit, Plus, Target, Sparkles, TrendingUp, Calendar, Clock, Play, Bookmark, Archive } from "lucide-react";
 import { toast } from "sonner";
 import { motion, AnimatePresence } from "framer-motion";
 import { useIntegratorProjects } from "@/hooks/useIntegratorProjects";
 import { IntegratorPhaseTimeline } from "@/components/integrator/IntegratorPhaseTimeline";
 import { IntegratorCalendar } from "@/components/integrator/IntegratorCalendar";
 import { IntegratorDailyStepCard } from "@/components/integrator/IntegratorDailyStepCard";
+import { useSavedInsights } from "@/hooks/useSavedInsights";
 
 const statusOptions = [
   { value: 'idea', label: 'Idea', icon: Lightbulb, color: 'bg-muted' },
@@ -43,6 +44,15 @@ const CreationLab = () => {
     getCurrentPhase
   } = useIntegratorProjects();
 
+  // Saved insights hook
+  const { 
+    insights: savedInsights, 
+    loading: insightsLoading, 
+    getConceptInsights, 
+    archiveInsight 
+  } = useSavedInsights();
+
+  const conceptInsights = getConceptInsights();
   const todaysStep = getTodaysStep();
   const currentPhase = getCurrentPhase();
 
@@ -212,7 +222,7 @@ const CreationLab = () => {
     await completeStep(stepId, insight);
   };
 
-  if (loading || integratorLoading) {
+  if (loading || integratorLoading || insightsLoading) {
     return (
       <div className="min-h-screen flex items-center justify-center">
         <p className="text-muted-foreground">Loading...</p>
@@ -272,18 +282,25 @@ const CreationLab = () => {
 
         {/* Tabs for Active Journey vs Legacy Ideas */}
         <Tabs value={activeTab} onValueChange={setActiveTab} className="space-y-6">
-          <TabsList className="grid w-full max-w-md grid-cols-2">
+          <TabsList className="grid w-full max-w-lg grid-cols-3">
             <TabsTrigger value="journey" className="gap-2">
               <Play className="w-4 h-4" />
-              Active Journey
+              <span className="hidden sm:inline">Active</span> Journey
               {integratorProject && (
-                <Badge variant="secondary" className="ml-2">1</Badge>
+                <Badge variant="secondary" className="ml-1">1</Badge>
+              )}
+            </TabsTrigger>
+            <TabsTrigger value="insights" className="gap-2">
+              <Bookmark className="w-4 h-4" />
+              <span className="hidden sm:inline">Saved</span> Insights
+              {conceptInsights.length > 0 && (
+                <Badge variant="outline" className="ml-1">{conceptInsights.length}</Badge>
               )}
             </TabsTrigger>
             <TabsTrigger value="ideas" className="gap-2">
               <Lightbulb className="w-4 h-4" />
               Ideas
-              <Badge variant="outline" className="ml-2">{projects.length}</Badge>
+              <Badge variant="outline" className="ml-1">{projects.length}</Badge>
             </TabsTrigger>
           </TabsList>
 
@@ -379,6 +396,85 @@ const CreationLab = () => {
                     >
                       <TrendingUp className="w-4 h-4" />
                       Analyze Dots
+                    </Button>
+                  </div>
+                </CardContent>
+              </Card>
+            )}
+          </TabsContent>
+
+          {/* Saved Insights Tab */}
+          <TabsContent value="insights" className="space-y-6">
+            {conceptInsights.length > 0 ? (
+              <div className="space-y-4">
+                <p className="text-sm text-muted-foreground">
+                  Insights you've saved from conversations. No pressure—just a holding space for what matters.
+                </p>
+                <div className="grid gap-4">
+                  <AnimatePresence mode="popLayout">
+                    {conceptInsights.map((insight) => (
+                      <motion.div
+                        key={insight.id}
+                        layout
+                        initial={{ opacity: 0, scale: 0.95 }}
+                        animate={{ opacity: 1, scale: 1 }}
+                        exit={{ opacity: 0, scale: 0.95 }}
+                      >
+                        <Card className="border-l-4 border-l-accent/50">
+                          <CardContent className="pt-4">
+                            <div className="flex items-start justify-between gap-4">
+                              <div className="flex-1 min-w-0">
+                                <p className="text-sm leading-relaxed">"{insight.insight_text}"</p>
+                                <div className="flex items-center gap-2 mt-3">
+                                  {insight.source_mentor && (
+                                    <Badge variant="outline" className="text-xs">
+                                      {insight.source_mentor.replace(/_/g, ' ')}
+                                    </Badge>
+                                  )}
+                                  <span className="text-xs text-muted-foreground">
+                                    {new Date(insight.created_at).toLocaleDateString()}
+                                  </span>
+                                </div>
+                              </div>
+                              <Button
+                                variant="ghost"
+                                size="icon"
+                                onClick={() => archiveInsight(insight.id)}
+                                className="h-8 w-8 text-muted-foreground hover:text-foreground"
+                              >
+                                <Archive className="w-4 h-4" />
+                              </Button>
+                            </div>
+                          </CardContent>
+                        </Card>
+                      </motion.div>
+                    ))}
+                  </AnimatePresence>
+                </div>
+              </div>
+            ) : (
+              <Card className="border-dashed border-2">
+                <CardContent className="py-16 text-center">
+                  <Bookmark className="w-16 h-16 mx-auto text-muted-foreground/30 mb-4" />
+                  <h3 className="text-xl font-semibold mb-2">No Saved Insights Yet</h3>
+                  <p className="text-muted-foreground mb-6 max-w-md mx-auto">
+                    When something resonates in a conversation, tap "Save" to keep it here. No commitment required.
+                  </p>
+                  <div className="flex gap-3 justify-center">
+                    <Button 
+                      variant="outline" 
+                      onClick={() => navigate("/council")}
+                      className="gap-2"
+                    >
+                      <Sparkles className="w-4 h-4" />
+                      Visit Council
+                    </Button>
+                    <Button 
+                      onClick={() => navigate("/chat")}
+                      className="gap-2"
+                    >
+                      <Target className="w-4 h-4" />
+                      Talk to Mentors
                     </Button>
                   </div>
                 </CardContent>

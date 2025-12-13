@@ -1199,6 +1199,50 @@ export type Database = {
         }
         Relationships: []
       }
+      mentor_followup_queue: {
+        Row: {
+          created_at: string
+          id: string
+          insight_text: string
+          mentor_type: string
+          saved_insight_id: string | null
+          scheduled_for: string
+          sent_at: string | null
+          status: string
+          user_id: string
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          insight_text: string
+          mentor_type: string
+          saved_insight_id?: string | null
+          scheduled_for?: string
+          sent_at?: string | null
+          status?: string
+          user_id: string
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          insight_text?: string
+          mentor_type?: string
+          saved_insight_id?: string | null
+          scheduled_for?: string
+          sent_at?: string | null
+          status?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "mentor_followup_queue_saved_insight_id_fkey"
+            columns: ["saved_insight_id"]
+            isOneToOne: false
+            referencedRelation: "saved_insights"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       mentor_learning_modules: {
         Row: {
           created_at: string
@@ -1566,6 +1610,51 @@ export type Database = {
           quest_name?: string
           reward_xp?: number
           steps?: Json
+        }
+        Relationships: []
+      }
+      saved_insights: {
+        Row: {
+          archived_at: string | null
+          created_at: string
+          followup_mentor: string | null
+          followup_requested: boolean
+          followup_triggered_at: string | null
+          id: string
+          insight_text: string
+          is_concept: boolean
+          source_context: Json | null
+          source_mentor: string | null
+          source_type: string
+          user_id: string
+        }
+        Insert: {
+          archived_at?: string | null
+          created_at?: string
+          followup_mentor?: string | null
+          followup_requested?: boolean
+          followup_triggered_at?: string | null
+          id?: string
+          insight_text: string
+          is_concept?: boolean
+          source_context?: Json | null
+          source_mentor?: string | null
+          source_type: string
+          user_id: string
+        }
+        Update: {
+          archived_at?: string | null
+          created_at?: string
+          followup_mentor?: string | null
+          followup_requested?: boolean
+          followup_triggered_at?: string | null
+          id?: string
+          insight_text?: string
+          is_concept?: boolean
+          source_context?: Json | null
+          source_mentor?: string | null
+          source_type?: string
+          user_id?: string
         }
         Relationships: []
       }
