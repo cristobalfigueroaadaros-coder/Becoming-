@@ -2,7 +2,7 @@ import { useState, useEffect, useCallback } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
 
-interface IntegratorProject {
+export interface IntegratorProject {
   id: string;
   user_id: string;
   seed_breakthrough_id: string | null;
@@ -19,7 +19,7 @@ interface IntegratorProject {
   updated_at: string;
 }
 
-interface IntegratorPhase {
+export interface IntegratorPhase {
   id: string;
   project_id: string;
   phase_name: string;
@@ -32,7 +32,7 @@ interface IntegratorPhase {
   completed_at: string | null;
 }
 
-interface IntegratorDailyStep {
+export interface IntegratorDailyStep {
   id: string;
   project_id: string;
   phase_id: string;
