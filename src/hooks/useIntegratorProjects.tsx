@@ -15,6 +15,8 @@ export interface IntegratorProject {
   current_day: number;
   status: string;
   completion_summary: string | null;
+  why_this_matters?: string | null;
+  learning_insights_count?: number;
   created_at: string;
   updated_at: string;
 }
@@ -46,6 +48,11 @@ export interface IntegratorDailyStep {
   completed_at: string | null;
   insight_text: string | null;
   insight_shared_with_mentors: boolean;
+  reflection_question?: string | null;
+  user_edited_title?: string | null;
+  user_edited_description?: string | null;
+  skip_reason?: string | null;
+  rescheduled_from?: string | null;
 }
 
 export function useIntegratorProjects() {
@@ -157,7 +164,7 @@ export function useIntegratorProjects() {
 
       if (error) throw error;
 
-      // If there's an insight, create an insight dot
+      // If there's an insight, create an insight dot and update learning count
       if (insight && activeProject) {
         await supabase.from('insight_dots').insert({
           user_id: user.id,
@@ -167,6 +174,14 @@ export function useIntegratorProjects() {
           core_theme: activeProject.project_title,
           emotional_tone: 'productive'
         });
+
+        // Increment learning insights count
+        await supabase
+          .from('integrator_projects')
+          .update({ 
+            learning_insights_count: ((activeProject as any).learning_insights_count || 0) + 1 
+          })
+          .eq('id', activeProject.id);
       }
 
       // Update local state
@@ -233,6 +248,112 @@ export function useIntegratorProjects() {
     }
   };
 
+  const skipStep = async (stepId: string, reason?: string) => {
+    try {
+      const { error } = await supabase
+        .from('integrator_daily_steps')
+        .update({
+          status: 'skipped',
+          skip_reason: reason || null
+        })
+        .eq('id', stepId);
+
+      if (error) throw error;
+
+      setSteps(prev => prev.map(s => 
+        s.id === stepId 
+          ? { ...s, status: 'skipped', skip_reason: reason || null }
+          : s
+      ));
+
+      toast.success('Step skipped');
+    } catch (error) {
+      console.error('Error skipping step:', error);
+      toast.error('Failed to skip step');
+      throw error;
+    }
+  };
+
+  const editStep = async (stepId: string, title: string, description: string) => {
+    try {
+      const { error } = await supabase
+        .from('integrator_daily_steps')
+        .update({
+          user_edited_title: title,
+          user_edited_description: description
+        })
+        .eq('id', stepId);
+
+      if (error) throw error;
+
+      setSteps(prev => prev.map(s => 
+        s.id === stepId 
+          ? { ...s, user_edited_title: title, user_edited_description: description }
+          : s
+      ));
+
+      toast.success('Step updated');
+    } catch (error) {
+      console.error('Error editing step:', error);
+      toast.error('Failed to update step');
+      throw error;
+    }
+  };
+
+  const rescheduleStep = async (stepId: string, newDate: Date) => {
+    try {
+      const step = steps.find(s => s.id === stepId);
+      if (!step) return;
+
+      const { error } = await supabase
+        .from('integrator_daily_steps')
+        .update({
+          rescheduled_from: step.scheduled_date,
+          scheduled_date: newDate.toISOString().split('T')[0]
+        })
+        .eq('id', stepId);
+
+      if (error) throw error;
+
+      setSteps(prev => prev.map(s => 
+        s.id === stepId 
+          ? { ...s, rescheduled_from: s.scheduled_date, scheduled_date: newDate.toISOString().split('T')[0] }
+          : s
+      ));
+
+      toast.success('Step rescheduled');
+    } catch (error) {
+      console.error('Error rescheduling step:', error);
+      toast.error('Failed to reschedule step');
+      throw error;
+    }
+  };
+
+  const getMissedSteps = useCallback(() => {
+    const today = new Date().toISOString().split('T')[0];
+    return steps.filter(s => 
+      s.scheduled_date < today && 
+      s.status !== 'completed' && 
+      s.status !== 'skipped'
+    );
+  }, [steps]);
+
+  const skipMissedSteps = async () => {
+    const missed = getMissedSteps();
+    for (const step of missed) {
+      await supabase
+        .from('integrator_daily_steps')
+        .update({ status: 'skipped', skip_reason: 'Missed - auto-skipped on return' })
+        .eq('id', step.id);
+    }
+    setSteps(prev => prev.map(s => 
+      missed.find(m => m.id === s.id)
+        ? { ...s, status: 'skipped', skip_reason: 'Missed - auto-skipped on return' }
+        : s
+    ));
+    toast.success(`Skipped ${missed.length} missed steps`);
+  };
+
   const getTodaysStep = useCallback(() => {
     if (!activeProject) return null;
     
@@ -254,13 +375,19 @@ export function useIntegratorProjects() {
   return {
     projects,
     activeProject,
+    setActiveProject,
     phases,
     steps,
     loading,
     createProject,
     completeStep,
+    skipStep,
+    editStep,
+    rescheduleStep,
     getTodaysStep,
     getCurrentPhase,
+    getMissedSteps,
+    skipMissedSteps,
     loadProjects,
     loadProjectDetails
   };

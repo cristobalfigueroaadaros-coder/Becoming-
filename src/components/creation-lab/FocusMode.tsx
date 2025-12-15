@@ -1,11 +1,13 @@
+import { useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
-import { Badge } from "@/components/ui/badge";
 import { Rocket, Sparkles, TrendingUp, Clock, Calendar } from "lucide-react";
 import { IntegratorPhaseTimeline } from "@/components/integrator/IntegratorPhaseTimeline";
 import { IntegratorCalendar } from "@/components/integrator/IntegratorCalendar";
 import { IntegratorDailyStepCard } from "@/components/integrator/IntegratorDailyStepCard";
+import { ProjectHeaderEditor } from "@/components/integrator/ProjectHeaderEditor";
+import { CatchUpMode } from "@/components/integrator/CatchUpMode";
 import type { IntegratorProject, IntegratorPhase, IntegratorDailyStep } from "@/hooks/useIntegratorProjects";
 
 interface FocusModeProps {
@@ -14,7 +16,13 @@ interface FocusModeProps {
   steps: IntegratorDailyStep[];
   todaysStep: IntegratorDailyStep | undefined;
   currentPhase: IntegratorPhase | undefined;
+  missedSteps: IntegratorDailyStep[];
   onCompleteStep: (stepId: string, insight?: string) => Promise<void>;
+  onSkipStep: (stepId: string, reason?: string) => Promise<void>;
+  onEditStep: (stepId: string, title: string, description: string) => Promise<void>;
+  onRescheduleStep: (stepId: string, newDate: Date) => Promise<void>;
+  onSkipMissedSteps: () => Promise<void>;
+  onProjectUpdate: (updates: Partial<IntegratorProject>) => void;
 }
 
 export const FocusMode = ({
@@ -23,9 +31,16 @@ export const FocusMode = ({
   steps,
   todaysStep,
   currentPhase,
+  missedSteps,
   onCompleteStep,
+  onSkipStep,
+  onEditStep,
+  onRescheduleStep,
+  onSkipMissedSteps,
+  onProjectUpdate,
 }: FocusModeProps) => {
   const navigate = useNavigate();
+  const [showCatchUp, setShowCatchUp] = useState(missedSteps.length >= 3);
 
   if (!activeProject) {
     return (
@@ -58,28 +73,46 @@ export const FocusMode = ({
     );
   }
 
+  // Show catch-up mode if returning after many missed days
+  if (showCatchUp && missedSteps.length >= 3) {
+    return (
+      <div className="space-y-6">
+        <ProjectHeaderEditor
+          project={activeProject}
+          currentPhase={currentPhase}
+          steps={steps}
+          onProjectUpdate={onProjectUpdate}
+        />
+        
+        <CatchUpMode
+          missedDays={missedSteps.length}
+          onResume={() => setShowCatchUp(false)}
+          onCompress={() => {
+            // For now, just resume - compression would require AI regeneration
+            setShowCatchUp(false);
+          }}
+          onSkipMissed={async () => {
+            await onSkipMissedSteps();
+            setShowCatchUp(false);
+          }}
+        />
+      </div>
+    );
+  }
+
   return (
     <div className="space-y-6">
-      {/* Project Header */}
+      {/* Project Header with Progress */}
+      <ProjectHeaderEditor
+        project={activeProject}
+        currentPhase={currentPhase}
+        steps={steps}
+        onProjectUpdate={onProjectUpdate}
+      />
+
+      {/* Phase Timeline */}
       <Card>
-        <CardHeader>
-          <div className="flex items-start justify-between">
-            <div>
-              <CardTitle className="text-xl">{activeProject.project_title}</CardTitle>
-              <CardDescription>{activeProject.project_description}</CardDescription>
-            </div>
-            <Badge 
-              variant="secondary" 
-              className="capitalize"
-              style={{ 
-                backgroundColor: currentPhase?.phase_color ? `${currentPhase.phase_color}60` : undefined 
-              }}
-            >
-              {activeProject.current_phase}
-            </Badge>
-          </div>
-        </CardHeader>
-        <CardContent>
+        <CardContent className="pt-6">
           <IntegratorPhaseTimeline
             phases={phases}
             currentDay={activeProject.current_day}
@@ -100,6 +133,9 @@ export const FocusMode = ({
             phase={currentPhase}
             totalDays={activeProject.timeframe_days}
             onComplete={onCompleteStep}
+            onSkip={onSkipStep}
+            onEdit={onEditStep}
+            onReschedule={onRescheduleStep}
           />
         </div>
       )}
