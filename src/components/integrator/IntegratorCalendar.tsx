@@ -1,7 +1,7 @@
 import { useState } from "react";
 import { motion } from "framer-motion";
-import { Check, Clock, X, MessageSquare } from "lucide-react";
-import { format, parseISO, isToday, isBefore, isAfter } from "date-fns";
+import { Check, Clock, X, MessageSquare, SkipForward, CalendarClock } from "lucide-react";
+import { format, parseISO, isToday, isBefore } from "date-fns";
 import {
   Dialog,
   DialogContent,
@@ -9,7 +9,7 @@ import {
   DialogTitle,
 } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
-import { Textarea } from "@/components/ui/textarea";
+import { MandatoryInsightCapture } from "./MandatoryInsightCapture";
 
 interface DailyStep {
   id: string;
@@ -22,6 +22,11 @@ interface DailyStep {
   status: string;
   insight_text: string | null;
   phase_id: string;
+  reflection_question?: string | null;
+  user_edited_title?: string | null;
+  user_edited_description?: string | null;
+  skip_reason?: string | null;
+  rescheduled_from?: string | null;
 }
 
 interface Phase {
@@ -33,7 +38,7 @@ interface Phase {
 interface IntegratorCalendarProps {
   steps: DailyStep[];
   phases: Phase[];
-  onCompleteStep: (stepId: string, insight?: string) => void;
+  onCompleteStep: (stepId: string, insight?: string) => Promise<void>;
   currentDay: number;
 }
 
@@ -44,7 +49,6 @@ export function IntegratorCalendar({
   currentDay 
 }: IntegratorCalendarProps) {
   const [selectedStep, setSelectedStep] = useState<DailyStep | null>(null);
-  const [insight, setInsight] = useState("");
   const [isCompleting, setIsCompleting] = useState(false);
 
   const getPhaseColor = (phaseId: string): string => {
@@ -52,20 +56,25 @@ export function IntegratorCalendar({
     return phase?.phase_color || '#E5E7EB';
   };
 
-  const getStepStatus = (step: DailyStep): 'completed' | 'today' | 'upcoming' | 'missed' => {
+  const getPhaseName = (phaseId: string): string => {
+    const phase = phases.find(p => p.id === phaseId);
+    return phase?.phase_name || 'unknown';
+  };
+
+  const getStepStatus = (step: DailyStep): 'completed' | 'today' | 'upcoming' | 'missed' | 'skipped' => {
     if (step.status === 'completed') return 'completed';
+    if (step.status === 'skipped') return 'skipped';
     const stepDate = parseISO(step.scheduled_date);
     if (isToday(stepDate)) return 'today';
     if (isBefore(stepDate, new Date()) && step.status !== 'completed') return 'missed';
     return 'upcoming';
   };
 
-  const handleCompleteStep = async () => {
+  const handleCompleteStep = async (insight: string) => {
     if (!selectedStep) return;
     setIsCompleting(true);
     await onCompleteStep(selectedStep.id, insight);
     setIsCompleting(false);
-    setInsight("");
     setSelectedStep(null);
   };
 
@@ -80,6 +89,10 @@ export function IntegratorCalendar({
       currentWeek = [];
     }
   });
+
+  // Get display values
+  const getDisplayTitle = (step: DailyStep) => step.user_edited_title || step.step_title;
+  const getDisplayDescription = (step: DailyStep) => step.user_edited_description || step.step_description;
 
   return (
     <div className="space-y-4">
@@ -103,7 +116,9 @@ export function IntegratorCalendar({
                       : 'border-border hover:border-primary/50'
                   }`}
                   style={{
-                    backgroundColor: status !== 'upcoming' ? `${phaseColor}60` : undefined
+                    backgroundColor: status === 'completed' ? `${phaseColor}60` : 
+                                    status === 'skipped' ? 'hsl(var(--muted))' :
+                                    status === 'missed' ? 'hsl(var(--destructive) / 0.1)' : undefined
                   }}
                 >
                   {/* Day number */}
@@ -120,12 +135,22 @@ export function IntegratorCalendar({
                     {status === 'missed' && (
                       <X className="w-3 h-3 text-destructive/50" />
                     )}
+                    {status === 'skipped' && (
+                      <SkipForward className="w-3 h-3 text-muted-foreground" />
+                    )}
                   </div>
 
                   {/* Insight indicator */}
                   {step.insight_text && (
                     <div className="absolute top-1 right-1">
                       <MessageSquare className="w-2.5 h-2.5 text-primary" />
+                    </div>
+                  )}
+
+                  {/* Rescheduled indicator */}
+                  {step.rescheduled_from && (
+                    <div className="absolute top-1 left-1">
+                      <CalendarClock className="w-2.5 h-2.5 text-amber-500" />
                     </div>
                   )}
                 </motion.button>
@@ -142,20 +167,24 @@ export function IntegratorCalendar({
       {/* Legend */}
       <div className="flex flex-wrap gap-3 text-xs text-muted-foreground">
         <div className="flex items-center gap-1">
-          <div className="w-3 h-3 rounded bg-green-500/60" />
-          <span>Completed</span>
+          <Check className="w-3 h-3 text-green-600" />
+          <span>Done</span>
         </div>
         <div className="flex items-center gap-1">
-          <div className="w-3 h-3 rounded border-2 border-primary" />
+          <Clock className="w-3 h-3 text-primary" />
           <span>Today</span>
         </div>
         <div className="flex items-center gap-1">
-          <div className="w-3 h-3 rounded bg-destructive/30" />
+          <X className="w-3 h-3 text-destructive/50" />
           <span>Missed</span>
         </div>
         <div className="flex items-center gap-1">
+          <SkipForward className="w-3 h-3 text-muted-foreground" />
+          <span>Skipped</span>
+        </div>
+        <div className="flex items-center gap-1">
           <MessageSquare className="w-3 h-3 text-primary" />
-          <span>Has insight</span>
+          <span>Insight</span>
         </div>
       </div>
 
@@ -170,13 +199,13 @@ export function IntegratorCalendar({
                     className="w-3 h-3 rounded-full"
                     style={{ backgroundColor: getPhaseColor(selectedStep.phase_id) }}
                   />
-                  Day {selectedStep.day_number}: {selectedStep.step_title}
+                  Day {selectedStep.day_number}: {getDisplayTitle(selectedStep)}
                 </DialogTitle>
               </DialogHeader>
 
               <div className="space-y-4">
                 <div>
-                  <p className="text-sm text-foreground">{selectedStep.step_description}</p>
+                  <p className="text-sm text-foreground">{getDisplayDescription(selectedStep)}</p>
                   <p className="text-xs text-muted-foreground mt-2 flex items-center gap-1">
                     <Clock className="w-3 h-3" />
                     {selectedStep.estimated_minutes} minutes
@@ -189,19 +218,20 @@ export function IntegratorCalendar({
                   </div>
                 )}
 
-                {getStepStatus(selectedStep) !== 'completed' && (
-                  <div className="space-y-2">
-                    <label className="text-sm font-medium">
-                      Share an insight (optional)
-                    </label>
-                    <Textarea
-                      value={insight}
-                      onChange={(e) => setInsight(e.target.value)}
-                      placeholder="What did you learn or discover?"
-                      className="resize-none"
-                      rows={3}
-                    />
+                {selectedStep.skip_reason && (
+                  <div className="p-3 rounded-lg bg-muted text-sm">
+                    <span className="text-xs font-medium text-muted-foreground">Skip reason: </span>
+                    {selectedStep.skip_reason}
                   </div>
+                )}
+
+                {getStepStatus(selectedStep) !== 'completed' && getStepStatus(selectedStep) !== 'skipped' && (
+                  <MandatoryInsightCapture
+                    phaseName={getPhaseName(selectedStep.phase_id)}
+                    reflectionQuestion={selectedStep.reflection_question || undefined}
+                    onComplete={handleCompleteStep}
+                    isLoading={isCompleting}
+                  />
                 )}
 
                 {selectedStep.insight_text && (
@@ -211,16 +241,13 @@ export function IntegratorCalendar({
                   </div>
                 )}
 
-                <div className="flex justify-end gap-2">
-                  <Button variant="outline" onClick={() => setSelectedStep(null)}>
-                    Close
-                  </Button>
-                  {getStepStatus(selectedStep) !== 'completed' && (
-                    <Button onClick={handleCompleteStep} disabled={isCompleting}>
-                      {isCompleting ? 'Completing...' : 'Mark Complete'}
+                {(getStepStatus(selectedStep) === 'completed' || getStepStatus(selectedStep) === 'skipped') && (
+                  <div className="flex justify-end">
+                    <Button variant="outline" onClick={() => setSelectedStep(null)}>
+                      Close
                     </Button>
-                  )}
-                </div>
+                  </div>
+                )}
               </div>
             </>
           )}

@@ -46,11 +46,17 @@ const CreationLab = () => {
   const {
     // Focus Mode data
     activeProject,
+    setActiveProject,
     phases,
     steps,
     completeStep,
+    skipStep,
+    editStep,
+    rescheduleStep,
     getTodaysStep,
     getCurrentPhase,
+    getMissedSteps,
+    skipMissedSteps,
     
     // Constellation data
     insightDots,
@@ -167,7 +173,13 @@ const CreationLab = () => {
               steps={steps}
               todaysStep={todaysStep}
               currentPhase={currentPhase}
+              missedSteps={getMissedSteps()}
               onCompleteStep={handleCompleteStep}
+              onSkipStep={skipStep}
+              onEditStep={editStep}
+              onRescheduleStep={rescheduleStep}
+              onSkipMissedSteps={skipMissedSteps}
+              onProjectUpdate={(updates) => setActiveProject(prev => prev ? { ...prev, ...updates } : null)}
             />
           )}
 

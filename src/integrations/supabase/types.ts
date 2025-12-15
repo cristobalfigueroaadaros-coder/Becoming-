@@ -958,11 +958,16 @@ export type Database = {
           insight_text: string | null
           phase_id: string
           project_id: string
+          reflection_question: string | null
+          rescheduled_from: string | null
           scheduled_date: string
+          skip_reason: string | null
           status: string
           step_description: string
           step_title: string
           updated_at: string
+          user_edited_description: string | null
+          user_edited_title: string | null
           user_id: string
         }
         Insert: {
@@ -976,11 +981,16 @@ export type Database = {
           insight_text?: string | null
           phase_id: string
           project_id: string
+          reflection_question?: string | null
+          rescheduled_from?: string | null
           scheduled_date: string
+          skip_reason?: string | null
           status?: string
           step_description: string
           step_title: string
           updated_at?: string
+          user_edited_description?: string | null
+          user_edited_title?: string | null
           user_id: string
         }
         Update: {
@@ -994,11 +1004,16 @@ export type Database = {
           insight_text?: string | null
           phase_id?: string
           project_id?: string
+          reflection_question?: string | null
+          rescheduled_from?: string | null
           scheduled_date?: string
+          skip_reason?: string | null
           status?: string
           step_description?: string
           step_title?: string
           updated_at?: string
+          user_edited_description?: string | null
+          user_edited_title?: string | null
           user_id?: string
         }
         Relationships: [
@@ -1078,6 +1093,7 @@ export type Database = {
           current_day: number
           current_phase: string
           id: string
+          learning_insights_count: number | null
           project_description: string
           project_title: string
           seed_breakthrough_id: string | null
@@ -1087,6 +1103,7 @@ export type Database = {
           timeframe_days: number
           updated_at: string
           user_id: string
+          why_this_matters: string | null
         }
         Insert: {
           completion_summary?: string | null
@@ -1094,6 +1111,7 @@ export type Database = {
           current_day?: number
           current_phase?: string
           id?: string
+          learning_insights_count?: number | null
           project_description: string
           project_title: string
           seed_breakthrough_id?: string | null
@@ -1103,6 +1121,7 @@ export type Database = {
           timeframe_days?: number
           updated_at?: string
           user_id: string
+          why_this_matters?: string | null
         }
         Update: {
           completion_summary?: string | null
@@ -1110,6 +1129,7 @@ export type Database = {
           current_day?: number
           current_phase?: string
           id?: string
+          learning_insights_count?: number | null
           project_description?: string
           project_title?: string
           seed_breakthrough_id?: string | null
@@ -1119,6 +1139,7 @@ export type Database = {
           timeframe_days?: number
           updated_at?: string
           user_id?: string
+          why_this_matters?: string | null
         }
         Relationships: [
           {

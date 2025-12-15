@@ -2,8 +2,9 @@ import { useState } from "react";
 import { motion } from "framer-motion";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
-import { Textarea } from "@/components/ui/textarea";
 import { Clock, Check, Sparkles, ChevronRight } from "lucide-react";
+import { StepActionsMenu } from "./StepActionsMenu";
+import { MandatoryInsightCapture } from "./MandatoryInsightCapture";
 
 interface DailyStep {
   id: string;
@@ -13,6 +14,10 @@ interface DailyStep {
   encouragement: string;
   estimated_minutes: number;
   status: string;
+  scheduled_date: string;
+  reflection_question?: string | null;
+  user_edited_title?: string | null;
+  user_edited_description?: string | null;
 }
 
 interface Phase {
@@ -24,7 +29,10 @@ interface IntegratorDailyStepCardProps {
   step: DailyStep;
   phase: Phase;
   totalDays: number;
-  onComplete: (stepId: string, insight?: string) => void;
+  onComplete: (stepId: string, insight?: string) => Promise<void>;
+  onSkip: (stepId: string, reason?: string) => Promise<void>;
+  onEdit: (stepId: string, title: string, description: string) => Promise<void>;
+  onReschedule: (stepId: string, newDate: Date) => Promise<void>;
   isLoading?: boolean;
 }
 
@@ -41,15 +49,20 @@ export function IntegratorDailyStepCard({
   phase,
   totalDays,
   onComplete,
+  onSkip,
+  onEdit,
+  onReschedule,
   isLoading = false
 }: IntegratorDailyStepCardProps) {
-  const [showInsight, setShowInsight] = useState(false);
-  const [insight, setInsight] = useState("");
+  const [showInsightCapture, setShowInsightCapture] = useState(false);
 
-  const handleComplete = () => {
-    onComplete(step.id, insight);
-    setInsight("");
-    setShowInsight(false);
+  // Use edited values if available
+  const displayTitle = step.user_edited_title || step.step_title;
+  const displayDescription = step.user_edited_description || step.step_description;
+
+  const handleComplete = async (insight: string) => {
+    await onComplete(step.id, insight);
+    setShowInsightCapture(false);
   };
 
   if (step.status === 'completed') {
@@ -63,6 +76,24 @@ export function IntegratorDailyStepCard({
             <div>
               <p className="font-medium text-green-700 dark:text-green-400">Today's step completed!</p>
               <p className="text-sm text-muted-foreground">Great work. See you tomorrow.</p>
+            </div>
+          </div>
+        </CardContent>
+      </Card>
+    );
+  }
+
+  if (step.status === 'skipped') {
+    return (
+      <Card className="border-muted bg-muted/20">
+        <CardContent className="pt-6">
+          <div className="flex items-center gap-3">
+            <div className="w-10 h-10 rounded-full bg-muted flex items-center justify-center">
+              <ChevronRight className="w-5 h-5 text-muted-foreground" />
+            </div>
+            <div>
+              <p className="font-medium text-muted-foreground">Step skipped</p>
+              <p className="text-sm text-muted-foreground">Moving to the next step...</p>
             </div>
           </div>
         </CardContent>
@@ -99,19 +130,30 @@ export function IntegratorDailyStepCard({
                 {phase.phase_name}
               </span>
             </div>
-            <div className="flex items-center gap-1 text-xs text-muted-foreground">
-              <Clock className="w-3 h-3" />
-              {step.estimated_minutes} min
+            <div className="flex items-center gap-2">
+              <div className="flex items-center gap-1 text-xs text-muted-foreground">
+                <Clock className="w-3 h-3" />
+                {step.estimated_minutes} min
+              </div>
+              <StepActionsMenu
+                stepId={step.id}
+                stepTitle={displayTitle}
+                stepDescription={displayDescription}
+                scheduledDate={step.scheduled_date}
+                onEdit={onEdit}
+                onSkip={onSkip}
+                onReschedule={onReschedule}
+              />
             </div>
           </div>
           <CardTitle className="text-lg mt-2">
-            Day {step.day_number}/{totalDays}: {step.step_title}
+            Day {step.day_number}/{totalDays}: {displayTitle}
           </CardTitle>
         </CardHeader>
 
         <CardContent className="space-y-4">
           <p className="text-sm text-muted-foreground leading-relaxed">
-            {step.step_description}
+            {displayDescription}
           </p>
 
           {step.encouragement && (
@@ -130,59 +172,21 @@ export function IntegratorDailyStepCard({
             </motion.div>
           )}
 
-          {showInsight ? (
-            <motion.div
-              initial={{ opacity: 0, height: 0 }}
-              animate={{ opacity: 1, height: 'auto' }}
-              className="space-y-3"
-            >
-              <Textarea
-                value={insight}
-                onChange={(e) => setInsight(e.target.value)}
-                placeholder="What did you learn or discover? This insight will be shared with your mentors..."
-                className="resize-none"
-                rows={3}
-              />
-              <div className="flex gap-2">
-                <Button 
-                  variant="outline" 
-                  size="sm"
-                  onClick={() => setShowInsight(false)}
-                >
-                  Skip
-                </Button>
-                <Button 
-                  size="sm"
-                  onClick={handleComplete}
-                  disabled={isLoading}
-                  className="flex-1"
-                >
-                  {isLoading ? 'Saving...' : 'Complete with Insight'}
-                </Button>
-              </div>
-            </motion.div>
+          {showInsightCapture ? (
+            <MandatoryInsightCapture
+              phaseName={phase.phase_name}
+              reflectionQuestion={step.reflection_question || undefined}
+              onComplete={handleComplete}
+              isLoading={isLoading}
+            />
           ) : (
-            <div className="flex gap-2">
-              <Button 
-                variant="outline"
-                className="flex-1"
-                onClick={() => setShowInsight(true)}
-              >
-                Add Insight First
-              </Button>
-              <Button 
-                className="flex-1 gap-2"
-                onClick={() => onComplete(step.id)}
-                disabled={isLoading}
-              >
-                {isLoading ? 'Completing...' : (
-                  <>
-                    Complete Step
-                    <ChevronRight className="w-4 h-4" />
-                  </>
-                )}
-              </Button>
-            </div>
+            <Button 
+              className="w-full gap-2"
+              onClick={() => setShowInsightCapture(true)}
+            >
+              I've completed this step
+              <ChevronRight className="w-4 h-4" />
+            </Button>
           )}
         </CardContent>
       </Card>
