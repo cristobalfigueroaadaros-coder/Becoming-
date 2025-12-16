@@ -2173,6 +2173,87 @@ export type Database = {
         }
         Relationships: []
       }
+      value_map_blocks: {
+        Row: {
+          ai_suggestions: Json | null
+          block_key: string
+          content: string | null
+          created_at: string | null
+          id: string
+          is_unlocked: boolean | null
+          unlock_source: string | null
+          unlock_source_id: string | null
+          unlocked_at: string | null
+          updated_at: string | null
+          user_id: string
+          user_notes: string | null
+        }
+        Insert: {
+          ai_suggestions?: Json | null
+          block_key: string
+          content?: string | null
+          created_at?: string | null
+          id?: string
+          is_unlocked?: boolean | null
+          unlock_source?: string | null
+          unlock_source_id?: string | null
+          unlocked_at?: string | null
+          updated_at?: string | null
+          user_id: string
+          user_notes?: string | null
+        }
+        Update: {
+          ai_suggestions?: Json | null
+          block_key?: string
+          content?: string | null
+          created_at?: string | null
+          id?: string
+          is_unlocked?: boolean | null
+          unlock_source?: string | null
+          unlock_source_id?: string | null
+          unlocked_at?: string | null
+          updated_at?: string | null
+          user_id?: string
+          user_notes?: string | null
+        }
+        Relationships: []
+      }
+      value_map_suggestions: {
+        Row: {
+          block_key: string
+          created_at: string | null
+          id: string
+          source_context: Json | null
+          source_id: string | null
+          source_type: string
+          status: string | null
+          suggestion_text: string
+          user_id: string
+        }
+        Insert: {
+          block_key: string
+          created_at?: string | null
+          id?: string
+          source_context?: Json | null
+          source_id?: string | null
+          source_type: string
+          status?: string | null
+          suggestion_text: string
+          user_id: string
+        }
+        Update: {
+          block_key?: string
+          created_at?: string | null
+          id?: string
+          source_context?: Json | null
+          source_id?: string | null
+          source_type?: string
+          status?: string | null
+          suggestion_text?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
       vibrational_patterns: {
         Row: {
           average_frequency: string | null
