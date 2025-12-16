@@ -180,12 +180,18 @@ export const useCreationLabData = () => {
   return {
     // Integrator data (Focus Mode)
     activeProject: integratorData.activeProject,
+    setActiveProject: integratorData.setActiveProject,
     phases: integratorData.phases,
     steps: integratorData.steps,
     integratorLoading: integratorData.loading,
     completeStep: integratorData.completeStep,
+    skipStep: integratorData.skipStep,
+    editStep: integratorData.editStep,
+    rescheduleStep: integratorData.rescheduleStep,
     getTodaysStep: integratorData.getTodaysStep,
     getCurrentPhase: integratorData.getCurrentPhase,
+    getMissedSteps: integratorData.getMissedSteps,
+    skipMissedSteps: integratorData.skipMissedSteps,
     createProject: integratorData.createProject,
     loadProjects: integratorData.loadProjects,
     
