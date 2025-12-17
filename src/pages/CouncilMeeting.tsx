@@ -785,11 +785,11 @@ const CouncilMeeting = () => {
                 ) : (
                   <div className="flex gap-2">
                     <Button 
-                      onClick={() => navigate('/my-tasks')}
+                      onClick={() => navigate('/creation-lab')}
                       className="flex-1"
                     >
                       <Target className="w-4 h-4 mr-2" />
-                      Go to My Tasks
+                      Go to Creation Lab
                     </Button>
                     <Badge className="bg-green-500 text-white px-4 py-2 text-sm flex items-center gap-2">
                       ✓ Accepted
