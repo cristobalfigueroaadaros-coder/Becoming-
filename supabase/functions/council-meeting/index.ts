@@ -1183,6 +1183,9 @@ YOU MUST RESPOND WITH VALID JSON ONLY:
   "conversationHook": "casual 1-2 sentence opener for the private message" or null
 }
 
+IMPORTANT: The "mentorType" MUST be one of these EXACT keys (not the display name):
+${selectedUserMentors.map((m: string) => `- "${m}" (${mentorNames[m]})`).join('\n')}
+
 EXAMPLES OF WHEN TO REACH OUT:
 - User is building something and business_mentor can help with strategy
 - User is exploring creativity and creative_visionary has specific ideas
@@ -1228,7 +1231,17 @@ Analyze and respond with JSON only.`;
               
               // If AI recommends reaching out
               if (depthAnalysis.shouldReachOut && depthAnalysis.mentorType) {
-                const mentorType = depthAnalysis.mentorType;
+                // Convert mentor name to key if needed (AI sometimes returns name instead of key)
+                let mentorType = depthAnalysis.mentorType;
+                if (!mentorPrompts[mentorType]) {
+                  // Try to find by name
+                  const foundKey = Object.keys(mentorNames).find(
+                    k => mentorNames[k].toLowerCase() === mentorType.toLowerCase()
+                  );
+                  if (foundKey) {
+                    mentorType = foundKey;
+                  }
+                }
                 const mentorConfig = mentorPrompts[mentorType];
                 
                 if (mentorConfig) {
