@@ -422,6 +422,66 @@ export const useValueMap = () => {
         await updateBlockContent('strengths', profileData.main_strengths.join('\n• '));
       }
     }
+
+    // Check for Focus Mode unlocks
+    await checkFocusModeUnlocks();
+  };
+
+  // Check for Focus Mode project and insights to unlock relevant blocks
+  const checkFocusModeUnlocks = async () => {
+    const { data: { user } } = await supabase.auth.getUser();
+    if (!user) return;
+
+    // Check for active integrator projects - unlocks Solution block
+    const { data: projects } = await supabase
+      .from('integrator_projects')
+      .select('id, project_title, project_description, current_phase')
+      .eq('user_id', user.id)
+      .eq('status', 'active')
+      .limit(1);
+
+    if (projects && projects.length > 0) {
+      const project = projects[0];
+      
+      const solutionBlock = blocks.find(b => b.block_key === 'solution');
+      if (solutionBlock && !solutionBlock.is_unlocked) {
+        await unlockBlock('solution', 'focus_mode', project.id);
+      }
+    }
+
+    // Check for Focus Mode insights
+    const { data: insights } = await supabase
+      .from('insight_dots')
+      .select('id, insight_text, skill_tags, vibrational_context')
+      .eq('user_id', user.id)
+      .eq('source_type', 'integrator_step')
+      .order('created_at', { ascending: false })
+      .limit(20);
+
+    if (insights && insights.length > 0) {
+      // Count insights by phase for potential block unlocks
+      const phaseInsights: Record<string, number> = {};
+      insights.forEach(i => {
+        const context = i.vibrational_context as any;
+        const phase = context?.phase_name?.toLowerCase() || 'unknown';
+        phaseInsights[phase] = (phaseInsights[phase] || 0) + 1;
+      });
+
+      // Unlock Impact block after 2+ insights from creation or expression phases
+      const impactBlock = blocks.find(b => b.block_key === 'impact');
+      if (impactBlock && !impactBlock.is_unlocked) {
+        const creationCount = (phaseInsights['creation'] || 0) + (phaseInsights['expression'] || 0);
+        if (creationCount >= 2) {
+          await unlockBlock('impact', 'focus_mode', insights[0].id);
+        }
+      }
+
+      // Unlock Signals block after reflection phase insights
+      const signalsBlock = blocks.find(b => b.block_key === 'signals');
+      if (signalsBlock && !signalsBlock.is_unlocked && phaseInsights['reflection'] >= 1) {
+        await unlockBlock('signals', 'focus_mode', insights[0].id);
+      }
+    }
   };
 
   // Computed values
@@ -450,6 +510,7 @@ export const useValueMap = () => {
     discardSuggestion,
     analyzeAndGenerateSuggestions,
     checkAutoUnlocks,
+    checkFocusModeUnlocks,
     refresh: loadAll
   };
 };

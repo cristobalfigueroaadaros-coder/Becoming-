@@ -38,6 +38,8 @@ const sourceLabels: Record<string, string> = {
   journal_breakthrough: "Journal Breakthrough",
   domain_milestone: "Domain Milestone",
   quest_completion: "Quest Completion",
+  integrator_step: "🎯 Focus Mode",
+  focus_mode: "🎯 Focus Mode",
 };
 
 export const LivingConstellation = ({
