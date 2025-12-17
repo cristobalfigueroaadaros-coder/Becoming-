@@ -58,7 +58,9 @@ serve(async (req) => {
       mentorChats,
       savedInsights,
       profile,
-      existingBlocks
+      existingBlocks,
+      focusModeInsights,
+      activeProjects
     ] = await Promise.all([
       supabase
         .from('council_meetings')
@@ -86,7 +88,20 @@ serve(async (req) => {
       supabase
         .from('value_map_blocks')
         .select('block_key, content, is_unlocked')
+        .eq('user_id', user.id),
+      supabase
+        .from('insight_dots')
+        .select('insight_text, skill_tags, vibrational_context, core_theme')
         .eq('user_id', user.id)
+        .eq('source_type', 'integrator_step')
+        .order('created_at', { ascending: false })
+        .limit(20),
+      supabase
+        .from('integrator_projects')
+        .select('project_title, project_description, current_phase, why_this_matters')
+        .eq('user_id', user.id)
+        .eq('status', 'active')
+        .limit(1)
     ]);
 
     // Build context from gathered data
@@ -97,6 +112,24 @@ serve(async (req) => {
       purpose_path?: string;
     } | null;
 
+    // Extract Focus Mode learnings by phase
+    const focusLearnings = (focusModeInsights.data || []).map(i => {
+      const context = i.vibrational_context as { phase_name?: string; project_title?: string } | null;
+      return {
+        insight: i.insight_text,
+        phase: context?.phase_name || 'unknown',
+        project: context?.project_title || i.core_theme,
+        tags: i.skill_tags || []
+      };
+    });
+
+    const activeProject = activeProjects.data?.[0] as {
+      project_title?: string;
+      project_description?: string;
+      current_phase?: string;
+      why_this_matters?: string;
+    } | null;
+
     const context = {
       councilInsights: councilMeetings.data?.map(m => ({
         question: m.question,
@@ -105,7 +138,11 @@ serve(async (req) => {
       })) || [],
       mentorConversations: mentorChats.data?.slice(0, 20).map(c => c.content) || [],
       savedInsights: savedInsights.data?.map(i => i.insight_text) || [],
-      profile: profileData || {} as { main_mission?: string; main_strengths?: string[]; priority_growth_area?: string }
+      profile: profileData || {} as { main_mission?: string; main_strengths?: string[]; priority_growth_area?: string },
+      focusMode: {
+        activeProject,
+        learnings: focusLearnings
+      }
     };
 
     // Find blocks that need suggestions (unlocked but empty, or not unlocked)
@@ -160,6 +197,15 @@ Profile Mission: ${context.profile.main_mission || 'Not set'}
 Profile Strengths: ${context.profile.main_strengths?.join(', ') || 'Not set'}
 Growth Area: ${context.profile.priority_growth_area || 'Not set'}
 
+Active Focus Mode Project:
+${context.focusMode.activeProject ? `- Title: ${context.focusMode.activeProject.project_title}
+- Description: ${context.focusMode.activeProject.project_description}
+- Current Phase: ${context.focusMode.activeProject.current_phase}
+- Why it matters: ${context.focusMode.activeProject.why_this_matters || 'Not specified'}` : 'None'}
+
+Focus Mode Learnings (insights from doing):
+${context.focusMode.learnings.slice(0, 5).map(l => `- [${l.phase}] ${l.insight}`).join('\n')}
+
 Recent Council Insights:
 ${context.councilInsights.slice(0, 3).map(i => `- Question: ${i.question}\n  Resolution: ${i.resolution || 'None'}`).join('\n')}
 
@@ -200,8 +246,9 @@ ${context.mentorConversations.slice(0, 5).map(c => `- ${c.substring(0, 200)}...`
             suggestion_text: suggestionText,
             source_type: 'ai_analysis',
             source_context: {
-              analyzed_sources: ['council', 'mentors', 'insights', 'profile'],
-              generated_at: new Date().toISOString()
+              analyzed_sources: ['council', 'mentors', 'insights', 'profile', 'focus_mode'],
+              generated_at: new Date().toISOString(),
+              has_focus_mode_data: context.focusMode.learnings.length > 0
             }
           });
         }

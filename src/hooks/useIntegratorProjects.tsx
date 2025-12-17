@@ -166,13 +166,24 @@ export function useIntegratorProjects() {
 
       // If there's an insight, create an insight dot and update learning count
       if (insight && activeProject) {
+        const completedStep = steps.find(s => s.id === stepId);
+        const stepPhase = completedStep ? phases.find(p => p.id === completedStep.phase_id) : null;
+        
         await supabase.from('insight_dots').insert({
           user_id: user.id,
           source_type: 'integrator_step',
           source_id: stepId,
           insight_text: insight,
           core_theme: activeProject.project_title,
-          emotional_tone: 'productive'
+          emotional_tone: 'productive',
+          skill_tags: stepPhase ? [stepPhase.phase_name, 'focus_mode'] : ['focus_mode'],
+          vibrational_context: {
+            project_id: activeProject.id,
+            project_title: activeProject.project_title,
+            phase_name: stepPhase?.phase_name || activeProject.current_phase,
+            step_title: completedStep?.step_title || '',
+            timeframe_days: activeProject.timeframe_days
+          }
         });
 
         // Increment learning insights count
