@@ -299,19 +299,30 @@ const Dashboard = () => {
       const { data: { user } } = await supabase.auth.getUser();
       if (!user) return;
 
-      const { data: notifications } = await supabase
+      // Get unread from mentor_private_messages
+      const { data: privateNotifications } = await supabase
         .from("mentor_private_messages")
         .select("mentor_type")
         .eq("user_id", user.id)
         .eq("read", false);
 
-      if (notifications) {
-        const counts: Record<string, number> = {};
-        notifications.forEach((n) => {
-          counts[n.mentor_type] = (counts[n.mentor_type] || 0) + 1;
-        });
-        setMentorNotifications(counts);
-      }
+      // Get unread from mentor_daily_outreach (insight followups, etc.)
+      const { data: outreachNotifications } = await supabase
+        .from("mentor_daily_outreach")
+        .select("mentor_type")
+        .eq("user_id", user.id)
+        .is("read_at", null);
+
+      // Merge counts from both tables
+      const counts: Record<string, number> = {};
+      privateNotifications?.forEach((n) => {
+        counts[n.mentor_type] = (counts[n.mentor_type] || 0) + 1;
+      });
+      outreachNotifications?.forEach((n) => {
+        counts[n.mentor_type] = (counts[n.mentor_type] || 0) + 1;
+      });
+      
+      setMentorNotifications(counts);
     } catch (error: any) {
       console.error("Error loading mentor notifications:", error);
     }

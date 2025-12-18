@@ -6,9 +6,10 @@ import { Textarea } from "@/components/ui/textarea";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
-import { ArrowLeft, Sparkles, Target, MessageCircle, RefreshCw, GitBranch, Bell } from "lucide-react";
+import { ArrowLeft, Sparkles, Target, MessageCircle, RefreshCw, GitBranch, Bell, Loader2 } from "lucide-react";
 import { toast } from "sonner";
 import { useShadowEncounters } from "@/hooks/useShadowEncounters";
+import { useIntegratorProjects } from "@/hooks/useIntegratorProjects";
 import { motion } from "framer-motion";
 import { VoiceRecorder } from "@/components/VoiceRecorder";
 import { CouncilIntroductionModal } from "@/components/CouncilIntroductionModal";
@@ -35,7 +36,9 @@ const mentorNames: Record<string, string> = {
 const CouncilMeeting = () => {
   const navigate = useNavigate();
   const { refetch } = useShadowEncounters();
+  const { createProject } = useIntegratorProjects();
   const [question, setQuestion] = useState("");
+  const [creatingProject, setCreatingProject] = useState(false);
   const [conversationHistory, setConversationHistory] = useState<any[]>([]);
   const [showIntroductionModal, setShowIntroductionModal] = useState(false);
   const [checkingIntroduction, setCheckingIntroduction] = useState(true);
@@ -774,18 +777,48 @@ const CouncilMeeting = () => {
 
                 {!mainGoalAccepted ? (
                   <Button 
-                    onClick={() => {
-                      setMainGoalAccepted(true);
-                      toast.success("Goal accepted! View your tasks or explore optional goals below.");
+                    onClick={async () => {
+                      setCreatingProject(true);
+                      try {
+                        // Create a project in the Creation Lab with the goal
+                        const project = await createProject(
+                          null, // breakthroughId (optional)
+                          goalData.mainGoal.title,
+                          `${goalData.userDirection}\n\nDaily: ${goalData.mainGoal.daily}\nWeekly: ${goalData.mainGoal.weekly}\nMonthly: ${goalData.mainGoal.monthly}`,
+                          21 // Default 21 days timeframe
+                        );
+                        
+                        if (project) {
+                          setMainGoalAccepted(true);
+                          toast.success("Goal accepted! Your project is now in Creation Lab.");
+                          // Navigate to Creation Lab with focus mode
+                          navigate('/creation-lab?mode=focus');
+                        } else {
+                          toast.error("Failed to create project. Please try again.");
+                        }
+                      } catch (error) {
+                        console.error("Error creating project:", error);
+                        toast.error("Failed to create project. Please try again.");
+                      } finally {
+                        setCreatingProject(false);
+                      }
                     }}
                     className="w-full"
+                    disabled={creatingProject}
                   >
-                    Accept Main Goal
+                    {creatingProject ? (
+                      <>
+                        <Loader2 className="w-4 h-4 mr-2 animate-spin" />
+                        Creating Project...
+                      </>
+                    ) : (
+                      "Accept Main Goal"
+                    )}
                   </Button>
                 ) : (
                   <div className="flex gap-2">
                     <Button 
-                      onClick={() => navigate('/creation-lab')}
+                      onClick={() => navigate('/creation-lab?mode=focus')}
                       className="flex-1"
                     >
                       <Target className="w-4 h-4 mr-2" />

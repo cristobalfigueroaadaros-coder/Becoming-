@@ -226,8 +226,20 @@ export function useFutureSelfOmnipresence() {
 
   const dismissMessage = async (wasReceived: boolean = false) => {
     if (currentMessage && userId.current) {
+      // IMMEDIATELY add to triggered set to prevent re-showing
+      if (currentMessage.snapshotId) {
+        triggeredSnapshotIds.current.add(currentMessage.snapshotId);
+      }
+      
+      // Update lastMessageTime immediately to enforce cooldown
+      const now = Date.now();
+      setLastMessageTime(now);
+      
+      // Clear the message immediately for responsive UI
+      setCurrentMessage(null);
+      
+      // Then save to DB asynchronously (won't block dismissal)
       try {
-        // Save message to history
         await supabase.from("future_self_messages").insert({
           user_id: userId.current,
           message: currentMessage.message,
@@ -246,8 +258,9 @@ export function useFutureSelfOmnipresence() {
       } catch (error) {
         console.error("Error saving Future Self message:", error);
       }
+    } else {
+      setCurrentMessage(null);
     }
-    setCurrentMessage(null);
   };
 
   const manualTrigger = async (context?: string) => {
