@@ -15,6 +15,18 @@ import { VoiceRecorder } from "@/components/VoiceRecorder";
 import { CouncilIntroductionModal } from "@/components/CouncilIntroductionModal";
 import { HighlightedText } from "@/components/HighlightedText";
 import { InsightActionButton } from "@/components/InsightActionButton";
+import { ValueMapUnlockCelebration } from "@/components/ValueMapUnlockCelebration";
+
+interface ValueMapDetection {
+  blockKey: string;
+  blockTitle: string;
+  blockDescription: string;
+  suggestedContent: string;
+  confidence: number;
+  reasoning: string;
+  source: string;
+  mentorType?: string;
+}
 
 interface LocationState {
   notificationContext?: {
@@ -165,6 +177,7 @@ const CouncilMeeting = () => {
       growthNeed: string;
     };
   } | null>(null);
+  const [valueMapDetection, setValueMapDetection] = useState<ValueMapDetection | null>(null);
 
   // Track if we have an active thread
   const hasActiveThread = conversationHistory.length > 0;
@@ -227,6 +240,11 @@ const CouncilMeeting = () => {
         setCouncilGuidance(data.councilGuidance || null);
         setRecommendedMentor(data.recommendedMentor || null);
         setMentorDM(data.mentorDM || null);
+
+        // Handle Value Map detection
+        if (data.valueMapDetection) {
+          setValueMapDetection(data.valueMapDetection);
+        }
 
         toast.success(data.questionNumber >= 3 ? "✨ Q3: Momentum phase!" : "Council has responded!");
         refetch();
@@ -975,6 +993,42 @@ const CouncilMeeting = () => {
               Continue Conversation
             </Button>
           </motion.div>
+        )}
+
+        {/* Value Map Unlock Celebration */}
+        {valueMapDetection && (
+          <ValueMapUnlockCelebration
+            detection={valueMapDetection}
+            onAccept={async (blockKey, content) => {
+              try {
+                const { data: { user } } = await supabase.auth.getUser();
+                if (!user) throw new Error("Not authenticated");
+
+                // Upsert the value map block
+                await supabase.from("value_map_blocks").upsert({
+                  user_id: user.id,
+                  block_key: blockKey,
+                  content: content,
+                  is_unlocked: true,
+                  unlocked_at: new Date().toISOString(),
+                  unlock_source: "council_meeting",
+                }, { onConflict: "user_id,block_key" });
+
+                // Trigger Future Self celebration
+                await supabase.from("future_self_messages").insert({
+                  user_id: user.id,
+                  message: `You just unlocked "${valueMapDetection.blockTitle}" in your Value Map. This clarity is building something real.`,
+                  trigger_reason: "value_map_unlock",
+                });
+
+                setValueMapDetection(null);
+              } catch (error) {
+                console.error("Error saving value map block:", error);
+                throw error;
+              }
+            }}
+            onDismiss={() => setValueMapDetection(null)}
+          />
         )}
       </div>
     </div>

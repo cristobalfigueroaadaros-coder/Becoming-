@@ -104,3 +104,6 @@ verify_jwt = true
 
 [functions.analyze-value-map]
 verify_jwt = true
+
+[functions.detect-value-map-insights]
+verify_jwt = true
