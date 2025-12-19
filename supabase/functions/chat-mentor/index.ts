@@ -524,8 +524,39 @@ IMPORTANT: Continue this conversation naturally. You reached out to the user abo
     const aiData = await aiResponse.json();
     const response = aiData.choices[0].message.content;
 
+    // === DETECT VALUE MAP INSIGHTS ===
+    // Analyze user's message for Purpose-to-Value Map patterns
+    let valueMapDetection = null;
+    try {
+      const detectResponse = await fetch(
+        `${Deno.env.get("SUPABASE_URL")}/functions/v1/detect-value-map-insights`,
+        {
+          method: "POST",
+          headers: {
+            "Authorization": authHeader,
+            "Content-Type": "application/json",
+          },
+          body: JSON.stringify({
+            message: message,
+            conversationType: "mentor_chat",
+            mentorType: mentorType,
+          }),
+        }
+      );
+
+      if (detectResponse.ok) {
+        const detectData = await detectResponse.json();
+        if (detectData.detection) {
+          valueMapDetection = detectData.detection;
+          console.log("Value Map detection:", valueMapDetection.blockKey);
+        }
+      }
+    } catch (error) {
+      console.error("Value Map detection failed (non-fatal):", error);
+    }
+
     return new Response(
-      JSON.stringify({ response }),
+      JSON.stringify({ response, valueMapDetection }),
       { headers: { ...corsHeaders, "Content-Type": "application/json" } }
     );
   } catch (error: any) {

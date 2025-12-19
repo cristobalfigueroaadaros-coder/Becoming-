@@ -12,12 +12,24 @@ import { HighlightedText } from "@/components/HighlightedText";
 import { BreakthroughDetectedCard } from "@/components/BreakthroughDetectedCard";
 import { useBreakthroughDetection } from "@/hooks/useBreakthroughDetection";
 import { InsightActionButton } from "@/components/InsightActionButton";
+import { ValueMapUnlockCelebration } from "@/components/ValueMapUnlockCelebration";
 import {
   DropdownMenu,
   DropdownMenuContent,
   DropdownMenuItem,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
+
+interface ValueMapDetection {
+  blockKey: string;
+  blockTitle: string;
+  blockDescription: string;
+  suggestedContent: string;
+  confidence: number;
+  reasoning: string;
+  source: string;
+  mentorType?: string;
+}
 
 interface Whisper {
   id: string;
@@ -72,6 +84,7 @@ const Chat = () => {
   const [learningModuleData, setLearningModuleData] = useState<any>(null);
   const [exchangeCount, setExchangeCount] = useState(0);
   const [isHandoffProcessed, setIsHandoffProcessed] = useState(false);
+  const [valueMapDetection, setValueMapDetection] = useState<ValueMapDetection | null>(null);
   const messagesEndRef = useRef<HTMLDivElement>(null);
   
   // Breakthrough detection
@@ -339,6 +352,11 @@ const Chat = () => {
         setMessages((prev) => [...prev, assistantMsgData]);
       }
 
+      // Handle Value Map detection
+      if (data.valueMapDetection) {
+        setValueMapDetection(data.valueMapDetection);
+      }
+
       const newExchangeCount = exchangeCount + 1;
       setExchangeCount(newExchangeCount);
       
@@ -580,6 +598,42 @@ const Chat = () => {
             setShowLearningModule(false);
             setLearningModuleData(null);
           }}
+        />
+      )}
+
+      {/* Value Map Unlock Celebration */}
+      {valueMapDetection && (
+        <ValueMapUnlockCelebration
+          detection={valueMapDetection}
+          onAccept={async (blockKey, content) => {
+            try {
+              const { data: { user } } = await supabase.auth.getUser();
+              if (!user) throw new Error("Not authenticated");
+
+              // Upsert the value map block
+              await supabase.from("value_map_blocks").upsert({
+                user_id: user.id,
+                block_key: blockKey,
+                content: content,
+                is_unlocked: true,
+                unlocked_at: new Date().toISOString(),
+                unlock_source: "mentor_chat",
+              }, { onConflict: "user_id,block_key" });
+
+              // Trigger Future Self celebration
+              await supabase.from("future_self_messages").insert({
+                user_id: user.id,
+                message: `You just unlocked "${valueMapDetection.blockTitle}" in your Value Map. This clarity is building something real.`,
+                trigger_reason: "value_map_unlock",
+              });
+
+              setValueMapDetection(null);
+            } catch (error) {
+              console.error("Error saving value map block:", error);
+              throw error;
+            }
+          }}
+          onDismiss={() => setValueMapDetection(null)}
         />
       )}
     </div>

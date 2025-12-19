@@ -1444,6 +1444,37 @@ Format: Each message on its own line, no numbering.`;
       });
     }
 
+    // === DETECT VALUE MAP INSIGHTS ===
+    // Analyze user's question for Purpose-to-Value Map patterns
+    let valueMapDetection = null;
+    try {
+      const detectResponse = await fetch(
+        `${Deno.env.get("SUPABASE_URL")}/functions/v1/detect-value-map-insights`,
+        {
+          method: "POST",
+          headers: {
+            "Authorization": authHeader,
+            "Content-Type": "application/json",
+          },
+          body: JSON.stringify({
+            message: question,
+            conversationType: "council_meeting",
+            mentorType: null,
+          }),
+        }
+      );
+
+      if (detectResponse.ok) {
+        const detectData = await detectResponse.json();
+        if (detectData.detection) {
+          valueMapDetection = detectData.detection;
+          console.log("Value Map detection:", valueMapDetection.blockKey);
+        }
+      }
+    } catch (error) {
+      console.error("Value Map detection failed (non-fatal):", error);
+    }
+
     // === RETURN COMPLETE RESPONSE ===
     return new Response(
       JSON.stringify({
@@ -1460,6 +1491,7 @@ Format: Each message on its own line, no numbering.`;
         mentorDM: isQ3 ? mentorDM : null,
         privateMessages, // WhatsApp-style notifications
         extractedTags, // For debugging, remove in production
+        valueMapDetection, // Purpose-to-Value Map auto-detection
       }),
       { headers: { ...corsHeaders, "Content-Type": "application/json" } }
     );
