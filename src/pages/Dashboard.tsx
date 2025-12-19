@@ -577,7 +577,45 @@ const Dashboard = () => {
         {/* Action Buttons Row */}
         <div className="grid md:grid-cols-4 gap-4">
           {/* Council Meeting */}
-          <Card className="bg-gradient-to-r from-primary to-accent text-primary-foreground shadow-xl relative">
+          <Card 
+            className="bg-gradient-to-r from-primary to-accent text-primary-foreground shadow-xl relative cursor-pointer hover:scale-[1.02] transition-transform"
+            onClick={async () => {
+              if (councilNotificationCount > 0) {
+                // Fetch first notification context and navigate with it
+                try {
+                  const { data: { user } } = await supabase.auth.getUser();
+                  if (user) {
+                    const { data: notifications } = await supabase
+                      .from("council_notifications")
+                      .select("*")
+                      .eq("user_id", user.id)
+                      .eq("dismissed", false)
+                      .order("created_at", { ascending: false })
+                      .limit(1);
+                    
+                    if (notifications && notifications.length > 0) {
+                      const notification = notifications[0];
+                      const contextData = notification.context_data as Record<string, any> | null;
+                      navigate("/council-meeting", {
+                        state: {
+                          notificationContext: contextData,
+                          prefilledQuestion: contextData?.suggested_question,
+                          openerType: notification.notification_type === "breakthrough_followup" 
+                            ? "breakthrough_followup" 
+                            : "check_in",
+                          notificationId: notification.id
+                        }
+                      });
+                      return;
+                    }
+                  }
+                } catch (error) {
+                  console.error("Error fetching notification context:", error);
+                }
+              }
+              navigate("/council-meeting");
+            }}
+          >
             {councilNotificationCount > 0 && (
               <div className="absolute -top-2 -right-2 w-6 h-6 rounded-full bg-destructive text-destructive-foreground text-xs flex items-center justify-center font-bold animate-pulse">
                 {councilNotificationCount}
@@ -594,16 +632,19 @@ const Dashboard = () => {
                 <h2 className="text-xl font-bold">Ask the Council</h2>
                 <p className="opacity-90 text-sm">
                   {councilNotificationCount > 0 
-                    ? `${councilNotificationCount} notification${councilNotificationCount > 1 ? 's' : ''} waiting`
+                    ? `${councilNotificationCount} conversation${councilNotificationCount > 1 ? 's' : ''} waiting for you`
                     : "Get wisdom from all mentors"
                   }
                 </p>
               </div>
               <Button
                 variant="secondary"
-                onClick={() => navigate("/council-meeting")}
+                onClick={(e) => {
+                  e.stopPropagation();
+                  navigate(councilNotificationCount > 0 ? "/council-log" : "/council-meeting");
+                }}
               >
-                Start
+                {councilNotificationCount > 0 ? "View" : "Start"}
               </Button>
             </CardContent>
           </Card>

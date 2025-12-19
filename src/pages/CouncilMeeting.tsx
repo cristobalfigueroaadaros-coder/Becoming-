@@ -1,5 +1,5 @@
 import { useState, useEffect } from "react";
-import { useNavigate } from "react-router-dom";
+import { useNavigate, useLocation } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
 import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
@@ -15,6 +15,18 @@ import { VoiceRecorder } from "@/components/VoiceRecorder";
 import { CouncilIntroductionModal } from "@/components/CouncilIntroductionModal";
 import { HighlightedText } from "@/components/HighlightedText";
 import { InsightActionButton } from "@/components/InsightActionButton";
+
+interface LocationState {
+  notificationContext?: {
+    breakthrough_title?: string;
+    breakthrough_description?: string;
+    suggested_question?: string;
+    [key: string]: any;
+  };
+  prefilledQuestion?: string;
+  openerType?: "check_in" | "breakthrough_followup";
+  notificationId?: string;
+}
 
 // Updated mentor names with new 12-mentor system
 const mentorNames: Record<string, string> = {
@@ -35,6 +47,8 @@ const mentorNames: Record<string, string> = {
 
 const CouncilMeeting = () => {
   const navigate = useNavigate();
+  const location = useLocation();
+  const locationState = location.state as LocationState | null;
   const { refetch } = useShadowEncounters();
   const { createProject } = useIntegratorProjects();
   const [question, setQuestion] = useState("");
@@ -42,6 +56,46 @@ const CouncilMeeting = () => {
   const [conversationHistory, setConversationHistory] = useState<any[]>([]);
   const [showIntroductionModal, setShowIntroductionModal] = useState(false);
   const [checkingIntroduction, setCheckingIntroduction] = useState(true);
+  const [councilOpener, setCouncilOpener] = useState<string | null>(null);
+  const [openerLoading, setOpenerLoading] = useState(false);
+
+  // Handle incoming notification context
+  useEffect(() => {
+    if (locationState?.prefilledQuestion) {
+      setQuestion(locationState.prefilledQuestion);
+    }
+    
+    // If we have an opener type, generate a personalized greeting
+    if (locationState?.openerType && locationState.notificationContext) {
+      generateCouncilOpener();
+    }
+  }, []);
+
+  const generateCouncilOpener = async () => {
+    if (!locationState?.notificationContext) return;
+    
+    setOpenerLoading(true);
+    try {
+      const { data, error } = await supabase.functions.invoke("council-meeting", {
+        body: {
+          question: "",
+          mentorTypes: [],
+          conversationHistory: [],
+          notificationContext: locationState.notificationContext,
+          openerType: locationState.openerType,
+          generateOpenerOnly: true
+        },
+      });
+
+      if (!error && data?.councilOpener) {
+        setCouncilOpener(data.councilOpener);
+      }
+    } catch (error) {
+      console.error("Error generating council opener:", error);
+    } finally {
+      setOpenerLoading(false);
+    }
+  };
 
   // Check if this is the user's first time with the Council
   useEffect(() => {
@@ -137,8 +191,13 @@ const CouncilMeeting = () => {
           question: actualQuestion,
           mentorTypes: [...(mentors?.map(m => m.mentor_type) || []), "future_self"],
           conversationHistory: currentHistory,
+          notificationContext: !continueConversation ? locationState?.notificationContext : undefined,
+          openerType: !continueConversation ? locationState?.openerType : undefined,
         },
       });
+      
+      // Clear the council opener once user starts asking
+      if (councilOpener) setCouncilOpener(null);
 
       if (error) throw error;
 
@@ -293,6 +352,35 @@ const CouncilMeeting = () => {
             </Button>
           )}
         </div>
+
+        {/* Council Opener - Personalized Greeting */}
+        {(councilOpener || openerLoading) && stage === 'input' && !hasActiveThread && (
+          <motion.div
+            initial={{ opacity: 0, y: -10 }}
+            animate={{ opacity: 1, y: 0 }}
+          >
+            <Card className="border-primary/30 bg-gradient-to-r from-primary/5 to-accent/5">
+              <CardContent className="pt-6">
+                <div className="flex items-start gap-4">
+                  <div className="w-12 h-12 rounded-full bg-gradient-to-br from-primary to-accent flex items-center justify-center flex-shrink-0">
+                    <Sparkles className="w-6 h-6 text-white" />
+                  </div>
+                  <div className="flex-1">
+                    <p className="text-sm font-medium text-primary mb-1">The Council</p>
+                    {openerLoading ? (
+                      <div className="flex items-center gap-2 text-muted-foreground">
+                        <Loader2 className="w-4 h-4 animate-spin" />
+                        <span>Preparing a personalized message...</span>
+                      </div>
+                    ) : (
+                      <p className="text-foreground leading-relaxed">{councilOpener}</p>
+                    )}
+                  </div>
+                </div>
+              </CardContent>
+            </Card>
+          </motion.div>
+        )}
 
         {/* Active Thread Indicator */}
         {hasActiveThread && stage === 'input' && (
