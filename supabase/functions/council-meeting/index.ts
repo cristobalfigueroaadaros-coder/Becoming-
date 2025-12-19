@@ -223,7 +223,14 @@ Deno.serve(async (req) => {
   }
 
   try {
-    const { question, mentorTypes, conversationHistory = [] } = await req.json();
+    const { 
+      question, 
+      mentorTypes, 
+      conversationHistory = [],
+      notificationContext,
+      openerType,
+      generateOpenerOnly = false
+    } = await req.json();
     const authHeader = req.headers.get("Authorization")!;
     const token = authHeader.replace("Bearer ", "");
 
@@ -235,6 +242,107 @@ Deno.serve(async (req) => {
 
     const { data: { user }, error: userError } = await supabaseClient.auth.getUser(token);
     if (userError || !user) throw new Error("Not authenticated");
+
+    // Get profile for context
+    const { data: profile } = await supabaseClient
+      .from("profiles")
+      .select("*")
+      .eq("id", user.id)
+      .maybeSingle();
+
+    // === GENERATE OPENER ONLY MODE ===
+    if (generateOpenerOnly && notificationContext) {
+      console.log("Generating personalized council opener...", { openerType, notificationContext });
+      
+      // Get active project if any
+      const { data: activeProject } = await supabaseClient
+        .from("integrator_projects")
+        .select("project_title, project_description")
+        .eq("user_id", user.id)
+        .eq("status", "active")
+        .order("updated_at", { ascending: false })
+        .limit(1)
+        .maybeSingle();
+
+      const foundationSummary = profile?.user_foundation_summary || {};
+      
+      let openerPrompt = `You are the Council - a group of caring mentors who genuinely know and care about this person.
+
+${profile?.user_foundation_story ? `
+=== WHO THEY ARE ===
+Name: ${profile.display_name || 'Unknown'}
+Background: ${foundationSummary.background || 'Not specified'}
+Struggles: ${foundationSummary.struggles?.join(', ') || 'Not specified'}
+Aspirations: ${foundationSummary.aspirations?.join(', ') || 'Not specified'}
+===
+` : ''}
+
+`;
+
+      if (openerType === "breakthrough_followup" && notificationContext.breakthrough_title) {
+        openerPrompt += `
+The user recently had a breakthrough: "${notificationContext.breakthrough_title}"
+${notificationContext.breakthrough_description ? `Details: "${notificationContext.breakthrough_description}"` : ''}
+
+Generate a warm, personal opening message (2-3 sentences) that:
+- Shows you remember and care about their breakthrough
+- Asks how it's evolving or what's shifted since then
+- Feels like a caring mentor checking in, not an AI
+
+Example tone: "I've been thinking about your insight on [breakthrough]. What's alive for you now - has anything shifted?"`;
+      } else if (activeProject) {
+        openerPrompt += `
+The user is working on a project: "${activeProject.project_title}"
+${activeProject.project_description ? `Description: "${activeProject.project_description}"` : ''}
+
+Generate a warm, personal opening message (2-3 sentences) that:
+- Shows you remember their project and care about their progress
+- Asks how it's going or what part feels most alive right now
+- Feels like a caring mentor checking in, not an AI
+
+Example tone: "How's [project name] coming along? I'm curious - what part of it feels most exciting right now?"`;
+      } else {
+        openerPrompt += `
+Generate a warm, personal opening message (2-3 sentences) that:
+- Checks in on how THEY are doing (the person, not just their work)
+- Feels authentic and caring, like a mentor who genuinely knows them
+- Opens space for whatever is on their mind
+
+Example tone: "Before we dive into anything - how are YOU today? Not the projects, not the goals... you."`;
+      }
+
+      openerPrompt += `
+
+CRITICAL: Be warm and human. No corporate speak. Reference specific details you know about them.
+Just the message, no labels or quotes.`;
+
+      const openerResponse = await fetch("https://ai.gateway.lovable.dev/v1/chat/completions", {
+        method: "POST",
+        headers: {
+          "Authorization": `Bearer ${Deno.env.get("LOVABLE_API_KEY")}`,
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({
+          model: "google/gemini-2.5-flash",
+          messages: [{ role: "user", content: openerPrompt }],
+        }),
+      });
+
+      if (openerResponse.ok) {
+        const openerData = await openerResponse.json();
+        const councilOpener = openerData.choices[0].message.content;
+        
+        return new Response(
+          JSON.stringify({ councilOpener }),
+          { headers: { ...corsHeaders, "Content-Type": "application/json" } }
+        );
+      }
+      
+      return new Response(
+        JSON.stringify({ councilOpener: null }),
+        { headers: { ...corsHeaders, "Content-Type": "application/json" } }
+      );
+    }
 
     // === DETERMINE QUESTION NUMBER IN JOURNEY ===
     const questionNumber = conversationHistory.filter((msg: any) => msg.role === 'user').length + 1;
@@ -256,12 +364,7 @@ Deno.serve(async (req) => {
     
     console.log('Extracted hidden tags:', extractedTags);
 
-    // Get profile and context
-    const { data: profile } = await supabaseClient
-      .from("profiles")
-      .select("*")
-      .eq("id", user.id)
-      .maybeSingle();
+    // Profile already fetched above, no need to re-fetch
 
     const { data: futureProgress } = await supabaseClient
       .from("future_self_progress")
