@@ -10,13 +10,16 @@ import { ArrowLeft, Sparkles, Target, MessageCircle, RefreshCw, GitBranch, Bell,
 import { toast } from "sonner";
 import { useShadowEncounters } from "@/hooks/useShadowEncounters";
 import { useIntegratorProjects } from "@/hooks/useIntegratorProjects";
+import { useBreakthroughDetection } from "@/hooks/useBreakthroughDetection";
+import { useMicroWins } from "@/hooks/useMicroWins";
 import { motion } from "framer-motion";
 import { VoiceRecorder } from "@/components/VoiceRecorder";
 import { CouncilIntroductionModal } from "@/components/CouncilIntroductionModal";
 import { HighlightedText } from "@/components/HighlightedText";
 import { InsightActionButton } from "@/components/InsightActionButton";
 import { ValueMapUnlockCelebration } from "@/components/ValueMapUnlockCelebration";
-
+import { FirstWinNamingCard } from "@/components/FirstWinNamingCard";
+import { FirstWinCelebration } from "@/components/FirstWinCelebration";
 interface ValueMapDetection {
   blockKey: string;
   blockTitle: string;
@@ -63,6 +66,13 @@ const CouncilMeeting = () => {
   const locationState = location.state as LocationState | null;
   const { refetch } = useShadowEncounters();
   const { createProject } = useIntegratorProjects();
+  const { triggerMicroWin } = useMicroWins();
+  const { 
+    checkForBreakthrough, 
+    isFirstSession, 
+    completeFirstWin 
+  } = useBreakthroughDetection();
+  
   const [question, setQuestion] = useState("");
   const [creatingProject, setCreatingProject] = useState(false);
   const [conversationHistory, setConversationHistory] = useState<any[]>([]);
@@ -70,6 +80,16 @@ const CouncilMeeting = () => {
   const [checkingIntroduction, setCheckingIntroduction] = useState(true);
   const [councilOpener, setCouncilOpener] = useState<string | null>(null);
   const [openerLoading, setOpenerLoading] = useState(false);
+  
+  // First Win states
+  const [detectedBreakthrough, setDetectedBreakthrough] = useState<{
+    title: string;
+    description: string;
+    next_step?: string;
+  } | null>(null);
+  const [showNamingMoment, setShowNamingMoment] = useState(false);
+  const [showFirstWinCelebration, setShowFirstWinCelebration] = useState(false);
+  const [acceptedConceptName, setAcceptedConceptName] = useState("");
 
   // Handle incoming notification context
   useEffect(() => {
@@ -248,6 +268,31 @@ const CouncilMeeting = () => {
 
         toast.success(data.questionNumber >= 3 ? "✨ Q3: Momentum phase!" : "Council has responded!");
         refetch();
+        
+        // Check for breakthrough in first session
+        if (isFirstSession) {
+          const allMessages = [
+            ...currentHistory,
+            { role: 'user', content: actualQuestion },
+            { role: 'assistant', content: data.councilInsight || '' }
+          ];
+          
+          const breakthrough = await checkForBreakthrough(
+            allMessages.map(m => ({ role: m.role, content: m.content || '' })),
+            'council',
+            true, // force check for first session
+            'council'
+          );
+          
+          if (breakthrough) {
+            setDetectedBreakthrough({
+              title: breakthrough.breakthrough_title,
+              description: breakthrough.breakthrough_description,
+              next_step: breakthrough.actionable_next_step || undefined,
+            });
+            setShowNamingMoment(true);
+          }
+        }
       }
     } catch (error: any) {
       toast.error(error.message);
@@ -289,6 +334,32 @@ const CouncilMeeting = () => {
     setMainGoalAccepted(false);
     setGoalData(null);
     // Keep conversation history and question number
+  };
+
+  // First Win handlers
+  const handleAcceptFirstWin = async (name: string) => {
+    setAcceptedConceptName(name);
+    setShowNamingMoment(false);
+    
+    // Mark first win as completed
+    await completeFirstWin();
+    
+    // Trigger micro win
+    triggerMicroWin('naming');
+    
+    // Show celebration
+    setShowFirstWinCelebration(true);
+  };
+
+  const handleKeepExploring = () => {
+    setShowNamingMoment(false);
+    setDetectedBreakthrough(null);
+    // User continues the conversation
+  };
+
+  const handleCelebrationContinue = () => {
+    setShowFirstWinCelebration(false);
+    // Continue with the council session
   };
 
   const handleReadyForAction = async () => {
@@ -370,6 +441,24 @@ const CouncilMeeting = () => {
             </Button>
           )}
         </div>
+
+        {/* First Win Celebration */}
+        {showFirstWinCelebration && (
+          <FirstWinCelebration
+            conceptName={acceptedConceptName}
+            onContinue={handleCelebrationContinue}
+          />
+        )}
+
+        {/* First Win Naming Moment */}
+        {showNamingMoment && detectedBreakthrough && !showFirstWinCelebration && (
+          <FirstWinNamingCard
+            proposedName={detectedBreakthrough.title}
+            description={detectedBreakthrough.description}
+            onAccept={handleAcceptFirstWin}
+            onKeepExploring={handleKeepExploring}
+          />
+        )}
 
         {/* Council Opener - Personalized Greeting */}
         {(councilOpener || openerLoading) && stage === 'input' && !hasActiveThread && (
