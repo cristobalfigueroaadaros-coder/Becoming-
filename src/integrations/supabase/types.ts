@@ -1472,6 +1472,7 @@ export type Database = {
           created_at: string | null
           display_name: string | null
           emotional_tone: string | null
+          first_win_completed_at: string | null
           future_age: number | null
           future_lifestyle: string | null
           future_location: string | null
@@ -1501,6 +1502,7 @@ export type Database = {
           created_at?: string | null
           display_name?: string | null
           emotional_tone?: string | null
+          first_win_completed_at?: string | null
           future_age?: number | null
           future_lifestyle?: string | null
           future_location?: string | null
@@ -1530,6 +1532,7 @@ export type Database = {
           created_at?: string | null
           display_name?: string | null
           emotional_tone?: string | null
+          first_win_completed_at?: string | null
           future_age?: number | null
           future_lifestyle?: string | null
           future_location?: string | null

@@ -12,9 +12,80 @@ interface Breakthrough {
   created_at: string;
 }
 
+// Clarity signals that indicate an idea is crystallizing
+const CLARITY_SIGNALS = [
+  'called', 'named', 'building', 'creating', 'my idea', 'this is',
+  'i want to', 'i will', 'my project', 'the project', 'i\'m working on',
+  'i\'ve decided', 'i realized', 'it\'s clear', 'what i need', 'my goal',
+  'i\'m going to', 'the answer', 'i see now', 'this could be'
+];
+
+// Check if a message contains clarity signals
+const containsClaritySignals = (message: string): boolean => {
+  const lowerMessage = message.toLowerCase();
+  return CLARITY_SIGNALS.some(signal => lowerMessage.includes(signal));
+};
+
+// Determine if we should check for breakthrough based on context
+export const shouldCheckForBreakthrough = (
+  messages: Array<{ role: string; content: string }>,
+  isFirstSession: boolean,
+  source: 'council' | 'mentor' = 'mentor'
+): boolean => {
+  const userMessages = messages.filter(m => m.role === "user");
+  if (userMessages.length === 0) return false;
+  
+  const lastUserMsg = userMessages[userMessages.length - 1];
+  
+  // For Council: always check after response in first session
+  if (source === 'council' && isFirstSession) {
+    return userMessages.length >= 1;
+  }
+  
+  // For first session users: check more frequently (every 2-3 messages)
+  if (isFirstSession && userMessages.length >= 2) {
+    return true;
+  }
+  
+  // For returning users: check when clarity signals are present
+  if (containsClaritySignals(lastUserMsg.content)) {
+    return true;
+  }
+  
+  // Check every 4 messages as a fallback (more frequent than before)
+  if (userMessages.length >= 4 && userMessages.length % 4 === 0) {
+    return true;
+  }
+  
+  return false;
+};
+
 export const useBreakthroughDetection = (mentorType?: string) => {
   const [latestBreakthrough, setLatestBreakthrough] = useState<Breakthrough | null>(null);
   const [loading, setLoading] = useState(false);
+  const [isFirstSession, setIsFirstSession] = useState(false);
+
+  // Check if this is a first session
+  useEffect(() => {
+    const checkFirstSession = async () => {
+      try {
+        const { data: { user } } = await supabase.auth.getUser();
+        if (!user) return;
+
+        const { data: profile } = await supabase
+          .from("profiles")
+          .select("first_win_completed_at")
+          .eq("id", user.id)
+          .single();
+
+        setIsFirstSession(!profile?.first_win_completed_at);
+      } catch (error) {
+        console.error("Error checking first session:", error);
+      }
+    };
+    
+    checkFirstSession();
+  }, []);
 
   // Load latest unconverted breakthrough for current mentor
   const loadLatestBreakthrough = useCallback(async () => {
@@ -48,14 +119,15 @@ export const useBreakthroughDetection = (mentorType?: string) => {
     }
   }, [mentorType]);
 
-  // Check for new breakthroughs after messages
+  // Check for new breakthroughs - now adaptive based on signals
   const checkForBreakthrough = useCallback(async (
     messages: Array<{ role: string; content: string }>,
-    currentMentorType: string
+    currentMentorType: string,
+    forceCheck: boolean = false,
+    source: 'council' | 'mentor' = 'mentor'
   ) => {
-    // Only check every 5-8 messages for efficiency
-    const userMessages = messages.filter(m => m.role === "user");
-    if (userMessages.length < 5 || userMessages.length % 5 !== 0) {
+    // Use adaptive detection unless forced
+    if (!forceCheck && !shouldCheckForBreakthrough(messages, isFirstSession, source)) {
       return null;
     }
 
@@ -85,6 +157,7 @@ export const useBreakthroughDetection = (mentorType?: string) => {
             mission: profile?.main_mission,
             foundation: profile?.user_foundation_summary,
           },
+          isFirstSession,
         },
       });
 
@@ -142,7 +215,7 @@ export const useBreakthroughDetection = (mentorType?: string) => {
     } finally {
       setLoading(false);
     }
-  }, []);
+  }, [isFirstSession]);
 
   const dismissBreakthrough = useCallback(async () => {
     if (!latestBreakthrough) return;
@@ -163,6 +236,23 @@ export const useBreakthroughDetection = (mentorType?: string) => {
     setLatestBreakthrough(null);
   }, []);
 
+  // Mark first win as completed
+  const completeFirstWin = useCallback(async () => {
+    try {
+      const { data: { user } } = await supabase.auth.getUser();
+      if (!user) return;
+
+      await supabase
+        .from("profiles")
+        .update({ first_win_completed_at: new Date().toISOString() })
+        .eq("id", user.id);
+
+      setIsFirstSession(false);
+    } catch (error) {
+      console.error("Error completing first win:", error);
+    }
+  }, []);
+
   useEffect(() => {
     loadLatestBreakthrough();
   }, [loadLatestBreakthrough]);
@@ -170,9 +260,11 @@ export const useBreakthroughDetection = (mentorType?: string) => {
   return {
     latestBreakthrough,
     loading,
+    isFirstSession,
     checkForBreakthrough,
     dismissBreakthrough,
     clearBreakthrough,
+    completeFirstWin,
     refreshBreakthroughs: loadLatestBreakthrough,
   };
 };
