@@ -29,6 +29,7 @@ interface ValueMapDetection {
   blockTitle: string;
   blockDescription: string;
   suggestedContent: string;
+  confidence: number;
   reasoning: string;
   source: string;
   mentorType?: string;
@@ -424,10 +425,9 @@ const Chat = () => {
           {/* Proactive Mentor Transition Suggestion */}
           {suggestedHandoff && (
             <MentorTransitionCard
-              fromMentor={mentorType || ""}
-              toMentor={suggestedHandoff.targetMentor}
-              fromMentorName={mentorNames[mentorType || ""]}
-              toMentorName={mentorNames[suggestedHandoff.targetMentor]}
+              currentMentor={mentorType || ""}
+              suggestedMentor={suggestedHandoff.targetMentor}
+              suggestedMentorName={mentorNames[suggestedHandoff.targetMentor]}
               reason={suggestedHandoff.reason}
               onAccept={() => handleHandoff(suggestedHandoff.targetMentor)}
               onDismiss={() => setSuggestedHandoff(null)}
@@ -446,8 +446,8 @@ const Chat = () => {
           {/* First Win Naming Card */}
           {showFirstWinNaming && latestBreakthrough && (
             <FirstWinNamingCard
-              proposedName={latestBreakthrough.title}
-              description={latestBreakthrough.description}
+              proposedName={latestBreakthrough.breakthrough_title}
+              description={latestBreakthrough.breakthrough_description}
               onAccept={handleAcceptFirstWin}
               onKeepExploring={() => {
                 setShowFirstWinNaming(false);
