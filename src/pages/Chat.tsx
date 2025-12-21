@@ -13,6 +13,10 @@ import { BreakthroughDetectedCard } from "@/components/BreakthroughDetectedCard"
 import { useBreakthroughDetection } from "@/hooks/useBreakthroughDetection";
 import { InsightActionButton } from "@/components/InsightActionButton";
 import { ValueMapUnlockCelebration } from "@/components/ValueMapUnlockCelebration";
+import { MentorTransitionCard } from "@/components/MentorTransitionCard";
+import { FirstWinNamingCard } from "@/components/FirstWinNamingCard";
+import { FirstWinCelebration } from "@/components/FirstWinCelebration";
+import { useMicroWins } from "@/hooks/useMicroWins";
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -25,10 +29,15 @@ interface ValueMapDetection {
   blockTitle: string;
   blockDescription: string;
   suggestedContent: string;
-  confidence: number;
   reasoning: string;
   source: string;
   mentorType?: string;
+}
+
+interface SuggestedHandoff {
+  shouldSuggest: boolean;
+  targetMentor: string;
+  reason: string;
 }
 
 interface Whisper {
@@ -55,23 +64,6 @@ const mentorNames: Record<string, string> = {
   future_self: "Your Future Self",
 };
 
-// Mentors that make sense for handoffs based on different perspectives
-const handoffMentors: Record<string, string[]> = {
-  creative_visionary: ["business_mentor", "strategist_mentor", "marketing_mentor", "discipline_mentor"],
-  business_mentor: ["creative_visionary", "strategist_mentor", "marketing_mentor", "discipline_mentor"],
-  strategist_mentor: ["business_mentor", "creative_visionary", "discipline_mentor", "marketing_mentor"],
-  marketing_mentor: ["business_mentor", "creative_visionary", "strategist_mentor"],
-  discipline_mentor: ["strategist_mentor", "business_mentor", "heart_mentor"],
-  heart_mentor: ["oracle_mother", "alignment_mentor", "mystic_mentor", "ancient_sage"],
-  mystic_mentor: ["ancient_sage", "oracle_mother", "heart_mentor", "quantum_inventor"],
-  ancient_sage: ["mystic_mentor", "heart_mentor", "oracle_mother"],
-  oracle_mother: ["heart_mentor", "ancient_sage", "alignment_mentor"],
-  alignment_mentor: ["heart_mentor", "strategist_mentor", "oracle_mother"],
-  quantum_inventor: ["creative_visionary", "mystic_mentor", "scientific_mentor"],
-  scientific_mentor: ["strategist_mentor", "quantum_inventor", "discipline_mentor"],
-  future_self: ["discipline_mentor", "strategist_mentor", "heart_mentor"],
-};
-
 const Chat = () => {
   const { mentorType } = useParams<{ mentorType: string }>();
   const navigate = useNavigate();
@@ -85,15 +77,44 @@ const Chat = () => {
   const [exchangeCount, setExchangeCount] = useState(0);
   const [isHandoffProcessed, setIsHandoffProcessed] = useState(false);
   const [valueMapDetection, setValueMapDetection] = useState<ValueMapDetection | null>(null);
+  const [suggestedHandoff, setSuggestedHandoff] = useState<SuggestedHandoff | null>(null);
+  const [userMentors, setUserMentors] = useState<string[]>([]);
+  const [showFirstWinNaming, setShowFirstWinNaming] = useState(false);
+  const [showFirstWinCelebration, setShowFirstWinCelebration] = useState(false);
+  const [firstWinConceptName, setFirstWinConceptName] = useState("");
   const messagesEndRef = useRef<HTMLDivElement>(null);
+  
+  // Micro wins for post-first-win celebrations
+  const { triggerMicroWin } = useMicroWins();
   
   // Breakthrough detection
   const {
     latestBreakthrough,
+    isFirstSession,
     checkForBreakthrough,
     dismissBreakthrough,
     clearBreakthrough,
+    completeFirstWin,
   } = useBreakthroughDetection(mentorType);
+
+  // Load user's selected mentors
+  useEffect(() => {
+    const loadUserMentors = async () => {
+      const { data: { user } } = await supabase.auth.getUser();
+      if (!user) return;
+      
+      const { data } = await supabase
+        .from("user_mentors")
+        .select("mentor_type")
+        .eq("user_id", user.id);
+      
+      if (data) {
+        const mentors = data.map(m => m.mentor_type).filter(m => m !== mentorType);
+        setUserMentors(mentors);
+      }
+    };
+    loadUserMentors();
+  }, [mentorType]);
 
   // Check for handoff state on mount
   useEffect(() => {
@@ -109,18 +130,12 @@ const Chat = () => {
       const { data: { user } } = await supabase.auth.getUser();
       if (!user) return;
 
-      // Call the edge function with handoff context
       const { data, error } = await supabase.functions.invoke("chat-mentor", {
-        body: {
-          mentorType,
-          message: "__HANDOFF_INIT__",
-          handoffId,
-        },
+        body: { mentorType, message: "__HANDOFF_INIT__", handoffId },
       });
 
       if (error) throw error;
 
-      // Save and display the welcome message from new mentor
       const { data: welcomeMsgData } = await supabase.from("chats").insert({
         user_id: user.id,
         mentor_type: mentorType as any,
@@ -132,15 +147,8 @@ const Chat = () => {
         setMessages((prev) => [...prev, welcomeMsgData]);
       }
 
-      // Mark handoff as processed
-      await supabase
-        .from("conversation_handoffs")
-        .update({ processed: true })
-        .eq("id", handoffId);
-
+      await supabase.from("conversation_handoffs").update({ processed: true }).eq("id", handoffId);
       setIsHandoffProcessed(true);
-      
-      // Clear the location state to prevent re-processing
       navigate(location.pathname, { replace: true, state: {} });
     } catch (error: any) {
       console.error("Error processing handoff:", error);
@@ -154,17 +162,8 @@ const Chat = () => {
     loadMessages();
     loadWhispers();
     const unsubscribe = subscribeToMessages();
-    countExchanges();
-    
-    return () => {
-      unsubscribe();
-    };
+    return () => { unsubscribe(); };
   }, [mentorType]);
-
-  const countExchanges = () => {
-    const userMessages = messages.filter(m => m.role === "user");
-    setExchangeCount(userMessages.length);
-  };
 
   useEffect(() => {
     messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
@@ -184,9 +183,7 @@ const Chat = () => {
 
       if (error) throw error;
       setMessages(data || []);
-      
-      const userMessages = data?.filter((m: any) => m.role === "user") || [];
-      setExchangeCount(userMessages.length);
+      setExchangeCount(data?.filter((m: any) => m.role === "user").length || 0);
     } catch (error: any) {
       toast.error(error.message);
     }
@@ -215,29 +212,16 @@ const Chat = () => {
   const subscribeToMessages = () => {
     const channel = supabase
       .channel(`chats-${mentorType}`)
-      .on(
-        "postgres_changes",
-        {
-          event: "INSERT",
-          schema: "public",
-          table: "chats",
-          filter: `mentor_type=eq.${mentorType}`,
-        },
+      .on("postgres_changes", { event: "INSERT", schema: "public", table: "chats", filter: `mentor_type=eq.${mentorType}` },
         async (payload) => {
           const { data: { user } } = await supabase.auth.getUser();
           if (payload.new.mentor_type === mentorType && payload.new.user_id === user?.id) {
-            setMessages((prev) => {
-              if (prev.some(m => m.id === payload.new.id)) return prev;
-              return [...prev, payload.new];
-            });
+            setMessages((prev) => prev.some(m => m.id === payload.new.id) ? prev : [...prev, payload.new]);
           }
         }
-      )
-      .subscribe();
+      ).subscribe();
 
-    return () => {
-      supabase.removeChannel(channel);
-    };
+    return () => { supabase.removeChannel(channel); };
   };
 
   const handleHandoff = async (targetMentor: string) => {
@@ -247,18 +231,13 @@ const Chat = () => {
     }
 
     setLoading(true);
+    setSuggestedHandoff(null);
     try {
       const { data: { user } } = await supabase.auth.getUser();
       if (!user) throw new Error("Not authenticated");
 
-      // Get last 20 messages for context
-      const recentMessages = messages.slice(-20).map(m => ({
-        role: m.role,
-        content: m.content,
-        created_at: m.created_at
-      }));
+      const recentMessages = messages.slice(-20).map(m => ({ role: m.role, content: m.content, created_at: m.created_at }));
 
-      // Check if there's a recent handoff TO this mentor (to continue the chain)
       const { data: existingChainHandoff } = await supabase
         .from("conversation_handoffs")
         .select("handoff_chain_id, chain_position, journey_topic")
@@ -269,12 +248,9 @@ const Chat = () => {
         .limit(1)
         .maybeSingle();
 
-      // Extract topic from first user message for journey tracking
       const firstUserMessage = messages.find(m => m.role === "user");
-      const journeyTopic = existingChainHandoff?.journey_topic || 
-        (firstUserMessage?.content?.substring(0, 100) + "...");
+      const journeyTopic = existingChainHandoff?.journey_topic || (firstUserMessage?.content?.substring(0, 100) + "...");
 
-      // Create handoff record with chain tracking
       const { data: handoff, error } = await supabase
         .from("conversation_handoffs")
         .insert({
@@ -291,17 +267,8 @@ const Chat = () => {
 
       if (error) throw error;
 
-      const chainPosition = (existingChainHandoff?.chain_position || 0) + 1;
-      const journeyMessage = chainPosition > 1 
-        ? `Continuing journey (step ${chainPosition + 1}) with ${mentorNames[targetMentor]}...`
-        : `Getting fresh perspective from ${mentorNames[targetMentor]}...`;
-      
-      toast.success(journeyMessage);
-      
-      // Navigate to new mentor with handoff context
-      navigate(`/chat/${targetMentor}`, { 
-        state: { handoffId: handoff.id }
-      });
+      toast.success(`Getting fresh perspective from ${mentorNames[targetMentor]}...`);
+      navigate(`/chat/${targetMentor}`, { state: { handoffId: handoff.id } });
     } catch (error: any) {
       console.error("Error creating handoff:", error);
       toast.error("Failed to handoff conversation");
@@ -328,15 +295,10 @@ const Chat = () => {
         content: userMessage,
       }).select().single();
       
-      if (userMsgData) {
-        setMessages((prev) => [...prev, userMsgData]);
-      }
+      if (userMsgData) setMessages((prev) => [...prev, userMsgData]);
 
       const { data, error } = await supabase.functions.invoke("chat-mentor", {
-        body: {
-          mentorType,
-          message: userMessage,
-        },
+        body: { mentorType, message: userMessage },
       });
 
       if (error) throw error;
@@ -348,37 +310,29 @@ const Chat = () => {
         content: data.response,
       }).select().single();
 
-      if (assistantMsgData) {
-        setMessages((prev) => [...prev, assistantMsgData]);
-      }
+      if (assistantMsgData) setMessages((prev) => [...prev, assistantMsgData]);
 
       // Handle Value Map detection
-      if (data.valueMapDetection) {
-        setValueMapDetection(data.valueMapDetection);
-      }
+      if (data.valueMapDetection) setValueMapDetection(data.valueMapDetection);
+
+      // Handle suggested handoff
+      if (data.suggestedHandoff?.shouldSuggest) setSuggestedHandoff(data.suggestedHandoff);
 
       const newExchangeCount = exchangeCount + 1;
       setExchangeCount(newExchangeCount);
       
-      // Check for breakthrough every 5 messages
-      if (newExchangeCount >= 5 && newExchangeCount % 5 === 0 && mentorType) {
+      // Check for breakthrough with proper timing (adaptive detection)
+      if (mentorType && isFirstSession && newExchangeCount >= 6) {
         const allMessages = [...messages, { role: "user", content: userMessage }, { role: "assistant", content: data.response }];
-        checkForBreakthrough(
+        const breakthrough = await checkForBreakthrough(
           allMessages.map(m => ({ role: m.role, content: m.content })),
-          mentorType
-        ).catch(console.error);
-      }
-      
-      if (newExchangeCount >= 4 && newExchangeCount <= 6 && Math.random() > 0.5) {
-        const { data: quizMsgData } = await supabase.from("chats").insert({
-          user_id: user.id,
-          mentor_type: mentorType as any,
-          role: "assistant",
-          content: "🎓 I sense you're learning a lot! Would you like to test your understanding with a quick quiz? You might earn a badge!",
-        }).select().single();
+          mentorType,
+          false,
+          'mentor'
+        );
         
-        if (quizMsgData) {
-          setMessages((prev) => [...prev, quizMsgData]);
+        if (breakthrough) {
+          setShowFirstWinNaming(true);
         }
       }
     } catch (error: any) {
@@ -389,18 +343,21 @@ const Chat = () => {
     }
   };
 
+  const handleAcceptFirstWin = async (conceptName: string) => {
+    setFirstWinConceptName(conceptName);
+    setShowFirstWinNaming(false);
+    await completeFirstWin();
+    triggerMicroWin('naming');
+    setShowFirstWinCelebration(true);
+  };
+
   const handleStartLearningModule = async () => {
     setLoading(true);
     try {
       const { data, error } = await supabase.functions.invoke("generate-learning-module", {
-        body: {
-          chatHistory: messages,
-          mentorType,
-        },
+        body: { chatHistory: messages, mentorType },
       });
-
       if (error) throw error;
-
       setLearningModuleData(data.module);
       setShowLearningModule(true);
     } catch (error: any) {
@@ -410,7 +367,8 @@ const Chat = () => {
     }
   };
 
-  const availableHandoffs = handoffMentors[mentorType || ""] || [];
+  // Use user's selected mentors, fallback to some defaults
+  const availableHandoffs = userMentors.length > 0 ? userMentors : [];
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-primary/5 via-background to-accent/5 flex flex-col">
@@ -425,16 +383,10 @@ const Chat = () => {
             <p className="text-sm text-muted-foreground">Your personal mentor</p>
           </div>
           <div className="flex items-center gap-2">
-            {/* Handoff Dropdown */}
             {availableHandoffs.length > 0 && messages.length >= 2 && (
               <DropdownMenu>
                 <DropdownMenuTrigger asChild>
-                  <Button 
-                    variant="outline" 
-                    size="sm" 
-                    disabled={loading}
-                    className="gap-2"
-                  >
+                  <Button variant="outline" size="sm" disabled={loading} className="gap-2">
                     <RefreshCw className="w-4 h-4" />
                     <span className="hidden sm:inline">Get Perspective</span>
                     <ChevronDown className="w-3 h-3" />
@@ -445,16 +397,10 @@ const Chat = () => {
                     Continue with another mentor
                   </div>
                   {availableHandoffs.map((mentor) => (
-                    <DropdownMenuItem 
-                      key={mentor}
-                      onClick={() => handleHandoff(mentor)}
-                      className="cursor-pointer"
-                    >
+                    <DropdownMenuItem key={mentor} onClick={() => handleHandoff(mentor)} className="cursor-pointer">
                       <div className="flex flex-col">
                         <span className="font-medium">{mentorNames[mentor]}</span>
-                        <span className="text-xs text-muted-foreground">
-                          Get their unique perspective
-                        </span>
+                        <span className="text-xs text-muted-foreground">Get their unique perspective</span>
                       </div>
                     </DropdownMenuItem>
                   ))}
@@ -463,13 +409,7 @@ const Chat = () => {
             )}
             
             {exchangeCount >= 3 && (
-              <Button
-                variant="outline"
-                size="sm"
-                onClick={handleStartLearningModule}
-                disabled={loading}
-                className="gap-2"
-              >
+              <Button variant="outline" size="sm" onClick={handleStartLearningModule} disabled={loading} className="gap-2">
                 <Sparkles className="w-4 h-4" />
                 <span className="hidden sm:inline">Take Quiz</span>
               </Button>
@@ -481,8 +421,21 @@ const Chat = () => {
       {/* Messages */}
       <div className="flex-1 overflow-y-auto p-4">
         <div className="max-w-4xl mx-auto space-y-4">
+          {/* Proactive Mentor Transition Suggestion */}
+          {suggestedHandoff && (
+            <MentorTransitionCard
+              fromMentor={mentorType || ""}
+              toMentor={suggestedHandoff.targetMentor}
+              fromMentorName={mentorNames[mentorType || ""]}
+              toMentorName={mentorNames[suggestedHandoff.targetMentor]}
+              reason={suggestedHandoff.reason}
+              onAccept={() => handleHandoff(suggestedHandoff.targetMentor)}
+              onDismiss={() => setSuggestedHandoff(null)}
+            />
+          )}
+
           {/* Breakthrough Detection Card */}
-          {latestBreakthrough && (
+          {latestBreakthrough && !showFirstWinNaming && (
             <BreakthroughDetectedCard
               breakthrough={latestBreakthrough}
               onDismiss={dismissBreakthrough}
@@ -490,7 +443,20 @@ const Chat = () => {
             />
           )}
 
-          {/* Show recent whispers at top */}
+          {/* First Win Naming Card */}
+          {showFirstWinNaming && latestBreakthrough && (
+            <FirstWinNamingCard
+              proposedName={latestBreakthrough.title}
+              description={latestBreakthrough.description}
+              onAccept={handleAcceptFirstWin}
+              onKeepExploring={() => {
+                setShowFirstWinNaming(false);
+                dismissBreakthrough();
+              }}
+            />
+          )}
+
+          {/* Whispers */}
           {whispers.length > 0 && (
             <div className="space-y-2 mb-6">
               <div className="flex items-center gap-2 text-xs text-muted-foreground">
@@ -498,10 +464,7 @@ const Chat = () => {
                 <span>Recent Private Whispers</span>
               </div>
               {whispers.slice(0, 2).map((whisper) => (
-                <Card
-                  key={whisper.id}
-                  className="p-3 bg-gradient-to-br from-primary/10 to-accent/10 border-primary/20"
-                >
+                <Card key={whisper.id} className="p-3 bg-gradient-to-br from-primary/10 to-accent/10 border-primary/20">
                   <div className="flex items-start gap-2">
                     <Sparkles className="w-4 h-4 text-primary flex-shrink-0 mt-0.5" />
                     <div className="flex-1">
@@ -509,12 +472,7 @@ const Chat = () => {
                         <p className="text-xs text-muted-foreground mb-1">
                           {whisper.whisper_type ? `${whisper.whisper_type} whisper` : 'whisper'}
                         </p>
-                        <InsightActionButton
-                          insightText={whisper.message}
-                          sourceType="mentor_whisper"
-                          sourceMentor={whisper.mentor_type}
-                          sourceContext={{ whisperId: whisper.id }}
-                        />
+                        <InsightActionButton insightText={whisper.message} sourceType="mentor_whisper" sourceMentor={whisper.mentor_type} sourceContext={{ whisperId: whisper.id }} />
                       </div>
                       <p className="text-sm italic">{whisper.message}</p>
                     </div>
@@ -525,30 +483,15 @@ const Chat = () => {
           )}
 
           {messages.map((message) => (
-            <div
-              key={message.id}
-              className={cn("flex", message.role === "user" ? "justify-end" : "justify-start")}
-            >
-              <Card
-                className={cn(
-                  "max-w-[80%] p-4",
-                  message.role === "user"
-                    ? "bg-primary text-primary-foreground"
-                    : "bg-card"
-                )}
-              >
+            <div key={message.id} className={cn("flex", message.role === "user" ? "justify-end" : "justify-start")}>
+              <Card className={cn("max-w-[80%] p-4", message.role === "user" ? "bg-primary text-primary-foreground" : "bg-card")}>
                 {message.role === "user" ? (
                   <p className="whitespace-pre-wrap">{message.content}</p>
                 ) : (
                   <div className="space-y-2">
                     <HighlightedText text={message.content} />
                     <div className="flex justify-end pt-1">
-                      <InsightActionButton
-                        insightText={message.content}
-                        sourceType="mentor_message"
-                        sourceMentor={mentorType}
-                        sourceContext={{ messageId: message.id }}
-                      />
+                      <InsightActionButton insightText={message.content} sourceType="mentor_message" sourceMentor={mentorType} sourceContext={{ messageId: message.id }} />
                     </div>
                   </div>
                 )}
@@ -570,13 +513,7 @@ const Chat = () => {
       <div className="border-t bg-card/80 backdrop-blur-sm sticky bottom-0">
         <div className="max-w-4xl mx-auto p-4">
           <div className="flex gap-2">
-            <Input
-              placeholder="Ask your mentor..."
-              value={input}
-              onChange={(e) => setInput(e.target.value)}
-              onKeyPress={(e) => e.key === "Enter" && handleSend()}
-              disabled={loading}
-            />
+            <Input placeholder="Ask your mentor..." value={input} onChange={(e) => setInput(e.target.value)} onKeyPress={(e) => e.key === "Enter" && handleSend()} disabled={loading} />
             <Button onClick={handleSend} disabled={loading || !input.trim()}>
               <Send className="w-4 h-4" />
             </Button>
@@ -586,19 +523,7 @@ const Chat = () => {
 
       {/* Learning Module Modal */}
       {showLearningModule && learningModuleData && (
-        <MentorLearningModule
-          mentorType={mentorType || ""}
-          mentorName={mentorNames[mentorType || ""]}
-          moduleData={learningModuleData}
-          onComplete={() => {
-            setShowLearningModule(false);
-            setLearningModuleData(null);
-          }}
-          onClose={() => {
-            setShowLearningModule(false);
-            setLearningModuleData(null);
-          }}
-        />
+        <MentorLearningModule mentorType={mentorType || ""} mentorName={mentorNames[mentorType || ""]} moduleData={learningModuleData} onComplete={() => { setShowLearningModule(false); setLearningModuleData(null); }} onClose={() => { setShowLearningModule(false); setLearningModuleData(null); }} />
       )}
 
       {/* Value Map Unlock Celebration */}
@@ -609,24 +534,8 @@ const Chat = () => {
             try {
               const { data: { user } } = await supabase.auth.getUser();
               if (!user) throw new Error("Not authenticated");
-
-              // Upsert the value map block
-              await supabase.from("value_map_blocks").upsert({
-                user_id: user.id,
-                block_key: blockKey,
-                content: content,
-                is_unlocked: true,
-                unlocked_at: new Date().toISOString(),
-                unlock_source: "mentor_chat",
-              }, { onConflict: "user_id,block_key" });
-
-              // Trigger Future Self celebration
-              await supabase.from("future_self_messages").insert({
-                user_id: user.id,
-                message: `You just unlocked "${valueMapDetection.blockTitle}" in your Value Map. This clarity is building something real.`,
-                trigger_reason: "value_map_unlock",
-              });
-
+              await supabase.from("value_map_blocks").upsert({ user_id: user.id, block_key: blockKey, content, is_unlocked: true, unlocked_at: new Date().toISOString(), unlock_source: "mentor_chat" }, { onConflict: "user_id,block_key" });
+              await supabase.from("future_self_messages").insert({ user_id: user.id, message: `You just unlocked "${valueMapDetection.blockTitle}" in your Value Map. This clarity is building something real.`, trigger_reason: "value_map_unlock" });
               setValueMapDetection(null);
             } catch (error) {
               console.error("Error saving value map block:", error);
@@ -635,6 +544,13 @@ const Chat = () => {
           }}
           onDismiss={() => setValueMapDetection(null)}
         />
+      )}
+
+      {/* First Win Celebration */}
+      {showFirstWinCelebration && (
+        <div className="fixed inset-0 bg-background/80 backdrop-blur-sm z-50 flex items-center justify-center p-4">
+          <FirstWinCelebration conceptName={firstWinConceptName} onContinue={() => setShowFirstWinCelebration(false)} />
+        </div>
       )}
     </div>
   );
