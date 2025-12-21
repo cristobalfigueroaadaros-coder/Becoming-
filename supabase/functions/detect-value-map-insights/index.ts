@@ -100,13 +100,46 @@ const VALUE_MAP_BLOCKS = {
   }
 };
 
+// Specificity signals - indicate concrete vs vague thinking
+const SPECIFICITY_SIGNALS = [
+  "between", "specifically", "exactly", "called", "named", "age", "years old",
+  "who are", "people who", "targeting", "for example", "such as", "like the",
+  "workshop", "course", "app", "service", "program", "coaching", "consulting"
+];
+
+// Calculate specificity score of a message
+function calculateSpecificityScore(message: string): number {
+  const lowerMessage = message.toLowerCase();
+  let score = 0;
+  
+  for (const signal of SPECIFICITY_SIGNALS) {
+    if (lowerMessage.includes(signal)) {
+      score += 1;
+    }
+  }
+  
+  // Bonus for numbers (ages, prices, etc.)
+  const numbers = message.match(/\d+/g);
+  if (numbers && numbers.length > 0) {
+    score += Math.min(numbers.length, 2);
+  }
+  
+  // Bonus for quoted/named things
+  const quotedThings = message.match(/"[^"]+"/g);
+  if (quotedThings && quotedThings.length > 0) {
+    score += quotedThings.length * 2;
+  }
+  
+  return score;
+}
+
 Deno.serve(async (req) => {
   if (req.method === "OPTIONS") {
     return new Response(null, { headers: corsHeaders });
   }
 
   try {
-    const { message, conversationType, mentorType } = await req.json();
+    const { message, conversationType, mentorType, conversationDepth } = await req.json();
     const authHeader = req.headers.get("Authorization")!;
     const token = authHeader.replace("Bearer ", "");
 
@@ -118,6 +151,39 @@ Deno.serve(async (req) => {
 
     const { data: { user }, error: userError } = await supabaseClient.auth.getUser(token);
     if (userError || !user) throw new Error("Not authenticated");
+
+    // Get conversation depth if not provided
+    let depth = conversationDepth || 0;
+    if (!conversationDepth && mentorType) {
+      const { count } = await supabaseClient
+        .from("chats")
+        .select("*", { count: "exact", head: true })
+        .eq("user_id", user.id)
+        .eq("mentor_type", mentorType)
+        .eq("role", "user");
+      depth = count || 0;
+    }
+
+    // CRITICAL: Don't detect in early conversations - user is still exploring
+    const MIN_DEPTH_FOR_DETECTION = 6;
+    if (depth < MIN_DEPTH_FOR_DETECTION) {
+      console.log(`Skipping detection: conversation depth ${depth} < ${MIN_DEPTH_FOR_DETECTION}`);
+      return new Response(
+        JSON.stringify({ detection: null }),
+        { headers: { ...corsHeaders, "Content-Type": "application/json" } }
+      );
+    }
+
+    // Calculate specificity score - require concrete content
+    const specificityScore = calculateSpecificityScore(message);
+    const MIN_SPECIFICITY = 2;
+    if (specificityScore < MIN_SPECIFICITY) {
+      console.log(`Skipping detection: specificity score ${specificityScore} < ${MIN_SPECIFICITY}`);
+      return new Response(
+        JSON.stringify({ detection: null }),
+        { headers: { ...corsHeaders, "Content-Type": "application/json" } }
+      );
+    }
 
     // Get current value map blocks to see what's already filled
     const { data: existingBlocks } = await supabaseClient
@@ -155,6 +221,9 @@ Deno.serve(async (req) => {
     // Use AI to analyze the message and extract structured content
     const blocksToAnalyze = potentialBlocks.map(key => VALUE_MAP_BLOCKS[key as keyof typeof VALUE_MAP_BLOCKS]);
     
+    // Dynamic confidence threshold based on conversation depth
+    const confidenceThreshold = depth < 10 ? 0.9 : 0.85;
+    
     const analysisPrompt = `Analyze this user message to detect if they are naturally answering any of these Purpose-to-Value Map questions:
 
 USER MESSAGE:
@@ -164,12 +233,15 @@ POSSIBLE BLOCKS TO DETECT:
 ${blocksToAnalyze.map(b => `- ${b.key}: ${b.description} (${b.detectPrompt})`).join('\n')}
 
 CONVERSATION CONTEXT: ${conversationType || 'general'} ${mentorType ? `with ${mentorType}` : ''}
+CONVERSATION DEPTH: ${depth} exchanges (${depth < 10 ? 'early exploration' : 'deeper discussion'})
 
-TASK:
-1. Determine if the user's message naturally answers any of these blocks
-2. Only detect if there's a CLEAR, SPECIFIC answer (not vague)
-3. Extract the content in a clean, refined way (not just copying their words)
-4. Return ONLY ONE detection (the strongest/clearest one)
+CRITICAL - DETECTION RULES:
+1. ONLY detect if the content is SPECIFIC and CONCRETE
+2. Generic statements like "I want to help people" should NOT be detected
+3. Good detection: "Women between 30-35 who practice yoga" or "Money Mindset Makeovers program"
+4. Bad detection: "People who are struggling" or "Some kind of service"
+5. The user must be making a STATEMENT, not asking a question
+6. Content must be specific enough to be actionable
 
 RESPOND IN EXACTLY THIS JSON FORMAT (no markdown, no code blocks):
 {
@@ -180,15 +252,16 @@ RESPOND IN EXACTLY THIS JSON FORMAT (no markdown, no code blocks):
   "reasoning": "One sentence explaining why this was detected"
 }
 
-EXAMPLES OF GOOD DETECTIONS:
-- "Women between 30 and 35 who practice yoga" → audience block, high confidence
-- "I want to help burned out entrepreneurs find their passion again" → audience + impact blocks (pick strongest)
-- "I'm building an app that tracks daily habits" → solution block, high confidence
+EXAMPLES OF GOOD DETECTIONS (high confidence):
+- "Women between 30 and 35 who practice yoga" → audience block, 0.95 confidence
+- "I want to create a 'Money Mindset Makeover' program" → solution block, 0.95 confidence
+- "Burned out entrepreneurs who lost their passion" → audience block, 0.92 confidence
 
-EXAMPLES OF BAD DETECTIONS (DO NOT DETECT):
+EXAMPLES OF BAD DETECTIONS (DO NOT DETECT THESE):
 - Vague statements like "I want to help people" (too generic)
+- "I'm good at listening" (not specific enough alone)
+- "Maybe some kind of coaching?" (uncertain, questioning)
 - Philosophical musings without specifics
-- Questions rather than statements
 
 Only return the JSON, nothing else.`;
 
@@ -228,9 +301,9 @@ Only return the JSON, nothing else.`;
       );
     }
 
-    // Only return detection if confidence is high enough
-    if (!parsed.detected || parsed.confidence < 0.7 || !parsed.blockKey) {
-      console.log("Detection below threshold or no block detected:", parsed);
+    // Only return detection if confidence is high enough (dynamic threshold)
+    if (!parsed.detected || parsed.confidence < confidenceThreshold || !parsed.blockKey) {
+      console.log(`Detection below threshold (${confidenceThreshold}) or no block detected:`, parsed);
       return new Response(
         JSON.stringify({ detection: null }),
         { headers: { ...corsHeaders, "Content-Type": "application/json" } }
@@ -245,8 +318,9 @@ Only return the JSON, nothing else.`;
       );
     }
 
-    console.log(`Value Map Detection: ${parsed.blockKey} (confidence: ${parsed.confidence})`);
+    console.log(`Value Map Detection: ${parsed.blockKey} (confidence: ${parsed.confidence}, depth: ${depth})`);
 
+    // Return detection WITHOUT confidence percentage (don't show to user)
     return new Response(
       JSON.stringify({
         detection: {
@@ -254,7 +328,7 @@ Only return the JSON, nothing else.`;
           blockTitle: blockConfig.title,
           blockDescription: blockConfig.description,
           suggestedContent: parsed.suggestedContent,
-          confidence: parsed.confidence,
+          // Don't include confidence in response - user doesn't need to see it
           reasoning: parsed.reasoning,
           source: conversationType || "conversation",
           mentorType: mentorType || null

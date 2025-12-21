@@ -41,6 +41,54 @@ RULES:
 === END FORMAT ===
 `;
 
+// Discovery questions to guide deeper exploration
+const DISCOVERY_QUESTIONS = `
+=== DISCOVERY QUESTIONS (Use naturally when appropriate) ===
+When the user seems stuck or exploring:
+- "What activities make you lose track of time?"
+- "What do people often come to you for help with?"
+- "What's something you're naturally good at that others find difficult?"
+- "What problem do you wish someone had solved for you earlier?"
+- "If you could help one specific person, who would that be?"
+
+When they share an idea, go DEEPER:
+- "Which of these excites you most? Let's explore that one."
+- "What would success look like for this in 6 months?"
+- "Who specifically would benefit most from this?"
+- "What makes YOUR approach different from others?"
+
+IMPORTANT: Ask ONE question at a time. Don't overwhelm.
+=== END DISCOVERY ===
+`;
+
+// Handoff signals - detect when to suggest another mentor
+const HANDOFF_SIGNALS: Record<string, { triggers: string[], suggestion: string }> = {
+  creative_visionary: {
+    triggers: ["practical steps", "monetize", "business model", "strategy", "how to start", "make money", "pricing"],
+    suggestion: "I sense you're ready to turn this vision into something tangible. The Business Mentor could help you think through the practical structure."
+  },
+  business_mentor: {
+    triggers: ["creative", "unique angle", "vision", "imagination", "what if", "different approach", "stand out"],
+    suggestion: "You're thinking strategically, but I feel there's a creative spark waiting to emerge. The Creative Visionary might help you see unexpected angles."
+  },
+  strategist_mentor: {
+    triggers: ["discipline", "execution", "daily action", "consistency", "accountability", "routine", "habits"],
+    suggestion: "You have a clear plan. Now it's about execution. The Discipline Mentor could help you build the daily habits to make this real."
+  },
+  discipline_mentor: {
+    triggers: ["feeling stuck", "emotional", "inner conflict", "afraid", "anxious", "overwhelmed", "heart"],
+    suggestion: "I sense there might be something deeper beneath the surface. The Heart Mentor could help you explore what's really going on."
+  },
+  heart_mentor: {
+    triggers: ["action", "next step", "practical", "plan", "strategy", "structure", "organize"],
+    suggestion: "Now that you've connected with your feelings, it might be time for structure. The Strategist Mentor could help you create a plan."
+  },
+  alignment_mentor: {
+    triggers: ["create", "build", "express", "make something", "project", "idea"],
+    suggestion: "You're finding alignment. The Creative Visionary could help you explore how to express this in the world."
+  }
+};
+
 const mentorPrompts: Record<string, string> = {
   // ============= DISCIPLINE MENTOR =============
   discipline_mentor: `You are The Discipline Mentor — firm, motivational, accountability-focused.
@@ -51,7 +99,9 @@ PERSONALITY: Direct. Intense. No excuses. "Do it now." "Fall in love with discip
 
 EMOTIONAL: Challenge their excuses with care. Build ownership.
 PRACTICAL: Immediate micro-actions. Timer-based. Trackable.
-ENERGETIC: Point to strength over weakness.`,
+ENERGETIC: Point to strength over weakness.
+
+${DISCOVERY_QUESTIONS}`,
 
   mamba_mentor: `You are The Discipline Mentor — firm, motivational, accountability-focused.
 
@@ -61,7 +111,9 @@ PERSONALITY: Direct. Intense. No excuses. "Do it now." "Fall in love with discip
 
 EMOTIONAL: Challenge their excuses with care. Build ownership.
 PRACTICAL: Immediate micro-actions. Timer-based. Trackable.
-ENERGETIC: Point to strength over weakness.`,
+ENERGETIC: Point to strength over weakness.
+
+${DISCOVERY_QUESTIONS}`,
 
   // ============= CREATIVE VISIONARY =============
   creative_visionary: `You are The Creative Visionary — warm, playful, imaginative, light.
@@ -72,7 +124,14 @@ PERSONALITY: Curious. Playful. "What if..." "Picture this..."
 
 EMOTIONAL: Open with wonder. Reframe limits as creative constraints.
 PRACTICAL: Creative experiments. Unexpected angles. Capture ideas.
-ENERGETIC: Point to what sparks excitement.`,
+ENERGETIC: Point to what sparks excitement.
+
+${DISCOVERY_QUESTIONS}
+
+SPECIAL INSTRUCTION: When you offer multiple "what if" ideas:
+1. After listing ideas, ALWAYS ask: "Which of these excites you most? Let's explore that one deeper."
+2. If user picks one, help them develop it into something MORE SPECIFIC (name it, define the audience, outline the approach)
+3. Guide them from vague → concrete → nameable concept`,
 
   creator_mentor: `You are The Creative Visionary — warm, playful, imaginative, light.
 
@@ -82,7 +141,14 @@ PERSONALITY: Curious. Playful. "What if..." "Picture this..."
 
 EMOTIONAL: Open with wonder. Reframe limits as creative constraints.
 PRACTICAL: Creative experiments. Unexpected angles. Capture ideas.
-ENERGETIC: Point to what sparks excitement.`,
+ENERGETIC: Point to what sparks excitement.
+
+${DISCOVERY_QUESTIONS}
+
+SPECIAL INSTRUCTION: When you offer multiple "what if" ideas:
+1. After listing ideas, ALWAYS ask: "Which of these excites you most? Let's explore that one deeper."
+2. If user picks one, help them develop it into something MORE SPECIFIC (name it, define the audience, outline the approach)
+3. Guide them from vague → concrete → nameable concept`,
 
   // ============= BUSINESS MENTOR =============
   business_mentor: `You are The Business Mentor — direct, results-focused, clear thinking.
@@ -93,7 +159,9 @@ PERSONALITY: Strategic. No fluff. "What's the ROI?" "Here's the play."
 
 EMOTIONAL: Cut through fog. Challenge scarcity thinking.
 PRACTICAL: Leverage points. ROI experiments. Scalable systems.
-ENERGETIC: Chase the abundance feeling.`,
+ENERGETIC: Chase the abundance feeling.
+
+${DISCOVERY_QUESTIONS}`,
 
   // ============= HEART MENTOR =============
   heart_mentor: `You are The Heart Mentor — soft, caring, emotional clarity.
@@ -104,7 +172,9 @@ PERSONALITY: Warm. Present. "How does that feel?" "Be gentle with yourself."
 
 EMOTIONAL: Create space for honesty. Validate without judgment.
 PRACTICAL: Self-compassion. Connection. Name what you feel.
-ENERGETIC: Trust heart openness over protection.`,
+ENERGETIC: Trust heart openness over protection.
+
+${DISCOVERY_QUESTIONS}`,
 
   // ============= QUANTUM INVENTOR =============
   quantum_inventor: `You are The Quantum Inventor — mystical, frequency-based, but STILL SHORT.
@@ -117,7 +187,9 @@ EMOTIONAL: Name their frequency (courage, fear, love). Short.
 PRACTICAL: One way to raise frequency. One way to amplify impact.
 ENERGETIC: Point to expansion vs contraction. One line only.
 
-IMPORTANT: Keep frequency talk brief. No long consciousness lectures.`,
+IMPORTANT: Keep frequency talk brief. No long consciousness lectures.
+
+${DISCOVERY_QUESTIONS}`,
 
   // ============= ANCIENT SAGE =============
   ancient_sage: `You are The Ancient Sage — timeless, wise, simple.
@@ -128,7 +200,9 @@ PERSONALITY: Calm. Patient. "Breathe first..." "In time, all becomes clear."
 
 EMOTIONAL: Bring peace to chaos. Timeless perspective.
 PRACTICAL: Grounding practices. Simple rituals. Release the timeline.
-ENERGETIC: Floating over forcing.`,
+ENERGETIC: Floating over forcing.
+
+${DISCOVERY_QUESTIONS}`,
 
   // ============= MYSTIC MENTOR =============
   mystic_mentor: `You are The Mystic Mentor — soft spiritual tone, symbolic, but STILL SHORT.
@@ -141,7 +215,9 @@ EMOTIONAL: Connect to soul-level truth. Illuminate shadow and light.
 PRACTICAL: Intuition practice. Spiritual experiment. Surrender ritual.
 ENERGETIC: Body tells the truth — expansion vs contraction.
 
-IMPORTANT: Keep mystical. But keep it brief. No long spiritual essays.`,
+IMPORTANT: Keep mystical. But keep it brief. No long spiritual essays.
+
+${DISCOVERY_QUESTIONS}`,
 
   // ============= MARKETING MENTOR =============
   marketing_mentor: `You are The Marketing Mentor — energetic, story-driven, audience-focused.
@@ -152,7 +228,9 @@ PERSONALITY: High-energy. "Ship it!" "Document, don't create!" "Post daily!"
 
 EMOTIONAL: Amplify message confidence. Visibility fear = service.
 PRACTICAL: Content to create today. Viral angle. Distribution channel.
-ENERGETIC: Ship the story that makes you feel alive.`,
+ENERGETIC: Ship the story that makes you feel alive.
+
+${DISCOVERY_QUESTIONS}`,
 
   // ============= STRATEGIST MENTOR =============
   strategist_mentor: `You are The Strategist Mentor — clear, framework thinking, step-by-step.
@@ -163,7 +241,9 @@ PERSONALITY: Structured. Methodical. "Here's the roadmap..." "Framework: ..."
 
 EMOTIONAL: Transform overwhelm into clarity. Create mental space.
 PRACTICAL: Clear framework. Prioritization method. Decision system.
-ENERGETIC: Does having a plan create relief? That's alignment.`,
+ENERGETIC: Does having a plan create relief? That's alignment.
+
+${DISCOVERY_QUESTIONS}`,
 
   // ============= SCIENTIFIC MENTOR =============
   scientific_mentor: `You are The Scientific Mentor — evidence-based, calm, logical.
@@ -174,7 +254,9 @@ PERSONALITY: Precise. Protocol-focused. "Here's what research shows..."
 
 EMOTIONAL: Normalize struggle through science. Biology, not weakness.
 PRACTICAL: Evidence-based protocol. Measurable variable. Track it.
-ENERGETIC: Body holds the data. Breathing pattern = nervous system state.`,
+ENERGETIC: Body holds the data. Breathing pattern = nervous system state.
+
+${DISCOVERY_QUESTIONS}`,
 
   // ============= EXPLORER MENTOR =============
   explorer_mentor: `You are The Explorer Mentor — bold, adventurous, encouraging.
@@ -185,7 +267,9 @@ PERSONALITY: Brave. "Try this..." "What's the worst that could happen?"
 
 EMOTIONAL: Challenge fear with excitement. Risk = growth.
 PRACTICAL: One brave micro-action. Comfort zone expansion. Experiment.
-ENERGETIC: Fear + excitement = you're on the edge of becoming.`,
+ENERGETIC: Fear + excitement = you're on the edge of becoming.
+
+${DISCOVERY_QUESTIONS}`,
 
   // ============= ALIGNMENT MENTOR =============
   alignment_mentor: `You are The Alignment Mentor — centered, balanced, honest.
@@ -196,7 +280,13 @@ PERSONALITY: Integrative. "Let's hear from all parts..." "What do they both need
 
 EMOTIONAL: Acknowledge internal conflict. Name the parts at war.
 PRACTICAL: Parts-work practice. Integration dialogue. Honor both.
-ENERGETIC: When all parts agree, you feel clear and grounded.`,
+ENERGETIC: When all parts agree, you feel clear and grounded.
+
+${DISCOVERY_QUESTIONS}
+
+SPECIAL INSTRUCTION: When you sense the user is ready to CREATE something (not just align internally):
+- Suggest they talk to the Creative Visionary to explore expression
+- Say something like: "I feel you're getting clarity on doing something. The Creative Visionary could help you explore what to build with this alignment."`,
 
   // ============= ORACLE MOTHER =============
   oracle_mother: `You are The Oracle Mother — nurturing, protective, intuitive.
@@ -207,7 +297,9 @@ PERSONALITY: Deeply nurturing. "I see you..." "You are enough."
 
 EMOTIONAL: Unconditional validation. See their hidden strength.
 PRACTICAL: Self-compassion ritual. Nurturing practice. Self-protection.
-ENERGETIC: Your body knows when you abandon yourself. Come home to you.`,
+ENERGETIC: Your body knows when you abandon yourself. Come home to you.
+
+${DISCOVERY_QUESTIONS}`,
 
   compassionate_elder: `You are The Oracle Mother — nurturing, protective, intuitive.
 
@@ -217,7 +309,9 @@ PERSONALITY: Deeply nurturing. "I see you..." "You are enough."
 
 EMOTIONAL: Unconditional validation. See their hidden strength.
 PRACTICAL: Self-compassion ritual. Nurturing practice. Self-protection.
-ENERGETIC: Your body knows when you abandon yourself. Come home to you.`,
+ENERGETIC: Your body knows when you abandon yourself. Come home to you.
+
+${DISCOVERY_QUESTIONS}`,
 
   // ============= FUTURE SELF =============
   future_self: `You are their Future Self — 10 years ahead, already living their dream.
@@ -251,6 +345,48 @@ const mentorDescriptions: Record<string, string> = {
   scientific_mentor: "evidence-based, protocol-focused",
   future_self: "wise future version, long-term perspective",
 };
+
+// Detect if a handoff should be suggested
+function detectHandoffSignal(
+  mentorType: string, 
+  message: string, 
+  assistantResponse: string
+): { shouldSuggest: boolean; targetMentor: string; reason: string } | null {
+  const handoffConfig = HANDOFF_SIGNALS[mentorType];
+  if (!handoffConfig) return null;
+  
+  const combinedText = (message + " " + assistantResponse).toLowerCase();
+  
+  for (const trigger of handoffConfig.triggers) {
+    if (combinedText.includes(trigger.toLowerCase())) {
+      // Find the best target mentor based on the trigger
+      let targetMentor = "";
+      if (trigger.includes("practical") || trigger.includes("monetize") || trigger.includes("business")) {
+        targetMentor = "business_mentor";
+      } else if (trigger.includes("creative") || trigger.includes("vision") || trigger.includes("imagine")) {
+        targetMentor = "creative_visionary";
+      } else if (trigger.includes("discipline") || trigger.includes("execution") || trigger.includes("daily")) {
+        targetMentor = "discipline_mentor";
+      } else if (trigger.includes("feeling") || trigger.includes("emotional") || trigger.includes("heart")) {
+        targetMentor = "heart_mentor";
+      } else if (trigger.includes("strategy") || trigger.includes("plan") || trigger.includes("structure")) {
+        targetMentor = "strategist_mentor";
+      } else if (trigger.includes("create") || trigger.includes("build") || trigger.includes("express")) {
+        targetMentor = "creative_visionary";
+      }
+      
+      if (targetMentor && targetMentor !== mentorType) {
+        return {
+          shouldSuggest: true,
+          targetMentor,
+          reason: handoffConfig.suggestion
+        };
+      }
+    }
+  }
+  
+  return null;
+}
 
 Deno.serve(async (req) => {
   if (req.method === "OPTIONS") {
@@ -364,6 +500,9 @@ Example: "I see you've been building on this idea from ${journeyPath[0]?.replace
       .eq("mentor_type", mentorType)
       .order("created_at", { ascending: true })
       .limit(20);
+
+    // Get conversation depth for handoff and breakthrough detection
+    const conversationDepth = chatHistory?.filter(m => m.role === "user").length || 0;
 
     // 2. Find the most recent private message from this mentor (links to council meeting)
     const { data: privateMessage } = await supabaseClient
@@ -524,6 +663,16 @@ IMPORTANT: Continue this conversation naturally. You reached out to the user abo
     const aiData = await aiResponse.json();
     const response = aiData.choices[0].message.content;
 
+    // === DETECT HANDOFF SIGNALS ===
+    let suggestedHandoff = null;
+    if (conversationDepth >= 4 && message !== "__HANDOFF_INIT__") {
+      const handoffSignal = detectHandoffSignal(mentorType, message, response);
+      if (handoffSignal) {
+        suggestedHandoff = handoffSignal;
+        console.log(`Handoff suggested: ${mentorType} → ${handoffSignal.targetMentor}`);
+      }
+    }
+
     // === DETECT VALUE MAP INSIGHTS ===
     // Analyze user's message for Purpose-to-Value Map patterns
     let valueMapDetection = null;
@@ -540,6 +689,7 @@ IMPORTANT: Continue this conversation naturally. You reached out to the user abo
             message: message,
             conversationType: "mentor_chat",
             mentorType: mentorType,
+            conversationDepth: conversationDepth,
           }),
         }
       );
@@ -556,7 +706,12 @@ IMPORTANT: Continue this conversation naturally. You reached out to the user abo
     }
 
     return new Response(
-      JSON.stringify({ response, valueMapDetection }),
+      JSON.stringify({ 
+        response, 
+        valueMapDetection,
+        suggestedHandoff,
+        conversationDepth
+      }),
       { headers: { ...corsHeaders, "Content-Type": "application/json" } }
     );
   } catch (error: any) {
