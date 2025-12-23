@@ -811,6 +811,33 @@ export type Database = {
         }
         Relationships: []
       }
+      first_win_proofs: {
+        Row: {
+          created_at: string | null
+          id: string
+          path_type: string
+          proof_content: string
+          proof_type: string
+          user_id: string
+        }
+        Insert: {
+          created_at?: string | null
+          id?: string
+          path_type: string
+          proof_content: string
+          proof_type: string
+          user_id: string
+        }
+        Update: {
+          created_at?: string | null
+          id?: string
+          path_type?: string
+          proof_content?: string
+          proof_type?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
       future_self_messages: {
         Row: {
           created_at: string | null
@@ -1470,9 +1497,13 @@ export type Database = {
           constellation_insights: Json | null
           council_introduction_completed: boolean | null
           created_at: string | null
+          creation_gate_passed_at: string | null
           display_name: string | null
           emotional_tone: string | null
           first_win_completed_at: string | null
+          first_win_path: string | null
+          first_win_proof_text: string | null
+          first_win_proof_url: string | null
           future_age: number | null
           future_lifestyle: string | null
           future_location: string | null
@@ -1486,6 +1517,7 @@ export type Database = {
           main_strengths: string[] | null
           priority_growth_area: string | null
           purpose_path: string | null
+          reflection_loop_count: number | null
           shadow_intensity: string | null
           updated_at: string | null
           user_foundation_audio_url: string | null
@@ -1500,9 +1532,13 @@ export type Database = {
           constellation_insights?: Json | null
           council_introduction_completed?: boolean | null
           created_at?: string | null
+          creation_gate_passed_at?: string | null
           display_name?: string | null
           emotional_tone?: string | null
           first_win_completed_at?: string | null
+          first_win_path?: string | null
+          first_win_proof_text?: string | null
+          first_win_proof_url?: string | null
           future_age?: number | null
           future_lifestyle?: string | null
           future_location?: string | null
@@ -1516,6 +1552,7 @@ export type Database = {
           main_strengths?: string[] | null
           priority_growth_area?: string | null
           purpose_path?: string | null
+          reflection_loop_count?: number | null
           shadow_intensity?: string | null
           updated_at?: string | null
           user_foundation_audio_url?: string | null
@@ -1530,9 +1567,13 @@ export type Database = {
           constellation_insights?: Json | null
           council_introduction_completed?: boolean | null
           created_at?: string | null
+          creation_gate_passed_at?: string | null
           display_name?: string | null
           emotional_tone?: string | null
           first_win_completed_at?: string | null
+          first_win_path?: string | null
+          first_win_proof_text?: string | null
+          first_win_proof_url?: string | null
           future_age?: number | null
           future_lifestyle?: string | null
           future_location?: string | null
@@ -1546,6 +1587,7 @@ export type Database = {
           main_strengths?: string[] | null
           priority_growth_area?: string | null
           purpose_path?: string | null
+          reflection_loop_count?: number | null
           shadow_intensity?: string | null
           updated_at?: string | null
           user_foundation_audio_url?: string | null
