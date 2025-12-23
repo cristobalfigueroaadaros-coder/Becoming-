@@ -58,19 +58,19 @@ export const FirstWinNamingCard = ({
               <Sparkles className="w-8 h-8 text-white" />
             </motion.div>
 
-            {/* Message */}
+            {/* PDR v2.1 Commitment Card Copy */}
             <motion.div
               initial={{ opacity: 0 }}
               animate={{ opacity: 1 }}
               transition={{ delay: 0.3 }}
               className="space-y-3"
             >
-              <p className="text-muted-foreground italic text-sm leading-relaxed max-w-md mx-auto">
-                "This feels like more than a thought. It feels like the beginning of something."
-              </p>
+              <h3 className="text-xl font-semibold text-foreground">
+                This is becoming more than an idea.
+              </h3>
               
-              <p className="text-lg text-foreground">
-                We're seeing it take shape as:
+              <p className="text-muted-foreground">
+                We're seeing something real take shape.
               </p>
             </motion.div>
 
@@ -81,11 +81,12 @@ export const FirstWinNamingCard = ({
               transition={{ delay: 0.4 }}
               className="p-4 bg-muted/30 rounded-xl border border-accent/20"
             >
+              <p className="text-xs text-muted-foreground mb-2">Project Name</p>
               <Input
                 value={editedName}
                 onChange={(e) => setEditedName(e.target.value)}
                 className="text-center text-xl font-semibold border-none bg-transparent focus-visible:ring-0 focus-visible:ring-offset-0"
-                placeholder="Name your emerging idea..."
+                placeholder="Name your project..."
               />
             </motion.div>
 
@@ -99,21 +100,11 @@ export const FirstWinNamingCard = ({
               {description}
             </motion.p>
 
-            {/* Question */}
-            <motion.p
-              initial={{ opacity: 0 }}
-              animate={{ opacity: 1 }}
-              transition={{ delay: 0.6 }}
-              className="text-muted-foreground"
-            >
-              Does this feel right?
-            </motion.p>
-
-            {/* Actions */}
+            {/* Actions - PDR v2.1 buttons */}
             <motion.div
               initial={{ opacity: 0, y: 10 }}
               animate={{ opacity: 1, y: 0 }}
-              transition={{ delay: 0.7 }}
+              transition={{ delay: 0.6 }}
               className="flex gap-3 justify-center pt-2"
             >
               <Button
@@ -123,7 +114,7 @@ export const FirstWinNamingCard = ({
                 className="gap-2"
               >
                 <ArrowRight className="w-4 h-4" />
-                Keep exploring
+                Not yet, keep shaping
               </Button>
               <Button
                 onClick={handleAccept}
@@ -131,7 +122,7 @@ export const FirstWinNamingCard = ({
                 className="gap-2 bg-gradient-to-r from-accent to-primary hover:opacity-90"
               >
                 <Check className="w-4 h-4" />
-                {celebrating ? "Celebrating..." : "Yes, this is it ✨"}
+                {celebrating ? "Celebrating..." : "Yes, let's build this"}
               </Button>
             </motion.div>
           </div>

@@ -18,10 +18,8 @@ import { CouncilIntroductionModal } from "@/components/CouncilIntroductionModal"
 import { HighlightedText } from "@/components/HighlightedText";
 import { InsightActionButton } from "@/components/InsightActionButton";
 import { ValueMapUnlockCelebration } from "@/components/ValueMapUnlockCelebration";
-import { FirstWinNamingCard } from "@/components/FirstWinNamingCard";
-import { FirstWinCelebration } from "@/components/FirstWinCelebration";
-import { FirstWinPathSelector } from "@/components/FirstWinPathSelector";
-import { CreationGate } from "@/components/CreationGate";
+import { MentorSuggestionCard } from "@/components/MentorSuggestionCard";
+
 interface ValueMapDetection {
   blockKey: string;
   blockTitle: string;
@@ -83,23 +81,20 @@ const CouncilMeeting = () => {
   const [councilOpener, setCouncilOpener] = useState<string | null>(null);
   const [openerLoading, setOpenerLoading] = useState(false);
   
-  // First Win states
-  const [detectedBreakthrough, setDetectedBreakthrough] = useState<{
-    title: string;
-    description: string;
-    next_step?: string;
-  } | null>(null);
-  const [showNamingMoment, setShowNamingMoment] = useState(false);
-  const [showFirstWinCelebration, setShowFirstWinCelebration] = useState(false);
-  const [acceptedConceptName, setAcceptedConceptName] = useState("");
+  // PDR v2.1: Grounding question state (shown after intro modal)
+  const [showGroundingQuestion, setShowGroundingQuestion] = useState(false);
+  const [groundingAnswer, setGroundingAnswer] = useState("");
   
-  // First Win Path states (Action Engine)
-  const [showPathSelector, setShowPathSelector] = useState(false);
-  const [selectedPath, setSelectedPath] = useState<string | null>(null);
-  const [showCreationGate, setShowCreationGate] = useState(false);
+  // PDR v2.1: Mentor suggestion state
+  const [suggestedMentor, setSuggestedMentor] = useState<{
+    mentorType: string;
+    mentorName: string;
+    suggestionMessage: string;
+  } | null>(null);
+  
   const [userProfile, setUserProfile] = useState<any>(null);
 
-  // Load user profile to check if first win already completed
+  // Load user profile
   useEffect(() => {
     const loadProfile = async () => {
       const { data: { user } } = await supabase.auth.getUser();
@@ -107,14 +102,11 @@ const CouncilMeeting = () => {
       
       const { data: profile } = await supabase
         .from("profiles")
-        .select("first_win_path, creation_gate_passed_at, first_win_completed_at")
+        .select("*")
         .eq("id", user.id)
         .single();
       
       setUserProfile(profile);
-      if (profile?.first_win_path) {
-        setSelectedPath(profile.first_win_path);
-      }
     };
     loadProfile();
   }, []);
@@ -183,9 +175,22 @@ const CouncilMeeting = () => {
     checkFirstTimeUser();
   }, []);
 
+  // PDR v2.1: After intro completes, show grounding question
   const handleIntroductionComplete = () => {
     setShowIntroductionModal(false);
-    toast.success("Welcome to the Council. Your guidance journey begins now.");
+    setShowGroundingQuestion(true);
+    toast.success("Welcome to the Council.");
+  };
+
+  // PDR v2.1: Submit grounding question answer as Q1
+  const handleGroundingSubmit = async () => {
+    if (!groundingAnswer.trim()) return;
+    
+    setShowGroundingQuestion(false);
+    setQuestion(groundingAnswer);
+    
+    // The grounding answer IS Q1 - submit it directly
+    await handleAsk(false, groundingAnswer);
   };
   
   // New state for 3-question journey
@@ -294,33 +299,13 @@ const CouncilMeeting = () => {
           setValueMapDetection(data.valueMapDetection);
         }
 
+        // PDR v2.1: Handle mentor suggestion for 1-to-1
+        if (data.suggestedMentorFor1to1) {
+          setSuggestedMentor(data.suggestedMentorFor1to1);
+        }
+
         toast.success(data.questionNumber >= 3 ? "✨ Q3: Momentum phase!" : "Council has responded!");
         refetch();
-        
-        // Check for breakthrough in first session
-        if (isFirstSession) {
-          const allMessages = [
-            ...currentHistory,
-            { role: 'user', content: actualQuestion },
-            { role: 'assistant', content: data.councilInsight || '' }
-          ];
-          
-          const breakthrough = await checkForBreakthrough(
-            allMessages.map(m => ({ role: m.role, content: m.content || '' })),
-            'council',
-            true, // force check for first session
-            'council'
-          );
-          
-          if (breakthrough) {
-            setDetectedBreakthrough({
-              title: breakthrough.breakthrough_title,
-              description: breakthrough.breakthrough_description,
-              next_step: breakthrough.actionable_next_step || undefined,
-            });
-            setShowNamingMoment(true);
-          }
-        }
       }
     } catch (error: any) {
       toast.error(error.message);
@@ -348,6 +333,7 @@ const CouncilMeeting = () => {
     setTasksGenerated(false);
     setMainGoalAccepted(false);
     setGoalData(null);
+    setSuggestedMentor(null);
   };
 
   const continueAsking = () => {
@@ -361,98 +347,22 @@ const CouncilMeeting = () => {
     setTasksGenerated(false);
     setMainGoalAccepted(false);
     setGoalData(null);
+    setSuggestedMentor(null);
     // Keep conversation history and question number
   };
 
-  // First Win handlers
-  const handleAcceptFirstWin = async (name: string) => {
-    setAcceptedConceptName(name);
-    setShowNamingMoment(false);
+  // PDR v2.1: Navigate to 1-to-1 mentor chat
+  const handleMentorSuggestionAccept = () => {
+    if (!suggestedMentor) return;
     
-    // Mark first win as completed
-    await completeFirstWin();
+    // Build context from conversation
+    const context = encodeURIComponent(
+      conversationHistory.map(h => 
+        h.role === 'user' ? h.content : (h.content?.councilInsight || '')
+      ).join(' | ').substring(0, 500)
+    );
     
-    // Trigger micro win
-    triggerMicroWin('naming');
-    
-    // Show celebration
-    setShowFirstWinCelebration(true);
-  };
-
-  const handleKeepExploring = () => {
-    setShowNamingMoment(false);
-    setDetectedBreakthrough(null);
-    // User continues the conversation
-  };
-
-  const handleCelebrationContinue = () => {
-    setShowFirstWinCelebration(false);
-    // Continue with the council session
-  };
-
-  // First Win Path handlers (Action Engine)
-  const handlePathSelected = async (path: string) => {
-    try {
-      const { data: { user } } = await supabase.auth.getUser();
-      if (!user) throw new Error("Not authenticated");
-      
-      // Save path to profile
-      await supabase
-        .from("profiles")
-        .update({ first_win_path: path })
-        .eq("id", user.id);
-      
-      setSelectedPath(path);
-      setShowPathSelector(false);
-      setShowCreationGate(true);
-      toast.success("Path selected! Now take your first action.");
-    } catch (error) {
-      console.error("Error saving path:", error);
-      toast.error("Failed to save path. Please try again.");
-    }
-  };
-
-  const handleCreationGateComplete = async () => {
-    setShowCreationGate(false);
-    
-    // Mark first win as completed
-    await completeFirstWin();
-    
-    // Trigger micro win
-    triggerMicroWin('naming');
-    
-    // Show celebration
-    setAcceptedConceptName("Your First External Action");
-    setShowFirstWinCelebration(true);
-    
-    // Reload profile to get updated state
-    const { data: { user } } = await supabase.auth.getUser();
-    if (user) {
-      const { data: profile } = await supabase
-        .from("profiles")
-        .select("first_win_path, creation_gate_passed_at, first_win_completed_at")
-        .eq("id", user.id)
-        .single();
-      setUserProfile(profile);
-    }
-  };
-
-  const handleReadyForAction = async () => {
-    // Check if user has already passed the creation gate
-    if (userProfile?.creation_gate_passed_at) {
-      // User already completed first win, proceed directly to goals
-      await generateGoals();
-      return;
-    }
-    
-    // Check if user has a path but hasn't passed the gate yet
-    if (selectedPath && !userProfile?.creation_gate_passed_at) {
-      setShowCreationGate(true);
-      return;
-    }
-    
-    // Show path selector first
-    setShowPathSelector(true);
+    navigate(`/chat/${suggestedMentor.mentorType}?fromCouncil=true&context=${context}`);
   };
 
   const generateGoals = async () => {
@@ -494,10 +404,10 @@ const CouncilMeeting = () => {
     
     const answer = currentAnswer.trim();
     setAnswerDialogOpen(false);
-    setQuestion(answer);  // Still set state for UI consistency
+    setQuestion(answer);
     setCurrentAnswer("");
     
-    // Pass the answer directly - don't rely on state update
+    // Pass the answer directly
     handleAsk(true, answer);
   };
 
@@ -535,43 +445,60 @@ const CouncilMeeting = () => {
           )}
         </div>
 
-        {/* First Win Celebration */}
-        {showFirstWinCelebration && (
-          <FirstWinCelebration
-            conceptName={acceptedConceptName}
-            onContinue={handleCelebrationContinue}
-          />
+        {/* PDR v2.1: Grounding Question (shown after intro modal closes) */}
+        {showGroundingQuestion && (
+          <motion.div
+            initial={{ opacity: 0, y: 20 }}
+            animate={{ opacity: 1, y: 0 }}
+          >
+            <Card className="border-2 border-accent/40 bg-gradient-to-br from-accent/10 via-primary/5 to-background">
+              <CardHeader>
+                <div className="flex items-center gap-3">
+                  <div className="w-12 h-12 rounded-full bg-gradient-to-br from-accent to-primary flex items-center justify-center">
+                    <Sparkles className="w-6 h-6 text-white" />
+                  </div>
+                  <div>
+                    <CardTitle className="text-xl">The Council asks...</CardTitle>
+                  </div>
+                </div>
+              </CardHeader>
+              <CardContent className="space-y-4">
+                <p className="text-lg text-foreground font-medium">
+                  "What's on your mind right now, or what do you feel drawn to work toward?"
+                </p>
+                <Textarea
+                  placeholder="Share what's alive for you..."
+                  value={groundingAnswer}
+                  onChange={(e) => setGroundingAnswer(e.target.value)}
+                  rows={4}
+                  className="resize-none"
+                />
+                <Button
+                  onClick={handleGroundingSubmit}
+                  disabled={!groundingAnswer.trim() || loading}
+                  className="w-full"
+                  size="lg"
+                >
+                  {loading ? "Consulting the Council..." : "Share with the Council"}
+                </Button>
+              </CardContent>
+            </Card>
+          </motion.div>
         )}
 
-        {/* First Win Naming Moment */}
-        {showNamingMoment && detectedBreakthrough && !showFirstWinCelebration && (
-          <FirstWinNamingCard
-            proposedName={detectedBreakthrough.title}
-            description={detectedBreakthrough.description}
-            onAccept={handleAcceptFirstWin}
-            onKeepExploring={handleKeepExploring}
-          />
-        )}
-
-        {/* First Win Path Selector (Action Engine) */}
-        {showPathSelector && !userProfile?.creation_gate_passed_at && (
-          <FirstWinPathSelector
-            onSelectPath={handlePathSelected}
-            onCancel={() => setShowPathSelector(false)}
-          />
-        )}
-
-        {/* Creation Gate (Action Engine) */}
-        {showCreationGate && selectedPath && !userProfile?.creation_gate_passed_at && (
-          <CreationGate
-            path={selectedPath as 'create_share' | 'test_idea' | 'offer_something'}
-            onComplete={handleCreationGateComplete}
-            onCancel={() => setShowCreationGate(false)}
+        {/* PDR v2.1: Mentor Suggestion Card (after Q2/Q3) */}
+        {suggestedMentor && stage === 'complete' && (
+          <MentorSuggestionCard
+            mentorType={suggestedMentor.mentorType}
+            mentorName={suggestedMentor.mentorName}
+            suggestionMessage={suggestedMentor.suggestionMessage}
+            onAccept={handleMentorSuggestionAccept}
+            onDismiss={() => setSuggestedMentor(null)}
           />
         )}
 
         {/* Council Opener - Personalized Greeting */}
-        {(councilOpener || openerLoading) && stage === 'input' && !hasActiveThread && (
+        {(councilOpener || openerLoading) && stage === 'input' && !hasActiveThread && !showGroundingQuestion && (
           <motion.div
             initial={{ opacity: 0, y: -10 }}
             animate={{ opacity: 1, y: 0 }}
@@ -600,7 +527,7 @@ const CouncilMeeting = () => {
         )}
 
         {/* Active Thread Indicator */}
-        {hasActiveThread && stage === 'input' && (
+        {hasActiveThread && stage === 'input' && !showGroundingQuestion && (
           <motion.div
             initial={{ opacity: 0, y: -10 }}
             animate={{ opacity: 1, y: 0 }}
@@ -627,64 +554,66 @@ const CouncilMeeting = () => {
           </motion.div>
         )}
 
-        {/* Question Input */}
-        <Card>
-          <CardHeader>
-            <CardTitle>Ask the Council</CardTitle>
-          </CardHeader>
-          <CardContent className="space-y-4">
-            <Textarea
-              placeholder={hasActiveThread 
-                ? "Continue exploring this topic..." 
-                : "What question would you like to ask your council?"}
-              value={question}
-              onChange={(e) => setQuestion(e.target.value)}
-              rows={4}
-              disabled={loading || stage === 'complete' || stage === 'seeking_clarity'}
-            />
-            
-            {/* Thread Action Buttons */}
-            <div className="flex flex-col sm:flex-row gap-3">
-              {hasActiveThread ? (
-                <>
+        {/* Question Input - hidden during grounding question phase */}
+        {!showGroundingQuestion && (
+          <Card>
+            <CardHeader>
+              <CardTitle>Ask the Council</CardTitle>
+            </CardHeader>
+            <CardContent className="space-y-4">
+              <Textarea
+                placeholder={hasActiveThread 
+                  ? "Continue exploring this topic..." 
+                  : "What question would you like to ask your council?"}
+                value={question}
+                onChange={(e) => setQuestion(e.target.value)}
+                rows={4}
+                disabled={loading || stage === 'complete' || stage === 'seeking_clarity'}
+              />
+              
+              {/* Thread Action Buttons */}
+              <div className="flex flex-col sm:flex-row gap-3">
+                {hasActiveThread ? (
+                  <>
+                    <Button
+                      onClick={() => handleAsk(true)}
+                      disabled={loading || !question.trim() || stage === 'complete' || stage === 'seeking_clarity'}
+                      className="flex-1"
+                      size="lg"
+                    >
+                      <GitBranch className="w-4 h-4 mr-2" />
+                      {loading ? "Consulting..." : "Continue This Thread"}
+                    </Button>
+                    <Button
+                      onClick={() => {
+                        resetConversation();
+                        if (question.trim()) {
+                          setTimeout(() => handleAsk(false), 100);
+                        }
+                      }}
+                      disabled={loading || !question.trim() || stage === 'complete' || stage === 'seeking_clarity'}
+                      variant="outline"
+                      className="flex-1"
+                      size="lg"
+                    >
+                      <RefreshCw className="w-4 h-4 mr-2" />
+                      Start New Topic
+                    </Button>
+                  </>
+                ) : (
                   <Button
-                    onClick={() => handleAsk(true)}
+                    onClick={() => handleAsk(false)}
                     disabled={loading || !question.trim() || stage === 'complete' || stage === 'seeking_clarity'}
-                    className="flex-1"
+                    className="w-full"
                     size="lg"
                   >
-                    <GitBranch className="w-4 h-4 mr-2" />
-                    {loading ? "Consulting..." : "Continue This Thread"}
+                    {loading ? "Consulting the council..." : "Ask the Council"}
                   </Button>
-                  <Button
-                    onClick={() => {
-                      resetConversation();
-                      if (question.trim()) {
-                        setTimeout(() => handleAsk(false), 100);
-                      }
-                    }}
-                    disabled={loading || !question.trim() || stage === 'complete' || stage === 'seeking_clarity'}
-                    variant="outline"
-                    className="flex-1"
-                    size="lg"
-                  >
-                    <RefreshCw className="w-4 h-4 mr-2" />
-                    Start New Topic
-                  </Button>
-                </>
-              ) : (
-                <Button
-                  onClick={() => handleAsk(false)}
-                  disabled={loading || !question.trim() || stage === 'complete' || stage === 'seeking_clarity'}
-                  className="w-full"
-                  size="lg"
-                >
-                  {loading ? "Consulting the council..." : "Ask the Council"}
-                </Button>
-              )}
-            </div>
-          </CardContent>
-        </Card>
+                )}
+              </div>
+            </CardContent>
+          </Card>
+        )}
 
         {/* Q2 ONLY: Council Seeking Clarity */}
         {stage === 'seeking_clarity' && clarityQuestion && (
@@ -854,7 +783,6 @@ const CouncilMeeting = () => {
                     {banterLines.map((line, idx) => {
                       const isEven = idx % 2 === 0;
                       
-                      // Add contextual emoji based on mentor and text
                       const getEmoji = () => {
                         const textLower = line.text.toLowerCase();
                         if (textLower.includes('build') || textLower.includes('create')) return '🚀';
@@ -1014,7 +942,7 @@ const CouncilMeeting = () => {
                     </div>
                     <div className="pt-2 border-t border-border/50">
                       <Button 
-                        onClick={handleReadyForAction}
+                        onClick={generateGoals}
                         disabled={loading}
                         className="w-full"
                         size="lg"
@@ -1085,18 +1013,16 @@ const CouncilMeeting = () => {
                     onClick={async () => {
                       setCreatingProject(true);
                       try {
-                        // Create a project in the Creation Lab with the goal
                         const project = await createProject(
-                          null, // breakthroughId (optional)
+                          null,
                           goalData.mainGoal.title,
                           `${goalData.userDirection}\n\nDaily: ${goalData.mainGoal.daily}\nWeekly: ${goalData.mainGoal.weekly}\nMonthly: ${goalData.mainGoal.monthly}`,
-                          21 // Default 21 days timeframe
+                          21
                         );
                         
                         if (project) {
                           setMainGoalAccepted(true);
                           toast.success("Goal accepted! Your project is now in Creation Lab.");
-                          // Navigate to Creation Lab with focus mode
                           navigate('/creation-lab?mode=focus');
                         } else {
                           toast.error("Failed to create project. Please try again.");
@@ -1203,7 +1129,6 @@ const CouncilMeeting = () => {
                 const { data: { user } } = await supabase.auth.getUser();
                 if (!user) throw new Error("Not authenticated");
 
-                // Upsert the value map block
                 await supabase.from("value_map_blocks").upsert({
                   user_id: user.id,
                   block_key: blockKey,
@@ -1213,7 +1138,6 @@ const CouncilMeeting = () => {
                   unlock_source: "council_meeting",
                 }, { onConflict: "user_id,block_key" });
 
-                // Trigger Future Self celebration
                 await supabase.from("future_self_messages").insert({
                   user_id: user.id,
                   message: `You just unlocked "${valueMapDetection.blockTitle}" in your Value Map. This clarity is building something real.`,
