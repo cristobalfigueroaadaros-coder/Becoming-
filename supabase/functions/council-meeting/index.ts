@@ -5,6 +5,41 @@ const corsHeaders = {
   "Access-Control-Allow-Headers": "authorization, x-client-info, apikey, content-type",
 };
 
+// === REFLECTION LOOP DETECTION (Action Engine) ===
+const REFLECTION_SIGNALS = ['feel', 'think', 'wonder', 'maybe', 'not sure', 'confused', 'uncertain', 'should i', 'what if', 'i dont know', 'i guess', 'possibly', 'perhaps'];
+const ACTION_SIGNALS = ['build', 'create', 'test', 'offer', 'share', 'launch', 'start', 'do', 'make', 'try', 'prototype', 'reach out', 'message', 'post', 'publish', 'sell', 'call', 'email', 'talk to'];
+
+// Count reflection signals in message
+function countReflectionSignals(message: string): { reflectionCount: number; actionCount: number } {
+  const lowerMessage = message.toLowerCase();
+  const reflectionCount = REFLECTION_SIGNALS.filter(signal => lowerMessage.includes(signal)).length;
+  const actionCount = ACTION_SIGNALS.filter(signal => lowerMessage.includes(signal)).length;
+  return { reflectionCount, actionCount };
+}
+
+// Check if conversation is stuck in reflection loop
+function detectReflectionLoop(conversationHistory: any[]): boolean {
+  // Get last 3 user messages
+  const userMessages = conversationHistory.filter((msg: any) => msg.role === 'user').slice(-3);
+  if (userMessages.length < 3) return false;
+  
+  let consecutiveReflective = 0;
+  for (const msg of userMessages) {
+    const { reflectionCount, actionCount } = countReflectionSignals(msg.content || '');
+    // If more reflection signals than action signals, count as reflective
+    if (reflectionCount > 0 && actionCount === 0) {
+      consecutiveReflective++;
+    } else {
+      consecutiveReflective = 0; // Reset if action-oriented
+    }
+  }
+  
+  return consecutiveReflective >= 3;
+}
+
+// MANDATORY MENTORS - Always include these
+const MANDATORY_MENTORS = ['creative_visionary', 'strategist_mentor'];
+
 // Global keyword highlighting rules - add to all AI prompts
 const KEYWORD_HIGHLIGHTING_RULES = `
 === KEYWORD HIGHLIGHTING RULES (ALWAYS APPLY) ===
@@ -352,6 +387,18 @@ Just the message, no labels or quotes.`;
     
     console.log(`Council Meeting - Q${questionNumber}: ${question.substring(0, 50)}...`);
 
+    // === DETECT REFLECTION LOOP (Action Engine) ===
+    const isStuckInReflection = detectReflectionLoop(conversationHistory);
+    let strategistInterruption = "";
+    
+    if (isStuckInReflection) {
+      console.log("REFLECTION LOOP DETECTED - Strategist will interrupt");
+      strategistInterruption = `
+IMPORTANT CONTEXT: The user has been in a reflective loop for 3+ consecutive messages without mentioning action.
+You MUST inject a direct, action-focused interruption. Ask: "What are you going to BUILD or TEST this week?"
+Be direct but caring. Acknowledge their reflection, then push toward creation.`;
+    }
+
     // === EXTRACT HIDDEN KEYWORDS (Invisible to user) ===
     const lowerQuestion = question.toLowerCase();
     const extractedTags: string[] = [];
@@ -480,12 +527,26 @@ Just the insight, no labels.`;
     }
 
     // === GENERATE MENTOR MICRO-PERSPECTIVES ===
-    // Smart selection: use all if 6 or fewer, otherwise prioritize based on relevance
-    const selectedMentors = mentorTypes.length <= 6 
-      ? mentorTypes 
-      : selectRelevantMentors(mentorTypes, extractedTags);
+    // Ensure mandatory mentors (Creative Visionary + Strategist) are always included
+    let allMentors = [...mentorTypes];
+    for (const mandatoryMentor of MANDATORY_MENTORS) {
+      if (!allMentors.includes(mandatoryMentor)) {
+        allMentors.push(mandatoryMentor);
+      }
+    }
     
-    console.log(`Selected ${selectedMentors.length} mentors from ${mentorTypes.length} total:`, selectedMentors);
+    // Smart selection: use all if 6 or fewer, otherwise prioritize based on relevance
+    // But ALWAYS keep mandatory mentors
+    let selectedMentors: string[];
+    if (allMentors.length <= 6) {
+      selectedMentors = allMentors;
+    } else {
+      const relevantMentors = selectRelevantMentors(allMentors, extractedTags);
+      // Ensure mandatory mentors are included
+      selectedMentors = [...new Set([...MANDATORY_MENTORS, ...relevantMentors])].slice(0, 6);
+    }
+    
+    console.log(`Selected ${selectedMentors.length} mentors (mandatory: ${MANDATORY_MENTORS.join(', ')}):`, selectedMentors);
     
     const mentorPerspectives: Record<string, string> = {};
 
@@ -663,6 +724,35 @@ User overwhelmed by options:
 Question: "${question}"
 
 Detect the context, then respond with 1-2 sentences in simple, energetic language that explodes possibilities and grounds them with action.`;
+
+      } else if (mentorType === "strategist_mentor") {
+        // Special handling for Strategist - includes reflection loop interruption
+        const conversationContext = formatConversationHistory(conversationHistory);
+        
+        systemPrompt = `You are The Strategist Mentor — calm, analytical, structured. You bring clarity to chaos.
+
+PERSONALITY: ${mentorConfig.personality}
+ROLE: ${mentorConfig.role}
+${conversationContext}
+
+CURRENT Question: "${question}"
+Question phase: ${isQ1 ? 'Q1 Discovery' : isQ2 ? 'Q2 Depth' : 'Q3 Momentum'}
+${strategistInterruption}
+
+**CRITICAL ACTION BIAS:**
+- You ALWAYS push toward concrete action
+- Every response must include or imply: "What are you building?" or "What will you test?"
+- If user is stuck in reflection, interrupt with: "Let me be direct: What are you going to BUILD or TEST this week?"
+- Avoid open-ended philosophical exploration
+- Close loops with decisions and next steps
+
+Generate 1-2 sentences ONLY:
+${isQ1 ? '- Light but directional. "What are you creating?"' : ''}
+${isQ2 ? '- Deeper but action-focused. "Here\'s the roadmap..."' : ''}
+${isQ3 ? '- Full momentum. "Let\'s execute. First step:"' : ''}
+
+Strong, clear, no fluff. Just direction and next steps.
+${KEYWORD_HIGHLIGHTING_RULES}`;
 
       } else {
         // Standard prompt for other mentors
@@ -1492,6 +1582,7 @@ Format: Each message on its own line, no numbering.`;
         privateMessages, // WhatsApp-style notifications
         extractedTags, // For debugging, remove in production
         valueMapDetection, // Purpose-to-Value Map auto-detection
+        isStuckInReflection, // Action Engine: reflection loop detected
       }),
       { headers: { ...corsHeaders, "Content-Type": "application/json" } }
     );
