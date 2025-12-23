@@ -20,6 +20,8 @@ import { InsightActionButton } from "@/components/InsightActionButton";
 import { ValueMapUnlockCelebration } from "@/components/ValueMapUnlockCelebration";
 import { FirstWinNamingCard } from "@/components/FirstWinNamingCard";
 import { FirstWinCelebration } from "@/components/FirstWinCelebration";
+import { FirstWinPathSelector } from "@/components/FirstWinPathSelector";
+import { CreationGate } from "@/components/CreationGate";
 interface ValueMapDetection {
   blockKey: string;
   blockTitle: string;
@@ -90,6 +92,32 @@ const CouncilMeeting = () => {
   const [showNamingMoment, setShowNamingMoment] = useState(false);
   const [showFirstWinCelebration, setShowFirstWinCelebration] = useState(false);
   const [acceptedConceptName, setAcceptedConceptName] = useState("");
+  
+  // First Win Path states (Action Engine)
+  const [showPathSelector, setShowPathSelector] = useState(false);
+  const [selectedPath, setSelectedPath] = useState<string | null>(null);
+  const [showCreationGate, setShowCreationGate] = useState(false);
+  const [userProfile, setUserProfile] = useState<any>(null);
+
+  // Load user profile to check if first win already completed
+  useEffect(() => {
+    const loadProfile = async () => {
+      const { data: { user } } = await supabase.auth.getUser();
+      if (!user) return;
+      
+      const { data: profile } = await supabase
+        .from("profiles")
+        .select("first_win_path, creation_gate_passed_at, first_win_completed_at")
+        .eq("id", user.id)
+        .single();
+      
+      setUserProfile(profile);
+      if (profile?.first_win_path) {
+        setSelectedPath(profile.first_win_path);
+      }
+    };
+    loadProfile();
+  }, []);
 
   // Handle incoming notification context
   useEffect(() => {
@@ -362,7 +390,72 @@ const CouncilMeeting = () => {
     // Continue with the council session
   };
 
+  // First Win Path handlers (Action Engine)
+  const handlePathSelected = async (path: string) => {
+    try {
+      const { data: { user } } = await supabase.auth.getUser();
+      if (!user) throw new Error("Not authenticated");
+      
+      // Save path to profile
+      await supabase
+        .from("profiles")
+        .update({ first_win_path: path })
+        .eq("id", user.id);
+      
+      setSelectedPath(path);
+      setShowPathSelector(false);
+      setShowCreationGate(true);
+      toast.success("Path selected! Now take your first action.");
+    } catch (error) {
+      console.error("Error saving path:", error);
+      toast.error("Failed to save path. Please try again.");
+    }
+  };
+
+  const handleCreationGateComplete = async () => {
+    setShowCreationGate(false);
+    
+    // Mark first win as completed
+    await completeFirstWin();
+    
+    // Trigger micro win
+    triggerMicroWin('naming');
+    
+    // Show celebration
+    setAcceptedConceptName("Your First External Action");
+    setShowFirstWinCelebration(true);
+    
+    // Reload profile to get updated state
+    const { data: { user } } = await supabase.auth.getUser();
+    if (user) {
+      const { data: profile } = await supabase
+        .from("profiles")
+        .select("first_win_path, creation_gate_passed_at, first_win_completed_at")
+        .eq("id", user.id)
+        .single();
+      setUserProfile(profile);
+    }
+  };
+
   const handleReadyForAction = async () => {
+    // Check if user has already passed the creation gate
+    if (userProfile?.creation_gate_passed_at) {
+      // User already completed first win, proceed directly to goals
+      await generateGoals();
+      return;
+    }
+    
+    // Check if user has a path but hasn't passed the gate yet
+    if (selectedPath && !userProfile?.creation_gate_passed_at) {
+      setShowCreationGate(true);
+      return;
+    }
+    
+    // Show path selector first
+    setShowPathSelector(true);
+  };
+
+  const generateGoals = async () => {
     if (tasksGenerated) return;
     
     setLoading(true);
@@ -457,6 +550,23 @@ const CouncilMeeting = () => {
             description={detectedBreakthrough.description}
             onAccept={handleAcceptFirstWin}
             onKeepExploring={handleKeepExploring}
+          />
+        )}
+
+        {/* First Win Path Selector (Action Engine) */}
+        {showPathSelector && !userProfile?.creation_gate_passed_at && (
+          <FirstWinPathSelector
+            onSelectPath={handlePathSelected}
+            onCancel={() => setShowPathSelector(false)}
+          />
+        )}
+
+        {/* Creation Gate (Action Engine) */}
+        {showCreationGate && selectedPath && !userProfile?.creation_gate_passed_at && (
+          <CreationGate
+            path={selectedPath as 'create_share' | 'test_idea' | 'offer_something'}
+            onComplete={handleCreationGateComplete}
+            onCancel={() => setShowCreationGate(false)}
           />
         )}
 
