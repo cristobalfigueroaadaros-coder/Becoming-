@@ -1,11 +1,16 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
 import { Button } from "@/components/ui/button";
 import { Card, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
+import { Badge } from "@/components/ui/badge";
 import { toast } from "sonner";
-import { Brain, Lightbulb, Zap, Trees, Heart, Sparkles, Target, TrendingUp, Megaphone, FlaskConical, Scale, Moon, Compass } from "lucide-react";
+import { Brain, Lightbulb, Zap, Trees, Heart, Sparkles, Target, TrendingUp, Megaphone, FlaskConical, Scale, Moon, Lock } from "lucide-react";
 import { cn } from "@/lib/utils";
+
+// Mandatory mentors - always selected and cannot be removed
+const MANDATORY_MENTORS = ["creative_visionary", "strategist_mentor"];
+const SUGGESTED_MENTOR = "business_mentor";
 
 const mentors = [
   // 🔥 Action & Discipline
@@ -24,6 +29,7 @@ const mentors = [
     icon: TrendingUp,
     color: "bg-mentor-quantum",
     category: "Action & Discipline",
+    mandatory: true,
   },
   {
     id: "business_mentor",
@@ -32,6 +38,7 @@ const mentors = [
     icon: Brain,
     color: "bg-primary",
     category: "Action & Discipline",
+    suggested: true,
   },
   // 💡 Creativity & Expression
   {
@@ -41,6 +48,7 @@ const mentors = [
     icon: Lightbulb,
     color: "bg-mentor-creative",
     category: "Creativity & Expression",
+    mandatory: true,
   },
   {
     id: "marketing_mentor",
@@ -112,10 +120,17 @@ const mentors = [
 
 const OnboardingStep4 = () => {
   const navigate = useNavigate();
-  const [selectedMentors, setSelectedMentors] = useState<string[]>([]);
+  // Start with mandatory mentors already selected
+  const [selectedMentors, setSelectedMentors] = useState<string[]>(MANDATORY_MENTORS);
   const [loading, setLoading] = useState(false);
 
   const toggleMentor = (mentorId: string) => {
+    // Don't allow deselecting mandatory mentors
+    if (MANDATORY_MENTORS.includes(mentorId)) {
+      toast.info("This mentor is required for your journey");
+      return;
+    }
+
     if (selectedMentors.includes(mentorId)) {
       setSelectedMentors(selectedMentors.filter((id) => id !== mentorId));
     } else {
@@ -124,11 +139,6 @@ const OnboardingStep4 = () => {
   };
 
   const handleContinue = async () => {
-    if (selectedMentors.length === 0) {
-      toast.error("Please select at least one mentor");
-      return;
-    }
-
     setLoading(true);
     try {
       const { data: { user } } = await supabase.auth.getUser();
@@ -161,7 +171,16 @@ const OnboardingStep4 = () => {
           <h1 className="text-4xl font-bold">Choose Your Mentor Council</h1>
           <p className="text-muted-foreground text-lg">Select the mentors who will guide your journey</p>
           <p className="text-sm text-accent font-medium">
-            {selectedMentors.length} selected
+            {selectedMentors.length} selected ({MANDATORY_MENTORS.length} required)
+          </p>
+        </div>
+
+        {/* Mandatory Mentors Notice */}
+        <div className="p-4 rounded-xl bg-primary/5 border border-primary/20 text-center">
+          <p className="text-sm text-foreground">
+            <Lock className="w-4 h-4 inline mr-2" />
+            <strong>Creative Visionary</strong> and <strong>Strategist Mentor</strong> are required for your journey.
+            They ensure you take action and create something real.
           </p>
         </div>
 
@@ -181,17 +200,35 @@ const OnboardingStep4 = () => {
                   {categoryMentors.map((mentor) => {
                     const Icon = mentor.icon;
                     const isSelected = selectedMentors.includes(mentor.id);
+                    const isMandatory = MANDATORY_MENTORS.includes(mentor.id);
+                    const isSuggested = mentor.id === SUGGESTED_MENTOR;
 
                     return (
                       <Card
                         key={mentor.id}
                         className={cn(
-                          "cursor-pointer transition-all hover:shadow-lg",
-                          isSelected && "ring-2 ring-primary shadow-xl"
+                          "cursor-pointer transition-all hover:shadow-lg relative",
+                          isSelected && "ring-2 ring-primary shadow-xl",
+                          isMandatory && "bg-primary/5 border-primary/30"
                         )}
                         onClick={() => toggleMentor(mentor.id)}
                       >
-                        <CardHeader>
+                        {/* Badges */}
+                        <div className="absolute top-2 right-2 flex gap-1">
+                          {isMandatory && (
+                            <Badge variant="default" className="bg-primary text-primary-foreground text-xs">
+                              <Lock className="w-3 h-3 mr-1" />
+                              Required
+                            </Badge>
+                          )}
+                          {isSuggested && !isMandatory && (
+                            <Badge variant="secondary" className="text-xs">
+                              ⭐ Recommended
+                            </Badge>
+                          )}
+                        </div>
+
+                        <CardHeader className="pt-8">
                           <div
                             className={cn(
                               "w-12 h-12 rounded-xl flex items-center justify-center mb-4",
@@ -216,7 +253,7 @@ const OnboardingStep4 = () => {
           <Button
             size="lg"
             onClick={handleContinue}
-            disabled={loading || selectedMentors.length === 0}
+            disabled={loading}
             className="px-12"
           >
             {loading ? "Assembling Council..." : "Enter Dashboard →"}
