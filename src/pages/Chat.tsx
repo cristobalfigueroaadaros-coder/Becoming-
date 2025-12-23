@@ -41,6 +41,13 @@ interface SuggestedHandoff {
   reason: string;
 }
 
+interface ProjectCoherence {
+  isCoherent: boolean;
+  projectName: string;
+  projectDescription: string;
+  confidence: number;
+}
+
 interface Whisper {
   id: string;
   mentor_type: string;
@@ -69,6 +76,9 @@ const Chat = () => {
   const { mentorType } = useParams<{ mentorType: string }>();
   const navigate = useNavigate();
   const location = useLocation();
+  const searchParams = new URLSearchParams(location.search);
+  const fromCouncil = searchParams.get('fromCouncil') === 'true';
+  
   const [messages, setMessages] = useState<any[]>([]);
   const [whispers, setWhispers] = useState<Whisper[]>([]);
   const [input, setInput] = useState("");
@@ -83,6 +93,8 @@ const Chat = () => {
   const [showFirstWinNaming, setShowFirstWinNaming] = useState(false);
   const [showFirstWinCelebration, setShowFirstWinCelebration] = useState(false);
   const [firstWinConceptName, setFirstWinConceptName] = useState("");
+  const [projectCoherence, setProjectCoherence] = useState<ProjectCoherence | null>(null);
+  const [showCommitmentCard, setShowCommitmentCard] = useState(false);
   const messagesEndRef = useRef<HTMLDivElement>(null);
   
   // Micro wins for post-first-win celebrations
@@ -319,11 +331,18 @@ const Chat = () => {
       // Handle suggested handoff
       if (data.suggestedHandoff?.shouldSuggest) setSuggestedHandoff(data.suggestedHandoff);
 
+      // PDR v2.1: Handle project coherence detection (Commitment Card trigger)
+      if (data.projectCoherence?.isCoherent) {
+        setProjectCoherence(data.projectCoherence);
+        setShowCommitmentCard(true);
+      }
+
       const newExchangeCount = exchangeCount + 1;
       setExchangeCount(newExchangeCount);
       
       // Check for breakthrough with proper timing (adaptive detection)
-      if (mentorType && isFirstSession && newExchangeCount >= 6) {
+      // Skip if we already detected coherence (PDR v2.1 takes precedence)
+      if (mentorType && isFirstSession && newExchangeCount >= 6 && !data.projectCoherence?.isCoherent) {
         const allMessages = [...messages, { role: "user", content: userMessage }, { role: "assistant", content: data.response }];
         const breakthrough = await checkForBreakthrough(
           allMessages.map(m => ({ role: m.role, content: m.content })),
@@ -350,6 +369,21 @@ const Chat = () => {
     await completeFirstWin();
     triggerMicroWin('naming');
     setShowFirstWinCelebration(true);
+  };
+
+  // PDR v2.1: Handle Commitment Card acceptance (First Win moment)
+  const handleCommitmentAccept = async (projectName: string) => {
+    setShowCommitmentCard(false);
+    await completeFirstWin();
+    triggerMicroWin('naming');
+    
+    // Navigate to Creation Lab with project info
+    navigate('/creation-lab', {
+      state: {
+        projectName,
+        projectDescription: projectCoherence?.projectDescription || ''
+      }
+    });
   };
 
   const handleStartLearningModule = async () => {
@@ -381,7 +415,9 @@ const Chat = () => {
           </Button>
           <div className="flex-1">
             <h1 className="text-xl font-bold">{mentorNames[mentorType || ""]}</h1>
-            <p className="text-sm text-muted-foreground">Your personal mentor</p>
+            <p className="text-sm text-muted-foreground">
+              {fromCouncil ? "Shaping session" : "Your personal mentor"}
+            </p>
           </div>
           <div className="flex items-center gap-2">
             {availableHandoffs.length > 0 && messages.length >= 2 && (
@@ -443,8 +479,21 @@ const Chat = () => {
             />
           )}
 
-          {/* First Win Naming Card */}
-          {showFirstWinNaming && latestBreakthrough && (
+          {/* PDR v2.1: Commitment Card (appears on coherence detection) */}
+          {showCommitmentCard && projectCoherence && (
+            <FirstWinNamingCard
+              proposedName={projectCoherence.projectName}
+              description={projectCoherence.projectDescription}
+              onAccept={handleCommitmentAccept}
+              onKeepExploring={() => {
+                setShowCommitmentCard(false);
+                setProjectCoherence(null);
+              }}
+            />
+          )}
+
+          {/* First Win Naming Card (legacy - for breakthrough detection) */}
+          {showFirstWinNaming && latestBreakthrough && !showCommitmentCard && (
             <FirstWinNamingCard
               proposedName={latestBreakthrough.breakthrough_title}
               description={latestBreakthrough.breakthrough_description}

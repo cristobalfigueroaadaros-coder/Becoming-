@@ -705,12 +705,88 @@ IMPORTANT: Continue this conversation naturally. You reached out to the user abo
       console.error("Value Map detection failed (non-fatal):", error);
     }
 
+    // === PDR v2.1: COHERENCE DETECTION FOR COMMITMENT CARD ===
+    let projectCoherence = null;
+    
+    // Only detect coherence when coming from council (shaping session) and after 2+ exchanges
+    if (conversationDepth >= 2 && message !== "__HANDOFF_INIT__" && chatHistory && chatHistory.length > 0) {
+      const recentHistory = chatHistory.slice(-6).map((m: any) => `${m.role.toUpperCase()}: ${m.content}`).join('\n');
+      const coherencePrompt = `Analyze this mentor conversation for PROJECT COHERENCE.
+
+CONVERSATION:
+${recentHistory}
+
+LATEST USER MESSAGE: "${message}"
+MENTOR RESPONSE: "${response}"
+
+COHERENCE INDICATORS:
+1. User language is becoming MORE SPECIFIC (not scattered)
+2. User is COMMITTING to a direction (not exploring multiple paths)
+3. User is using STABLE VOCABULARY (repeating same project/idea terms)
+4. User shows AGREEMENT with mentor guidance
+5. A clear PROJECT or CREATION is emerging
+
+DETERMINE:
+- Is there enough coherence to suggest commitment?
+- Can you infer a PROJECT NAME from what they're building/creating?
+- Can you summarize their INTENTION in one sentence?
+
+YOU MUST RESPOND WITH VALID JSON ONLY:
+{
+  "isCoherent": true/false,
+  "confidence": 0.0-1.0,
+  "projectName": "Inferred project name" or null,
+  "projectDescription": "One sentence intention statement" or null,
+  "coherenceSignals": ["list", "of", "signals", "detected"]
+}
+
+Only return isCoherent: true if confidence > 0.7 and you can extract a clear projectName.`;
+
+      try {
+        const coherenceResponse = await fetch("https://ai.gateway.lovable.dev/v1/chat/completions", {
+          method: "POST",
+          headers: {
+            "Authorization": `Bearer ${Deno.env.get("LOVABLE_API_KEY")}`,
+            "Content-Type": "application/json",
+          },
+          body: JSON.stringify({
+            model: "google/gemini-2.5-flash",
+            messages: [{ role: "user", content: coherencePrompt }],
+          }),
+        });
+
+        if (coherenceResponse.ok) {
+          const coherenceData = await coherenceResponse.json();
+          let coherenceText = coherenceData.choices[0].message.content;
+          coherenceText = coherenceText.replace(/```json\n?/g, '').replace(/```\n?/g, '').trim();
+          
+          try {
+            const coherence = JSON.parse(coherenceText);
+            if (coherence.isCoherent && coherence.confidence > 0.7 && coherence.projectName) {
+              projectCoherence = {
+                isCoherent: true,
+                projectName: coherence.projectName,
+                projectDescription: coherence.projectDescription,
+                confidence: coherence.confidence
+              };
+              console.log("PROJECT COHERENCE DETECTED:", projectCoherence.projectName);
+            }
+          } catch (parseError) {
+            console.error("Failed to parse coherence JSON:", parseError);
+          }
+        }
+      } catch (error) {
+        console.error("Coherence detection failed (non-fatal):", error);
+      }
+    }
+
     return new Response(
       JSON.stringify({ 
         response, 
         valueMapDetection,
         suggestedHandoff,
-        conversationDepth
+        conversationDepth,
+        projectCoherence // PDR v2.1: For Commitment Card
       }),
       { headers: { ...corsHeaders, "Content-Type": "application/json" } }
     );

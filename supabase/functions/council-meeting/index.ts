@@ -1199,6 +1199,79 @@ Just the question, nothing else.`;
       }
     }
 
+    // === Q2/Q3: SUGGEST 1-TO-1 MENTOR SHAPING (PDR v2.1) ===
+    let suggestedMentorFor1to1 = null;
+    
+    if (isQ2 || isQ3) {
+      // Analyze if user has clarity or needs more guidance
+      const mentorRoutingPrompt = `Analyze this conversation to determine the best 1-to-1 mentor for shaping.
+
+CONVERSATION:
+${conversationContext}
+
+CURRENT QUESTION: "${question}"
+
+COUNCIL INSIGHT: "${councilInsight}"
+
+MENTOR PERSPECTIVES:
+${Object.entries(mentorPerspectives).map(([m, p]) => `${mentorNames[m]}: ${p}`).join('\n')}
+
+ANALYZE:
+1. Does the user have CLARITY (specific direction, committed to an idea)?
+2. Or do they NEED GUIDANCE (scattered, uncertain, exploring)?
+
+RULES:
+- If CLARITY (they know what they want to build/do) → Suggest strategist_mentor or creative_visionary
+- If NEEDS GUIDANCE (still finding direction) → Suggest alignment_mentor
+- If STRONG CREATIVE ENERGY (lots of ideas, excitement) → Suggest creative_visionary
+- If NEEDS STRUCTURE (has idea but overwhelmed) → Suggest strategist_mentor
+
+YOU MUST RESPOND WITH VALID JSON ONLY:
+{
+  "hasClarity": true/false,
+  "suggestedMentor": "mentor_type",
+  "mentorName": "Display Name",
+  "suggestionMessage": "This feels like something worth shaping. Want to explore it with [Mentor Name]?"
+}
+
+Use these EXACT mentor keys: strategist_mentor, creative_visionary, alignment_mentor`;
+
+      try {
+        const routingResponse = await fetch("https://ai.gateway.lovable.dev/v1/chat/completions", {
+          method: "POST",
+          headers: {
+            "Authorization": `Bearer ${Deno.env.get("LOVABLE_API_KEY")}`,
+            "Content-Type": "application/json",
+          },
+          body: JSON.stringify({
+            model: "google/gemini-2.5-flash",
+            messages: [{ role: "user", content: mentorRoutingPrompt }],
+          }),
+        });
+
+        if (routingResponse.ok) {
+          const routingData = await routingResponse.json();
+          let routingText = routingData.choices[0].message.content;
+          routingText = routingText.replace(/```json\n?/g, '').replace(/```\n?/g, '').trim();
+          
+          try {
+            const routing = JSON.parse(routingText);
+            suggestedMentorFor1to1 = {
+              mentorType: routing.suggestedMentor,
+              mentorName: routing.mentorName,
+              suggestionMessage: routing.suggestionMessage,
+              hasClarity: routing.hasClarity
+            };
+            console.log("Suggested 1-to-1 mentor:", suggestedMentorFor1to1.mentorType);
+          } catch (parseError) {
+            console.error("Failed to parse mentor routing JSON:", parseError);
+          }
+        }
+      } catch (error) {
+        console.error("Mentor routing failed:", error);
+      }
+    }
+
     // === Q3 ONLY: COUNCIL GUIDANCE (Mentor Recommendation) ===
     let councilGuidance = null;
     let recommendedMentor = null;
@@ -1583,6 +1656,7 @@ Format: Each message on its own line, no numbering.`;
         extractedTags, // For debugging, remove in production
         valueMapDetection, // Purpose-to-Value Map auto-detection
         isStuckInReflection, // Action Engine: reflection loop detected
+        suggestedMentorFor1to1, // PDR v2.1: Suggest 1-to-1 mentor shaping after Q2/Q3
       }),
       { headers: { ...corsHeaders, "Content-Type": "application/json" } }
     );
