@@ -267,10 +267,17 @@ Provide both systemIntelligence (hidden) and userInsights (visible) in JSON form
 
     console.log("Numerology analysis complete");
 
+    // Include userInsights in the profile for storage
+    const profileWithInsights = {
+      ...profile,
+      userInsights: interpretation.userInsights,
+    };
+
     return new Response(
       JSON.stringify({
-        profile,
-        ...interpretation,
+        profile: profileWithInsights,
+        userInsights: interpretation.userInsights,
+        systemIntelligence: interpretation.systemIntelligence,
       }),
       { headers: { ...corsHeaders, "Content-Type": "application/json" } }
     );
