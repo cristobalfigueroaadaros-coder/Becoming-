@@ -419,6 +419,27 @@ Be direct but caring. Acknowledge their reflection, then push toward creation.`;
       .eq("user_id", user.id)
       .maybeSingle();
 
+    // === BUILD NUMEROLOGY SIGNALS CONTEXT (Hidden from user) ===
+    const numerologySignals = profile?.numerology_signals as any;
+    const numerologyContext = numerologySignals ? `
+=== PATTERN SIGNALS (Hidden Context - Use to personalize pacing and approach) ===
+Execution Rhythm: ${numerologySignals.executionRhythm || 'steady'}
+Pressure Tolerance: ${numerologySignals.pressureTolerance || 'medium'}
+Structure Preference: ${numerologySignals.structurePreference || 'balanced'}
+Preferred Mentor First: ${numerologySignals.preferredMentorFirst || 'strategist'}
+Anti-Overthinking Rule: ${numerologySignals.antiOverthinkingRule || 'Move within 48 hours'}
+Avoidance Pattern: ${numerologySignals.avoidancePattern || 'Not specified'}
+Ideal First Win: ${numerologySignals.idealFirstWinStyle || 'Quick visible result'}
+===
+Use these signals to adjust:
+- Response pacing (fast/steady/reflective rhythm)
+- Pressure level in challenges
+- Structure vs freedom in suggestions
+- Which mentor to suggest for 1-to-1 follow-up
+NEVER mention numerology or these signals to the user.
+=== END SIGNALS ===
+` : '';
+
     // === BUILD USER FOUNDATION CONTEXT ===
     const foundationSummary = profile?.user_foundation_summary || {};
     const userFoundationContext = profile?.user_foundation_story ? `
@@ -435,6 +456,9 @@ THEIR STORY (in their own words):
 
 CRITICAL: Reference specific details from their foundation story. Use their actual words when possible. Show that you KNOW them.
 ` : '';
+
+    // Combine foundation + numerology context
+    const fullUserContext = numerologyContext + userFoundationContext;
 
     // === Q2 ONLY: COUNCIL SEEKING CLARITY ===
     if (isQ2 && !lowerQuestion.includes("i'm ready") && !lowerQuestion.includes("what should i do")) {
@@ -486,7 +510,7 @@ Max 10 words.`;
     const conversationContext = formatConversationHistory(conversationHistory);
     
     const insightPrompt = `You are the Council delivering a unified insight.
-${userFoundationContext}
+${fullUserContext}
 ${conversationContext}
 
 CURRENT Question: "${question}"

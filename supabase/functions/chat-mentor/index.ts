@@ -554,6 +554,16 @@ THEIR FOUNDATION STORY (Reference this to personalize deeply):
 - Key themes: ${foundationSummary.key_themes?.join(', ') || 'Unknown'}
 ` : '';
 
+        // Add numerology signals for Future Self too
+        const numerologySignals = profile.numerology_signals as any;
+        const signalsContext = numerologySignals ? `
+
+=== PATTERN SIGNALS (Hidden - Use to personalize pacing) ===
+Execution Rhythm: ${numerologySignals.executionRhythm || 'steady'}
+Pressure Tolerance: ${numerologySignals.pressureTolerance || 'medium'}
+Anti-Overthinking Rule: ${numerologySignals.antiOverthinkingRule || 'Move within 48 hours'}
+=== END SIGNALS ===` : '';
+
         systemPrompt += `\n\nFuture Self Profile:
 Age: ${profile.future_age}
 Location: ${profile.future_location}
@@ -561,16 +571,32 @@ Lifestyle: ${profile.future_lifestyle}
 Mission: ${profile.main_mission}
 Emotional Tone: ${profile.emotional_tone}
 Main Strengths: ${profile.main_strengths?.join(", ") || "Not specified"}
-${foundationContext}
+${foundationContext}${signalsContext}
 Embody this future version when responding. Reference their foundation story naturally - you REMEMBER who they were.`;
       }
     } else {
-      // For non-Future Self mentors, still get foundation story
+      // For non-Future Self mentors, get foundation story AND numerology signals
       const { data: profile } = await supabaseClient
         .from("profiles")
-        .select("user_foundation_story, user_foundation_summary")
+        .select("user_foundation_story, user_foundation_summary, numerology_signals")
         .eq("id", user.id)
         .single();
+
+      // Add numerology signals context (hidden from user)
+      const numerologySignals = profile?.numerology_signals as any;
+      if (numerologySignals) {
+        systemPrompt += `
+
+=== PATTERN SIGNALS (Hidden - Use to personalize pacing and approach) ===
+Execution Rhythm: ${numerologySignals.executionRhythm || 'steady'}
+Pressure Tolerance: ${numerologySignals.pressureTolerance || 'medium'}
+Structure Preference: ${numerologySignals.structurePreference || 'balanced'}
+Anti-Overthinking Rule: ${numerologySignals.antiOverthinkingRule || 'Move within 48 hours'}
+Avoidance Pattern: ${numerologySignals.avoidancePattern || 'Not specified'}
+===
+Adjust your pacing and pressure based on these signals. Never mention numerology.
+=== END SIGNALS ===`;
+      }
 
       if (profile?.user_foundation_story) {
         const foundationSummary = profile.user_foundation_summary || {};

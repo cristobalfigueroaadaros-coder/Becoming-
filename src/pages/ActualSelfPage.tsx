@@ -2,7 +2,7 @@ import { useNavigate } from "react-router-dom";
 import { motion } from "framer-motion";
 import { useState, useEffect } from "react";
 import { Button } from "@/components/ui/button";
-import { ArrowLeft, Star } from "lucide-react";
+import { ArrowLeft, Star, RefreshCw } from "lucide-react";
 import FutureSelfBackground from "@/components/FutureSelfBackground";
 import { Card } from "@/components/ui/card";
 import { HumanDesignCard } from "@/components/human-design/HumanDesignCard";
@@ -10,49 +10,38 @@ import { BodygraphChart } from "@/components/human-design/BodygraphChart";
 import { supabase } from "@/integrations/supabase/client";
 import { generateMockHumanDesignData, generateHumanDesignDots } from "@/lib/humanDesignDots";
 import { toast } from "sonner";
-import { BirthDataCollector } from "@/components/BirthDataCollector";
 import { NumerologyInsights } from "@/components/NumerologyInsights";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 
-interface NumerologyData {
-  profile: {
-    lifePath: number;
-    expressionNumber: number;
-    soulUrge: number;
-    personalityNumber: number;
-    challengeNumber: number;
-    element: string;
-    archetype: string;
-  };
-  userInsights: {
-    coreTendency: string;
-    naturalStrengths: string[];
-    shadowPatterns: string;
-    growthEdge: string;
-    actionTranslation: string;
-    idealActionCadence: string;
-  };
-  systemIntelligence: {
-    executionRhythm: string;
-    avoidancePattern: string;
-    idealFirstWinStyle: string;
-    pressureTolerance: string;
-    structurePreference: string;
-    preferredMentorFirst: string;
-    antiOverthinkingRule: string;
-  };
+interface NumerologyProfile {
+  lifePath: number;
+  expressionNumber: number;
+  soulUrge: number;
+  personalityNumber: number;
+  challengeNumber: number;
+  element: string;
+  archetype: string;
+}
+
+interface NumerologyUserInsights {
+  coreTendency: string;
+  naturalStrengths: string[];
+  shadowPatterns: string;
+  growthEdge: string;
+  actionTranslation: string;
+  idealActionCadence: string;
 }
 
 const ActualSelfPage = () => {
   const navigate = useNavigate();
   const [humanDesignData, setHumanDesignData] = useState<any>(null);
-  const [numerologyData, setNumerologyData] = useState<NumerologyData | null>(null);
-  const [hasBirthData, setHasBirthData] = useState(false);
-  const [birthDate, setBirthDate] = useState<string | null>(null);
+  const [numerologyProfile, setNumerologyProfile] = useState<NumerologyProfile | null>(null);
+  const [numerologyInsights, setNumerologyInsights] = useState<NumerologyUserInsights | null>(null);
   const [birthName, setBirthName] = useState<string | null>(null);
+  const [birthDate, setBirthDate] = useState<string | null>(null);
   const [loading, setLoading] = useState(true);
   const [generatingDots, setGeneratingDots] = useState(false);
-  const [analyzingNumerology, setAnalyzingNumerology] = useState(false);
+  const [regenerating, setRegenerating] = useState(false);
   const [activeTab, setActiveTab] = useState("numerology");
 
   useEffect(() => {
@@ -66,28 +55,42 @@ const ActualSelfPage = () => {
 
       const { data: profile } = await supabase
         .from("profiles")
-        .select("birth_date, birth_time, birth_time_unknown, human_design_data, display_name")
+        .select("birth_date, birth_name, display_name, human_design_data, numerology_profile, numerology_signals")
         .eq("id", user.id)
         .single();
 
-      if (!profile?.birth_date) {
+      if (!profile) {
         setLoading(false);
         return;
       }
 
-      setHasBirthData(true);
       setBirthDate(profile.birth_date);
-      setBirthName(profile.display_name);
+      setBirthName(profile.birth_name || profile.display_name);
+
+      // Load numerology data from profile (stored during onboarding)
+      if (profile.numerology_profile) {
+        const numProfile = profile.numerology_profile as any;
+        setNumerologyProfile({
+          lifePath: numProfile.lifePath,
+          expressionNumber: numProfile.expressionNumber,
+          soulUrge: numProfile.soulUrge,
+          personalityNumber: numProfile.personalityNumber,
+          challengeNumber: numProfile.challengeNumber,
+          element: numProfile.element,
+          archetype: numProfile.archetype,
+        });
+        
+        // User insights are stored with the profile
+        if (numProfile.userInsights) {
+          setNumerologyInsights(numProfile.userInsights);
+        }
+      }
 
       // Load Human Design data
       if (profile.human_design_data && Object.keys(profile.human_design_data).length > 0) {
         setHumanDesignData(profile.human_design_data);
-      } else {
-        const hdData = generateMockHumanDesignData(
-          profile.birth_date,
-          profile.birth_time,
-          profile.birth_time_unknown
-        );
+      } else if (profile.birth_date) {
+        const hdData = generateMockHumanDesignData(profile.birth_date, null, true);
         setHumanDesignData(hdData);
 
         await supabase
@@ -96,16 +99,6 @@ const ActualSelfPage = () => {
           .eq("id", user.id);
 
         await handleGenerateDots(hdData, user.id);
-      }
-
-      // Check for existing numerology data in localStorage (temporary storage)
-      const storedNumerology = localStorage.getItem(`numerology_${user.id}`);
-      if (storedNumerology) {
-        try {
-          setNumerologyData(JSON.parse(storedNumerology));
-        } catch (e) {
-          console.error("Failed to parse stored numerology:", e);
-        }
       }
     } catch (error) {
       console.error("Error loading data:", error);
@@ -153,75 +146,50 @@ const ActualSelfPage = () => {
     }
   };
 
-  const handleNumerologySubmit = async (data: { birthName: string; birthDate: string }) => {
-    setAnalyzingNumerology(true);
+  const handleRegenerate = async () => {
+    if (!birthName || !birthDate) {
+      toast.error("Missing birth data. Please update your profile.");
+      return;
+    }
+
+    setRegenerating(true);
     try {
       const { data: { user } } = await supabase.auth.getUser();
       if (!user) throw new Error("Not authenticated");
 
-      // Save birth name to profile
-      await supabase
-        .from("profiles")
-        .update({ 
-          display_name: data.birthName,
-          birth_date: data.birthDate
-        })
-        .eq("id", user.id);
-
-      // Call numerology analysis
       const response = await supabase.functions.invoke("analyze-numerology", {
-        body: { birthName: data.birthName, birthDate: data.birthDate }
+        body: { birthName, birthDate }
       });
 
       if (response.error) throw response.error;
 
-      const numerologyResult = response.data as NumerologyData;
-      setNumerologyData(numerologyResult);
-      setBirthName(data.birthName);
-      setBirthDate(data.birthDate);
-      setHasBirthData(true);
+      const result = response.data;
+      
+      // Update profile with new numerology data
+      await supabase
+        .from("profiles")
+        .update({
+          numerology_profile: result.profile,
+          numerology_signals: result.systemIntelligence,
+        })
+        .eq("id", user.id);
 
-      // Store in localStorage for persistence
-      localStorage.setItem(`numerology_${user.id}`, JSON.stringify(numerologyResult));
-
-      // Store system intelligence for mentor routing (not shown to user)
-      if (numerologyResult.systemIntelligence) {
-        localStorage.setItem(`numerology_signals_${user.id}`, JSON.stringify(numerologyResult.systemIntelligence));
+      // Update local state
+      setNumerologyProfile(result.profile);
+      if (result.userInsights) {
+        setNumerologyInsights(result.userInsights);
       }
 
-      // Generate Human Design if not already done
-      if (!humanDesignData) {
-        const hdData = generateMockHumanDesignData(data.birthDate, null, true);
-        setHumanDesignData(hdData);
-        
-        await supabase
-          .from("profiles")
-          .update({ human_design_data: hdData as any })
-          .eq("id", user.id);
-
-        await handleGenerateDots(hdData, user.id);
-      }
-
-      toast.success("Pattern profile generated!", {
-        description: "Your personalized insights are ready"
-      });
+      toast.success("Profile regenerated!");
     } catch (error: any) {
-      console.error("Error analyzing numerology:", error);
-      toast.error("Failed to analyze patterns", {
-        description: error.message || "Please try again"
-      });
+      console.error("Error regenerating:", error);
+      toast.error("Failed to regenerate profile");
     } finally {
-      setAnalyzingNumerology(false);
+      setRegenerating(false);
     }
   };
 
-  const handleRegenerate = async () => {
-    if (!birthName || !birthDate) {
-      toast.error("Missing birth data");
-      return;
-    }
-    await handleNumerologySubmit({ birthName, birthDate });
-  };
+  const hasNumerologyData = numerologyProfile && numerologyInsights;
 
   return (
     <motion.div 
@@ -267,12 +235,26 @@ const ActualSelfPage = () => {
               <p className="text-muted-foreground">Loading your profile...</p>
             </div>
           </Card>
-        ) : !hasBirthData || !numerologyData ? (
-          <BirthDataCollector 
-            onSubmit={handleNumerologySubmit}
-            isLoading={analyzingNumerology}
-            existingBirthDate={birthDate}
-          />
+        ) : !hasNumerologyData ? (
+          <Card className="p-8 bg-card/30 backdrop-blur-sm border-border/30">
+            <div className="text-center space-y-4">
+              <h2 className="text-xl font-semibold">Pattern Profile Not Available</h2>
+              <p className="text-muted-foreground">
+                Your pattern profile is generated during onboarding. If you skipped this step, 
+                you can regenerate it now.
+              </p>
+              {birthName && birthDate ? (
+                <Button onClick={handleRegenerate} disabled={regenerating}>
+                  <RefreshCw className={`w-4 h-4 mr-2 ${regenerating ? 'animate-spin' : ''}`} />
+                  {regenerating ? "Generating..." : "Generate Pattern Profile"}
+                </Button>
+              ) : (
+                <p className="text-sm text-muted-foreground">
+                  Please update your profile with your birth name and date first.
+                </p>
+              )}
+            </div>
+          </Card>
         ) : (
           <Tabs value={activeTab} onValueChange={setActiveTab} className="space-y-6">
             <TabsList className="grid w-full grid-cols-2 max-w-md mx-auto">
@@ -282,16 +264,18 @@ const ActualSelfPage = () => {
 
             <TabsContent value="numerology" className="space-y-6">
               <NumerologyInsights 
-                profile={numerologyData.profile}
-                insights={numerologyData.userInsights}
+                profile={numerologyProfile}
+                insights={numerologyInsights}
               />
               <div className="flex justify-center">
                 <Button
                   variant="outline"
                   onClick={handleRegenerate}
-                  disabled={analyzingNumerology}
+                  disabled={regenerating}
+                  className="gap-2"
                 >
-                  {analyzingNumerology ? "Regenerating..." : "Regenerate Profile"}
+                  <RefreshCw className={`w-4 h-4 ${regenerating ? 'animate-spin' : ''}`} />
+                  {regenerating ? "Regenerating..." : "Regenerate Profile"}
                 </Button>
               </div>
             </TabsContent>

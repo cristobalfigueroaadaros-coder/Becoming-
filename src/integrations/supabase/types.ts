@@ -1492,6 +1492,7 @@ export type Database = {
         Row: {
           birth_date: string | null
           birth_location: string | null
+          birth_name: string | null
           birth_time: string | null
           birth_time_unknown: boolean | null
           constellation_insights: Json | null
@@ -1515,6 +1516,8 @@ export type Database = {
           last_whisper_date: string | null
           main_mission: string | null
           main_strengths: string[] | null
+          numerology_profile: Json | null
+          numerology_signals: Json | null
           priority_growth_area: string | null
           purpose_path: string | null
           reflection_loop_count: number | null
@@ -1527,6 +1530,7 @@ export type Database = {
         Insert: {
           birth_date?: string | null
           birth_location?: string | null
+          birth_name?: string | null
           birth_time?: string | null
           birth_time_unknown?: boolean | null
           constellation_insights?: Json | null
@@ -1550,6 +1554,8 @@ export type Database = {
           last_whisper_date?: string | null
           main_mission?: string | null
           main_strengths?: string[] | null
+          numerology_profile?: Json | null
+          numerology_signals?: Json | null
           priority_growth_area?: string | null
           purpose_path?: string | null
           reflection_loop_count?: number | null
@@ -1562,6 +1568,7 @@ export type Database = {
         Update: {
           birth_date?: string | null
           birth_location?: string | null
+          birth_name?: string | null
           birth_time?: string | null
           birth_time_unknown?: boolean | null
           constellation_insights?: Json | null
@@ -1585,6 +1592,8 @@ export type Database = {
           last_whisper_date?: string | null
           main_mission?: string | null
           main_strengths?: string[] | null
+          numerology_profile?: Json | null
+          numerology_signals?: Json | null
           priority_growth_area?: string | null
           purpose_path?: string | null
           reflection_loop_count?: number | null

@@ -8,10 +8,9 @@ import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
-import { Checkbox } from "@/components/ui/checkbox";
 import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from "@/components/ui/form";
 import { toast } from "sonner";
-import { Sparkles } from "lucide-react";
+import { Sparkles, Loader2 } from "lucide-react";
 import { format } from "date-fns";
 
 const futureSelfSchema = z.object({
@@ -19,10 +18,8 @@ const futureSelfSchema = z.object({
   future_location: z.string().min(1, "Location is required"),
   future_lifestyle: z.string().max(100, "Keep it to one short sentence"),
   main_mission: z.string().max(100, "Keep it to one short sentence"),
-  birth_date: z.date().optional(),
-  birth_time: z.string().optional(),
-  birth_location: z.string().optional(),
-  birth_time_unknown: z.boolean().default(false),
+  birth_name: z.string().min(2, "Birth name is required"),
+  birth_date: z.date({ required_error: "Birth date is required" }),
 });
 
 type FutureSelfFormData = z.infer<typeof futureSelfSchema>;
@@ -30,6 +27,7 @@ type FutureSelfFormData = z.infer<typeof futureSelfSchema>;
 const OnboardingStep1 = () => {
   const navigate = useNavigate();
   const [loading, setLoading] = useState(false);
+  const [analyzingNumerology, setAnalyzingNumerology] = useState(false);
 
   const form = useForm<FutureSelfFormData>({
     resolver: zodResolver(futureSelfSchema),
@@ -38,7 +36,7 @@ const OnboardingStep1 = () => {
       future_location: "",
       future_lifestyle: "",
       main_mission: "",
-      birth_time_unknown: false,
+      birth_name: "",
     },
   });
 
@@ -48,6 +46,9 @@ const OnboardingStep1 = () => {
       const { data: { user } } = await supabase.auth.getUser();
       if (!user) throw new Error("Not authenticated");
 
+      const birthDateFormatted = format(data.birth_date, "yyyy-MM-dd");
+
+      // Save profile first
       const { error: profileError } = await supabase
         .from("profiles")
         .upsert({
@@ -56,10 +57,9 @@ const OnboardingStep1 = () => {
           future_location: data.future_location,
           future_lifestyle: data.future_lifestyle,
           main_mission: data.main_mission,
-          birth_date: data.birth_date ? format(data.birth_date, "yyyy-MM-dd") : null,
-          birth_time: data.birth_time_unknown ? null : data.birth_time,
-          birth_location: data.birth_location,
-          birth_time_unknown: data.birth_time_unknown,
+          birth_name: data.birth_name,
+          birth_date: birthDateFormatted,
+          display_name: data.birth_name.split(' ')[0], // Use first name as display name
         });
 
       if (profileError) throw profileError;
@@ -74,12 +74,41 @@ const OnboardingStep1 = () => {
 
       if (progressError) throw progressError;
 
-      toast.success("Future Self profile created!");
+      // Auto-run numerology analysis
+      setAnalyzingNumerology(true);
+      try {
+        const { data: numerologyData, error: numerologyError } = await supabase.functions.invoke(
+          'analyze-numerology',
+          {
+            body: {
+              birthName: data.birth_name,
+              birthDate: birthDateFormatted,
+            },
+          }
+        );
+
+        if (!numerologyError && numerologyData) {
+          // Save numerology results to profile
+          await supabase
+            .from("profiles")
+            .update({
+              numerology_profile: numerologyData.profile,
+              numerology_signals: numerologyData.systemIntelligence,
+            })
+            .eq("id", user.id);
+        }
+      } catch (numError) {
+        console.error("Numerology analysis failed (non-blocking):", numError);
+        // Don't block onboarding if numerology fails
+      }
+
+      toast.success("Profile created!");
       navigate("/onboarding/step2");
     } catch (error: any) {
       toast.error(error.message);
     } finally {
       setLoading(false);
+      setAnalyzingNumerology(false);
     }
   };
 
@@ -174,13 +203,40 @@ const OnboardingStep1 = () => {
                 />
 
                 <div className="pt-4 border-t">
+                  <div className="mb-4">
+                    <h3 className="font-medium mb-1">Your Pattern Profile</h3>
+                    <p className="text-sm text-muted-foreground">
+                      This helps us personalize guidance, tune pacing, and route mentors intelligently.
+                    </p>
+                  </div>
+                  
                   <div className="space-y-4">
+                    <FormField
+                      control={form.control}
+                      name="birth_name"
+                      render={({ field }) => (
+                        <FormItem>
+                          <FormLabel>Full Birth Name</FormLabel>
+                          <FormControl>
+                            <Input 
+                              placeholder="Your legal name at birth" 
+                              {...field} 
+                            />
+                          </FormControl>
+                          <p className="text-xs text-muted-foreground mt-1">
+                            As it appears on your birth certificate
+                          </p>
+                          <FormMessage />
+                        </FormItem>
+                      )}
+                    />
+
                     <FormField
                       control={form.control}
                       name="birth_date"
                       render={({ field }) => (
                         <FormItem>
-                          <FormLabel>Birth Date (Optional)</FormLabel>
+                          <FormLabel>Date of Birth</FormLabel>
                           <FormControl>
                             <Input
                               type="date"
@@ -196,59 +252,18 @@ const OnboardingStep1 = () => {
                         </FormItem>
                       )}
                     />
-
-                    <FormField
-                      control={form.control}
-                      name="birth_time_unknown"
-                      render={({ field }) => (
-                        <FormItem className="flex flex-row items-start space-x-3 space-y-0">
-                          <FormControl>
-                            <Checkbox
-                              checked={field.value}
-                              onCheckedChange={field.onChange}
-                            />
-                          </FormControl>
-                          <FormLabel className="font-normal">
-                            I don't know my birth time
-                          </FormLabel>
-                        </FormItem>
-                      )}
-                    />
-
-                    {!form.watch("birth_time_unknown") && (
-                      <FormField
-                        control={form.control}
-                        name="birth_time"
-                        render={({ field }) => (
-                          <FormItem>
-                            <FormLabel>Birth Time</FormLabel>
-                            <FormControl>
-                              <Input type="time" {...field} />
-                            </FormControl>
-                            <FormMessage />
-                          </FormItem>
-                        )}
-                      />
-                    )}
-
-                    <FormField
-                      control={form.control}
-                      name="birth_location"
-                      render={({ field }) => (
-                        <FormItem>
-                          <FormLabel>Birth Location</FormLabel>
-                          <FormControl>
-                            <Input placeholder="City, Country" {...field} />
-                          </FormControl>
-                          <FormMessage />
-                        </FormItem>
-                      )}
-                    />
                   </div>
                 </div>
 
                 <Button type="submit" disabled={loading} className="w-full h-12 text-lg">
-                  {loading ? "Saving..." : "Continue →"}
+                  {loading ? (
+                    <>
+                      <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                      {analyzingNumerology ? "Analyzing patterns..." : "Saving..."}
+                    </>
+                  ) : (
+                    "Continue →"
+                  )}
                 </Button>
               </form>
             </Form>
