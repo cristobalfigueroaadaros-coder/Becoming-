@@ -1,16 +1,17 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { motion } from "framer-motion";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { Network, Clock, FileText, Filter, X, Sparkles, Loader2, Target, Eye } from "lucide-react";
+import { Network, Clock, FileText, Filter, X, Sparkles, Loader2, Target, Eye, Tag } from "lucide-react";
 import { ConstellationCanvas } from "@/components/ConstellationCanvas";
 import { ConstellationTimeline } from "@/components/ConstellationTimeline";
 import { ConstellationSystem } from "@/components/ConstellationSystem";
+import { KeywordBadges } from "@/components/KeywordHighlighter";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
-import { Card, CardContent } from "@/components/ui/card";
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { cn } from "@/lib/utils";
 import type { InsightDot, DotConnection } from "@/hooks/useCreationLabData";
 
@@ -20,6 +21,15 @@ interface LivingConstellationProps {
   userPurpose: string | null;
   onDataChange: () => void;
   onEditPurpose: () => void;
+}
+
+interface UserKeyword {
+  id: string;
+  keyword: string;
+  keyword_type: string;
+  source: string;
+  frequency_count: number;
+  created_at: string;
 }
 
 const sourceLabels: Record<string, string> = {
@@ -58,6 +68,31 @@ export const LivingConstellation = ({
   const [showPurposeView, setShowPurposeView] = useState(false);
   const [purposeAlignments, setPurposeAlignments] = useState<any[]>([]);
   const [analyzingPurpose, setAnalyzingPurpose] = useState(false);
+  
+  // User keywords state
+  const [userKeywords, setUserKeywords] = useState<UserKeyword[]>([]);
+  const [showKeywords, setShowKeywords] = useState(false);
+
+  // Load user keywords
+  useEffect(() => {
+    const loadKeywords = async () => {
+      const { data: { user } } = await supabase.auth.getUser();
+      if (!user) return;
+
+      const { data, error } = await supabase
+        .from("user_keywords")
+        .select("*")
+        .eq("user_id", user.id)
+        .order("frequency_count", { ascending: false })
+        .limit(50);
+
+      if (!error && data) {
+        setUserKeywords(data as UserKeyword[]);
+      }
+    };
+
+    loadKeywords();
+  }, []);
 
   // Filter dots
   const filteredDots = dots.filter((dot) => {
@@ -160,6 +195,24 @@ export const LivingConstellation = ({
 
           {(activeTab === "canvas" || activeTab === "timeline" || activeTab === "list") && (
             <div className="flex items-center gap-2 flex-wrap">
+              {/* Keywords Toggle Button */}
+              <Button
+                variant={showKeywords ? "default" : "outline"}
+                size="sm"
+                onClick={() => setShowKeywords(!showKeywords)}
+                className="relative"
+              >
+                <Tag className="w-4 h-4 mr-2" />
+                Keywords
+                {userKeywords.length > 0 && (
+                  <Badge 
+                    variant="secondary" 
+                    className="ml-2 h-5 w-5 rounded-full p-0 flex items-center justify-center text-xs"
+                  >
+                    {userKeywords.length}
+                  </Badge>
+                )}
+              </Button>
               {userPurpose && (
                 <Button
                   variant={showPurposeView ? "default" : "outline"}
@@ -282,6 +335,49 @@ export const LivingConstellation = ({
                     </Select>
                   </div>
                 </div>
+              </CardContent>
+            </Card>
+          </motion.div>
+        )}
+
+        {/* Keywords Panel */}
+        {showKeywords && userKeywords.length > 0 && (
+          <motion.div
+            initial={{ opacity: 0, height: 0 }}
+            animate={{ opacity: 1, height: "auto" }}
+            exit={{ opacity: 0, height: 0 }}
+            className="mb-6"
+          >
+            <Card className="border-primary/20 bg-gradient-to-br from-primary/5 to-accent/5">
+              <CardHeader className="pb-2">
+                <CardTitle className="text-sm font-medium flex items-center gap-2">
+                  <Tag className="w-4 h-4" />
+                  Your Saved Keywords
+                  <span className="text-xs text-muted-foreground font-normal">
+                    (extracted from your conversations)
+                  </span>
+                </CardTitle>
+              </CardHeader>
+              <CardContent>
+                <KeywordBadges 
+                  keywords={userKeywords.map(kw => ({
+                    keyword: kw.keyword,
+                    frequency_count: kw.frequency_count,
+                    source: kw.source
+                  }))}
+                  onKeywordClick={(keyword) => {
+                    // Filter dots by keyword
+                    const matchingDots = dots.filter(d => 
+                      d.insight_text.toLowerCase().includes(keyword.toLowerCase()) ||
+                      d.core_theme.toLowerCase().includes(keyword.toLowerCase())
+                    );
+                    if (matchingDots.length > 0) {
+                      toast.info(`Found ${matchingDots.length} insights related to "${keyword}"`);
+                    } else {
+                      toast.info(`No insights found for "${keyword}" yet`);
+                    }
+                  }}
+                />
               </CardContent>
             </Card>
           </motion.div>

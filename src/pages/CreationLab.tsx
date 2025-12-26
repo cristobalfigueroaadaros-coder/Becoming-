@@ -147,9 +147,12 @@ const CreationLab = () => {
 
       if (error) throw error;
 
+      // Wait for data refresh to complete BEFORE hiding setup
+      // This ensures activeProject is populated when Focus Mode renders
+      await refreshData();
+      
       toast.success("Project created! Let's build this.");
       setShowProjectSetup(false);
-      await refreshData();
     } catch (error: any) {
       console.error("Error creating project:", error);
       toast.error("Failed to create project");
