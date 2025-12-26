@@ -36,8 +36,8 @@ USE COLLABORATIVE LANGUAGE:
 
 EXPLAIN CONCEPTS (Don't assume shared understanding):
 - "Just to be on the same page, when I say [concept], I mean..."
-- "An AHA moment is essentially when..."
 - "Let me explain what I mean by [term]..."
+- Define important terms the user may not know
 
 SEE THE BIG PICTURE:
 - Explain WHY something matters
@@ -71,21 +71,23 @@ const PROACTIVE_PROJECT_RULES = `
 
 You are trained to detect when an idea is CRYSTALLIZING into something real.
 
+CRITICAL: Never use predetermined concept names. Only work with what the USER actually brings up.
+
 SIGNALS THAT A CONCEPT IS READY:
-- It has a NAME (even if just suggested by you)
+- It has a NAME (suggested by you based on what the user described)
 - It has a SPECIFIC audience or use case
 - The user shows EXCITEMENT or RESONANCE with it
 - There are ACTIONABLE next steps
 
 WHEN YOU DETECT CRYSTALLIZATION:
-1. NAME THE CONCEPT: "This sounds like **[Concept Name]**"
+1. NAME THE CONCEPT based on user's actual words: "This sounds like **[Their Concept Name]**"
 2. VALIDATE IT: "I think this could be something real"
 3. SUGGEST ACTION: "Should we make this a project?"
 
 INCLUDE the exact phrase "make this a project" when you sense readiness. The system will detect this.
 
-Example responses when concept is ready:
-"This concept we've been shaping — **Aha Moment Deconstructor** — feels like something real taking shape. Should we make this a project and start building it?"
+Example format (but use the USER's actual concept, not this example):
+"This concept we've been shaping — **[User's Specific Concept]** — feels like something real taking shape. Should we make this a project and start building it?"
 
 === END DETECTION ===
 `;
@@ -872,13 +874,71 @@ Only return isCoherent: true if confidence > 0.7 and you can extract a clear pro
       }
     }
 
+    // === KEYWORD EXTRACTION ===
+    // Extract meaningful keywords from user message and mentor response
+    let extractedKeywords: string[] = [];
+    try {
+      const keywordPrompt = `Extract 2-5 meaningful KEYWORDS or PHRASES from this conversation exchange.
+
+USER MESSAGE: "${message}"
+MENTOR RESPONSE: "${response}"
+
+Focus on:
+- Unique concepts or ideas the user mentioned
+- Methodologies, techniques, or approaches
+- Goals, aspirations, or intentions
+- Emotional states or patterns
+- Action items or project ideas
+
+IGNORE generic words like "I want", "help", "think", etc.
+Return ONLY specific, meaningful terms that would be valuable to track over time.
+
+RESPOND WITH VALID JSON ONLY:
+{
+  "keywords": ["keyword1", "keyword2", "keyword3"]
+}
+
+If no meaningful keywords found, return: {"keywords": []}`;
+
+      const keywordResponse = await fetch("https://ai.gateway.lovable.dev/v1/chat/completions", {
+        method: "POST",
+        headers: {
+          "Authorization": `Bearer ${Deno.env.get("LOVABLE_API_KEY")}`,
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({
+          model: "google/gemini-2.5-flash-lite",
+          messages: [{ role: "user", content: keywordPrompt }],
+        }),
+      });
+
+      if (keywordResponse.ok) {
+        const keywordData = await keywordResponse.json();
+        let keywordText = keywordData.choices[0].message.content;
+        keywordText = keywordText.replace(/```json\n?/g, '').replace(/```\n?/g, '').trim();
+        
+        try {
+          const parsed = JSON.parse(keywordText);
+          if (parsed.keywords && Array.isArray(parsed.keywords)) {
+            extractedKeywords = parsed.keywords.filter((k: string) => k && k.length > 2 && k.length < 50);
+            console.log("Extracted keywords:", extractedKeywords);
+          }
+        } catch (parseError) {
+          console.error("Failed to parse keywords JSON:", parseError);
+        }
+      }
+    } catch (error) {
+      console.error("Keyword extraction failed (non-fatal):", error);
+    }
+
     return new Response(
       JSON.stringify({ 
         response, 
         valueMapDetection,
         suggestedHandoff,
         conversationDepth,
-        projectCoherence // PDR v2.1: For Commitment Card
+        projectCoherence, // PDR v2.1: For Commitment Card
+        extractedKeywords // New: For keyword tracking
       }),
       { headers: { ...corsHeaders, "Content-Type": "application/json" } }
     );

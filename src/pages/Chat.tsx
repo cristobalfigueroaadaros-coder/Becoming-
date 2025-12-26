@@ -17,6 +17,7 @@ import { MentorTransitionCard } from "@/components/MentorTransitionCard";
 import { FirstWinNamingCard } from "@/components/FirstWinNamingCard";
 import { FirstWinCelebration } from "@/components/FirstWinCelebration";
 import { InlineProjectSuggestion } from "@/components/InlineProjectSuggestion";
+import { KeywordHighlighter } from "@/components/KeywordHighlighter";
 import { useMicroWins } from "@/hooks/useMicroWins";
 import {
   DropdownMenu,
@@ -338,6 +339,44 @@ const Chat = () => {
         setShowCommitmentCard(true);
       }
 
+      // Save extracted keywords to database
+      if (data.extractedKeywords && data.extractedKeywords.length > 0) {
+        try {
+          for (const keyword of data.extractedKeywords) {
+            // Check if keyword already exists
+            const { data: existing } = await supabase
+              .from("user_keywords")
+              .select("id, frequency_count")
+              .eq("user_id", user.id)
+              .eq("keyword", keyword.toLowerCase())
+              .maybeSingle();
+
+            if (existing) {
+              // Update frequency count
+              await supabase
+                .from("user_keywords")
+                .update({ 
+                  frequency_count: (existing.frequency_count || 1) + 1,
+                  last_seen_at: new Date().toISOString()
+                })
+                .eq("id", existing.id);
+            } else {
+              // Insert new keyword
+              await supabase.from("user_keywords").insert({
+                user_id: user.id,
+                keyword: keyword.toLowerCase(),
+                keyword_type: "concept",
+                source: "mentor_chat",
+                source_id: assistantMsgData?.id || null,
+                context: userMessage.substring(0, 200),
+              });
+            }
+          }
+        } catch (kwError) {
+          console.error("Error saving keywords (non-fatal):", kwError);
+        }
+      }
+
       const newExchangeCount = exchangeCount + 1;
       setExchangeCount(newExchangeCount);
       
@@ -480,18 +519,7 @@ const Chat = () => {
             />
           )}
 
-          {/* PDR v2.1: Commitment Card (appears on coherence detection) */}
-          {showCommitmentCard && projectCoherence && (
-            <FirstWinNamingCard
-              proposedName={projectCoherence.projectName}
-              description={projectCoherence.projectDescription}
-              onAccept={handleCommitmentAccept}
-              onKeepExploring={() => {
-                setShowCommitmentCard(false);
-                setProjectCoherence(null);
-              }}
-            />
-          )}
+          {/* Messages continue below - Commitment Card is now a fixed overlay */}
 
           {/* First Win Naming Card (legacy - for breakthrough detection) */}
           {showFirstWinNaming && latestBreakthrough && !showCommitmentCard && (
@@ -538,12 +566,14 @@ const Chat = () => {
                 {message.role === "user" ? (
                   <p className="whitespace-pre-wrap">{message.content}</p>
                 ) : (
-                  <div className="space-y-2">
-                    <HighlightedText text={message.content} />
-                    <div className="flex justify-end pt-1">
-                      <InsightActionButton insightText={message.content} sourceType="mentor_message" sourceMentor={mentorType} sourceContext={{ messageId: message.id }} />
+                  <KeywordHighlighter sourceType="mentor_chat" sourceId={message.id}>
+                    <div className="space-y-2">
+                      <HighlightedText text={message.content} />
+                      <div className="flex justify-end pt-1">
+                        <InsightActionButton insightText={message.content} sourceType="mentor_message" sourceMentor={mentorType} sourceContext={{ messageId: message.id }} />
+                      </div>
                     </div>
-                  </div>
+                  </KeywordHighlighter>
                 )}
               </Card>
             </div>
@@ -600,6 +630,21 @@ const Chat = () => {
       {showFirstWinCelebration && (
         <div className="fixed inset-0 bg-background/80 backdrop-blur-sm z-50 flex items-center justify-center p-4">
           <FirstWinCelebration conceptName={firstWinConceptName} onContinue={() => setShowFirstWinCelebration(false)} />
+        </div>
+      )}
+
+      {/* PDR v2.1: Commitment Card as FIXED OVERLAY (magical moment) */}
+      {showCommitmentCard && projectCoherence && (
+        <div className="fixed inset-0 bg-black/60 backdrop-blur-sm z-50 flex items-center justify-center p-4">
+          <FirstWinNamingCard
+            proposedName={projectCoherence.projectName}
+            description={projectCoherence.projectDescription}
+            onAccept={handleCommitmentAccept}
+            onKeepExploring={() => {
+              setShowCommitmentCard(false);
+              setProjectCoherence(null);
+            }}
+          />
         </div>
       )}
     </div>
