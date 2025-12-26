@@ -20,6 +20,9 @@ const futureSelfSchema = z.object({
   main_mission: z.string().max(100, "Keep it to one short sentence"),
   birth_name: z.string().min(2, "Birth name is required"),
   birth_date: z.date({ required_error: "Birth date is required" }),
+  birth_time: z.string().optional(),
+  birth_time_unknown: z.boolean().optional(),
+  birth_location: z.string().optional(),
 });
 
 type FutureSelfFormData = z.infer<typeof futureSelfSchema>;
@@ -37,6 +40,9 @@ const OnboardingStep1 = () => {
       future_lifestyle: "",
       main_mission: "",
       birth_name: "",
+      birth_time: "",
+      birth_time_unknown: false,
+      birth_location: "",
     },
   });
 
@@ -59,6 +65,9 @@ const OnboardingStep1 = () => {
           main_mission: data.main_mission,
           birth_name: data.birth_name,
           birth_date: birthDateFormatted,
+          birth_time: data.birth_time_unknown ? null : (data.birth_time || null),
+          birth_time_unknown: data.birth_time_unknown || false,
+          birth_location: data.birth_location || null,
           display_name: data.birth_name.split(' ')[0], // Use first name as display name
         });
 
@@ -252,6 +261,65 @@ const OnboardingStep1 = () => {
                         </FormItem>
                       )}
                     />
+
+                    <FormField
+                      control={form.control}
+                      name="birth_location"
+                      render={({ field }) => (
+                        <FormItem>
+                          <FormLabel>Birth Location (Optional)</FormLabel>
+                          <FormControl>
+                            <Input 
+                              placeholder="City, Country where you were born" 
+                              {...field} 
+                            />
+                          </FormControl>
+                          <p className="text-xs text-muted-foreground mt-1">
+                            Used for Human Design calculations
+                          </p>
+                          <FormMessage />
+                        </FormItem>
+                      )}
+                    />
+
+                    <div className="space-y-3">
+                      <FormField
+                        control={form.control}
+                        name="birth_time"
+                        render={({ field }) => (
+                          <FormItem>
+                            <FormLabel>Time of Birth (Optional)</FormLabel>
+                            <FormControl>
+                              <Input
+                                type="time"
+                                disabled={form.watch("birth_time_unknown")}
+                                {...field}
+                              />
+                            </FormControl>
+                            <FormMessage />
+                          </FormItem>
+                        )}
+                      />
+                      <FormField
+                        control={form.control}
+                        name="birth_time_unknown"
+                        render={({ field }) => (
+                          <FormItem className="flex items-center gap-2">
+                            <FormControl>
+                              <input
+                                type="checkbox"
+                                checked={field.value}
+                                onChange={field.onChange}
+                                className="h-4 w-4 rounded border-border"
+                              />
+                            </FormControl>
+                            <FormLabel className="!mt-0 text-sm text-muted-foreground cursor-pointer">
+                              I don't know my birth time
+                            </FormLabel>
+                          </FormItem>
+                        )}
+                      />
+                    </div>
                   </div>
                 </div>
 

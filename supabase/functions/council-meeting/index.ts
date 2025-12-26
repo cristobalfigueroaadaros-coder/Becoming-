@@ -974,9 +974,15 @@ ${banterLength === 'FULL' ? 'Full round table, all mentors speak, deep analysis 
         if (match) {
           const mentorName = match[1];
           const text = match[2].replace(/"+$/g, '').trim(); // Remove trailing quotes and trim
+          
+          // VALIDATE: Only allow known mentor names to prevent hallucinations like "MVP"
           const mentorKey = Object.keys(mentorNames).find(k => mentorNames[k] === mentorName);
-          const color = mentorKey ? mentorColors[mentorKey] : '#6B7280';
-          banterLines.push({ mentor: mentorName, text, color });
+          if (mentorKey) {
+            const color = mentorColors[mentorKey] || '#6B7280';
+            banterLines.push({ mentor: mentorName, text, color });
+          } else {
+            console.warn(`Invalid mentor name in banter (skipped): "${mentorName}"`);
+          }
         }
       }
     }

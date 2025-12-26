@@ -16,6 +16,7 @@ import { ValueMapUnlockCelebration } from "@/components/ValueMapUnlockCelebratio
 import { MentorTransitionCard } from "@/components/MentorTransitionCard";
 import { FirstWinNamingCard } from "@/components/FirstWinNamingCard";
 import { FirstWinCelebration } from "@/components/FirstWinCelebration";
+import { InlineProjectSuggestion } from "@/components/InlineProjectSuggestion";
 import { useMicroWins } from "@/hooks/useMicroWins";
 import {
   DropdownMenu,

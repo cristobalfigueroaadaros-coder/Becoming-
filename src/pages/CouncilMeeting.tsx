@@ -820,6 +820,23 @@ const CouncilMeeting = () => {
                             <span className="text-sm leading-relaxed text-foreground">
                               <HighlightedText text={line.text} /> {getEmoji()}
                             </span>
+                            {/* Go deeper button */}
+                            {(() => {
+                              const mentorKey = Object.keys(mentorNames).find(k => mentorNames[k] === line.mentor);
+                              if (mentorKey) {
+                                return (
+                                  <Button
+                                    variant="ghost"
+                                    size="sm"
+                                    className="mt-2 h-6 text-xs opacity-70 hover:opacity-100"
+                                    onClick={() => navigate(`/chat/${mentorKey}?fromCouncil=true`)}
+                                  >
+                                    Go deeper →
+                                  </Button>
+                                );
+                              }
+                              return null;
+                            })()}
                           </div>
                         </motion.div>
                       );
