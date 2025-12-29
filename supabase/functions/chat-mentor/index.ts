@@ -799,12 +799,60 @@ IMPORTANT: Continue this conversation naturally. You reached out to the user abo
       console.error("Value Map detection failed (non-fatal):", error);
     }
 
-    // === PDR v2.1: COHERENCE DETECTION FOR COMMITMENT CARD ===
+    // === PDR v2.1: COHERENCE DETECTION FOR COMMITMENT/EVOLUTION CARD ===
     let projectCoherence = null;
+    
+    // Check if user has an active Project Spine
+    let hasActiveSpine = false;
+    let activeSpineInfo = null;
+    let activeNodeInfo = null;
+    
+    try {
+      const { data: activeSpine } = await supabaseClient
+        .from('project_spines')
+        .select('id, spine_title, core_intention')
+        .eq('user_id', user.id)
+        .eq('status', 'active')
+        .single();
+      
+      if (activeSpine) {
+        hasActiveSpine = true;
+        activeSpineInfo = activeSpine;
+        
+        // Get the active node
+        const { data: activeNode } = await supabaseClient
+          .from('evolution_nodes')
+          .select('id, node_title, node_number, refined_description')
+          .eq('spine_id', activeSpine.id)
+          .eq('status', 'active')
+          .single();
+        
+        if (activeNode) {
+          activeNodeInfo = activeNode;
+        }
+      }
+    } catch (error) {
+      console.log("No active spine found (this is fine for new users)");
+    }
     
     // Only detect coherence when coming from council (shaping session) and after 2+ exchanges
     if (conversationDepth >= 2 && message !== "__HANDOFF_INIT__" && chatHistory && chatHistory.length > 0) {
       const recentHistory = chatHistory.slice(-6).map((m: any) => `${m.role.toUpperCase()}: ${m.content}`).join('\n');
+      
+      // PDR v2.1: Different prompt based on whether user has active spine
+      const evolutionContext = hasActiveSpine && activeNodeInfo ? `
+IMPORTANT CONTEXT - USER HAS ACTIVE PROJECT:
+- Current Project Spine: "${activeSpineInfo?.spine_title}"
+- Current Evolution Node: "${activeNodeInfo.node_title}" (Node #${activeNodeInfo.node_number})
+- Current Description: "${activeNodeInfo.refined_description}"
+
+EVOLUTION vs NEW PROJECT:
+- If the emerging idea is a REFINEMENT of their current project, set isEvolution: true
+- If the idea is COMPLETELY DIFFERENT from their current project, set isEvolution: false
+- Evolution = narrower, more specific, builds on current work
+- Use evolution language: "Your vision is focusing", "This builds on what you already did"
+` : '';
+
       const coherencePrompt = `Analyze this mentor conversation for PROJECT COHERENCE.
 
 CONVERSATION:
@@ -812,6 +860,8 @@ ${recentHistory}
 
 LATEST USER MESSAGE: "${message}"
 MENTOR RESPONSE: "${response}"
+
+${evolutionContext}
 
 COHERENCE INDICATORS:
 1. User language is becoming MORE SPECIFIC (not scattered)
@@ -824,6 +874,7 @@ DETERMINE:
 - Is there enough coherence to suggest commitment?
 - Can you infer a PROJECT NAME from what they're building/creating?
 - Can you summarize their INTENTION in one sentence?
+${hasActiveSpine ? '- Is this an EVOLUTION of their current project or something NEW?' : ''}
 
 YOU MUST RESPOND WITH VALID JSON ONLY:
 {
@@ -831,7 +882,9 @@ YOU MUST RESPOND WITH VALID JSON ONLY:
   "confidence": 0.0-1.0,
   "projectName": "Inferred project name" or null,
   "projectDescription": "One sentence intention statement" or null,
-  "coherenceSignals": ["list", "of", "signals", "detected"]
+  "coherenceSignals": ["list", "of", "signals", "detected"],
+  "isEvolution": ${hasActiveSpine ? 'true/false' : 'false'},
+  "evolutionInsight": ${hasActiveSpine ? '"Why this is a refinement of previous work" or null' : 'null'}
 }
 
 Only return isCoherent: true if confidence > 0.7 and you can extract a clear projectName.`;
@@ -861,9 +914,14 @@ Only return isCoherent: true if confidence > 0.7 and you can extract a clear pro
                 isCoherent: true,
                 projectName: coherence.projectName,
                 projectDescription: coherence.projectDescription,
-                confidence: coherence.confidence
+                confidence: coherence.confidence,
+                // PDR v2.1: Include evolution info
+                isEvolution: coherence.isEvolution || false,
+                evolutionInsight: coherence.evolutionInsight || null,
+                previousNodeTitle: activeNodeInfo?.node_title || null,
+                previousNodeNumber: activeNodeInfo?.node_number || null
               };
-              console.log("PROJECT COHERENCE DETECTED:", projectCoherence.projectName);
+              console.log("PROJECT COHERENCE DETECTED:", projectCoherence.projectName, "isEvolution:", projectCoherence.isEvolution);
             }
           } catch (parseError) {
             console.error("Failed to parse coherence JSON:", parseError);

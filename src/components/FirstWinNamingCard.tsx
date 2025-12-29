@@ -11,6 +11,10 @@ interface FirstWinNamingCardProps {
   description: string;
   onAccept: (name: string) => void;
   onKeepExploring: () => void;
+  // PDR v2.1: Evolution support
+  isEvolution?: boolean;
+  previousNodeTitle?: string | null;
+  evolutionInsight?: string | null;
 }
 
 export const FirstWinNamingCard = ({
@@ -18,6 +22,9 @@ export const FirstWinNamingCard = ({
   description,
   onAccept,
   onKeepExploring,
+  isEvolution = false,
+  previousNodeTitle = null,
+  evolutionInsight = null,
 }: FirstWinNamingCardProps) => {
   const [editedName, setEditedName] = useState(proposedName);
   const [celebrating, setCelebrating] = useState(false);
@@ -25,7 +32,6 @@ export const FirstWinNamingCard = ({
   const handleAccept = async () => {
     setCelebrating(true);
     
-    // Trigger confetti
     confetti({
       particleCount: 100,
       spread: 70,
@@ -33,9 +39,7 @@ export const FirstWinNamingCard = ({
       colors: ['#8B5CF6', '#D946EF', '#F97316', '#10B981'],
     });
 
-    // Small delay for celebration effect
     await new Promise(resolve => setTimeout(resolve, 800));
-    
     onAccept(editedName);
   };
 
@@ -48,7 +52,6 @@ export const FirstWinNamingCard = ({
       <Card className="border-accent/30 bg-gradient-to-br from-accent/5 via-primary/5 to-background overflow-hidden">
         <CardContent className="pt-8 pb-6">
           <div className="text-center space-y-6">
-            {/* Icon */}
             <motion.div
               initial={{ scale: 0 }}
               animate={{ scale: 1 }}
@@ -58,7 +61,6 @@ export const FirstWinNamingCard = ({
               <Sparkles className="w-8 h-8 text-white" />
             </motion.div>
 
-            {/* PDR v2.1 Commitment Card Copy */}
             <motion.div
               initial={{ opacity: 0 }}
               animate={{ opacity: 1 }}
@@ -66,15 +68,20 @@ export const FirstWinNamingCard = ({
               className="space-y-3"
             >
               <h3 className="text-xl font-semibold text-foreground">
-                This is becoming more than an idea.
+                {isEvolution ? "Your vision is focusing." : "This is becoming more than an idea."}
               </h3>
               
               <p className="text-muted-foreground">
-                We're seeing something real take shape.
+                {isEvolution && previousNodeTitle
+                  ? `This builds on your work with "${previousNodeTitle}".`
+                  : "We're seeing something real take shape."}
               </p>
+              
+              {evolutionInsight && (
+                <p className="text-sm text-accent italic">{evolutionInsight}</p>
+              )}
             </motion.div>
 
-            {/* Editable Name */}
             <motion.div
               initial={{ opacity: 0, y: 10 }}
               animate={{ opacity: 1, y: 0 }}
@@ -90,7 +97,6 @@ export const FirstWinNamingCard = ({
               />
             </motion.div>
 
-            {/* Description */}
             <motion.p
               initial={{ opacity: 0 }}
               animate={{ opacity: 1 }}
@@ -100,7 +106,6 @@ export const FirstWinNamingCard = ({
               {description}
             </motion.p>
 
-            {/* Actions - PDR v2.1 buttons */}
             <motion.div
               initial={{ opacity: 0, y: 10 }}
               animate={{ opacity: 1, y: 0 }}
@@ -122,7 +127,7 @@ export const FirstWinNamingCard = ({
                 className="gap-2 bg-gradient-to-r from-accent to-primary hover:opacity-90"
               >
                 <Check className="w-4 h-4" />
-                {celebrating ? "Celebrating..." : "Yes, let's build this"}
+                {celebrating ? "Celebrating..." : isEvolution ? "Yes, evolve my project" : "Yes, let's build this"}
               </Button>
             </motion.div>
           </div>

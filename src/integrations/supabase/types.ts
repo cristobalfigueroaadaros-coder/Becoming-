@@ -811,6 +811,90 @@ export type Database = {
         }
         Relationships: []
       }
+      evolution_nodes: {
+        Row: {
+          completion_summary: string | null
+          created_at: string
+          current_day: number
+          current_phase: string
+          evolution_insight: string | null
+          id: string
+          learning_insights_count: number | null
+          node_number: number
+          node_title: string
+          parent_node_id: string | null
+          refined_description: string
+          seed_breakthrough_id: string | null
+          spine_id: string
+          start_date: string
+          status: string
+          target_end_date: string
+          timeframe_days: number
+          updated_at: string
+          user_id: string
+          why_this_matters: string | null
+        }
+        Insert: {
+          completion_summary?: string | null
+          created_at?: string
+          current_day?: number
+          current_phase?: string
+          evolution_insight?: string | null
+          id?: string
+          learning_insights_count?: number | null
+          node_number?: number
+          node_title: string
+          parent_node_id?: string | null
+          refined_description: string
+          seed_breakthrough_id?: string | null
+          spine_id: string
+          start_date?: string
+          status?: string
+          target_end_date: string
+          timeframe_days?: number
+          updated_at?: string
+          user_id: string
+          why_this_matters?: string | null
+        }
+        Update: {
+          completion_summary?: string | null
+          created_at?: string
+          current_day?: number
+          current_phase?: string
+          evolution_insight?: string | null
+          id?: string
+          learning_insights_count?: number | null
+          node_number?: number
+          node_title?: string
+          parent_node_id?: string | null
+          refined_description?: string
+          seed_breakthrough_id?: string | null
+          spine_id?: string
+          start_date?: string
+          status?: string
+          target_end_date?: string
+          timeframe_days?: number
+          updated_at?: string
+          user_id?: string
+          why_this_matters?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "evolution_nodes_parent_node_id_fkey"
+            columns: ["parent_node_id"]
+            isOneToOne: false
+            referencedRelation: "evolution_nodes"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "evolution_nodes_spine_id_fkey"
+            columns: ["spine_id"]
+            isOneToOne: false
+            referencedRelation: "project_spines"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       first_win_proofs: {
         Row: {
           created_at: string | null
@@ -983,6 +1067,7 @@ export type Database = {
           id: string
           insight_shared_with_mentors: boolean
           insight_text: string | null
+          node_id: string | null
           phase_id: string
           project_id: string
           reflection_question: string | null
@@ -1006,6 +1091,7 @@ export type Database = {
           id?: string
           insight_shared_with_mentors?: boolean
           insight_text?: string | null
+          node_id?: string | null
           phase_id: string
           project_id: string
           reflection_question?: string | null
@@ -1029,6 +1115,7 @@ export type Database = {
           id?: string
           insight_shared_with_mentors?: boolean
           insight_text?: string | null
+          node_id?: string | null
           phase_id?: string
           project_id?: string
           reflection_question?: string | null
@@ -1044,6 +1131,13 @@ export type Database = {
           user_id?: string
         }
         Relationships: [
+          {
+            foreignKeyName: "integrator_daily_steps_node_id_fkey"
+            columns: ["node_id"]
+            isOneToOne: false
+            referencedRelation: "evolution_nodes"
+            referencedColumns: ["id"]
+          },
           {
             foreignKeyName: "integrator_daily_steps_phase_id_fkey"
             columns: ["phase_id"]
@@ -1066,6 +1160,7 @@ export type Database = {
           created_at: string
           end_day: number
           id: string
+          node_id: string | null
           order_index: number
           phase_color: string
           phase_description: string
@@ -1080,6 +1175,7 @@ export type Database = {
           created_at?: string
           end_day: number
           id?: string
+          node_id?: string | null
           order_index: number
           phase_color: string
           phase_description: string
@@ -1094,6 +1190,7 @@ export type Database = {
           created_at?: string
           end_day?: number
           id?: string
+          node_id?: string | null
           order_index?: number
           phase_color?: string
           phase_description?: string
@@ -1104,6 +1201,13 @@ export type Database = {
           user_id?: string
         }
         Relationships: [
+          {
+            foreignKeyName: "integrator_phases_node_id_fkey"
+            columns: ["node_id"]
+            isOneToOne: false
+            referencedRelation: "evolution_nodes"
+            referencedColumns: ["id"]
+          },
           {
             foreignKeyName: "integrator_phases_project_id_fkey"
             columns: ["project_id"]
@@ -1602,6 +1706,42 @@ export type Database = {
           user_foundation_audio_url?: string | null
           user_foundation_story?: string | null
           user_foundation_summary?: Json | null
+        }
+        Relationships: []
+      }
+      project_spines: {
+        Row: {
+          broad_contribution: string | null
+          core_intention: string
+          created_at: string
+          id: string
+          spine_title: string
+          start_date: string
+          status: string
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          broad_contribution?: string | null
+          core_intention: string
+          created_at?: string
+          id?: string
+          spine_title: string
+          start_date?: string
+          status?: string
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          broad_contribution?: string | null
+          core_intention?: string
+          created_at?: string
+          id?: string
+          spine_title?: string
+          start_date?: string
+          status?: string
+          updated_at?: string
+          user_id?: string
         }
         Relationships: []
       }

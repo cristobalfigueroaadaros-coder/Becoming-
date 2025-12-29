@@ -22,7 +22,7 @@ serve(async (req) => {
   }
 
   try {
-    const { breakthroughId, projectTitle, projectDescription, timeframeDays } = await req.json();
+    const { breakthroughId, projectTitle, projectDescription, timeframeDays, isEvolution, evolutionInsight } = await req.json();
     
     const supabaseUrl = Deno.env.get('SUPABASE_URL')!;
     const supabaseKey = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!;
@@ -35,6 +35,14 @@ serve(async (req) => {
     if (userError || !user) {
       throw new Error('User not authenticated');
     }
+
+    // === PDR v2.1: Check for existing active Project Spine ===
+    const { data: existingSpine } = await supabase
+      .from('project_spines')
+      .select('*')
+      .eq('user_id', user.id)
+      .eq('status', 'active')
+      .single();
 
     // Get user profile for context
     const { data: profile } = await supabase
@@ -174,7 +182,179 @@ IMPORTANT:
     const targetEndDate = new Date(startDate);
     targetEndDate.setDate(targetEndDate.getDate() + timeframeDays - 1);
 
-    // Create the project
+    let spine;
+    let node;
+    let previousActiveNode = null;
+
+    // === PDR v2.1: Create or use existing Project Spine ===
+    if (existingSpine && (isEvolution === true)) {
+      // Use existing spine, archive old active node
+      spine = existingSpine;
+      
+      // Get the current active node to archive it
+      const { data: activeNode } = await supabase
+        .from('evolution_nodes')
+        .select('*')
+        .eq('spine_id', spine.id)
+        .eq('status', 'active')
+        .single();
+      
+      if (activeNode) {
+        previousActiveNode = activeNode;
+        // Archive the previous node
+        await supabase
+          .from('evolution_nodes')
+          .update({ status: 'archived' })
+          .eq('id', activeNode.id);
+        
+        console.log(`Archived previous node: ${activeNode.node_title}`);
+      }
+      
+      // Get the node count for numbering
+      const { count: nodeCount } = await supabase
+        .from('evolution_nodes')
+        .select('*', { count: 'exact', head: true })
+        .eq('spine_id', spine.id);
+      
+      // Create new evolution node
+      const { data: newNode, error: nodeError } = await supabase
+        .from('evolution_nodes')
+        .insert({
+          spine_id: spine.id,
+          parent_node_id: previousActiveNode?.id || null,
+          user_id: user.id,
+          node_number: (nodeCount || 0) + 1,
+          node_title: projectTitle,
+          refined_description: projectDescription,
+          evolution_insight: evolutionInsight || `Evolved from: ${previousActiveNode?.node_title || 'initial exploration'}`,
+          timeframe_days: timeframeDays,
+          start_date: startDate.toISOString().split('T')[0],
+          target_end_date: targetEndDate.toISOString().split('T')[0],
+          current_phase: 'exploration',
+          current_day: 1,
+          status: 'active',
+          seed_breakthrough_id: breakthroughId || null
+        })
+        .select()
+        .single();
+      
+      if (nodeError) {
+        console.error('Evolution node creation error:', nodeError);
+        throw new Error('Failed to create evolution node');
+      }
+      
+      node = newNode;
+      console.log(`Created evolution node #${node.node_number}: ${node.node_title}`);
+      
+    } else if (existingSpine && !isEvolution) {
+      // User has active spine but this is NOT marked as evolution
+      // This is the first commitment OR a forced new project scenario
+      // For now, we'll still use the existing spine and archive the old node
+      spine = existingSpine;
+      
+      const { data: activeNode } = await supabase
+        .from('evolution_nodes')
+        .select('*')
+        .eq('spine_id', spine.id)
+        .eq('status', 'active')
+        .single();
+      
+      if (activeNode) {
+        previousActiveNode = activeNode;
+        await supabase
+          .from('evolution_nodes')
+          .update({ status: 'archived' })
+          .eq('id', activeNode.id);
+      }
+      
+      const { count: nodeCount } = await supabase
+        .from('evolution_nodes')
+        .select('*', { count: 'exact', head: true })
+        .eq('spine_id', spine.id);
+      
+      const { data: newNode, error: nodeError } = await supabase
+        .from('evolution_nodes')
+        .insert({
+          spine_id: spine.id,
+          parent_node_id: previousActiveNode?.id || null,
+          user_id: user.id,
+          node_number: (nodeCount || 0) + 1,
+          node_title: projectTitle,
+          refined_description: projectDescription,
+          evolution_insight: evolutionInsight || null,
+          timeframe_days: timeframeDays,
+          start_date: startDate.toISOString().split('T')[0],
+          target_end_date: targetEndDate.toISOString().split('T')[0],
+          current_phase: 'exploration',
+          current_day: 1,
+          status: 'active',
+          seed_breakthrough_id: breakthroughId || null
+        })
+        .select()
+        .single();
+      
+      if (nodeError) {
+        console.error('Node creation error:', nodeError);
+        throw new Error('Failed to create evolution node');
+      }
+      
+      node = newNode;
+      
+    } else {
+      // === FIRST PROJECT: Create new spine + first node ===
+      const { data: newSpine, error: spineError } = await supabase
+        .from('project_spines')
+        .insert({
+          user_id: user.id,
+          spine_title: projectTitle,
+          core_intention: projectDescription,
+          broad_contribution: profile?.main_mission || null,
+          start_date: startDate.toISOString().split('T')[0],
+          status: 'active'
+        })
+        .select()
+        .single();
+      
+      if (spineError) {
+        console.error('Spine creation error:', spineError);
+        throw new Error('Failed to create project spine');
+      }
+      
+      spine = newSpine;
+      console.log(`Created new project spine: ${spine.spine_title}`);
+      
+      // Create first evolution node
+      const { data: firstNode, error: nodeError } = await supabase
+        .from('evolution_nodes')
+        .insert({
+          spine_id: spine.id,
+          parent_node_id: null,
+          user_id: user.id,
+          node_number: 1,
+          node_title: projectTitle,
+          refined_description: projectDescription,
+          evolution_insight: null,
+          timeframe_days: timeframeDays,
+          start_date: startDate.toISOString().split('T')[0],
+          target_end_date: targetEndDate.toISOString().split('T')[0],
+          current_phase: 'exploration',
+          current_day: 1,
+          status: 'active',
+          seed_breakthrough_id: breakthroughId || null
+        })
+        .select()
+        .single();
+      
+      if (nodeError) {
+        console.error('First node creation error:', nodeError);
+        throw new Error('Failed to create first evolution node');
+      }
+      
+      node = firstNode;
+      console.log(`Created first evolution node: ${node.node_title}`);
+    }
+
+    // === ALSO create in legacy integrator_projects table for backward compatibility ===
     const { data: project, error: projectError } = await supabase
       .from('integrator_projects')
       .insert({
@@ -193,13 +373,14 @@ IMPORTANT:
       .single();
 
     if (projectError) {
-      console.error('Project creation error:', projectError);
+      console.error('Legacy project creation error:', projectError);
       throw new Error('Failed to create project');
     }
 
-    // Create phases
+    // Create phases linked to both node and project
     const phasesToInsert = plan.phases.map((phase: any, index: number) => ({
       project_id: project.id,
+      node_id: node.id,
       user_id: user.id,
       phase_name: phase.name,
       phase_color: PHASE_COLORS[phase.name as keyof typeof PHASE_COLORS] || '#E5E7EB',
@@ -223,13 +404,14 @@ IMPORTANT:
     // Create a map of phase names to phase IDs
     const phaseMap = new Map(phases.map((p: any) => [p.phase_name, p.id]));
 
-    // Create daily steps
+    // Create daily steps linked to both node and project
     const stepsToInsert = plan.dailySteps.map((step: any) => {
       const scheduledDate = new Date(startDate);
       scheduledDate.setDate(scheduledDate.getDate() + step.day - 1);
       
       return {
         project_id: project.id,
+        node_id: node.id,
         phase_id: phaseMap.get(step.phase),
         user_id: user.id,
         day_number: step.day,
@@ -260,13 +442,23 @@ IMPORTANT:
         .eq('id', breakthroughId);
     }
 
-    console.log(`Created Integrator project: ${project.id} with ${phases.length} phases and ${steps.length} steps`);
+    const isEvolutionResult = !!previousActiveNode;
+    console.log(`Created Integrator project: ${project.id} with ${phases.length} phases and ${steps.length} steps. Is evolution: ${isEvolutionResult}`);
 
     return new Response(JSON.stringify({
       success: true,
       project,
       phases,
-      steps
+      steps,
+      // PDR v2.1: Include spine and node info
+      spine,
+      node,
+      isEvolution: isEvolutionResult,
+      previousNode: previousActiveNode ? {
+        id: previousActiveNode.id,
+        title: previousActiveNode.node_title,
+        nodeNumber: previousActiveNode.node_number
+      } : null
     }), {
       headers: { ...corsHeaders, 'Content-Type': 'application/json' },
     });
