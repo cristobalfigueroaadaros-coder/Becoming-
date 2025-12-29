@@ -82,7 +82,7 @@ const CreationLab = () => {
     getCurrentPhase,
     getMissedSteps,
     skipMissedSteps,
-    
+    loadProjects,
     // Constellation data
     insightDots,
     dotConnections,
@@ -150,6 +150,12 @@ const CreationLab = () => {
       // Wait for data refresh to complete BEFORE hiding setup
       // This ensures activeProject is populated when Focus Mode renders
       await refreshData();
+      
+      // Safety check - if still no active project, try loading projects again
+      if (!activeProject) {
+        console.log("Active project not set after refresh, retrying loadProjects...");
+        await loadProjects();
+      }
       
       toast.success("Project created! Let's build this.");
       setShowProjectSetup(false);

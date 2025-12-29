@@ -172,10 +172,13 @@ export const useCreationLabData = () => {
     loadAllData();
   }, [loadAllData]);
 
-  const refreshData = useCallback(() => {
+  const refreshData = useCallback(async () => {
     setLoading(true);
-    loadAllData();
-  }, [loadAllData]);
+    // Reload integrator projects FIRST (for newly created projects)
+    await integratorData.loadProjects();
+    // Then load the rest of the data
+    await loadAllData();
+  }, [loadAllData, integratorData.loadProjects]);
 
   return {
     // Integrator data (Focus Mode)
