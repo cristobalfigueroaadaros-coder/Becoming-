@@ -24,10 +24,10 @@ const GuidanceCreationSection = ({
         {/* Ask the Council */}
         <Card 
           className={cn(
-            "cursor-pointer hover:shadow-lg transition-all relative",
+            "cursor-pointer hover:shadow-xl transition-all relative shadow-md min-h-[140px]",
             isFirstTimeUser 
-              ? "ring-2 ring-primary bg-gradient-to-br from-primary/10 to-accent/5" 
-              : "hover:border-primary/30"
+              ? "ring-2 ring-primary bg-gradient-to-br from-primary/10 to-primary/20 border-primary/30" 
+              : "bg-gradient-to-br from-primary/5 to-primary/15 border-primary/20 hover:border-primary/40"
           )}
           onClick={onCouncilClick}
         >
@@ -42,13 +42,13 @@ const GuidanceCreationSection = ({
               {councilNotificationCount}
             </div>
           )}
-          <CardContent className="p-5">
-            <div className="flex items-center gap-4">
-              <div className="w-12 h-12 rounded-xl bg-gradient-to-br from-primary to-primary/80 flex items-center justify-center">
-                <Users className="w-6 h-6 text-primary-foreground" />
+          <CardContent className="p-6">
+            <div className="flex items-center gap-5">
+              <div className="w-14 h-14 rounded-xl bg-gradient-to-br from-primary to-primary/70 flex items-center justify-center shadow-lg">
+                <Users className="w-7 h-7 text-primary-foreground" />
               </div>
               <div className="flex-1">
-                <h3 className="font-semibold">
+                <h3 className="text-lg font-semibold">
                   {isFirstTimeUser ? "Meet Your Council" : "Ask the Council"}
                 </h3>
                 <p className="text-sm text-muted-foreground">
@@ -60,26 +60,26 @@ const GuidanceCreationSection = ({
                   }
                 </p>
               </div>
-              <ChevronRight className="w-5 h-5 text-muted-foreground" />
+              <ChevronRight className="w-6 h-6 text-muted-foreground" />
             </div>
           </CardContent>
         </Card>
 
         {/* Creation Lab */}
         <Card 
-          className="cursor-pointer hover:shadow-lg transition-all hover:border-accent/30"
+          className="cursor-pointer hover:shadow-xl transition-all shadow-md min-h-[140px] bg-gradient-to-br from-accent/5 to-accent/15 border-accent/20 hover:border-accent/40"
           onClick={() => navigate("/creation-lab")}
         >
-          <CardContent className="p-5">
-            <div className="flex items-center gap-4">
-              <div className="w-12 h-12 rounded-xl bg-gradient-to-br from-accent to-accent/80 flex items-center justify-center">
-                <FlaskConical className="w-6 h-6 text-accent-foreground" />
+          <CardContent className="p-6">
+            <div className="flex items-center gap-5">
+              <div className="w-14 h-14 rounded-xl bg-gradient-to-br from-accent to-accent/70 flex items-center justify-center shadow-lg">
+                <FlaskConical className="w-7 h-7 text-accent-foreground" />
               </div>
               <div className="flex-1">
-                <h3 className="font-semibold">Creation Lab</h3>
+                <h3 className="text-lg font-semibold">Creation Lab</h3>
                 <p className="text-sm text-muted-foreground">Break it into steps and build</p>
               </div>
-              <ChevronRight className="w-5 h-5 text-muted-foreground" />
+              <ChevronRight className="w-6 h-6 text-muted-foreground" />
             </div>
           </CardContent>
         </Card>
