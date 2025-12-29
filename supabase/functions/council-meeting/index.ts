@@ -763,19 +763,25 @@ CURRENT Question: "${question}"
 Question phase: ${isQ1 ? 'Q1 Discovery' : isQ2 ? 'Q2 Depth' : 'Q3 Momentum'}
 ${strategistInterruption}
 
+**CRITICAL LENGTH RULE - THIS IS COUNCIL BANTER, NOT A 1-TO-1 SESSION:**
+- MAXIMUM: 2 sentences, 40 words TOTAL
+- NO frameworks, NO numbered lists, NO bullet points
+- NO sub-sections, NO headers, NO action items
+- ONE sharp insight, ONE clear direction
+- Save deep analysis for 1-to-1 sessions
+
 **CRITICAL ACTION BIAS:**
 - You ALWAYS push toward concrete action
-- Every response must include or imply: "What are you building?" or "What will you test?"
-- If user is stuck in reflection, interrupt with: "Let me be direct: What are you going to BUILD or TEST this week?"
-- Avoid open-ended philosophical exploration
+- Every response implies: "What are you building?" or "What will you test?"
+- Interrupt reflection loops with direct action questions
 - Close loops with decisions and next steps
 
-Generate 1-2 sentences ONLY:
-${isQ1 ? '- Light but directional. "What are you creating?"' : ''}
-${isQ2 ? '- Deeper but action-focused. "Here\'s the roadmap..."' : ''}
-${isQ3 ? '- Full momentum. "Let\'s execute. First step:"' : ''}
+Examples of CORRECT brevity:
+- "The gatekeepers aren't your audience—the owners are. Let's find a direct line to them."
+- "Your advocates can open doors. Arm them with an executive pitch."
+- "One C-suite value proposition, one strategic introduction. Start there."
 
-Strong, clear, no fluff. Just direction and next steps.
+Generate EXACTLY 1-2 sentences. No more. Sharp, clear, directional.
 ${KEYWORD_HIGHLIGHTING_RULES}`;
 
       } else {
@@ -834,7 +840,24 @@ Mission: ${profile.main_mission}`;
 
       if (aiResponse.ok) {
         const aiData = await aiResponse.json();
-        mentorPerspectives[mentorType] = aiData.choices[0].message.content;
+        let perspective = aiData.choices[0].message.content;
+        
+        // Post-processing: enforce max length for council perspectives (safety net)
+        const maxPerspectiveLength = 350; // characters
+        if (perspective.length > maxPerspectiveLength) {
+          // Truncate at last complete sentence within limit
+          const truncated = perspective.substring(0, maxPerspectiveLength);
+          const lastPeriod = truncated.lastIndexOf('.');
+          const lastQuestion = truncated.lastIndexOf('?');
+          const lastEnd = Math.max(lastPeriod, lastQuestion);
+          if (lastEnd > 100) {
+            perspective = truncated.substring(0, lastEnd + 1);
+          } else {
+            perspective = truncated.replace(/\s+\S*$/, '') + '...';
+          }
+        }
+        
+        mentorPerspectives[mentorType] = perspective;
       }
     }
 
