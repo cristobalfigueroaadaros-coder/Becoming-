@@ -90,6 +90,7 @@ const Dashboard = () => {
   const [showWhisperNotification, setShowWhisperNotification] = useState(false);
   const [mentorNotifications, setMentorNotifications] = useState<Record<string, number>>({});
   const [processingMentor, setProcessingMentor] = useState<string | null>(null);
+  const [isFirstTimeUser, setIsFirstTimeUser] = useState(false);
   
   const { 
     unreadWhisper, 
@@ -113,6 +114,7 @@ const Dashboard = () => {
     checkPurposeStatus();
     loadConstellationInsights();
     loadMentorNotifications();
+    checkFirstTimeUser();
     // Check for whisper after a short delay
     const whisperTimer = setTimeout(() => {
       checkAndGenerateWhisper();
@@ -126,6 +128,26 @@ const Dashboard = () => {
       clearTimeout(outreachTimer);
     };
   }, []);
+
+  const checkFirstTimeUser = async () => {
+    try {
+      const { data: { user } } = await supabase.auth.getUser();
+      if (!user) return;
+
+      const { data: profile } = await supabase
+        .from("profiles")
+        .select("council_introduction_completed")
+        .eq("id", user.id)
+        .single();
+
+      // Show first-time notification if council intro not completed
+      if (profile && !profile.council_introduction_completed) {
+        setIsFirstTimeUser(true);
+      }
+    } catch (error: any) {
+      console.error("Error checking first-time user status:", error);
+    }
+  };
 
   // Show notification when unread whisper arrives
   useEffect(() => {
@@ -578,7 +600,12 @@ const Dashboard = () => {
         <div className="grid md:grid-cols-4 gap-4">
           {/* Council Meeting */}
           <Card 
-            className="bg-gradient-to-r from-primary to-accent text-primary-foreground shadow-xl relative cursor-pointer hover:scale-[1.02] transition-transform"
+            className={cn(
+              "shadow-xl relative cursor-pointer hover:scale-[1.02] transition-transform",
+              isFirstTimeUser 
+                ? "bg-gradient-to-r from-green-600 to-emerald-500 text-white ring-4 ring-green-400/50 animate-pulse" 
+                : "bg-gradient-to-r from-primary to-accent text-primary-foreground"
+            )}
             onClick={async () => {
               if (councilNotificationCount > 0) {
                 // Fetch first notification context and navigate with it
@@ -613,10 +640,20 @@ const Dashboard = () => {
                   console.error("Error fetching notification context:", error);
                 }
               }
-              navigate("/council-meeting");
+              navigate("/council-meeting", {
+                state: isFirstTimeUser ? { openerType: "first_meeting" } : undefined
+              });
             }}
           >
-            {councilNotificationCount > 0 && (
+            {/* First-time user WhatsApp-style badge */}
+            {isFirstTimeUser && (
+              <div className="absolute -top-3 -right-3 px-3 py-1 rounded-full bg-red-500 text-white text-xs font-bold shadow-lg animate-bounce flex items-center gap-1">
+                <Bell className="w-3 h-3" />
+                NEW
+              </div>
+            )}
+            {/* Regular notification count badge */}
+            {!isFirstTimeUser && councilNotificationCount > 0 && (
               <div className="absolute -top-2 -right-2 w-6 h-6 rounded-full bg-destructive text-destructive-foreground text-xs flex items-center justify-center font-bold animate-pulse">
                 {councilNotificationCount}
               </div>
@@ -624,16 +661,20 @@ const Dashboard = () => {
             <CardContent className="p-6 flex items-center gap-4">
               <div className="relative">
                 <Users className="w-12 h-12 flex-shrink-0" />
-                {councilNotificationCount > 0 && (
+                {(isFirstTimeUser || councilNotificationCount > 0) && (
                   <Bell className="w-4 h-4 absolute -top-1 -right-1 text-white animate-bounce" />
                 )}
               </div>
               <div className="flex-1">
-                <h2 className="text-xl font-bold">Ask the Council</h2>
+                <h2 className="text-xl font-bold">
+                  {isFirstTimeUser ? "🔴 The Council is Ready" : "Ask the Council"}
+                </h2>
                 <p className="opacity-90 text-sm">
-                  {councilNotificationCount > 0 
-                    ? `${councilNotificationCount} conversation${councilNotificationCount > 1 ? 's' : ''} waiting for you`
-                    : "Get wisdom from all mentors"
+                  {isFirstTimeUser 
+                    ? "Your mentors are waiting to meet you"
+                    : councilNotificationCount > 0 
+                      ? `${councilNotificationCount} conversation${councilNotificationCount > 1 ? 's' : ''} waiting for you`
+                      : "Get wisdom from all mentors"
                   }
                 </p>
               </div>
@@ -641,10 +682,14 @@ const Dashboard = () => {
                 variant="secondary"
                 onClick={(e) => {
                   e.stopPropagation();
-                  navigate(councilNotificationCount > 0 ? "/council-log" : "/council-meeting");
+                  if (isFirstTimeUser) {
+                    navigate("/council-meeting", { state: { openerType: "first_meeting" } });
+                  } else {
+                    navigate(councilNotificationCount > 0 ? "/council-log" : "/council-meeting");
+                  }
                 }}
               >
-                {councilNotificationCount > 0 ? "View" : "Start"}
+                {isFirstTimeUser ? "Meet Them" : councilNotificationCount > 0 ? "View" : "Start"}
               </Button>
             </CardContent>
           </Card>
