@@ -65,29 +65,57 @@ NEVER:
 === END RULES ===
 `;
 
-// Proactive project detection rules
+// Proactive project detection rules - ENGAGEMENT-BASED APPROACH
 const PROACTIVE_PROJECT_RULES = `
-=== PROACTIVE PROJECT DETECTION ===
+=== PROACTIVE PROJECT DETECTION (WALK WITH THE USER) ===
 
-You are trained to detect when an idea is CRYSTALLIZING into something real.
+You GUIDE users through discovery. You don't rush to "make this a project."
 
 CRITICAL: Never use predetermined concept names. Only work with what the USER actually brings up.
 
-SIGNALS THAT A CONCEPT IS READY:
-- It has a NAME (suggested by you based on what the user described)
-- It has a SPECIFIC audience or use case
-- The user shows EXCITEMENT or RESONANCE with it
-- There are ACTIONABLE next steps
+PROGRESSION STAGES (follow naturally based on engagement):
 
-WHEN YOU DETECT CRYSTALLIZATION:
-1. NAME THE CONCEPT based on user's actual words: "This sounds like **[Their Concept Name]**"
-2. VALIDATE IT: "I think this could be something real"
-3. SUGGEST ACTION: "Should we make this a project?"
+STAGE 1 - EXPLORATION (early exchanges):
+- Ask questions, understand deeply
+- Language: "Let's explore this together..." / "Tell me more about..."
+- Goal: Gather context, understand the full picture
 
-INCLUDE the exact phrase "make this a project" when you sense readiness. The system will detect this.
+STAGE 2 - NAMING (when you see something forming):
+- Start naming concepts based on their words: "This sounds like **[Concept]**"
+- Language: "I'm getting a clearer picture..." / "What you're describing sounds like..."
+- Goal: Help them see their idea crystallize
 
-Example format (but use the USER's actual concept, not this example):
-"This concept we've been shaping — **[User's Specific Concept]** — feels like something real taking shape. Should we make this a project and start building it?"
+STAGE 3 - VALIDATION (after naming):
+- Check if the name resonates: "Does this capture what you're building?"
+- Language: "This feels like something worth pursuing..." / "I can see this becoming real..."
+- Goal: Confirm the user agrees with the direction
+
+STAGE 4 - INVITATION (only after explicit user agreement):
+- Suggest project creation: "Should we make this a project?"
+- Language: "I feel we have enough clarity now. Should we make this a project?"
+- Goal: Convert clarity into commitment
+
+"WALKING WITH" LANGUAGE TO USE:
+- "I'm getting a clearer picture of what you're building..."
+- "This is valuable—keep going..."
+- "I know it's a lot of questions, but each one reveals something important..."
+- "What you just said is exactly what we need to build on..."
+- "I can see something forming here..."
+
+MEASURE USER ENGAGEMENT BEFORE SUGGESTING PROJECTS:
+- Short answers, tentative language → Stay in EXPLORATION
+- Longer responses, excitement, specific details → Move toward NAMING
+- Explicit agreement ("yes!", "exactly", "that's it") → Move toward INVITATION
+
+ONLY say "make this a project" when:
+1. User has EXPLICITLY AGREED with a concept you named
+2. User shows CLEAR excitement or commitment language
+3. User asks "what's next?" or "how do I start?"
+
+NEVER:
+- Suggest a project in the first 3-4 exchanges
+- Skip straight from exploration to invitation
+- Suggest projects when user is still unsure or exploring
 
 === END DETECTION ===
 `;
@@ -853,8 +881,67 @@ IMPORTANT: Continue this conversation naturally. You reached out to the user abo
       console.log("No active spine found (this is fine for new users)");
     }
     
-    // Only detect coherence after 2+ exchanges (and check cooldown for branches)
-    if (conversationDepth >= 2 && message !== "__HANDOFF_INIT__" && chatHistory && chatHistory.length > 0) {
+    // === ENGAGEMENT ANALYSIS FUNCTION ===
+    function analyzeEngagement(userMessages: string[]): { 
+      level: 'LOW' | 'MEDIUM' | 'HIGH'; 
+      signals: { 
+        avgLength: number; 
+        hasExcitement: boolean; 
+        hasSpecificity: boolean; 
+        hasAgreement: boolean;
+        hasQuestions: boolean;
+      } 
+    } {
+      if (!userMessages || userMessages.length === 0) {
+        return { level: 'LOW', signals: { avgLength: 0, hasExcitement: false, hasSpecificity: false, hasAgreement: false, hasQuestions: false } };
+      }
+      
+      const avgLength = userMessages.reduce((sum, m) => sum + m.split(' ').length, 0) / userMessages.length;
+      const allText = userMessages.join(' ').toLowerCase();
+      
+      const hasExcitement = userMessages.some(m => 
+        m.includes('!') || 
+        /\b(yes|exactly|that's it|i love|perfect|amazing|great|absolutely)\b/i.test(m)
+      );
+      
+      const hasSpecificity = userMessages.some(m => 
+        /\b(called|named|my|this is|i want to|specifically|exactly|the)\b/i.test(m) &&
+        m.split(' ').length > 15 // Needs some detail
+      );
+      
+      const hasAgreement = userMessages.some(m => 
+        /\b(yes|agree|exactly|right|perfect|that's it|definitely|absolutely)\b/i.test(m)
+      );
+      
+      const hasQuestions = userMessages.some(m => m.includes('?'));
+      
+      // Determine engagement level
+      let level: 'LOW' | 'MEDIUM' | 'HIGH' = 'LOW';
+      if (avgLength > 40 && hasExcitement && (hasAgreement || hasSpecificity)) {
+        level = 'HIGH';
+      } else if (avgLength > 20 || hasExcitement || hasSpecificity) {
+        level = 'MEDIUM';
+      }
+      
+      return { level, signals: { avgLength, hasExcitement, hasSpecificity, hasAgreement, hasQuestions } };
+    }
+    
+    // Get recent user messages for engagement analysis
+    const recentUserMessages = chatHistory
+      ?.filter((m: any) => m.role === 'user')
+      ?.slice(-4)
+      ?.map((m: any) => m.content) || [];
+    
+    const engagementData = analyzeEngagement(recentUserMessages);
+    console.log("Engagement analysis:", engagementData);
+    
+    // PDR v3: Soft minimum of 4 exchanges + engagement-based detection
+    const meetsDepthRequirement = conversationDepth >= 4;
+    const meetsEngagementRequirement = engagementData.level === 'HIGH' || 
+      (engagementData.level === 'MEDIUM' && engagementData.signals.hasAgreement);
+    
+    // Only detect coherence if BOTH requirements met
+    if (meetsDepthRequirement && meetsEngagementRequirement && message !== "__HANDOFF_INIT__" && chatHistory && chatHistory.length > 0) {
       const recentHistory = chatHistory.slice(-6).map((m: any) => `${m.role.toUpperCase()}: ${m.content}`).join('\n');
       
       // PDR v2.2: Enhanced prompt with branch classification
@@ -889,6 +976,22 @@ CLASSIFICATION RULES:
 NOTE: Use BRANCH_ADDITION sparingly. Only when there's a CLEAR complementary direction emerging.
 ` : '';
 
+      // PDR v3: Add engagement context to coherence prompt
+      const engagementContext = `
+ENGAGEMENT ANALYSIS (from last 4 user messages):
+- Average response length: ${engagementData.signals.avgLength.toFixed(0)} words
+- Shows excitement: ${engagementData.signals.hasExcitement}
+- Shows specificity: ${engagementData.signals.hasSpecificity}
+- Shows agreement: ${engagementData.signals.hasAgreement}
+- Still asking questions: ${engagementData.signals.hasQuestions}
+- Engagement level: ${engagementData.level}
+
+ENGAGEMENT-BASED RULES:
+- If engagement is LOW or user is still asking exploratory questions → Return isCoherent: false
+- Only trigger when user shows EXPLICIT agreement or HIGH engagement
+- The user should feel READY, not pushed
+`;
+
       const coherencePrompt = `Analyze this mentor conversation for PROJECT COHERENCE.
 
 CONVERSATION:
@@ -896,6 +999,8 @@ ${recentHistory}
 
 LATEST USER MESSAGE: "${message}"
 MENTOR RESPONSE: "${response}"
+
+${engagementContext}
 
 ${evolutionContext}
 
@@ -905,18 +1010,26 @@ CLASSIFICATION (no existing project):
 - INSIGHT_ONLY - Interesting but not yet coherent enough for a project
 ` : ''}
 
-COHERENCE INDICATORS (REQUIRE HIGH BAR - 0.85+ confidence):
+COHERENCE INDICATORS (REQUIRE VERY HIGH BAR - 0.90+ confidence):
 1. User language is becoming MORE SPECIFIC (not scattered)
 2. User is COMMITTING to a direction (not exploring multiple paths)
 3. User is using STABLE VOCABULARY (repeating same project/idea terms)
-4. User shows AGREEMENT with mentor guidance
-5. A clear PROJECT or CREATION is emerging
+4. User shows EXPLICIT AGREEMENT with mentor's naming/framing
+5. A clear PROJECT or CREATION is emerging with a CONCRETE name
 6. There is ENOUGH SUBSTANCE for action (not just a vague idea)
+7. User engagement is HIGH (see engagement analysis above)
 
-IMPORTANT: Be CONSERVATIVE. Only trigger cards for truly significant moments.
-- For BRANCH_ADDITION: Only if it's a substantial complementary direction
-- For CORE_EVOLUTION: Only if the main direction is genuinely shifting
-- For NEW_CORE_PROJECT: Only if there's clear actionable intent
+BE VERY CONSERVATIVE - THIS INTERRUPTS THE USER'S FLOW:
+- Only trigger when the user feels READY (look for agreement language)
+- If user is still asking questions → Return INSIGHT_ONLY
+- If user is still exploring multiple directions → Return INSIGHT_ONLY
+- If engagement is LOW or MEDIUM without agreement → Return INSIGHT_ONLY
+- For BRANCH_ADDITION: Only if it's a substantial, EXPLICITLY discussed complementary direction
+- For CORE_EVOLUTION: Only if user EXPLICITLY acknowledges a shift in direction
+- For NEW_CORE_PROJECT: Only if user has agreed with the concept naming
+
+HOURS SINCE LAST CARD: ${hoursSinceLastCard.toFixed(1)} hours
+- If less than 24 hours → Be EXTRA conservative (prefer INSIGHT_ONLY)
 
 YOU MUST RESPOND WITH VALID JSON ONLY:
 {
@@ -930,7 +1043,11 @@ YOU MUST RESPOND WITH VALID JSON ONLY:
   "skipReason": "Reason to not show card" or null
 }
 
-Only return isCoherent: true if confidence > 0.85 and you can extract a clear projectName.`;
+Only return isCoherent: true if:
+- confidence > 0.90 (higher bar)
+- You can extract a clear projectName
+- User has shown EXPLICIT agreement or HIGH engagement
+- At least 24 hours since last card (or this is truly exceptional)`;
 
       try {
         const coherenceResponse = await fetch("https://ai.gateway.lovable.dev/v1/chat/completions", {
@@ -953,13 +1070,13 @@ Only return isCoherent: true if confidence > 0.85 and you can extract a clear pr
           try {
             const coherence = JSON.parse(coherenceText);
             
-            // PDR v2.2: Apply cooldown for branch additions (24 hours)
-            const shouldApplyCooldown = coherence.coherenceType === 'BRANCH_ADDITION' && hoursSinceLastCard < 24;
+            // PDR v3: Apply UNIVERSAL cooldown (24 hours for ALL card types)
+            const shouldApplyCooldown = hoursSinceLastCard < 24;
             
-            if (shouldApplyCooldown) {
-              console.log("Skipping branch card due to cooldown:", hoursSinceLastCard, "hours since last card");
-              // Don't set projectCoherence - skip the card
-            } else if (coherence.isCoherent && coherence.confidence > 0.85 && coherence.projectName && coherence.coherenceType !== 'INSIGHT_ONLY') {
+            if (shouldApplyCooldown && coherence.confidence < 0.95) {
+              console.log("Skipping card due to 24h cooldown:", hoursSinceLastCard.toFixed(1), "hours since last card. Type:", coherence.coherenceType);
+              // Don't set projectCoherence - skip the card (unless extremely high confidence)
+            } else if (coherence.isCoherent && coherence.confidence > 0.90 && coherence.projectName && coherence.coherenceType !== 'INSIGHT_ONLY') {
               projectCoherence = {
                 isCoherent: true,
                 coherenceType: coherence.coherenceType || (hasActiveSpine ? 'BRANCH_ADDITION' : 'NEW_CORE_PROJECT'),
