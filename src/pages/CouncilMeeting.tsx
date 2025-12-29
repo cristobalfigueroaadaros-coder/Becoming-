@@ -486,16 +486,7 @@ const CouncilMeeting = () => {
           </motion.div>
         )}
 
-        {/* PDR v2.1: Mentor Suggestion Card (after Q2/Q3) */}
-        {suggestedMentor && stage === 'complete' && (
-          <MentorSuggestionCard
-            mentorType={suggestedMentor.mentorType}
-            mentorName={suggestedMentor.mentorName}
-            suggestionMessage={suggestedMentor.suggestionMessage}
-            onAccept={handleMentorSuggestionAccept}
-            onDismiss={() => setSuggestedMentor(null)}
-          />
-        )}
+        {/* PDR v2.1: Mentor Suggestion Card - MOVED TO END OF INTERACTION (after line 926) */}
 
         {/* Council Opener - Personalized Greeting */}
         {(councilOpener || openerLoading) && stage === 'input' && !hasActiveThread && !showGroundingQuestion && (
@@ -899,44 +890,30 @@ const CouncilMeeting = () => {
               </motion.div>
             )}
 
-            {/* 6. Q3 ONLY: COUNCIL GUIDANCE */}
-            {isQ3 && councilGuidance && (
+            {/* PDR v2.1: Mentor Suggestion Card - NOW AT END OF INTERACTION */}
+            {suggestedMentor && (
               <motion.div
                 initial={{ opacity: 0, y: 10 }}
                 animate={{ opacity: 1, y: 0 }}
               >
-                <Card className="border-2 border-primary/50 bg-gradient-to-br from-primary/10 to-accent/10">
-                  <CardHeader>
-                    <div className="flex items-center justify-between">
-                      <CardTitle className="flex items-center gap-2">
-                        <Sparkles className="w-5 h-5 text-primary" />
-                        Council Guidance
-                      </CardTitle>
-                      <InsightActionButton
-                        insightText={councilGuidance}
-                        sourceType="council_guidance"
-                        sourceContext={{ question }}
-                      />
-                    </div>
-                  </CardHeader>
-                  <CardContent>
-                    <HighlightedText text={councilGuidance} className="text-sm sm:text-base leading-relaxed font-medium" />
-                  </CardContent>
-                </Card>
+                <MentorSuggestionCard
+                  mentorType={suggestedMentor.mentorType}
+                  mentorName={suggestedMentor.mentorName}
+                  suggestionMessage={suggestedMentor.suggestionMessage}
+                  onAccept={handleMentorSuggestionAccept}
+                  onDismiss={() => setSuggestedMentor(null)}
+                />
               </motion.div>
             )}
 
-            {/* Thread Continuation Options */}
-            {!tasksGenerated && (
+            {/* Thread Continuation Options - Only show if NO mentor suggestion */}
+            {!tasksGenerated && !suggestedMentor && (
               <motion.div
                 initial={{ opacity: 0, y: 10 }}
                 animate={{ opacity: 1, y: 0 }}
               >
                 <Card className="border-2 border-accent/30 bg-gradient-to-br from-accent/5 to-transparent">
                   <CardContent className="pt-6 space-y-4">
-                    <p className="text-sm text-muted-foreground italic text-center">
-                      💭 Would you like to continue this topic or begin a new one?
-                    </p>
                     <div className="flex flex-col sm:flex-row gap-3">
                       <Button 
                         onClick={continueAsking} 
