@@ -5,12 +5,20 @@ import { Button } from "@/components/ui/button";
 import { Card, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { toast } from "sonner";
-import { Brain, Lightbulb, Zap, Trees, Heart, Sparkles, Target, TrendingUp, Megaphone, FlaskConical, Scale, Moon, Lock } from "lucide-react";
+import { Brain, Lightbulb, Zap, Trees, Heart, Sparkles, Target, TrendingUp, Megaphone, FlaskConical, Scale, Moon, Lock, Star } from "lucide-react";
 import { cn } from "@/lib/utils";
 
 // Mandatory mentors - always selected and cannot be removed
 const MANDATORY_MENTORS = ["creative_visionary", "strategist_mentor"];
-const SUGGESTED_MENTOR = "business_mentor";
+
+// Mentor suggestions based on user's Step 2 selection
+const mentorSuggestions: Record<string, string[]> = {
+  discover_purpose: ["alignment_mentor", "mystic_mentor"],
+  grow_purpose: ["business_mentor", "discipline_mentor"],
+  already_working: ["business_mentor", "marketing_mentor"],
+  stuck_unclear: ["heart_mentor", "alignment_mentor"],
+  dont_know: ["ancient_sage", "oracle_mother"],
+};
 
 const mentors = [
   // 🔥 Action & Discipline
@@ -38,7 +46,6 @@ const mentors = [
     icon: Brain,
     color: "bg-primary",
     category: "Action & Discipline",
-    suggested: true,
   },
   // 💡 Creativity & Expression
   {
@@ -120,9 +127,20 @@ const mentors = [
 
 const OnboardingStep4 = () => {
   const navigate = useNavigate();
-  // Start with mandatory mentors already selected
   const [selectedMentors, setSelectedMentors] = useState<string[]>(MANDATORY_MENTORS);
   const [loading, setLoading] = useState(false);
+  const [suggestedMentorIds, setSuggestedMentorIds] = useState<string[]>([]);
+
+  // Load user's focus from Step 2 and determine suggested mentors
+  useEffect(() => {
+    const userFocus = localStorage.getItem("onboarding_focus");
+    if (userFocus && mentorSuggestions[userFocus]) {
+      const suggested = mentorSuggestions[userFocus];
+      setSuggestedMentorIds(suggested);
+      // Auto-select suggested mentors
+      setSelectedMentors(prev => [...new Set([...prev, ...suggested])]);
+    }
+  }, []);
 
   const toggleMentor = (mentorId: string) => {
     // Don't allow deselecting mandatory mentors
@@ -184,6 +202,17 @@ const OnboardingStep4 = () => {
           </p>
         </div>
 
+        {/* Smart Suggestions Notice */}
+        {suggestedMentorIds.length > 0 && (
+          <div className="p-4 rounded-xl bg-accent/10 border border-accent/30 text-center">
+            <p className="text-sm text-foreground">
+              <Star className="w-4 h-4 inline mr-2 text-accent" />
+              Based on where you are, we've suggested additional mentors that may help.
+              Feel free to adjust!
+            </p>
+          </div>
+        )}
+
         <div className="space-y-8">
           {["Action & Discipline", "Creativity & Expression", "Knowledge & Insight", "Emotional & Spiritual"].map((category) => {
             const categoryMentors = mentors.filter((m) => m.category === category);
@@ -201,7 +230,7 @@ const OnboardingStep4 = () => {
                     const Icon = mentor.icon;
                     const isSelected = selectedMentors.includes(mentor.id);
                     const isMandatory = MANDATORY_MENTORS.includes(mentor.id);
-                    const isSuggested = mentor.id === SUGGESTED_MENTOR;
+                    const isSuggested = suggestedMentorIds.includes(mentor.id);
 
                     return (
                       <Card
@@ -209,7 +238,8 @@ const OnboardingStep4 = () => {
                         className={cn(
                           "cursor-pointer transition-all hover:shadow-lg relative",
                           isSelected && "ring-2 ring-primary shadow-xl",
-                          isMandatory && "bg-primary/5 border-primary/30"
+                          isMandatory && "bg-primary/5 border-primary/30",
+                          isSuggested && !isMandatory && "bg-accent/5 border-accent/30"
                         )}
                         onClick={() => toggleMentor(mentor.id)}
                       >
@@ -222,8 +252,9 @@ const OnboardingStep4 = () => {
                             </Badge>
                           )}
                           {isSuggested && !isMandatory && (
-                            <Badge variant="secondary" className="text-xs">
-                              ⭐ Recommended
+                            <Badge variant="secondary" className="bg-accent text-accent-foreground text-xs">
+                              <Star className="w-3 h-3 mr-1" />
+                              Suggested
                             </Badge>
                           )}
                         </div>
