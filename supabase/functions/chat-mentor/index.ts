@@ -799,18 +799,20 @@ IMPORTANT: Continue this conversation naturally. You reached out to the user abo
       console.error("Value Map detection failed (non-fatal):", error);
     }
 
-    // === PDR v2.1: COHERENCE DETECTION FOR COMMITMENT/EVOLUTION CARD ===
+    // === PDR v2.2: COHERENCE DETECTION WITH BRANCH CLASSIFICATION & COOLDOWN ===
     let projectCoherence = null;
     
     // Check if user has an active Project Spine
     let hasActiveSpine = false;
     let activeSpineInfo = null;
     let activeNodeInfo = null;
+    let existingBranches: any[] = [];
+    let hoursSinceLastCard = Infinity;
     
     try {
       const { data: activeSpine } = await supabaseClient
         .from('project_spines')
-        .select('id, spine_title, core_intention')
+        .select('id, spine_title, core_intention, core_theme, last_coherence_card_at')
         .eq('user_id', user.id)
         .eq('status', 'active')
         .single();
@@ -818,6 +820,11 @@ IMPORTANT: Continue this conversation naturally. You reached out to the user abo
       if (activeSpine) {
         hasActiveSpine = true;
         activeSpineInfo = activeSpine;
+        
+        // Calculate cooldown
+        if (activeSpine.last_coherence_card_at) {
+          hoursSinceLastCard = (Date.now() - new Date(activeSpine.last_coherence_card_at).getTime()) / (1000 * 60 * 60);
+        }
         
         // Get the active node
         const { data: activeNode } = await supabaseClient
@@ -830,27 +837,56 @@ IMPORTANT: Continue this conversation naturally. You reached out to the user abo
         if (activeNode) {
           activeNodeInfo = activeNode;
         }
+        
+        // Get existing branches
+        const { data: branches } = await supabaseClient
+          .from('project_branches')
+          .select('id, branch_title, branch_type')
+          .eq('spine_id', activeSpine.id)
+          .eq('status', 'active');
+        
+        if (branches) {
+          existingBranches = branches;
+        }
       }
     } catch (error) {
       console.log("No active spine found (this is fine for new users)");
     }
     
-    // Only detect coherence when coming from council (shaping session) and after 2+ exchanges
+    // Only detect coherence after 2+ exchanges (and check cooldown for branches)
     if (conversationDepth >= 2 && message !== "__HANDOFF_INIT__" && chatHistory && chatHistory.length > 0) {
       const recentHistory = chatHistory.slice(-6).map((m: any) => `${m.role.toUpperCase()}: ${m.content}`).join('\n');
       
-      // PDR v2.1: Different prompt based on whether user has active spine
+      // PDR v2.2: Enhanced prompt with branch classification
+      const branchContext = existingBranches.length > 0 ? `
+EXISTING BRANCHES in user's project:
+${existingBranches.map(b => `- ${b.branch_title} (${b.branch_type})`).join('\n')}
+` : '';
+
       const evolutionContext = hasActiveSpine && activeNodeInfo ? `
 IMPORTANT CONTEXT - USER HAS ACTIVE PROJECT:
 - Current Project Spine: "${activeSpineInfo?.spine_title}"
+- Core Theme: "${activeSpineInfo?.core_theme || activeSpineInfo?.spine_title}"
 - Current Evolution Node: "${activeNodeInfo.node_title}" (Node #${activeNodeInfo.node_number})
 - Current Description: "${activeNodeInfo.refined_description}"
+${branchContext}
 
-EVOLUTION vs NEW PROJECT:
-- If the emerging idea is a REFINEMENT of their current project, set isEvolution: true
-- If the idea is COMPLETELY DIFFERENT from their current project, set isEvolution: false
-- Evolution = narrower, more specific, builds on current work
-- Use evolution language: "Your vision is focusing", "This builds on what you already did"
+CLASSIFICATION RULES:
+1. BRANCH_ADDITION - This insight COMPLEMENTS the existing project (new tactic, strategy, or supporting idea)
+   - Does NOT replace the main project direction
+   - Adds a "leaf" to the "tree trunk"
+   - Example: "Family Engagement Strategy" as a branch of "Marketing Strategy"
+   
+2. CORE_EVOLUTION - The main project direction is SHIFTING/REFOCUSING
+   - The core theme is changing significantly
+   - The user's vision is becoming clearer in a NEW direction
+   - Previous work still matters but the title should change
+   
+3. INSIGHT_ONLY - This is interesting but too small to be a branch
+   - Just a nice observation, not actionable enough
+   - Should be saved as an insight, not shown as a card
+
+NOTE: Use BRANCH_ADDITION sparingly. Only when there's a CLEAR complementary direction emerging.
 ` : '';
 
       const coherencePrompt = `Analyze this mentor conversation for PROJECT COHERENCE.
@@ -863,31 +899,38 @@ MENTOR RESPONSE: "${response}"
 
 ${evolutionContext}
 
-COHERENCE INDICATORS:
+${!hasActiveSpine ? `
+CLASSIFICATION (no existing project):
+- NEW_CORE_PROJECT - A clear project idea is emerging that deserves commitment
+- INSIGHT_ONLY - Interesting but not yet coherent enough for a project
+` : ''}
+
+COHERENCE INDICATORS (REQUIRE HIGH BAR - 0.85+ confidence):
 1. User language is becoming MORE SPECIFIC (not scattered)
 2. User is COMMITTING to a direction (not exploring multiple paths)
 3. User is using STABLE VOCABULARY (repeating same project/idea terms)
 4. User shows AGREEMENT with mentor guidance
 5. A clear PROJECT or CREATION is emerging
+6. There is ENOUGH SUBSTANCE for action (not just a vague idea)
 
-DETERMINE:
-- Is there enough coherence to suggest commitment?
-- Can you infer a PROJECT NAME from what they're building/creating?
-- Can you summarize their INTENTION in one sentence?
-${hasActiveSpine ? '- Is this an EVOLUTION of their current project or something NEW?' : ''}
+IMPORTANT: Be CONSERVATIVE. Only trigger cards for truly significant moments.
+- For BRANCH_ADDITION: Only if it's a substantial complementary direction
+- For CORE_EVOLUTION: Only if the main direction is genuinely shifting
+- For NEW_CORE_PROJECT: Only if there's clear actionable intent
 
 YOU MUST RESPOND WITH VALID JSON ONLY:
 {
+  "coherenceType": "${hasActiveSpine ? '"BRANCH_ADDITION" | "CORE_EVOLUTION" | "INSIGHT_ONLY"' : '"NEW_CORE_PROJECT" | "INSIGHT_ONLY"'}",
   "isCoherent": true/false,
   "confidence": 0.0-1.0,
-  "projectName": "Inferred project name" or null,
-  "projectDescription": "One sentence intention statement" or null,
-  "coherenceSignals": ["list", "of", "signals", "detected"],
-  "isEvolution": ${hasActiveSpine ? 'true/false' : 'false'},
-  "evolutionInsight": ${hasActiveSpine ? '"Why this is a refinement of previous work" or null' : 'null'}
+  "projectName": "Inferred name" or null,
+  "projectDescription": "One sentence intention" or null,
+  "coherenceSignals": ["list", "of", "signals"],
+  "evolutionInsight": "Why this builds on/refocuses previous work" or null,
+  "skipReason": "Reason to not show card" or null
 }
 
-Only return isCoherent: true if confidence > 0.7 and you can extract a clear projectName.`;
+Only return isCoherent: true if confidence > 0.85 and you can extract a clear projectName.`;
 
       try {
         const coherenceResponse = await fetch("https://ai.gateway.lovable.dev/v1/chat/completions", {
@@ -909,19 +952,38 @@ Only return isCoherent: true if confidence > 0.7 and you can extract a clear pro
           
           try {
             const coherence = JSON.parse(coherenceText);
-            if (coherence.isCoherent && coherence.confidence > 0.7 && coherence.projectName) {
+            
+            // PDR v2.2: Apply cooldown for branch additions (24 hours)
+            const shouldApplyCooldown = coherence.coherenceType === 'BRANCH_ADDITION' && hoursSinceLastCard < 24;
+            
+            if (shouldApplyCooldown) {
+              console.log("Skipping branch card due to cooldown:", hoursSinceLastCard, "hours since last card");
+              // Don't set projectCoherence - skip the card
+            } else if (coherence.isCoherent && coherence.confidence > 0.85 && coherence.projectName && coherence.coherenceType !== 'INSIGHT_ONLY') {
               projectCoherence = {
                 isCoherent: true,
+                coherenceType: coherence.coherenceType || (hasActiveSpine ? 'BRANCH_ADDITION' : 'NEW_CORE_PROJECT'),
                 projectName: coherence.projectName,
                 projectDescription: coherence.projectDescription,
                 confidence: coherence.confidence,
                 // PDR v2.1: Include evolution info
-                isEvolution: coherence.isEvolution || false,
+                isEvolution: coherence.coherenceType === 'CORE_EVOLUTION',
                 evolutionInsight: coherence.evolutionInsight || null,
                 previousNodeTitle: activeNodeInfo?.node_title || null,
-                previousNodeNumber: activeNodeInfo?.node_number || null
+                previousNodeNumber: activeNodeInfo?.node_number || null,
+                // PDR v2.2: Include branch context
+                coreTheme: activeSpineInfo?.core_theme || activeSpineInfo?.spine_title || null,
+                spineId: activeSpineInfo?.id || null
               };
-              console.log("PROJECT COHERENCE DETECTED:", projectCoherence.projectName, "isEvolution:", projectCoherence.isEvolution);
+              console.log("PROJECT COHERENCE DETECTED:", projectCoherence.coherenceType, projectCoherence.projectName);
+              
+              // Update last_coherence_card_at for cooldown tracking
+              if (hasActiveSpine && activeSpineInfo?.id) {
+                await supabaseClient
+                  .from('project_spines')
+                  .update({ last_coherence_card_at: new Date().toISOString() })
+                  .eq('id', activeSpineInfo.id);
+              }
             }
           } catch (parseError) {
             console.error("Failed to parse coherence JSON:", parseError);
