@@ -55,18 +55,61 @@ export interface IntegratorDailyStep {
   rescheduled_from?: string | null;
 }
 
+// PDR v2.1: Project Spine type
+export interface ProjectSpine {
+  id: string;
+  user_id: string;
+  spine_title: string;
+  core_intention: string;
+  broad_contribution: string | null;
+  start_date: string;
+  status: string;
+  created_at: string;
+  updated_at: string;
+}
+
+// PDR v2.1: Evolution Node type
+export interface EvolutionNode {
+  id: string;
+  spine_id: string;
+  parent_node_id: string | null;
+  user_id: string;
+  node_number: number;
+  node_title: string;
+  refined_description: string;
+  evolution_insight: string | null;
+  timeframe_days: number;
+  start_date: string;
+  target_end_date: string;
+  current_phase: string;
+  current_day: number;
+  status: string;
+  completion_summary: string | null;
+  why_this_matters: string | null;
+  learning_insights_count: number;
+  seed_breakthrough_id: string | null;
+  created_at: string;
+  updated_at: string;
+}
+
 export function useIntegratorProjects() {
   const [projects, setProjects] = useState<IntegratorProject[]>([]);
   const [activeProject, setActiveProject] = useState<IntegratorProject | null>(null);
   const [phases, setPhases] = useState<IntegratorPhase[]>([]);
   const [steps, setSteps] = useState<IntegratorDailyStep[]>([]);
   const [loading, setLoading] = useState(true);
+  
+  // PDR v2.1: Spine and Node state
+  const [activeSpine, setActiveSpine] = useState<ProjectSpine | null>(null);
+  const [activeNode, setActiveNode] = useState<EvolutionNode | null>(null);
+  const [nodeHistory, setNodeHistory] = useState<EvolutionNode[]>([]);
 
   const loadProjects = useCallback(async () => {
     try {
       const { data: { user } } = await supabase.auth.getUser();
       if (!user) return;
 
+      // Load legacy projects
       const { data, error } = await supabase
         .from('integrator_projects')
         .select('*')
@@ -81,6 +124,41 @@ export function useIntegratorProjects() {
       if (active) {
         setActiveProject(active);
         await loadProjectDetails(active.id);
+      }
+
+      // PDR v2.1: Load active spine and nodes
+      const { data: spineData } = await supabase
+        .from('project_spines')
+        .select('*')
+        .eq('user_id', user.id)
+        .eq('status', 'active')
+        .single();
+
+      if (spineData) {
+        setActiveSpine(spineData);
+        
+        // Load active node
+        const { data: activeNodeData } = await supabase
+          .from('evolution_nodes')
+          .select('*')
+          .eq('spine_id', spineData.id)
+          .eq('status', 'active')
+          .single();
+        
+        if (activeNodeData) {
+          setActiveNode(activeNodeData);
+        }
+
+        // Load node history
+        const { data: nodeHistoryData } = await supabase
+          .from('evolution_nodes')
+          .select('*')
+          .eq('spine_id', spineData.id)
+          .order('node_number', { ascending: true });
+        
+        if (nodeHistoryData) {
+          setNodeHistory(nodeHistoryData);
+        }
       }
     } catch (error) {
       console.error('Error loading integrator projects:', error);
@@ -115,23 +193,45 @@ export function useIntegratorProjects() {
     }
   };
 
+  // PDR v2.1: Enhanced createProject that supports evolution
   const createProject = async (
     breakthroughId: string | null,
     projectTitle: string,
     projectDescription: string,
-    timeframeDays: number
+    timeframeDays: number,
+    isEvolution?: boolean,
+    evolutionInsight?: string
   ) => {
     try {
       const { data, error } = await supabase.functions.invoke('integrator-setup', {
-        body: { breakthroughId, projectTitle, projectDescription, timeframeDays }
+        body: { 
+          breakthroughId, 
+          projectTitle, 
+          projectDescription, 
+          timeframeDays,
+          isEvolution: isEvolution || false,
+          evolutionInsight
+        }
       });
 
       if (error) throw error;
       
       if (data.success) {
-        toast.success('Your journey has begun!');
+        // PDR v2.1: Different success messages for evolution vs first project
+        if (data.isEvolution) {
+          toast.success('Your vision is evolving!');
+        } else {
+          toast.success('Your journey has begun!');
+        }
+        
         await loadProjects();
-        return data.project;
+        return {
+          project: data.project,
+          spine: data.spine,
+          node: data.node,
+          isEvolution: data.isEvolution,
+          previousNode: data.previousNode
+        };
       } else {
         throw new Error(data.error || 'Failed to create project');
       }
@@ -182,7 +282,11 @@ export function useIntegratorProjects() {
             project_title: activeProject.project_title,
             phase_name: stepPhase?.phase_name || activeProject.current_phase,
             step_title: completedStep?.step_title || '',
-            timeframe_days: activeProject.timeframe_days
+            timeframe_days: activeProject.timeframe_days,
+            // PDR v2.1: Include spine and node context
+            spine_id: activeSpine?.id,
+            node_id: activeNode?.id,
+            node_number: activeNode?.node_number
           }
         });
 
@@ -193,6 +297,16 @@ export function useIntegratorProjects() {
             learning_insights_count: ((activeProject as any).learning_insights_count || 0) + 1 
           })
           .eq('id', activeProject.id);
+
+        // PDR v2.1: Also update evolution node's learning count
+        if (activeNode) {
+          await supabase
+            .from('evolution_nodes')
+            .update({
+              learning_insights_count: (activeNode.learning_insights_count || 0) + 1
+            })
+            .eq('id', activeNode.id);
+        }
       }
 
       // Update local state
@@ -214,6 +328,14 @@ export function useIntegratorProjects() {
             .from('integrator_projects')
             .update({ current_day: nextDay })
             .eq('id', activeProject.id);
+
+          // PDR v2.1: Also update evolution node
+          if (activeNode) {
+            await supabase
+              .from('evolution_nodes')
+              .update({ current_day: nextDay })
+              .eq('id', activeNode.id);
+          }
 
           // Check if we're entering a new phase
           const currentPhase = phases.find(p => p.id === completedStep.phase_id);
@@ -237,6 +359,14 @@ export function useIntegratorProjects() {
               .from('integrator_projects')
               .update({ current_phase: nextPhase.phase_name })
               .eq('id', activeProject.id);
+
+            // PDR v2.1: Also update evolution node
+            if (activeNode) {
+              await supabase
+                .from('evolution_nodes')
+                .update({ current_phase: nextPhase.phase_name })
+                .eq('id', activeNode.id);
+            }
           }
 
           setActiveProject(prev => prev ? { ...prev, current_day: nextDay } : null);
@@ -246,6 +376,14 @@ export function useIntegratorProjects() {
             .from('integrator_projects')
             .update({ status: 'completed' })
             .eq('id', activeProject.id);
+
+          // PDR v2.1: Also complete the evolution node
+          if (activeNode) {
+            await supabase
+              .from('evolution_nodes')
+              .update({ status: 'completed' })
+              .eq('id', activeNode.id);
+          }
 
           toast.success('🎉 Congratulations! You completed your journey!');
         }
@@ -400,6 +538,10 @@ export function useIntegratorProjects() {
     getMissedSteps,
     skipMissedSteps,
     loadProjects,
-    loadProjectDetails
+    loadProjectDetails,
+    // PDR v2.1: Expose spine and node data
+    activeSpine,
+    activeNode,
+    nodeHistory,
   };
 }
