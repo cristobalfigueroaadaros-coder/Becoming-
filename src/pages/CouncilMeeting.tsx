@@ -848,19 +848,18 @@ const CouncilMeeting = () => {
                             <span className="text-sm leading-relaxed text-foreground">
                               <HighlightedText text={line.text} /> {getEmoji()}
                             </span>
-                            {/* Go deeper button */}
+                            {/* Save button - keeps user in Council flow */}
                             {(() => {
                               const mentorKey = Object.keys(mentorNames).find(k => mentorNames[k] === line.mentor);
                               if (mentorKey) {
                                 return (
-                                  <Button
-                                    variant="ghost"
-                                    size="sm"
+                                  <InsightActionButton
+                                    insightText={line.text}
+                                    sourceType="mentor_perspective"
+                                    sourceMentor={mentorKey}
+                                    sourceContext={{ question, fromBanter: true }}
                                     className="mt-2 h-6 text-xs opacity-70 hover:opacity-100"
-                                    onClick={() => navigate(`/chat/${mentorKey}?fromCouncil=true`)}
-                                  >
-                                    Go deeper →
-                                  </Button>
+                                  />
                                 );
                               }
                               return null;
