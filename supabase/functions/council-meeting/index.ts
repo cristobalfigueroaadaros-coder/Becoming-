@@ -1399,15 +1399,27 @@ Just the message, no labels.`;
             color: mentorColors[recommendedMentor]
           };
 
-          // Store DM in daily_whispers table
+          // Route DM to appropriate table based on mentor type
+          // Future Self whispers go to daily_whispers (exclusive channel)
+          // Other mentors go to mentor_daily_outreach
           try {
-            await supabaseClient.from('daily_whispers').insert({
-              user_id: user.id,
-              mentor_type: recommendedMentor,
-              message: mentorDM.message,
-              whisper_type: 'council_guidance',
-              trigger_reason: 'Council Meeting Q3 handover'
-            });
+            if (recommendedMentor === 'future_self') {
+              await supabaseClient.from('daily_whispers').insert({
+                user_id: user.id,
+                mentor_type: 'future_self',
+                message: mentorDM.message,
+                whisper_type: 'council_guidance',
+                trigger_reason: 'Council Meeting Q3 handover'
+              });
+            } else {
+              await supabaseClient.from('mentor_daily_outreach').insert({
+                user_id: user.id,
+                mentor_type: recommendedMentor,
+                message: mentorDM.message,
+                message_type: 'council_handover',
+                context_source: 'council_meeting'
+              });
+            }
           } catch (error) {
             console.error('Failed to store mentor DM:', error);
           }

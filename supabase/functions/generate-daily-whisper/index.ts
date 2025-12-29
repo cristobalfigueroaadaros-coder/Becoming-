@@ -33,7 +33,13 @@ const triggerToWhisperType: Record<string, string> = {
   streak_risk: 'reminder',
   shadow_active: 'deep_question',
   celebration: 'celebration',
-  general: 'encouragement'
+  general: 'encouragement',
+  // App guidance triggers - Future Self as consciousness of the system
+  value_map_guidance: 'guidance',
+  quest_reminder: 'invitation',
+  constellation_hint: 'insight',
+  creation_nudge: 'inspiration',
+  app_exploration: 'curiosity'
 };
 
 serve(async (req) => {
@@ -80,7 +86,10 @@ serve(async (req) => {
       mentorsData,
       councilData,
       lifeDomainsData,
-      insightDotsData
+      insightDotsData,
+      valueMapData,
+      questProgressData,
+      integratorProjectsData
     ] = await Promise.all([
       // Recent energetic snapshots
       supabase.from("energetic_snapshots")
@@ -132,17 +141,73 @@ serve(async (req) => {
         .select("domain_name, current_score, future_score")
         .eq("user_id", user.id),
       
-      // Recent insights
+      // Recent insights (constellation)
       supabase.from("insight_dots")
-        .select("core_theme, insight_text")
+        .select("core_theme, insight_text, created_at")
         .eq("user_id", user.id)
         .order("created_at", { ascending: false })
-        .limit(3)
+        .limit(5),
+      
+      // Value Map progress for guidance trigger
+      supabase.from("value_map_blocks")
+        .select("block_key, content, is_unlocked")
+        .eq("user_id", user.id),
+      
+      // Self Discovery Quest progress
+      supabase.from("self_discovery_progress")
+        .select("completed, current_step")
+        .eq("user_id", user.id)
+        .limit(1),
+      
+      // Active creation/integrator projects
+      supabase.from("integrator_projects")
+        .select("project_title, status")
+        .eq("user_id", user.id)
+        .eq("status", "active")
+        .limit(1)
     ]);
 
     // Analyze context to determine trigger condition
     let triggerCondition = "general";
     let triggerReason = "Daily check-in";
+
+    // === APP GUIDANCE TRIGGERS (Future Self as system consciousness) ===
+    
+    // Check Value Map progress - guide when user has project but low completion
+    const valueMapBlocks = valueMapData.data || [];
+    const filledBlocks = valueMapBlocks.filter((b: any) => b.content && b.content.trim().length > 10);
+    const valueMapProgress = valueMapBlocks.length > 0 ? filledBlocks.length / Math.max(valueMapBlocks.length, 12) : 0;
+    const hasActiveProject = integratorProjectsData.data && integratorProjectsData.data.length > 0;
+    
+    if (hasActiveProject && valueMapProgress < 0.3 && valueMapBlocks.length > 0) {
+      triggerCondition = "value_map_guidance";
+      triggerReason = "Purpose to Value Map needs attention - ready to clarify your path";
+    }
+    
+    // Check Self Discovery Quest progress
+    const questProgress = questProgressData.data?.[0];
+    if (questProgress && !questProgress.completed && (questProgress.current_step || 0) < 3) {
+      // Only trigger if no other higher-priority trigger
+      if (triggerCondition === "general") {
+        triggerCondition = "quest_reminder";
+        triggerReason = "Self Discovery Quest awaits continuation";
+      }
+    }
+    
+    // Check if user has few insight dots (encourage constellation)
+    const insightDots = insightDotsData.data || [];
+    if (insightDots.length < 3 && triggerCondition === "general") {
+      triggerCondition = "constellation_hint";
+      triggerReason = "Living Constellation needs more dots to reveal patterns";
+    }
+    
+    // Check if no active creation projects (encourage creation)
+    if (!hasActiveProject && triggerCondition === "general" && insightDots.length >= 3) {
+      triggerCondition = "creation_nudge";
+      triggerReason = "Ready to start a creation project";
+    }
+
+    // === ORIGINAL TRIGGERS (override app guidance if more urgent) ===
 
     // Check for low energy
     const energyValues = energeticData.data || [];
@@ -281,7 +346,13 @@ Actionable Hints: ${hints.join(" | ") || "None"}`;
       deep_question: "Write ONE profound question based on their recent council meeting or shadow work.",
       nurturing: "Write a message that makes them feel seen. Then suggest ONE gentle action.",
       celebration: "Acknowledge their wins, then ask: what's next?",
-      pattern_interruption: "Say something unexpected that breaks their usual thinking. Then suggest action."
+      pattern_interruption: "Say something unexpected that breaks their usual thinking. Then suggest action.",
+      // App guidance prompts - Future Self as system consciousness
+      guidance: "Gently guide them toward completing their Purpose to Value Map. They're ready to clarify what they stand for. Mention the Value Map by name.",
+      invitation: "Invite them to continue their Self Discovery journey. Be curious about what they might learn about themselves.",
+      insight: "Suggest they connect their insights in the Living Constellation. Mention how patterns emerge when dots connect.",
+      inspiration: "Encourage them to start a creation project. Action reveals clarity. Reference something specific from their constellation or council insights.",
+      curiosity: "Ask what they're curious to explore in the app today. Mention a feature they might not have tried."
     };
 
     const prompt = `${futureSelfPersonality}
