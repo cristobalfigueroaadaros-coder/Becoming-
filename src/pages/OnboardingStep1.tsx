@@ -13,40 +13,36 @@ import { toast } from "sonner";
 import { Sparkles, Loader2 } from "lucide-react";
 import { format } from "date-fns";
 
-const futureSelfSchema = z.object({
-  future_age: z.number().min(18).max(150),
-  future_location: z.string().min(1, "Location is required"),
-  future_lifestyle: z.string().max(100, "Keep it to one short sentence"),
-  main_mission: z.string().max(100, "Keep it to one short sentence"),
+const profileSchema = z.object({
+  // Pattern Profile (required)
   birth_name: z.string().min(2, "Birth name is required"),
   birth_date: z.date({ required_error: "Birth date is required" }),
+  birth_location: z.string().min(1, "Birth location is required"),
   birth_time: z.string().optional(),
   birth_time_unknown: z.boolean().optional(),
-  birth_location: z.string().optional(),
+  // Future vision (simplified)
+  future_lifestyle: z.string().optional(),
 });
 
-type FutureSelfFormData = z.infer<typeof futureSelfSchema>;
+type ProfileFormData = z.infer<typeof profileSchema>;
 
 const OnboardingStep1 = () => {
   const navigate = useNavigate();
   const [loading, setLoading] = useState(false);
   const [analyzingNumerology, setAnalyzingNumerology] = useState(false);
 
-  const form = useForm<FutureSelfFormData>({
-    resolver: zodResolver(futureSelfSchema),
+  const form = useForm<ProfileFormData>({
+    resolver: zodResolver(profileSchema),
     defaultValues: {
-      future_age: 35,
-      future_location: "",
-      future_lifestyle: "",
-      main_mission: "",
       birth_name: "",
       birth_time: "",
       birth_time_unknown: false,
       birth_location: "",
+      future_lifestyle: "",
     },
   });
 
-  const onSubmit = async (data: FutureSelfFormData) => {
+  const onSubmit = async (data: ProfileFormData) => {
     setLoading(true);
     try {
       const { data: { user } } = await supabase.auth.getUser();
@@ -54,20 +50,17 @@ const OnboardingStep1 = () => {
 
       const birthDateFormatted = format(data.birth_date, "yyyy-MM-dd");
 
-      // Save profile first
+      // Save profile
       const { error: profileError } = await supabase
         .from("profiles")
         .upsert({
           id: user.id,
-          future_age: data.future_age,
-          future_location: data.future_location,
-          future_lifestyle: data.future_lifestyle,
-          main_mission: data.main_mission,
           birth_name: data.birth_name,
           birth_date: birthDateFormatted,
           birth_time: data.birth_time_unknown ? null : (data.birth_time || null),
           birth_time_unknown: data.birth_time_unknown || false,
-          birth_location: data.birth_location || null,
+          birth_location: data.birth_location,
+          future_lifestyle: data.future_lifestyle || null,
           display_name: data.birth_name.split(' ')[0], // Use first name as display name
         });
 
@@ -126,32 +119,57 @@ const OnboardingStep1 = () => {
       <div className="max-w-2xl mx-auto space-y-8">
         <div className="text-center space-y-2">
           <Sparkles className="w-12 h-12 mx-auto text-primary" />
-          <h1 className="text-4xl font-bold">Your Future Self Profile</h1>
+          <h1 className="text-4xl font-bold">Your Profile</h1>
           <p className="text-muted-foreground text-lg">
-            Let's paint a light picture of where you're heading
+            Let's get to know you a little better
           </p>
         </div>
 
         <Card>
           <CardHeader>
-            <CardTitle>10 Years From Now</CardTitle>
-            <CardDescription>Quick snapshot of your future vision</CardDescription>
+            <CardTitle>Your Pattern Profile</CardTitle>
+            <CardDescription>
+              This helps us personalize guidance. It does not define you.
+            </CardDescription>
           </CardHeader>
           <CardContent>
             <Form {...form}>
               <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-6">
                 <FormField
                   control={form.control}
-                  name="future_age"
+                  name="birth_name"
                   render={({ field }) => (
                     <FormItem>
-                      <FormLabel>Future Age (Your age + 10 years)</FormLabel>
+                      <FormLabel>Full Birth Name</FormLabel>
+                      <FormControl>
+                        <Input 
+                          placeholder="Your legal name at birth" 
+                          {...field} 
+                        />
+                      </FormControl>
+                      <p className="text-xs text-muted-foreground mt-1">
+                        As it appears on your birth certificate
+                      </p>
+                      <FormMessage />
+                    </FormItem>
+                  )}
+                />
+
+                <FormField
+                  control={form.control}
+                  name="birth_date"
+                  render={({ field }) => (
+                    <FormItem>
+                      <FormLabel>Date of Birth</FormLabel>
                       <FormControl>
                         <Input
-                          type="number"
-                          placeholder="35"
-                          {...field}
-                          onChange={(e) => field.onChange(parseInt(e.target.value))}
+                          type="date"
+                          max={format(new Date(), "yyyy-MM-dd")}
+                          value={field.value ? format(field.value, "yyyy-MM-dd") : ""}
+                          onChange={(e) => {
+                            const date = e.target.value ? new Date(e.target.value) : undefined;
+                            field.onChange(date);
+                          }}
                         />
                       </FormControl>
                       <FormMessage />
@@ -161,30 +179,14 @@ const OnboardingStep1 = () => {
 
                 <FormField
                   control={form.control}
-                  name="future_location"
+                  name="birth_location"
                   render={({ field }) => (
                     <FormItem>
-                      <FormLabel>Location</FormLabel>
+                      <FormLabel>Birth Location</FormLabel>
                       <FormControl>
-                        <Input placeholder="e.g., Bali, Tokyo, New York" {...field} />
-                      </FormControl>
-                      <FormMessage />
-                    </FormItem>
-                  )}
-                />
-
-                <FormField
-                  control={form.control}
-                  name="future_lifestyle"
-                  render={({ field }) => (
-                    <FormItem>
-                      <FormLabel>Future Lifestyle (1 short sentence)</FormLabel>
-                      <FormControl>
-                        <Textarea
-                          placeholder="e.g., Living by the ocean, running my own business"
-                          className="resize-none"
-                          rows={2}
-                          {...field}
+                        <Input 
+                          placeholder="City, Country where you were born" 
+                          {...field} 
                         />
                       </FormControl>
                       <FormMessage />
@@ -192,135 +194,70 @@ const OnboardingStep1 = () => {
                   )}
                 />
 
-                <FormField
-                  control={form.control}
-                  name="main_mission"
-                  render={({ field }) => (
-                    <FormItem>
-                      <FormLabel>Main Mission (1 short sentence)</FormLabel>
-                      <FormControl>
-                        <Textarea
-                          placeholder="e.g., Helping people find their purpose through coaching"
-                          className="resize-none"
-                          rows={2}
-                          {...field}
-                        />
-                      </FormControl>
-                      <FormMessage />
-                    </FormItem>
-                  )}
-                />
+                <div className="space-y-3">
+                  <FormField
+                    control={form.control}
+                    name="birth_time"
+                    render={({ field }) => (
+                      <FormItem>
+                        <FormLabel>Time of Birth (Optional)</FormLabel>
+                        <FormControl>
+                          <Input
+                            type="time"
+                            disabled={form.watch("birth_time_unknown")}
+                            {...field}
+                          />
+                        </FormControl>
+                        <FormMessage />
+                      </FormItem>
+                    )}
+                  />
+                  <FormField
+                    control={form.control}
+                    name="birth_time_unknown"
+                    render={({ field }) => (
+                      <FormItem className="flex items-center gap-2">
+                        <FormControl>
+                          <input
+                            type="checkbox"
+                            checked={field.value}
+                            onChange={field.onChange}
+                            className="h-4 w-4 rounded border-border"
+                          />
+                        </FormControl>
+                        <FormLabel className="!mt-0 text-sm text-muted-foreground cursor-pointer">
+                          I don't know my birth time
+                        </FormLabel>
+                      </FormItem>
+                    )}
+                  />
+                </div>
 
                 <div className="pt-4 border-t">
                   <div className="mb-4">
-                    <h3 className="font-medium mb-1">Your Pattern Profile</h3>
+                    <h3 className="font-medium mb-1">Your Vision</h3>
                     <p className="text-sm text-muted-foreground">
-                      This helps us personalize guidance, tune pacing, and route mentors intelligently.
+                      Let's paint a light picture of where you're heading.
                     </p>
                   </div>
                   
-                  <div className="space-y-4">
-                    <FormField
-                      control={form.control}
-                      name="birth_name"
-                      render={({ field }) => (
-                        <FormItem>
-                          <FormLabel>Full Birth Name</FormLabel>
-                          <FormControl>
-                            <Input 
-                              placeholder="Your legal name at birth" 
-                              {...field} 
-                            />
-                          </FormControl>
-                          <p className="text-xs text-muted-foreground mt-1">
-                            As it appears on your birth certificate
-                          </p>
-                          <FormMessage />
-                        </FormItem>
-                      )}
-                    />
-
-                    <FormField
-                      control={form.control}
-                      name="birth_date"
-                      render={({ field }) => (
-                        <FormItem>
-                          <FormLabel>Date of Birth</FormLabel>
-                          <FormControl>
-                            <Input
-                              type="date"
-                              max={format(new Date(), "yyyy-MM-dd")}
-                              value={field.value ? format(field.value, "yyyy-MM-dd") : ""}
-                              onChange={(e) => {
-                                const date = e.target.value ? new Date(e.target.value) : undefined;
-                                field.onChange(date);
-                              }}
-                            />
-                          </FormControl>
-                          <FormMessage />
-                        </FormItem>
-                      )}
-                    />
-
-                    <FormField
-                      control={form.control}
-                      name="birth_location"
-                      render={({ field }) => (
-                        <FormItem>
-                          <FormLabel>Birth Location (Optional)</FormLabel>
-                          <FormControl>
-                            <Input 
-                              placeholder="City, Country where you were born" 
-                              {...field} 
-                            />
-                          </FormControl>
-                          <p className="text-xs text-muted-foreground mt-1">
-                            Used for Human Design calculations
-                          </p>
-                          <FormMessage />
-                        </FormItem>
-                      )}
-                    />
-
-                    <div className="space-y-3">
-                      <FormField
-                        control={form.control}
-                        name="birth_time"
-                        render={({ field }) => (
-                          <FormItem>
-                            <FormLabel>Time of Birth (Optional)</FormLabel>
-                            <FormControl>
-                              <Input
-                                type="time"
-                                disabled={form.watch("birth_time_unknown")}
-                                {...field}
-                              />
-                            </FormControl>
-                            <FormMessage />
-                          </FormItem>
-                        )}
-                      />
-                      <FormField
-                        control={form.control}
-                        name="birth_time_unknown"
-                        render={({ field }) => (
-                          <FormItem className="flex items-center gap-2">
-                            <FormControl>
-                              <input
-                                type="checkbox"
-                                checked={field.value}
-                                onChange={field.onChange}
-                                className="h-4 w-4 rounded border-border"
-                              />
-                            </FormControl>
-                            <FormLabel className="!mt-0 text-sm text-muted-foreground cursor-pointer">
-                              I don't know my birth time
-                            </FormLabel>
-                          </FormItem>
-                        )}
-                      />
-                    </div>
-                  </div>
+                  <FormField
+                    control={form.control}
+                    name="future_lifestyle"
+                    render={({ field }) => (
+                      <FormItem>
+                        <FormLabel>Future Lifestyle</FormLabel>
+                        <FormControl>
+                          <Textarea
+                            placeholder="Describe your ideal future... There's no right or wrong answer."
+                            className="resize-none min-h-[100px]"
+                            {...field}
+                          />
+                        </FormControl>
+                        <FormMessage />
+                      </FormItem>
+                    )}
+                  />
                 </div>
 
                 <Button type="submit" disabled={loading} className="w-full h-12 text-lg">
