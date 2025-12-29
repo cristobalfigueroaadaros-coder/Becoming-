@@ -7,7 +7,7 @@ import { Card } from "@/components/ui/card";
 import { cn } from "@/lib/utils";
 import { HighlightedText } from "@/components/HighlightedText";
 
-interface MentorWhisperNotificationProps {
+interface FutureSelfWhisperNotificationProps {
   whisper: {
     id: string;
     mentor_type: string;
@@ -18,37 +18,8 @@ interface MentorWhisperNotificationProps {
   onReply: () => void;
 }
 
-const mentorNames: Record<string, string> = {
-  discipline_mentor: "Discipline Mentor",
-  strategist_mentor: "Strategist Mentor",
-  creative_visionary: "Creative Visionary",
-  quantum_inventor: "Quantum Inventor",
-  mystic_mentor: "Mystic Mentor",
-  business_mentor: "Business Mentor",
-  marketing_mentor: "Marketing Mentor",
-  scientific_mentor: "Scientific Mentor",
-  heart_mentor: "Heart Mentor",
-  ancient_sage: "Ancient Sage",
-  alignment_mentor: "Alignment Mentor",
-  oracle_mother: "Oracle Mother",
-  future_self: "Future Self",
-};
-
-const mentorColors: Record<string, string> = {
-  discipline_mentor: "from-gray-500/20 to-slate-500/20 border-gray-500/30",
-  strategist_mentor: "from-teal-500/20 to-cyan-500/20 border-teal-500/30",
-  creative_visionary: "from-purple-500/20 to-pink-500/20 border-purple-500/30",
-  quantum_inventor: "from-blue-500/20 to-cyan-500/20 border-blue-500/30",
-  mystic_mentor: "from-indigo-500/20 to-violet-500/20 border-indigo-500/30",
-  business_mentor: "from-slate-500/20 to-gray-500/20 border-slate-500/30",
-  marketing_mentor: "from-orange-500/20 to-amber-500/20 border-orange-500/30",
-  scientific_mentor: "from-blue-600/20 to-cyan-600/20 border-blue-600/30",
-  heart_mentor: "from-red-500/20 to-rose-500/20 border-red-500/30",
-  ancient_sage: "from-green-500/20 to-emerald-500/20 border-green-500/30",
-  alignment_mentor: "from-sky-500/20 to-blue-500/20 border-sky-500/30",
-  oracle_mother: "from-violet-500/20 to-indigo-500/20 border-violet-500/30",
-  future_self: "from-violet-500/20 to-purple-500/20 border-violet-500/30",
-};
+// Future Self exclusive styling - rose/pink gradient for distinctiveness
+const futureSelfColor = "from-[hsl(var(--future-self))]/20 to-[hsl(var(--future-self-light))]/20 border-[hsl(var(--future-self))]/30";
 
 const whisperTypeIcons: Record<string, string> = {
   encouragement: "💫",
@@ -60,7 +31,8 @@ const whisperTypeIcons: Record<string, string> = {
   pattern_interruption: "⚡",
 };
 
-export function MentorWhisperNotification({ whisper, onDismiss, onReply }: MentorWhisperNotificationProps) {
+// Renamed to clarify this is exclusively for Future Self
+export function MentorWhisperNotification({ whisper, onDismiss, onReply }: FutureSelfWhisperNotificationProps) {
   const [isVisible, setIsVisible] = useState(true);
   const navigate = useNavigate();
 
@@ -71,10 +43,10 @@ export function MentorWhisperNotification({ whisper, onDismiss, onReply }: Mento
 
   const handleReply = () => {
     onReply();
-    navigate(`/chat/${whisper.mentor_type}`);
+    // Always navigate to future_self chat
+    navigate("/chat/future_self");
   };
 
-  const mentorColor = mentorColors[whisper.mentor_type] || "from-primary/20 to-accent/20 border-primary/30";
   const whisperIcon = whisperTypeIcons[whisper.whisper_type || "encouragement"] || "✨";
 
   return (
@@ -89,7 +61,7 @@ export function MentorWhisperNotification({ whisper, onDismiss, onReply }: Mento
         >
           <Card className={cn(
             "p-4 shadow-2xl backdrop-blur-lg bg-gradient-to-br border-2",
-            mentorColor
+            futureSelfColor
           )}>
             {/* Header */}
             <div className="flex items-start justify-between mb-3">
@@ -98,8 +70,8 @@ export function MentorWhisperNotification({ whisper, onDismiss, onReply }: Mento
                   {whisperIcon}
                 </div>
                 <div>
-                  <p className="font-semibold text-sm">
-                    {mentorNames[whisper.mentor_type] || "Mentor"}
+                  <p className="font-semibold text-sm text-[hsl(var(--future-self))]">
+                    Your Future Self
                   </p>
                   <p className="text-xs text-muted-foreground flex items-center gap-1">
                     <MessageCircle className="w-3 h-3" />

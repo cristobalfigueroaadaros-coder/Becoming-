@@ -23,10 +23,12 @@ export function useMentorWhisper() {
       const { data: { user } } = await supabase.auth.getUser();
       if (!user) return null;
 
+      // Only fetch Future Self whispers - this channel is exclusive to Future Self
       const { data, error } = await supabase
         .from("daily_whispers")
         .select("*")
         .eq("user_id", user.id)
+        .eq("mentor_type", "future_self")
         .order("created_at", { ascending: false })
         .limit(1)
         .maybeSingle();
