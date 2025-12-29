@@ -14,7 +14,7 @@ import { useBreakthroughDetection } from "@/hooks/useBreakthroughDetection";
 import { InsightActionButton } from "@/components/InsightActionButton";
 import { ValueMapUnlockCelebration } from "@/components/ValueMapUnlockCelebration";
 import { MentorTransitionCard } from "@/components/MentorTransitionCard";
-import { FirstWinNamingCard } from "@/components/FirstWinNamingCard";
+import { FirstWinNamingCard, CoherenceType } from "@/components/FirstWinNamingCard";
 import { FirstWinCelebration } from "@/components/FirstWinCelebration";
 import { InlineProjectSuggestion } from "@/components/InlineProjectSuggestion";
 import { KeywordHighlighter } from "@/components/KeywordHighlighter";
@@ -48,6 +48,13 @@ interface ProjectCoherence {
   projectName: string;
   projectDescription: string;
   confidence: number;
+  // PDR v2.2: Branch classification
+  coherenceType?: CoherenceType;
+  coreTheme?: string;
+  spineId?: string;
+  isEvolution?: boolean;
+  evolutionInsight?: string;
+  previousNodeTitle?: string;
 }
 
 interface Whisper {
@@ -411,19 +418,47 @@ const Chat = () => {
     setShowFirstWinCelebration(true);
   };
 
-  // PDR v2.1: Handle Commitment Card acceptance (First Win moment)
+  // PDR v2.2: Handle Commitment Card acceptance (First Win moment) with branch support
   const handleCommitmentAccept = async (projectName: string) => {
     setShowCommitmentCard(false);
-    await completeFirstWin();
-    triggerMicroWin('naming');
     
-    // Navigate to Creation Lab with project info
-    navigate('/creation-lab', {
-      state: {
-        projectName,
-        projectDescription: projectCoherence?.projectDescription || ''
+    const coherenceType = projectCoherence?.coherenceType || 'NEW_CORE_PROJECT';
+    
+    if (coherenceType === 'BRANCH_ADDITION' && projectCoherence?.spineId) {
+      // Add as a branch instead of creating new project
+      try {
+        const { data: { user } } = await supabase.auth.getUser();
+        if (!user) throw new Error("Not authenticated");
+        
+        await supabase.from("project_branches").insert({
+          user_id: user.id,
+          spine_id: projectCoherence.spineId,
+          branch_title: projectName,
+          branch_description: projectCoherence.projectDescription || '',
+          branch_type: 'tactic',
+          status: 'active'
+        });
+        
+        triggerMicroWin('naming');
+        toast.success(`"${projectName}" added to your project!`);
+      } catch (error) {
+        console.error("Error adding branch:", error);
+        toast.error("Failed to add branch");
       }
-    });
+    } else {
+      // Original flow for new project or evolution
+      await completeFirstWin();
+      triggerMicroWin('naming');
+      
+      // Navigate to Creation Lab with project info
+      navigate('/creation-lab', {
+        state: {
+          projectName,
+          projectDescription: projectCoherence?.projectDescription || '',
+          isEvolution: coherenceType === 'CORE_EVOLUTION'
+        }
+      });
+    }
   };
 
   const handleStartLearningModule = async () => {
@@ -633,7 +668,7 @@ const Chat = () => {
         </div>
       )}
 
-      {/* PDR v2.1: Commitment Card as FIXED OVERLAY (magical moment) */}
+      {/* PDR v2.2: Commitment Card as FIXED OVERLAY with context-aware copy */}
       {showCommitmentCard && projectCoherence && (
         <div className="fixed inset-0 bg-black/60 backdrop-blur-sm z-50 flex items-center justify-center p-4">
           <FirstWinNamingCard
@@ -644,6 +679,11 @@ const Chat = () => {
               setShowCommitmentCard(false);
               setProjectCoherence(null);
             }}
+            coherenceType={projectCoherence.coherenceType || 'NEW_CORE_PROJECT'}
+            coreTheme={projectCoherence.coreTheme}
+            isEvolution={projectCoherence.isEvolution}
+            previousNodeTitle={projectCoherence.previousNodeTitle}
+            evolutionInsight={projectCoherence.evolutionInsight}
           />
         </div>
       )}

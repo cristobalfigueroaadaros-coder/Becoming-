@@ -1709,12 +1709,69 @@ export type Database = {
         }
         Relationships: []
       }
+      project_branches: {
+        Row: {
+          branch_description: string
+          branch_title: string
+          branch_type: string
+          created_at: string
+          id: string
+          parent_node_id: string | null
+          spine_id: string
+          status: string
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          branch_description: string
+          branch_title: string
+          branch_type?: string
+          created_at?: string
+          id?: string
+          parent_node_id?: string | null
+          spine_id: string
+          status?: string
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          branch_description?: string
+          branch_title?: string
+          branch_type?: string
+          created_at?: string
+          id?: string
+          parent_node_id?: string | null
+          spine_id?: string
+          status?: string
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "project_branches_parent_node_id_fkey"
+            columns: ["parent_node_id"]
+            isOneToOne: false
+            referencedRelation: "evolution_nodes"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "project_branches_spine_id_fkey"
+            columns: ["spine_id"]
+            isOneToOne: false
+            referencedRelation: "project_spines"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       project_spines: {
         Row: {
           broad_contribution: string | null
           core_intention: string
+          core_theme: string | null
+          core_theme_confidence: number | null
           created_at: string
           id: string
+          last_coherence_card_at: string | null
           spine_title: string
           start_date: string
           status: string
@@ -1724,8 +1781,11 @@ export type Database = {
         Insert: {
           broad_contribution?: string | null
           core_intention: string
+          core_theme?: string | null
+          core_theme_confidence?: number | null
           created_at?: string
           id?: string
+          last_coherence_card_at?: string | null
           spine_title: string
           start_date?: string
           status?: string
@@ -1735,8 +1795,11 @@ export type Database = {
         Update: {
           broad_contribution?: string | null
           core_intention?: string
+          core_theme?: string | null
+          core_theme_confidence?: number | null
           created_at?: string
           id?: string
+          last_coherence_card_at?: string | null
           spine_title?: string
           start_date?: string
           status?: string
