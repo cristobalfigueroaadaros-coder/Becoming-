@@ -352,17 +352,54 @@ const CouncilMeeting = () => {
   };
 
   // PDR v2.1: Navigate to 1-to-1 mentor chat
-  const handleMentorSuggestionAccept = () => {
+  const handleMentorSuggestionAccept = async () => {
     if (!suggestedMentor) return;
     
-    // Build context from conversation
-    const context = encodeURIComponent(
-      conversationHistory.map(h => 
-        h.role === 'user' ? h.content : (h.content?.councilInsight || '')
-      ).join(' | ').substring(0, 500)
-    );
-    
-    navigate(`/chat/${suggestedMentor.mentorType}?fromCouncil=true&context=${context}`);
+    try {
+      const { data: { user } } = await supabase.auth.getUser();
+      if (!user) {
+        toast.error("Please log in to continue");
+        return;
+      }
+
+      // Build source messages from conversation history
+      const sourceMessages = conversationHistory.map(h => ({
+        role: h.role,
+        content: h.role === 'user' ? h.content : (h.content?.councilInsight || h.content?.banter || '')
+      })).filter(m => m.content);
+
+      // Extract the main topic from the conversation
+      const journeyTopic = conversationHistory.find(h => h.role === 'user')?.content?.substring(0, 200) || 'Council exploration';
+
+      // Create a handoff record so the mentor can continue the conversation
+      const { data: handoff, error } = await supabase
+        .from("conversation_handoffs")
+        .insert({
+          user_id: user.id,
+          source_mentor_type: "council",
+          target_mentor_type: suggestedMentor.mentorType,
+          source_messages: sourceMessages,
+          journey_topic: journeyTopic,
+          handoff_summary: suggestedMentor.suggestionMessage,
+          processed: false
+        })
+        .select()
+        .single();
+
+      if (error) {
+        console.error("Error creating handoff:", error);
+        toast.error("Failed to create handoff");
+        return;
+      }
+
+      // Navigate with the handoffId in state so Chat.tsx processes it
+      navigate(`/chat/${suggestedMentor.mentorType}`, {
+        state: { handoffId: handoff.id }
+      });
+    } catch (error) {
+      console.error("Error in mentor suggestion accept:", error);
+      toast.error("Something went wrong");
+    }
   };
 
   const generateGoals = async () => {
