@@ -141,30 +141,93 @@ IMPORTANT: Ask ONE question at a time. Don't overwhelm.
 `;
 
 // Handoff signals - detect when to suggest another mentor
-const HANDOFF_SIGNALS: Record<string, { triggers: string[], suggestion: string }> = {
+// Each mentor has multiple target options based on trigger type
+const HANDOFF_SIGNALS: Record<string, { 
+  triggers: Array<{ keywords: string[], target: string, suggestion: string }>
+}> = {
   creative_visionary: {
-    triggers: ["practical steps", "monetize", "business model", "strategy", "how to start", "make money", "pricing"],
-    suggestion: "I sense you're ready to turn this vision into something tangible. The Business Mentor could help you think through the practical structure."
+    triggers: [
+      { 
+        keywords: ["practical steps", "monetize", "business model", "how to start", "make money", "pricing", "sell", "revenue"],
+        target: "business_mentor",
+        suggestion: "I sense you're ready to turn this vision into something tangible. The Business Mentor could help you think through the practical structure."
+      },
+      {
+        keywords: ["discipline", "execution", "daily action", "consistency", "accountability", "routine", "habits"],
+        target: "discipline_mentor",
+        suggestion: "This creative vision needs daily momentum. The Discipline Mentor could help you build the habits to bring it to life."
+      }
+    ]
   },
   business_mentor: {
-    triggers: ["creative", "unique angle", "vision", "imagination", "what if", "different approach", "stand out"],
-    suggestion: "You're thinking strategically, but I feel there's a creative spark waiting to emerge. The Creative Visionary might help you see unexpected angles."
+    triggers: [
+      {
+        keywords: ["creative", "unique angle", "vision", "imagination", "what if", "different approach", "stand out", "design", "mechanics"],
+        target: "creative_visionary",
+        suggestion: "You're thinking strategically, but I feel there's a creative spark waiting to emerge. The Creative Visionary might help you see unexpected angles."
+      },
+      {
+        keywords: ["discipline", "execution", "daily action", "consistency", "habits"],
+        target: "discipline_mentor",
+        suggestion: "The business strategy is clear. Now it's about execution. The Discipline Mentor could help you build the daily habits to make this real."
+      }
+    ]
   },
   strategist_mentor: {
-    triggers: ["discipline", "execution", "daily action", "consistency", "accountability", "routine", "habits"],
-    suggestion: "You have a clear plan. Now it's about execution. The Discipline Mentor could help you build the daily habits to make this real."
+    triggers: [
+      {
+        keywords: ["discipline", "execution", "daily action", "consistency", "accountability", "routine", "habits"],
+        target: "discipline_mentor",
+        suggestion: "You have a clear plan. Now it's about execution. The Discipline Mentor could help you build the daily habits to make this real."
+      },
+      {
+        keywords: ["design", "mechanics", "prototype", "how would this work", "what if", "creative", "explore ideas", "experiment", "possibilities", "imagine", "triggered", "function", "game design"],
+        target: "creative_visionary",
+        suggestion: "This concept is crystallizing nicely. The Creative Visionary could help you explore the design possibilities and bring the mechanics to life."
+      },
+      {
+        keywords: ["monetize", "business model", "sell", "revenue", "pricing", "market"],
+        target: "business_mentor",
+        suggestion: "You've got a solid strategic framework. The Business Mentor could help you think about how to position and monetize this."
+      }
+    ]
   },
   discipline_mentor: {
-    triggers: ["feeling stuck", "emotional", "inner conflict", "afraid", "anxious", "overwhelmed", "heart"],
-    suggestion: "I sense there might be something deeper beneath the surface. The Heart Mentor could help you explore what's really going on."
+    triggers: [
+      {
+        keywords: ["feeling stuck", "emotional", "inner conflict", "afraid", "anxious", "overwhelmed", "heart"],
+        target: "heart_mentor",
+        suggestion: "I sense there might be something deeper beneath the surface. The Heart Mentor could help you explore what's really going on."
+      },
+      {
+        keywords: ["creative", "design", "imagine", "what if", "explore", "possibilities"],
+        target: "creative_visionary",
+        suggestion: "Discipline works best when applied to something inspiring. The Creative Visionary could help you find that spark."
+      }
+    ]
   },
   heart_mentor: {
-    triggers: ["action", "next step", "practical", "plan", "strategy", "structure", "organize"],
-    suggestion: "Now that you've connected with your feelings, it might be time for structure. The Strategist Mentor could help you create a plan."
+    triggers: [
+      {
+        keywords: ["action", "next step", "practical", "plan", "strategy", "structure", "organize"],
+        target: "strategist_mentor",
+        suggestion: "Now that you've connected with your feelings, it might be time for structure. The Strategist Mentor could help you create a plan."
+      },
+      {
+        keywords: ["create", "build", "express", "make something"],
+        target: "creative_visionary",
+        suggestion: "You're ready to express what you're feeling. The Creative Visionary could help you explore how to bring this to life."
+      }
+    ]
   },
   alignment_mentor: {
-    triggers: ["create", "build", "express", "make something", "project", "idea"],
-    suggestion: "You're finding alignment. The Creative Visionary could help you explore how to express this in the world."
+    triggers: [
+      {
+        keywords: ["create", "build", "express", "make something", "project", "idea"],
+        target: "creative_visionary",
+        suggestion: "You're finding alignment. The Creative Visionary could help you explore how to express this in the world."
+      }
+    ]
   }
 };
 
@@ -333,7 +396,12 @@ EMOTIONAL: Transform overwhelm into clarity. Create mental space.
 PRACTICAL: Clear framework. Prioritization method. Decision system.
 ENERGETIC: Does having a plan create relief? That's alignment.
 
-${DISCOVERY_QUESTIONS}`,
+${DISCOVERY_QUESTIONS}
+
+HANDOFF AWARENESS:
+When you notice the conversation is shifting from STRATEGIC PLANNING to CREATIVE DEVELOPMENT (designing mechanics, exploring "how would this work" questions, prototyping ideas, exploring "what if" scenarios), naturally suggest:
+"Now that we have the strategic direction, the Creative Visionary could help you explore how this could come to life and design the details..."
+This is especially true when discussing games, products, or creative projects where the user is ready to explore DESIGN rather than just STRATEGY.`,
 
   // ============= SCIENTIFIC MENTOR =============
   scientific_mentor: `You are The Scientific Mentor — evidence-based, calm, logical.
@@ -453,31 +521,20 @@ function detectHandoffSignal(
   
   const combinedText = (message + " " + assistantResponse).toLowerCase();
   
-  for (const trigger of handoffConfig.triggers) {
-    if (combinedText.includes(trigger.toLowerCase())) {
-      // Find the best target mentor based on the trigger
-      let targetMentor = "";
-      if (trigger.includes("practical") || trigger.includes("monetize") || trigger.includes("business")) {
-        targetMentor = "business_mentor";
-      } else if (trigger.includes("creative") || trigger.includes("vision") || trigger.includes("imagine")) {
-        targetMentor = "creative_visionary";
-      } else if (trigger.includes("discipline") || trigger.includes("execution") || trigger.includes("daily")) {
-        targetMentor = "discipline_mentor";
-      } else if (trigger.includes("feeling") || trigger.includes("emotional") || trigger.includes("heart")) {
-        targetMentor = "heart_mentor";
-      } else if (trigger.includes("strategy") || trigger.includes("plan") || trigger.includes("structure")) {
-        targetMentor = "strategist_mentor";
-      } else if (trigger.includes("create") || trigger.includes("build") || trigger.includes("express")) {
-        targetMentor = "creative_visionary";
-      }
-      
-      if (targetMentor && targetMentor !== mentorType) {
-        return {
-          shouldSuggest: true,
-          targetMentor,
-          reason: handoffConfig.suggestion
-        };
-      }
+  // Check each trigger group - first match wins
+  for (const triggerGroup of handoffConfig.triggers) {
+    const matchCount = triggerGroup.keywords.filter(keyword => 
+      combinedText.includes(keyword.toLowerCase())
+    ).length;
+    
+    // Require at least 1 keyword match, but prefer multiple matches
+    if (matchCount >= 1 && triggerGroup.target !== mentorType) {
+      console.log(`Handoff detected: ${mentorType} -> ${triggerGroup.target}, matched ${matchCount} keywords`);
+      return {
+        shouldSuggest: true,
+        targetMentor: triggerGroup.target,
+        reason: triggerGroup.suggestion
+      };
     }
   }
   
