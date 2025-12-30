@@ -174,7 +174,7 @@ const OnboardingStep4 = () => {
       if (error) throw error;
 
       toast.success("Mentor Council assembled! 🎯");
-      navigate("/dashboard");
+      navigate("/onboarding/work-context");
     } catch (error: any) {
       toast.error(error.message);
     } finally {

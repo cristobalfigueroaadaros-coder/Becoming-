@@ -1594,6 +1594,7 @@ export type Database = {
       }
       profiles: {
         Row: {
+          action_patterns: Json | null
           birth_date: string | null
           birth_location: string | null
           birth_name: string | null
@@ -1601,6 +1602,8 @@ export type Database = {
           birth_time_unknown: boolean | null
           constellation_insights: Json | null
           council_introduction_completed: boolean | null
+          council_unlocked: boolean | null
+          council_unlocked_at: string | null
           created_at: string | null
           creation_gate_passed_at: string | null
           display_name: string | null
@@ -1625,13 +1628,17 @@ export type Database = {
           priority_growth_area: string | null
           purpose_path: string | null
           reflection_loop_count: number | null
+          self_discovery_completed: boolean | null
+          self_discovery_completed_at: string | null
           shadow_intensity: string | null
           updated_at: string | null
           user_foundation_audio_url: string | null
           user_foundation_story: string | null
           user_foundation_summary: Json | null
+          work_context: string | null
         }
         Insert: {
+          action_patterns?: Json | null
           birth_date?: string | null
           birth_location?: string | null
           birth_name?: string | null
@@ -1639,6 +1646,8 @@ export type Database = {
           birth_time_unknown?: boolean | null
           constellation_insights?: Json | null
           council_introduction_completed?: boolean | null
+          council_unlocked?: boolean | null
+          council_unlocked_at?: string | null
           created_at?: string | null
           creation_gate_passed_at?: string | null
           display_name?: string | null
@@ -1663,13 +1672,17 @@ export type Database = {
           priority_growth_area?: string | null
           purpose_path?: string | null
           reflection_loop_count?: number | null
+          self_discovery_completed?: boolean | null
+          self_discovery_completed_at?: string | null
           shadow_intensity?: string | null
           updated_at?: string | null
           user_foundation_audio_url?: string | null
           user_foundation_story?: string | null
           user_foundation_summary?: Json | null
+          work_context?: string | null
         }
         Update: {
+          action_patterns?: Json | null
           birth_date?: string | null
           birth_location?: string | null
           birth_name?: string | null
@@ -1677,6 +1690,8 @@ export type Database = {
           birth_time_unknown?: boolean | null
           constellation_insights?: Json | null
           council_introduction_completed?: boolean | null
+          council_unlocked?: boolean | null
+          council_unlocked_at?: string | null
           created_at?: string | null
           creation_gate_passed_at?: string | null
           display_name?: string | null
@@ -1701,11 +1716,14 @@ export type Database = {
           priority_growth_area?: string | null
           purpose_path?: string | null
           reflection_loop_count?: number | null
+          self_discovery_completed?: boolean | null
+          self_discovery_completed_at?: string | null
           shadow_intensity?: string | null
           updated_at?: string | null
           user_foundation_audio_url?: string | null
           user_foundation_story?: string | null
           user_foundation_summary?: Json | null
+          work_context?: string | null
         }
         Relationships: []
       }

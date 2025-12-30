@@ -49,6 +49,9 @@ const Dashboard = () => {
   const [mentorNotifications, setMentorNotifications] = useState<Record<string, number>>({});
   const [processingMentor, setProcessingMentor] = useState<string | null>(null);
   const [isFirstTimeUser, setIsFirstTimeUser] = useState(false);
+  const [isCouncilLocked, setIsCouncilLocked] = useState(false);
+  const [isCreationLabLocked, setIsCreationLabLocked] = useState(true);
+  const [hasQuestPending, setHasQuestPending] = useState(false);
   
   const { 
     unreadWhisper, 
@@ -92,13 +95,24 @@ const Dashboard = () => {
 
       const { data: profile } = await supabase
         .from("profiles")
-        .select("council_introduction_completed, display_name")
+        .select("council_introduction_completed, display_name, council_unlocked, self_discovery_completed")
         .eq("id", user.id)
         .single();
 
       if (profile) {
         setDisplayName(profile.display_name || undefined);
-        if (!profile.council_introduction_completed) {
+        
+        // Check if council is locked
+        const councilUnlocked = profile.council_unlocked === true;
+        const selfDiscoveryCompleted = profile.self_discovery_completed === true;
+        
+        setIsCouncilLocked(!councilUnlocked);
+        setHasQuestPending(!selfDiscoveryCompleted);
+        
+        // Creation Lab unlocks after first project (for now, keep locked until council is unlocked)
+        setIsCreationLabLocked(!councilUnlocked);
+        
+        if (!profile.council_introduction_completed && councilUnlocked) {
           setIsFirstTimeUser(true);
         }
       }
@@ -350,7 +364,7 @@ const Dashboard = () => {
         <DashboardHeader displayName={displayName} />
 
         {/* Future Self Space */}
-        <FutureSelfSpaceCard />
+        <FutureSelfSpaceCard hasQuestPending={hasQuestPending} />
 
         {/* Today's Focus - PRIMARY ANCHOR */}
         <TodaysFocusCard />
@@ -368,6 +382,8 @@ const Dashboard = () => {
           isFirstTimeUser={isFirstTimeUser}
           councilNotificationCount={councilNotificationCount}
           onCouncilClick={handleCouncilClick}
+          isCouncilLocked={isCouncilLocked}
+          isCreationLabLocked={isCreationLabLocked}
         />
 
         {/* Your Mentors */}
