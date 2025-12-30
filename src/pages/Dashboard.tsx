@@ -52,6 +52,7 @@ const Dashboard = () => {
   const [isCouncilLocked, setIsCouncilLocked] = useState(false);
   const [isCreationLabLocked, setIsCreationLabLocked] = useState(true);
   const [hasQuestPending, setHasQuestPending] = useState(false);
+  const [areMentorsLocked, setAreMentorsLocked] = useState(false);
   
   const { 
     unreadWhisper, 
@@ -99,6 +100,14 @@ const Dashboard = () => {
         .eq("id", user.id)
         .single();
 
+      // Check if user has had any council meetings
+      const { count: councilMeetingsCount } = await supabase
+        .from("council_meetings")
+        .select("*", { count: "exact", head: true })
+        .eq("user_id", user.id);
+
+      const hasHadCouncilMeeting = (councilMeetingsCount || 0) > 0;
+
       if (profile) {
         setDisplayName(profile.display_name || undefined);
         
@@ -111,6 +120,9 @@ const Dashboard = () => {
         
         // Creation Lab unlocks after first project (for now, keep locked until council is unlocked)
         setIsCreationLabLocked(!councilUnlocked);
+        
+        // Mentors unlock after first council meeting
+        setAreMentorsLocked(!hasHadCouncilMeeting);
         
         if (!profile.council_introduction_completed && councilUnlocked) {
           setIsFirstTimeUser(true);
@@ -392,6 +404,7 @@ const Dashboard = () => {
           mentorNotifications={mentorNotifications}
           processingMentor={processingMentor}
           onMentorClick={handleMentorClick}
+          isLocked={areMentorsLocked}
         />
 
         {/* Coming Soon */}

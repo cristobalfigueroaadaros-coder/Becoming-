@@ -1,6 +1,19 @@
-const QuestsCard = () => {
+import { Badge } from "@/components/ui/badge";
+
+interface QuestsCardProps {
+  showNotification?: boolean;
+}
+
+const QuestsCard = ({ showNotification = false }: QuestsCardProps) => {
   return (
-    <div className="flex items-center justify-center gap-8 h-full min-h-[200px]">
+    <div className="relative flex items-center justify-center gap-8 h-full min-h-[200px]">
+      {/* Notification badge */}
+      {showNotification && (
+        <Badge className="absolute -top-2 -right-2 bg-destructive text-destructive-foreground rounded-full h-6 w-6 flex items-center justify-center text-xs font-bold p-0 animate-pulse">
+          1
+        </Badge>
+      )}
+      
       {/* Scroll */}
       <svg viewBox="0 0 60 80" className="w-16">
         <rect x="10" y="15" width="40" height="50" rx="3" fill="hsl(40 50% 85%)" stroke="hsl(40 40% 60%)" strokeWidth="2" />

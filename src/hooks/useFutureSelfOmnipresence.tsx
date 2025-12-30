@@ -58,6 +58,28 @@ export function useFutureSelfOmnipresence() {
         setLastMessageTime(new Date(profile.last_future_self_message_at).getTime());
       }
 
+      // Check for any unshown messages (created by edge functions like council unlock)
+      const { data: unshownMessage } = await supabase
+        .from("future_self_messages")
+        .select("*")
+        .eq("user_id", user.id)
+        .eq("was_received", false)
+        .is("dismissed_at", null)
+        .order("created_at", { ascending: false })
+        .limit(1)
+        .single();
+
+      if (unshownMessage) {
+        // Show this message to the user
+        setCurrentMessage({
+          message: unshownMessage.message,
+          triggerReason: unshownMessage.trigger_reason,
+          emotionalTone: unshownMessage.emotional_tone || "warm",
+          timestamp: unshownMessage.created_at,
+          snapshotId: unshownMessage.snapshot_id || unshownMessage.id, // Use message ID as fallback
+        });
+      }
+
       // Load recent message snapshot IDs to avoid re-triggering
       const { data: recentMessages } = await supabase
         .from("future_self_messages")
@@ -238,17 +260,39 @@ export function useFutureSelfOmnipresence() {
       // Clear the message immediately for responsive UI
       setCurrentMessage(null);
       
-      // Then save to DB asynchronously (won't block dismissal)
+      // Then save/update in DB asynchronously
       try {
-        await supabase.from("future_self_messages").insert({
-          user_id: userId.current,
-          message: currentMessage.message,
-          trigger_reason: currentMessage.triggerReason,
-          emotional_tone: currentMessage.emotionalTone,
-          snapshot_id: currentMessage.snapshotId || null,
-          dismissed_at: new Date().toISOString(),
-          was_received: wasReceived,
-        });
+        // First check if this message already exists in DB (from edge function)
+        const { data: existingMessage } = await supabase
+          .from("future_self_messages")
+          .select("id")
+          .eq("user_id", userId.current)
+          .eq("message", currentMessage.message)
+          .eq("trigger_reason", currentMessage.triggerReason)
+          .limit(1)
+          .single();
+
+        if (existingMessage) {
+          // Update existing message
+          await supabase
+            .from("future_self_messages")
+            .update({
+              dismissed_at: new Date().toISOString(),
+              was_received: wasReceived,
+            })
+            .eq("id", existingMessage.id);
+        } else {
+          // Insert new message
+          await supabase.from("future_self_messages").insert({
+            user_id: userId.current,
+            message: currentMessage.message,
+            trigger_reason: currentMessage.triggerReason,
+            emotional_tone: currentMessage.emotionalTone,
+            snapshot_id: currentMessage.snapshotId || null,
+            dismissed_at: new Date().toISOString(),
+            was_received: wasReceived,
+          });
+        }
 
         // Update profile with last message time
         await supabase

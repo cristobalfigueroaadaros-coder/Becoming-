@@ -179,7 +179,7 @@ const FutureSelf = () => {
               title="Self-Discovery Quests"
               onClick={() => navigate("/future-self/quests")}
             >
-              <QuestsCard />
+              <QuestsCard showNotification={true} />
             </FutureSelfDashboardCard>
           </motion.div>
 

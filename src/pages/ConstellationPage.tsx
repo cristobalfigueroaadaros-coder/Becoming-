@@ -377,12 +377,9 @@ const ConstellationPage = () => {
         animate={{ opacity: 1, y: 0 }}
         transition={{ duration: 0.4, delay: 0.1 }}
       >
-        <h1 className="text-5xl md:text-6xl font-bold text-center text-foreground mb-4">
+        <h1 className="text-4xl md:text-5xl font-bold text-center text-foreground mb-8">
           Mapping Ideas & Dots
         </h1>
-        <p className="text-center text-muted-foreground mb-12 text-lg">
-          Capture your journey and discover patterns across all your insights
-        </p>
         
         <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full">
           <div className="flex items-center justify-between mb-6">
