@@ -1,10 +1,15 @@
 import { useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { Card, CardContent } from "@/components/ui/card";
-import { Sparkles, ChevronRight } from "lucide-react";
+import { Sparkles, ChevronRight, Bell } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
+import { cn } from "@/lib/utils";
 
-const FutureSelfSpaceCard = () => {
+interface FutureSelfSpaceCardProps {
+  hasQuestPending?: boolean;
+}
+
+const FutureSelfSpaceCard = ({ hasQuestPending = false }: FutureSelfSpaceCardProps) => {
   const navigate = useNavigate();
   const [level, setLevel] = useState(1);
   const [xp, setXp] = useState(0);
@@ -35,9 +40,17 @@ const FutureSelfSpaceCard = () => {
 
   return (
     <Card 
-      className="cursor-pointer hover:shadow-lg transition-all hover:scale-[1.01] bg-gradient-to-r from-card to-muted/30 border-border/50"
+      className={cn(
+        "cursor-pointer hover:shadow-lg transition-all hover:scale-[1.01] bg-gradient-to-r from-card to-muted/30 border-border/50 relative",
+        hasQuestPending && "ring-2 ring-destructive/50"
+      )}
       onClick={() => navigate("/future-self")}
     >
+      {hasQuestPending && (
+        <div className="absolute -top-2 -right-2 w-6 h-6 rounded-full bg-destructive text-destructive-foreground flex items-center justify-center shadow-lg animate-pulse">
+          <Bell className="w-3 h-3" />
+        </div>
+      )}
       <CardContent className="p-5">
         <div className="flex items-center justify-between">
           <div className="flex items-center gap-4">
@@ -46,7 +59,12 @@ const FutureSelfSpaceCard = () => {
             </div>
             <div>
               <h3 className="font-semibold text-lg">Future Self Space</h3>
-              <p className="text-sm text-muted-foreground">Your long-term vision and growth map</p>
+              <p className="text-sm text-muted-foreground">
+                {hasQuestPending 
+                  ? "Complete a quick quest to unlock more features"
+                  : "Your long-term vision and growth map"
+                }
+              </p>
             </div>
           </div>
           <div className="flex items-center gap-3">

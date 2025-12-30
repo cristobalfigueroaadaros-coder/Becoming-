@@ -16,6 +16,7 @@ import OnboardingStep1 from "./pages/OnboardingStep1";
 import OnboardingStep2 from "./pages/OnboardingStep2";
 import OnboardingStep3 from "./pages/OnboardingStep3";
 import OnboardingStep4 from "./pages/OnboardingStep4";
+import OnboardingWorkContext from "./pages/OnboardingWorkContext";
 import Dashboard from "./pages/Dashboard";
 import CommunityHub from "./pages/CommunityHub";
 import FutureSelf from "./pages/FutureSelf";
@@ -164,6 +165,10 @@ const App = () => {
             <Route
               path="/onboarding/step4"
               element={session ? <OnboardingStep4 /> : <Navigate to="/auth" />}
+            />
+            <Route
+              path="/onboarding/work-context"
+              element={session ? <OnboardingWorkContext /> : <Navigate to="/auth" />}
             />
             <Route
               path="/dashboard"
