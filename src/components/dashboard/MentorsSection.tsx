@@ -1,7 +1,8 @@
 import { Card, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { cn } from "@/lib/utils";
-import { Loader2, Lightbulb, Zap, Trees, Sparkles, Briefcase, Compass, Target, TrendingUp, Megaphone, FlaskConical, Scale, Moon } from "lucide-react";
+import { Loader2, Lightbulb, Zap, Trees, Sparkles, Briefcase, Compass, Target, TrendingUp, Megaphone, FlaskConical, Scale, Moon, Lock } from "lucide-react";
+import { toast } from "sonner";
 
 const mentorIcons = {
   discipline_mentor: Target,
@@ -56,18 +57,40 @@ interface MentorsSectionProps {
   mentorNotifications: Record<string, number>;
   processingMentor: string | null;
   onMentorClick: (mentorType: string) => void;
+  isLocked?: boolean;
 }
 
 const MentorsSection = ({ 
   mentors, 
   mentorNotifications, 
   processingMentor, 
-  onMentorClick 
+  onMentorClick,
+  isLocked = false,
 }: MentorsSectionProps) => {
+
+  const handleClick = (mentorType: string) => {
+    if (isLocked) {
+      toast.info("Mentors unlock after your first Council meeting");
+      return;
+    }
+    onMentorClick(mentorType);
+  };
+
   return (
     <div className="space-y-3">
-      <h2 className="text-lg font-semibold text-muted-foreground">Your Mentors</h2>
-      <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-3">
+      <div className="flex items-center gap-2">
+        <h2 className="text-lg font-semibold text-muted-foreground">Your Mentors</h2>
+        {isLocked && (
+          <Badge variant="secondary" className="text-xs gap-1">
+            <Lock className="w-3 h-3" />
+            Unlocks after Council
+          </Badge>
+        )}
+      </div>
+      <div className={cn(
+        "grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-3",
+        isLocked && "opacity-50"
+      )}>
         {mentors.map((mentor) => {
           const Icon = mentorIcons[mentor.mentor_type as keyof typeof mentorIcons];
           const color = mentorColors[mentor.mentor_type as keyof typeof mentorColors];
@@ -77,10 +100,12 @@ const MentorsSection = ({
             <Card
               key={mentor.id}
               className={cn(
-                "cursor-pointer hover:shadow-lg transition-all hover:scale-[1.02] relative",
-                processingMentor === mentor.mentor_type && "opacity-50 cursor-wait"
+                "cursor-pointer hover:shadow-lg transition-all relative",
+                !isLocked && "hover:scale-[1.02]",
+                processingMentor === mentor.mentor_type && "opacity-50 cursor-wait",
+                isLocked && "cursor-not-allowed"
               )}
-              onClick={() => onMentorClick(mentor.mentor_type)}
+              onClick={() => handleClick(mentor.mentor_type)}
               style={{ pointerEvents: processingMentor ? 'none' : 'auto' }}
             >
               {processingMentor === mentor.mentor_type && (
@@ -88,10 +113,15 @@ const MentorsSection = ({
                   <Loader2 className="w-5 h-5 animate-spin" />
                 </div>
               )}
-              {mentorNotifications[mentor.mentor_type] > 0 && (
+              {!isLocked && mentorNotifications[mentor.mentor_type] > 0 && (
                 <Badge className="absolute -top-2 -right-2 bg-destructive text-destructive-foreground rounded-full h-5 w-5 flex items-center justify-center text-xs font-bold p-0">
                   {mentorNotifications[mentor.mentor_type]}
                 </Badge>
+              )}
+              {isLocked && (
+                <div className="absolute top-2 right-2">
+                  <Lock className="w-4 h-4 text-muted-foreground" />
+                </div>
               )}
               <CardContent className="p-4 text-center space-y-2">
                 <div className={cn("w-12 h-12 mx-auto rounded-xl flex items-center justify-center", color)}>

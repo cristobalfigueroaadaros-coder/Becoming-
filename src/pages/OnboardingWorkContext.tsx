@@ -70,13 +70,10 @@ const OnboardingWorkContext = () => {
               </label>
               <Textarea
                 value={workContext}
-                onChange={(e) => setWorkContext(e.target.value.slice(0, 280))}
+                onChange={(e) => setWorkContext(e.target.value)}
                 placeholder="e.g., I'm a freelance designer exploring how to build a personal brand, or I've worked in tech for 10 years and I'm considering a career pivot..."
                 className="min-h-[120px] resize-none"
               />
-              <p className="text-xs text-muted-foreground text-right">
-                {workContext.length}/280 characters
-              </p>
               <p className="text-xs text-muted-foreground">
                 1–2 lines is enough. No need to explain everything.
               </p>
