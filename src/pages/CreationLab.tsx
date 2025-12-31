@@ -12,6 +12,8 @@ import { FocusMode } from "@/components/creation-lab/FocusMode";
 import { LivingConstellation } from "@/components/creation-lab/LivingConstellation";
 import { PurposeToValueMap } from "@/components/creation-lab/PurposeToValueMap";
 import { PurposeOnboardingModal } from "@/components/PurposeOnboardingModal";
+import { ProjectTypeSelector, type ProjectType } from "@/components/creation-lab/ProjectTypeSelector";
+import { BecomingPath } from "@/components/creation-lab/BecomingPath";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
 
@@ -50,6 +52,12 @@ const CreationLab = () => {
   const location = useLocation();
   const [searchParams, setSearchParams] = useSearchParams();
   const [showPurposeModal, setShowPurposeModal] = useState(false);
+  
+  // PDR: Project type toggle (Becoming vs Creating)
+  const typeParam = searchParams.get("type") as ProjectType | null;
+  const [projectType, setProjectType] = useState<ProjectType>(
+    typeParam === "becoming" ? "becoming" : "creating"
+  );
   
   // PDR v2.1: Accept project info from navigation state (from Commitment Card)
   const navState = location.state as ProjectSetupState | null;
@@ -102,7 +110,12 @@ const CreationLab = () => {
   // Update URL when mode changes
   const handleModeChange = (mode: CreationLabMode) => {
     setCurrentMode(mode);
-    setSearchParams({ mode });
+    setSearchParams({ type: projectType, mode });
+  };
+
+  const handleProjectTypeChange = (type: ProjectType) => {
+    setProjectType(type);
+    setSearchParams({ type, mode: currentMode });
   };
 
   // Sync mode from URL on mount
@@ -323,52 +336,64 @@ const CreationLab = () => {
           </CardHeader>
         </Card>
 
-        {/* Mode Selector */}
-        <ModeSelector
-          currentMode={currentMode}
-          onModeChange={handleModeChange}
-          hasActiveProject={!!activeProject}
-          dotCount={insightDots.length}
+        {/* Project Type Selector */}
+        <ProjectTypeSelector
+          currentType={projectType}
+          onTypeChange={handleProjectTypeChange}
         />
 
-        {/* Mode Content */}
-        <motion.div
-          key={currentMode}
-          initial={{ opacity: 0, y: 20 }}
-          animate={{ opacity: 1, y: 0 }}
-          transition={{ duration: 0.3 }}
-        >
-          {currentMode === "focus" && (
-            <FocusMode
-              activeProject={activeProject}
-              phases={phases}
-              steps={steps}
-              todaysStep={todaysStep}
-              currentPhase={currentPhase}
-              missedSteps={getMissedSteps()}
-              onCompleteStep={handleCompleteStep}
-              onSkipStep={skipStep}
-              onEditStep={editStep}
-              onRescheduleStep={rescheduleStep}
-              onSkipMissedSteps={skipMissedSteps}
-              onProjectUpdate={(updates) => setActiveProject(prev => prev ? { ...prev, ...updates } : null)}
-            />
-          )}
+        {/* Mode Selector - only show for Creating project */}
+        {projectType === "creating" && (
+          <ModeSelector
+            currentMode={currentMode}
+            onModeChange={handleModeChange}
+            hasActiveProject={!!activeProject}
+            dotCount={insightDots.length}
+          />
+        )}
 
-          {currentMode === "constellation" && (
-            <LivingConstellation
-              dots={insightDots}
-              connections={dotConnections}
-              userPurpose={userPurpose}
-              onDataChange={refreshData}
-              onEditPurpose={() => setShowPurposeModal(true)}
-            />
-          )}
+        {/* Content based on project type */}
+        {projectType === "becoming" ? (
+          <BecomingPath />
+        ) : (
+          <motion.div
+            key={currentMode}
+            initial={{ opacity: 0, y: 20 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ duration: 0.3 }}
+          >
+            {currentMode === "focus" && (
+              <FocusMode
+                activeProject={activeProject}
+                phases={phases}
+                steps={steps}
+                todaysStep={todaysStep}
+                currentPhase={currentPhase}
+                missedSteps={getMissedSteps()}
+                onCompleteStep={handleCompleteStep}
+                onSkipStep={skipStep}
+                onEditStep={editStep}
+                onRescheduleStep={rescheduleStep}
+                onSkipMissedSteps={skipMissedSteps}
+                onProjectUpdate={(updates) => setActiveProject(prev => prev ? { ...prev, ...updates } : null)}
+              />
+            )}
 
-          {currentMode === "purpose" && (
-            <PurposeToValueMap userPurpose={userPurpose} />
-          )}
-        </motion.div>
+            {currentMode === "constellation" && (
+              <LivingConstellation
+                dots={insightDots}
+                connections={dotConnections}
+                userPurpose={userPurpose}
+                onDataChange={refreshData}
+                onEditPurpose={() => setShowPurposeModal(true)}
+              />
+            )}
+
+            {currentMode === "purpose" && (
+              <PurposeToValueMap userPurpose={userPurpose} />
+            )}
+          </motion.div>
+        )}
       </div>
     </motion.div>
   );
