@@ -83,6 +83,42 @@ export type Database = {
         }
         Relationships: []
       }
+      becoming_discoveries: {
+        Row: {
+          created_at: string | null
+          discovery_type: string
+          element_key: string
+          element_value: string
+          id: string
+          source: string | null
+          source_message_id: string | null
+          updated_at: string | null
+          user_id: string
+        }
+        Insert: {
+          created_at?: string | null
+          discovery_type: string
+          element_key: string
+          element_value: string
+          id?: string
+          source?: string | null
+          source_message_id?: string | null
+          updated_at?: string | null
+          user_id: string
+        }
+        Update: {
+          created_at?: string | null
+          discovery_type?: string
+          element_key?: string
+          element_value?: string
+          id?: string
+          source?: string | null
+          source_message_id?: string | null
+          updated_at?: string | null
+          user_id?: string
+        }
+        Relationships: []
+      }
       chats: {
         Row: {
           content: string
@@ -532,6 +568,45 @@ export type Database = {
           id?: string
           user_id?: string
           xp_awarded?: boolean
+        }
+        Relationships: []
+      }
+      daily_journal: {
+        Row: {
+          content: string
+          created_at: string | null
+          detected_emotions: Json | null
+          detected_patterns: Json | null
+          detected_themes: Json | null
+          entry_date: string
+          id: string
+          title: string | null
+          updated_at: string | null
+          user_id: string
+        }
+        Insert: {
+          content: string
+          created_at?: string | null
+          detected_emotions?: Json | null
+          detected_patterns?: Json | null
+          detected_themes?: Json | null
+          entry_date?: string
+          id?: string
+          title?: string | null
+          updated_at?: string | null
+          user_id: string
+        }
+        Update: {
+          content?: string
+          created_at?: string | null
+          detected_emotions?: Json | null
+          detected_patterns?: Json | null
+          detected_themes?: Json | null
+          entry_date?: string
+          id?: string
+          title?: string | null
+          updated_at?: string | null
+          user_id?: string
         }
         Relationships: []
       }
@@ -985,6 +1060,48 @@ export type Database = {
           id?: string
           updated_at?: string | null
           user_id?: string
+        }
+        Relationships: []
+      }
+      ideal_life_snapshots: {
+        Row: {
+          contribution: string | null
+          created_at: string | null
+          environment: string | null
+          family: string | null
+          generated_image_url: string | null
+          id: string
+          lifestyle: string | null
+          relationships: string | null
+          updated_at: string | null
+          user_id: string
+          work: string | null
+        }
+        Insert: {
+          contribution?: string | null
+          created_at?: string | null
+          environment?: string | null
+          family?: string | null
+          generated_image_url?: string | null
+          id?: string
+          lifestyle?: string | null
+          relationships?: string | null
+          updated_at?: string | null
+          user_id: string
+          work?: string | null
+        }
+        Update: {
+          contribution?: string | null
+          created_at?: string | null
+          environment?: string | null
+          family?: string | null
+          generated_image_url?: string | null
+          id?: string
+          lifestyle?: string | null
+          relationships?: string | null
+          updated_at?: string | null
+          user_id?: string
+          work?: string | null
         }
         Relationships: []
       }
