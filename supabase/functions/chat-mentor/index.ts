@@ -1007,11 +1007,54 @@ IMPORTANT: Continue this conversation naturally. You reached out to the user abo
       }
     }
 
-    // Add the new user message (or handoff init prompt)
+    // Add the new user message (or handoff/quest init prompt)
     if (message === "__HANDOFF_INIT__") {
       messages.push({ 
         role: "user", 
         content: "I'd like to hear your perspective on what I was just discussing with the other mentor." 
+      });
+    } else if (message.startsWith("__QUEST_INIT__:")) {
+      // Quest initialization - generate contextual opening message
+      const questType = message.replace("__QUEST_INIT__:", "");
+      
+      const questOpeningMessages: Record<string, string> = {
+        core_values: "I'd like your help discovering my core values. I want to understand the principles that truly guide my decisions.",
+        ikigai: "I want to explore my Ikigai with you - finding where my passions, skills, purpose, and livelihood intersect.",
+        strengths: "I'd like to uncover my natural strengths - the things that come easily to me but others find difficult.",
+        my_why: "I want to articulate my deeper 'why' - the purpose behind everything I do.",
+        identity: "I'd like help crafting my identity statement - defining who I'm becoming."
+      };
+      
+      const questPrompts: Record<string, string> = {
+        core_values: `The user wants to discover their CORE VALUES. Start the conversation by:
+1. Welcoming them warmly to this important exploration
+2. Asking them to think about a recent moment when they felt truly aligned - what made that moment feel right?
+3. Keep it conversational and encouraging. This is the beginning of a guided discovery.`,
+        ikigai: `The user wants to explore their IKIGAI. Start by:
+1. Briefly explaining that Ikigai is where love, skill, purpose, and livelihood meet
+2. Ask them: "What activities make you lose track of time completely?"
+3. Be warm and curious. This is exploration, not examination.`,
+        strengths: `The user wants to discover their NATURAL STRENGTHS. Start by:
+1. Acknowledging this is about what comes NATURALLY, not just what they're good at
+2. Ask: "What do people often come to you for help with? What feels effortless to you that others find difficult?"
+3. Be encouraging and reflective.`,
+        my_why: `The user wants to articulate their WHY - their deeper purpose. Start by:
+1. Acknowledging this is one of the most important questions
+2. Ask: "Beyond obligations and expectations, what truly gets you out of bed in the morning? What impact do you want to have?"
+3. Be thoughtful and patient. This takes time to uncover.`,
+        identity: `The user wants to craft their IDENTITY STATEMENT. Start by:
+1. Explaining this is about defining who they're BECOMING, not who they've been
+2. Ask: "If you imagine your best self 5 years from now, what qualities define that person?"
+3. Be inspiring and forward-focused.`
+      };
+      
+      // Add quest-specific context to system prompt
+      const questContext = questPrompts[questType] || questPrompts.core_values;
+      messages[0].content += `\n\n=== QUEST DISCOVERY MODE ===\n${questContext}\n=== END QUEST MODE ===`;
+      
+      messages.push({ 
+        role: "user", 
+        content: questOpeningMessages[questType] || questOpeningMessages.core_values
       });
     } else {
       messages.push({ role: "user", content: message });

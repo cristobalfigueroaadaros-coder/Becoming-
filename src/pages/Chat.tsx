@@ -87,6 +87,7 @@ const Chat = () => {
   const location = useLocation();
   const searchParams = new URLSearchParams(location.search);
   const fromCouncil = searchParams.get('fromCouncil') === 'true';
+  const questType = searchParams.get('quest');
   
   const [messages, setMessages] = useState<any[]>([]);
   const [whispers, setWhispers] = useState<Whisper[]>([]);
@@ -104,6 +105,7 @@ const Chat = () => {
   const [firstWinConceptName, setFirstWinConceptName] = useState("");
   const [projectCoherence, setProjectCoherence] = useState<ProjectCoherence | null>(null);
   const [showCommitmentCard, setShowCommitmentCard] = useState(false);
+  const [questInitialized, setQuestInitialized] = useState(false);
   const messagesEndRef = useRef<HTMLDivElement>(null);
   
   // Micro wins for post-first-win celebrations
@@ -191,6 +193,49 @@ const Chat = () => {
     messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
   }, [messages]);
 
+  // Quest initialization - send opening message for quest context
+  useEffect(() => {
+    const initializeQuest = async () => {
+      if (questType && mentorType === 'future_self' && !questInitialized && messages.length === 0) {
+        setQuestInitialized(true);
+        setLoading(true);
+        
+        try {
+          const { data: { user } } = await supabase.auth.getUser();
+          if (!user) return;
+
+          // Send quest init message to get contextual opening
+          const { data, error } = await supabase.functions.invoke("chat-mentor", {
+            body: { mentorType: 'future_self', message: `__QUEST_INIT__:${questType}` },
+          });
+
+          if (error) throw error;
+
+          // Save the AI opening message
+          const { data: assistantMsgData } = await supabase.from("chats").insert({
+            user_id: user.id,
+            mentor_type: 'future_self',
+            role: "assistant",
+            content: data.response,
+          }).select().single();
+
+          if (assistantMsgData) {
+            setMessages([assistantMsgData]);
+          }
+        } catch (error: any) {
+          console.error("Error initializing quest:", error);
+        } finally {
+          setLoading(false);
+        }
+      }
+    };
+
+    // Only initialize after messages are loaded
+    if (!loading) {
+      initializeQuest();
+    }
+  }, [questType, mentorType, questInitialized, messages.length, loading]);
+
   const loadMessages = async () => {
     try {
       const { data: { user } } = await supabase.auth.getUser();
@@ -206,6 +251,11 @@ const Chat = () => {
       if (error) throw error;
       setMessages(data || []);
       setExchangeCount(data?.filter((m: any) => m.role === "user").length || 0);
+      
+      // If there are existing messages and we have a quest param, mark as initialized
+      if (data && data.length > 0 && questType) {
+        setQuestInitialized(true);
+      }
     } catch (error: any) {
       toast.error(error.message);
     }

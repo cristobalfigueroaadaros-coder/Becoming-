@@ -5,10 +5,13 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Progress } from "@/components/ui/progress";
+import { Textarea } from "@/components/ui/textarea";
+import { Label } from "@/components/ui/label";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from "@/components/ui/dialog";
-import { Compass, Heart, Target, Zap, MessageCircle, Lock, CheckCircle2, Lightbulb, ChevronRight, Sparkles, X } from "lucide-react";
+import { Compass, Heart, Target, Zap, MessageCircle, Lock, CheckCircle2, Lightbulb, ChevronRight, Sparkles, ArrowLeft } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { cn } from "@/lib/utils";
+import { toast } from "sonner";
 
 interface QuestConfig {
   key: string;
@@ -80,6 +83,20 @@ const quests: QuestConfig[] = [
   },
 ];
 
+const coreValues = [
+  "Authenticity", "Adventure", "Balance", "Compassion", "Courage",
+  "Creativity", "Curiosity", "Freedom", "Growth", "Health",
+  "Honesty", "Humor", "Independence", "Integrity", "Joy",
+  "Kindness", "Knowledge", "Love", "Loyalty", "Peace",
+  "Purpose", "Security", "Service", "Spirituality", "Wisdom"
+];
+
+const strengthAreas = [
+  "Strategic Thinking", "Creativity", "Empathy", "Communication",
+  "Leadership", "Problem Solving", "Adaptability", "Discipline",
+  "Intuition", "Analysis", "Innovation", "Collaboration"
+];
+
 interface QuestProgress {
   discovery_type: string;
   element_key: string;
@@ -90,6 +107,9 @@ export const SelfDiscoveryQuests = () => {
   const [progress, setProgress] = useState<QuestProgress[]>([]);
   const [loading, setLoading] = useState(true);
   const [selectedQuest, setSelectedQuest] = useState<QuestConfig | null>(null);
+  const [activeQuestForm, setActiveQuestForm] = useState<QuestConfig | null>(null);
+  const [questAnswers, setQuestAnswers] = useState<any>({});
+  const [saving, setSaving] = useState(false);
 
   useEffect(() => {
     loadProgress();
@@ -132,8 +152,292 @@ export const SelfDiscoveryQuests = () => {
 
   const handleBeginQuest = (quest: QuestConfig) => {
     setSelectedQuest(null);
-    // Navigate to quest page or open inline form - for now redirect to chat as well
-    navigate(`/chat/future_self?quest=${quest.key}`);
+    setActiveQuestForm(quest);
+    setQuestAnswers({});
+  };
+
+  const handleBackToQuestSelection = () => {
+    setActiveQuestForm(null);
+    setQuestAnswers({});
+  };
+
+  const saveQuestAnswers = async () => {
+    if (!activeQuestForm) return;
+    
+    setSaving(true);
+    try {
+      const { data: { user } } = await supabase.auth.getUser();
+      if (!user) throw new Error("Not authenticated");
+
+      // Save discoveries based on quest type
+      const discoveries: { discovery_type: string; element_key: string; element_value: string }[] = [];
+      
+      if (activeQuestForm.key === "core_values" && questAnswers.values?.length > 0) {
+        discoveries.push({
+          discovery_type: "core_values",
+          element_key: "values_list",
+          element_value: JSON.stringify({
+            values: questAnswers.values,
+            reflection: questAnswers.valuesWhy || ""
+          }),
+        });
+      } else if (activeQuestForm.key === "ikigai") {
+        if (questAnswers.love) discoveries.push({ discovery_type: "ikigai", element_key: "love", element_value: questAnswers.love });
+        if (questAnswers.good_at) discoveries.push({ discovery_type: "ikigai", element_key: "good_at", element_value: questAnswers.good_at });
+        if (questAnswers.needs) discoveries.push({ discovery_type: "ikigai", element_key: "needs", element_value: questAnswers.needs });
+        if (questAnswers.paid_for) discoveries.push({ discovery_type: "ikigai", element_key: "paid_for", element_value: questAnswers.paid_for });
+      } else if (activeQuestForm.key === "strengths" && questAnswers.strengths?.length > 0) {
+        discoveries.push({
+          discovery_type: "strengths",
+          element_key: "strengths_list",
+          element_value: JSON.stringify({
+            strengths: questAnswers.strengths,
+            examples: questAnswers.strengthsExamples || ""
+          }),
+        });
+      } else if (activeQuestForm.key === "my_why" && questAnswers.whyStatement) {
+        discoveries.push({
+          discovery_type: "my_why",
+          element_key: "why_statement",
+          element_value: questAnswers.whyStatement,
+        });
+      }
+
+      if (discoveries.length === 0) {
+        toast.error("Please fill in at least one field");
+        setSaving(false);
+        return;
+      }
+
+      // Upsert discoveries
+      for (const discovery of discoveries) {
+        const { data: existing } = await supabase
+          .from("becoming_discoveries")
+          .select("id")
+          .eq("user_id", user.id)
+          .eq("discovery_type", discovery.discovery_type)
+          .eq("element_key", discovery.element_key)
+          .maybeSingle();
+
+        if (existing) {
+          await supabase
+            .from("becoming_discoveries")
+            .update({ element_value: discovery.element_value, updated_at: new Date().toISOString() })
+            .eq("id", existing.id);
+        } else {
+          await supabase.from("becoming_discoveries").insert({
+            user_id: user.id,
+            ...discovery,
+            source: "quest_form",
+          });
+        }
+      }
+
+      // Award XP
+      const xpReward = 50;
+      const { data: progressData } = await supabase
+        .from("future_self_progress")
+        .select("global_xp")
+        .eq("user_id", user.id)
+        .maybeSingle();
+
+      if (progressData) {
+        await supabase
+          .from("future_self_progress")
+          .update({ global_xp: progressData.global_xp + xpReward })
+          .eq("user_id", user.id);
+      }
+
+      toast.success(`Quest progress saved! +${xpReward} XP`);
+      setActiveQuestForm(null);
+      setQuestAnswers({});
+      loadProgress();
+    } catch (error: any) {
+      console.error("Error saving quest:", error);
+      toast.error("Failed to save progress");
+    } finally {
+      setSaving(false);
+    }
+  };
+
+  const renderQuestForm = () => {
+    if (!activeQuestForm) return null;
+
+    switch (activeQuestForm.key) {
+      case "core_values":
+        return (
+          <div className="space-y-6">
+            <div>
+              <Label className="text-base mb-4 block">
+                Select your top 10 core values
+              </Label>
+              <div className="grid grid-cols-2 sm:grid-cols-3 gap-2 mb-4">
+                {coreValues.map((value) => (
+                  <Button
+                    key={value}
+                    variant={questAnswers.values?.includes(value) ? "default" : "outline"}
+                    size="sm"
+                    onClick={() => {
+                      const current = questAnswers.values || [];
+                      if (current.includes(value)) {
+                        setQuestAnswers({
+                          ...questAnswers,
+                          values: current.filter((v: string) => v !== value)
+                        });
+                      } else if (current.length < 10) {
+                        setQuestAnswers({
+                          ...questAnswers,
+                          values: [...current, value]
+                        });
+                      }
+                    }}
+                    disabled={!questAnswers.values?.includes(value) && (questAnswers.values?.length >= 10)}
+                  >
+                    {value}
+                  </Button>
+                ))}
+              </div>
+              <p className="text-sm text-muted-foreground">
+                Selected: {questAnswers.values?.length || 0} / 10
+              </p>
+            </div>
+            <div>
+              <Label htmlFor="values-why">Why are these values important to you?</Label>
+              <Textarea
+                id="values-why"
+                placeholder="Reflect on how these values guide your decisions..."
+                value={questAnswers.valuesWhy || ""}
+                onChange={(e) => setQuestAnswers({ ...questAnswers, valuesWhy: e.target.value })}
+                rows={4}
+                className="mt-2"
+              />
+            </div>
+          </div>
+        );
+
+      case "ikigai":
+        return (
+          <div className="space-y-4">
+            <div>
+              <Label htmlFor="ikigai-love">What do you love?</Label>
+              <Textarea
+                id="ikigai-love"
+                placeholder="What brings you joy and energy..."
+                value={questAnswers.love || ""}
+                onChange={(e) => setQuestAnswers({ ...questAnswers, love: e.target.value })}
+                rows={3}
+                className="mt-2"
+              />
+            </div>
+            <div>
+              <Label htmlFor="ikigai-good">What are you good at?</Label>
+              <Textarea
+                id="ikigai-good"
+                placeholder="Your natural talents and developed skills..."
+                value={questAnswers.good_at || ""}
+                onChange={(e) => setQuestAnswers({ ...questAnswers, good_at: e.target.value })}
+                rows={3}
+                className="mt-2"
+              />
+            </div>
+            <div>
+              <Label htmlFor="ikigai-needs">What does the world need?</Label>
+              <Textarea
+                id="ikigai-needs"
+                placeholder="Problems you see that need solving..."
+                value={questAnswers.needs || ""}
+                onChange={(e) => setQuestAnswers({ ...questAnswers, needs: e.target.value })}
+                rows={3}
+                className="mt-2"
+              />
+            </div>
+            <div>
+              <Label htmlFor="ikigai-paid">What can you be paid for?</Label>
+              <Textarea
+                id="ikigai-paid"
+                placeholder="How could this create value for others..."
+                value={questAnswers.paid_for || ""}
+                onChange={(e) => setQuestAnswers({ ...questAnswers, paid_for: e.target.value })}
+                rows={3}
+                className="mt-2"
+              />
+            </div>
+          </div>
+        );
+
+      case "strengths":
+        return (
+          <div className="space-y-6">
+            <div>
+              <Label className="text-base mb-4 block">
+                Select your top 5 strengths
+              </Label>
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-2 mb-4">
+                {strengthAreas.map((strength) => (
+                  <Button
+                    key={strength}
+                    variant={questAnswers.strengths?.includes(strength) ? "default" : "outline"}
+                    size="sm"
+                    onClick={() => {
+                      const current = questAnswers.strengths || [];
+                      if (current.includes(strength)) {
+                        setQuestAnswers({
+                          ...questAnswers,
+                          strengths: current.filter((s: string) => s !== strength)
+                        });
+                      } else if (current.length < 5) {
+                        setQuestAnswers({
+                          ...questAnswers,
+                          strengths: [...current, strength]
+                        });
+                      }
+                    }}
+                    disabled={!questAnswers.strengths?.includes(strength) && (questAnswers.strengths?.length >= 5)}
+                  >
+                    {strength}
+                  </Button>
+                ))}
+              </div>
+              <p className="text-sm text-muted-foreground">
+                Selected: {questAnswers.strengths?.length || 0} / 5
+              </p>
+            </div>
+            <div>
+              <Label htmlFor="strengths-examples">Give examples of how you've used these strengths</Label>
+              <Textarea
+                id="strengths-examples"
+                placeholder="Share specific moments when these strengths showed up..."
+                value={questAnswers.strengthsExamples || ""}
+                onChange={(e) => setQuestAnswers({ ...questAnswers, strengthsExamples: e.target.value })}
+                rows={4}
+                className="mt-2"
+              />
+            </div>
+          </div>
+        );
+
+      case "my_why":
+        return (
+          <div className="space-y-4">
+            <div>
+              <Label htmlFor="why-statement" className="text-base">Your Purpose Statement</Label>
+              <p className="text-sm text-muted-foreground mb-3">
+                Complete this: "I exist to..." or "My purpose is to..."
+              </p>
+              <Textarea
+                id="why-statement"
+                placeholder="I exist to help people discover their true potential and live with purpose..."
+                value={questAnswers.whyStatement || ""}
+                onChange={(e) => setQuestAnswers({ ...questAnswers, whyStatement: e.target.value })}
+                rows={5}
+              />
+            </div>
+          </div>
+        );
+
+      default:
+        return null;
+    }
   };
 
   if (loading) {
@@ -141,6 +445,48 @@ export const SelfDiscoveryQuests = () => {
       <Card>
         <CardContent className="py-8 text-center">
           <div className="animate-pulse text-muted-foreground">Loading quests...</div>
+        </CardContent>
+      </Card>
+    );
+  }
+
+  // Show quest form if active
+  if (activeQuestForm) {
+    return (
+      <Card>
+        <CardHeader className="pb-3">
+          <div className="flex items-center gap-3">
+            <Button
+              variant="ghost"
+              size="sm"
+              onClick={handleBackToQuestSelection}
+              className="p-0 h-auto"
+            >
+              <ArrowLeft className="w-5 h-5" />
+            </Button>
+            <div className={cn(
+              "w-10 h-10 rounded-full flex items-center justify-center",
+              activeQuestForm.bgColor,
+              activeQuestForm.color
+            )}>
+              <activeQuestForm.icon className="w-5 h-5" />
+            </div>
+            <div>
+              <CardTitle className="text-lg">{activeQuestForm.label}</CardTitle>
+              <p className="text-sm text-muted-foreground">{activeQuestForm.description}</p>
+            </div>
+          </div>
+        </CardHeader>
+        <CardContent className="space-y-6">
+          {renderQuestForm()}
+          
+          <Button
+            onClick={saveQuestAnswers}
+            disabled={saving}
+            className="w-full"
+          >
+            {saving ? "Saving..." : "Save Progress"}
+          </Button>
         </CardContent>
       </Card>
     );
