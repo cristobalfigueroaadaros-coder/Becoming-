@@ -291,14 +291,17 @@ const CreationLab = () => {
       animate={{ opacity: 1 }}
       transition={{ duration: 0.3 }}
     >
-      <PurposeOnboardingModal 
-        open={showPurposeModal}
-        onClose={() => {
-          setShowPurposeModal(false);
-          refreshData();
-        }}
-        existingPurpose={userPurpose}
-      />
+      {/* Only show Purpose Modal for Creating project type, not Becoming */}
+      {projectType === "creating" && (
+        <PurposeOnboardingModal 
+          open={showPurposeModal}
+          onClose={() => {
+            setShowPurposeModal(false);
+            refreshData();
+          }}
+          existingPurpose={userPurpose}
+        />
+      )}
 
       <div className="max-w-7xl mx-auto space-y-6">
         {/* Header */}
