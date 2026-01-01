@@ -4,7 +4,7 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
 import { Label } from "@/components/ui/label";
-import { Compass, Edit2, Save, X } from "lucide-react";
+import { Compass, Edit2, Save, X, Loader2, ImageIcon, RefreshCw } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
 
@@ -33,6 +33,7 @@ export const IdealLifeSnapshot = () => {
   const [loading, setLoading] = useState(true);
   const [editing, setEditing] = useState(false);
   const [saving, setSaving] = useState(false);
+  const [generatingImage, setGeneratingImage] = useState(false);
   const [formData, setFormData] = useState<Record<string, string>>({});
 
   useEffect(() => {
@@ -70,6 +71,28 @@ export const IdealLifeSnapshot = () => {
     }
   };
 
+  const generateVisualization = async (snapshotId: string) => {
+    setGeneratingImage(true);
+    try {
+      const { data, error } = await supabase.functions.invoke("generate-life-snapshot-image", {
+        body: { snapshotId }
+      });
+
+      if (error) throw error;
+
+      if (data?.imageUrl) {
+        // Update local state
+        setSnapshot(prev => prev ? { ...prev, generated_image_url: data.imageUrl } : null);
+        toast.success("Vision visualization created");
+      }
+    } catch (error: any) {
+      console.error("Error generating visualization:", error);
+      toast.error("Could not generate visualization");
+    } finally {
+      setGeneratingImage(false);
+    }
+  };
+
   const handleSave = async () => {
     setSaving(true);
     try {
@@ -86,12 +109,15 @@ export const IdealLifeSnapshot = () => {
         environment: formData.environment || null,
       };
 
+      let savedId: string | null = null;
+
       if (snapshot) {
         const { error } = await supabase
           .from("ideal_life_snapshots")
           .update(payload)
           .eq("id", snapshot.id);
         if (error) throw error;
+        savedId = snapshot.id;
       } else {
         const { data, error } = await supabase
           .from("ideal_life_snapshots")
@@ -100,11 +126,18 @@ export const IdealLifeSnapshot = () => {
           .single();
         if (error) throw error;
         setSnapshot(data);
+        savedId = data.id;
       }
 
       toast.success("Vision saved");
       setEditing(false);
-      loadSnapshot();
+      await loadSnapshot();
+
+      // Generate visualization after saving if we have content
+      const hasContent = Object.values(formData).some(v => v.trim());
+      if (hasContent && savedId) {
+        await generateVisualization(savedId);
+      }
     } catch (error: any) {
       console.error("Error saving snapshot:", error);
       toast.error("Failed to save");
@@ -114,7 +147,6 @@ export const IdealLifeSnapshot = () => {
   };
 
   const hasContent = Object.values(formData).some(v => v.trim());
-  const filledFields = Object.values(formData).filter(v => v.trim()).length;
 
   if (loading) {
     return (
@@ -205,22 +237,68 @@ export const IdealLifeSnapshot = () => {
             </div>
           </motion.div>
         ) : hasContent ? (
-          <div className="grid gap-3 sm:grid-cols-2">
-            {fields.map((field) => {
-              const value = formData[field.key];
-              if (!value) return null;
-              return (
-                <div
-                  key={field.key}
-                  className="p-3 rounded-lg bg-background/50 border border-teal-500/10"
+          <div className="space-y-4">
+            {/* Generated Visualization */}
+            {snapshot?.generated_image_url ? (
+              <motion.div
+                initial={{ opacity: 0, scale: 0.95 }}
+                animate={{ opacity: 1, scale: 1 }}
+                className="relative rounded-xl overflow-hidden"
+              >
+                <img 
+                  src={snapshot.generated_image_url} 
+                  alt="Your ideal life visualization"
+                  className="w-full h-48 object-cover"
+                />
+                <div className="absolute inset-0 bg-gradient-to-t from-black/40 to-transparent" />
+                <Button
+                  variant="ghost"
+                  size="sm"
+                  onClick={() => snapshot?.id && generateVisualization(snapshot.id)}
+                  disabled={generatingImage}
+                  className="absolute bottom-2 right-2 text-white hover:bg-white/20"
                 >
-                  <span className="text-xs font-medium text-teal-600 block mb-1">
-                    {field.label}
-                  </span>
-                  <p className="text-sm">{value}</p>
-                </div>
-              );
-            })}
+                  {generatingImage ? (
+                    <Loader2 className="w-4 h-4 animate-spin" />
+                  ) : (
+                    <RefreshCw className="w-4 h-4" />
+                  )}
+                </Button>
+              </motion.div>
+            ) : generatingImage ? (
+              <div className="flex flex-col items-center justify-center py-8 rounded-xl bg-teal-500/5 border border-teal-500/10">
+                <Loader2 className="w-8 h-8 animate-spin text-teal-500 mb-2" />
+                <p className="text-sm text-muted-foreground">Creating your vision...</p>
+              </div>
+            ) : (
+              <Button
+                variant="outline"
+                onClick={() => snapshot?.id && generateVisualization(snapshot.id)}
+                className="w-full border-teal-500/20 text-teal-600 hover:bg-teal-500/10"
+              >
+                <ImageIcon className="w-4 h-4 mr-2" />
+                Generate Visualization
+              </Button>
+            )}
+
+            {/* Text Content */}
+            <div className="grid gap-3 sm:grid-cols-2">
+              {fields.map((field) => {
+                const value = formData[field.key];
+                if (!value) return null;
+                return (
+                  <div
+                    key={field.key}
+                    className="p-3 rounded-lg bg-background/50 border border-teal-500/10"
+                  >
+                    <span className="text-xs font-medium text-teal-600 block mb-1">
+                      {field.label}
+                    </span>
+                    <p className="text-sm">{value}</p>
+                  </div>
+                );
+              })}
+            </div>
           </div>
         ) : (
           <div className="text-center py-6">

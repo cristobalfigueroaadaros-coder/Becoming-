@@ -34,6 +34,7 @@ const MESSAGE_ARCHETYPES = [
   { name: "SURPRISE", instruction: "Say something unexpected that shifts their perspective completely. Be bold and unconventional." },
   { name: "QUESTION_GUIDE", instruction: "Suggest 1-2 powerful questions they should ask the mentors. Connect their unique background (traveler, psychologist, etc.) to opportunities. Example: 'Because you're a [background], ask: What problems do [target group] face that you could solve?'" },
   { name: "JOURNEY_ORCHESTRATOR", instruction: "Suggest a specific mentor journey for their current topic. Example: 'Start with Creative Visionary to explore ideas, then Business Mentor for validation, then Marketing for distribution.' Be specific about WHY each mentor in the journey." },
+  { name: "QUEST_NUDGE", instruction: "Gently remind them about their Becoming Path. Guide them to Creation Lab → Becoming Path to continue exploring their Self-Discovery Quests. Example: 'There's a quest waiting for you in the Becoming Path. Your values are ready to be discovered.' or 'Head to the Creation Lab and open your Becoming Path — your Ikigai quest is calling.'" },
 ];
 
 Deno.serve(async (req) => {
