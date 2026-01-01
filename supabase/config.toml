@@ -113,3 +113,6 @@ verify_jwt = true
 
 [functions.trigger-council-unlock]
 verify_jwt = true
+
+[functions.generate-life-snapshot-image]
+verify_jwt = true

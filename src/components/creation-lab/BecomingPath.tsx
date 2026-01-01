@@ -4,6 +4,7 @@ import { IdealLifeSnapshot } from "@/components/becoming/IdealLifeSnapshot";
 import { SelfDiscoveryQuests } from "@/components/becoming/SelfDiscoveryQuests";
 import { CoreDiscoveries } from "@/components/becoming/CoreDiscoveries";
 import { DailyJournal } from "@/components/becoming/DailyJournal";
+import { LifeDomainsRadar } from "@/components/LifeDomainsRadar";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { User, Sparkles } from "lucide-react";
 
@@ -56,6 +57,9 @@ export const BecomingPath = () => {
           
           {/* Core Discoveries - Living insights */}
           <CoreDiscoveries />
+          
+          {/* Life Domains Radar - Awareness view */}
+          <LifeDomainsRadar />
         </div>
       </div>
     </motion.div>
