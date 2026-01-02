@@ -185,7 +185,7 @@ const App = () => {
             />
             <Route
               path="/future-self"
-              element={session ? <FutureSelf /> : <Navigate to="/auth" />}
+              element={session ? <Navigate to="/creation-lab?type=becoming" replace /> : <Navigate to="/auth" />}
             />
             <Route
               path="/future-self/life-domains"
