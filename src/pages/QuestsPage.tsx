@@ -64,7 +64,7 @@ const QuestsPage = () => {
         <div className="max-w-7xl mx-auto px-4 py-4">
           <Button
             variant="ghost"
-            onClick={() => navigate("/future-self")}
+            onClick={() => navigate("/creation-lab?type=becoming")}
             className="gap-2"
           >
             <ArrowLeft className="w-4 h-4" />

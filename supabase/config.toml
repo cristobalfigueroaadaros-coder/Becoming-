@@ -116,3 +116,9 @@ verify_jwt = true
 
 [functions.generate-life-snapshot-image]
 verify_jwt = true
+
+[functions.detect-quest-progress]
+verify_jwt = true
+
+[functions.analyze-journal-entry]
+verify_jwt = true

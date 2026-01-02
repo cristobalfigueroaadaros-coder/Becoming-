@@ -44,7 +44,7 @@ const FutureSelfSpaceCard = ({ hasQuestPending = false }: FutureSelfSpaceCardPro
         "cursor-pointer hover:shadow-lg transition-all hover:scale-[1.01] bg-gradient-to-r from-card to-muted/30 border-border/50 relative",
         hasQuestPending && "ring-2 ring-destructive/50"
       )}
-      onClick={() => navigate("/future-self")}
+      onClick={() => navigate("/creation-lab?type=becoming")}
     >
       {hasQuestPending && (
         <div className="absolute -top-2 -right-2 w-6 h-6 rounded-full bg-destructive text-destructive-foreground flex items-center justify-center shadow-lg animate-pulse">
