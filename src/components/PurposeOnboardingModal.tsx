@@ -23,22 +23,21 @@ interface PurposeOnboardingModalProps {
 }
 
 export const PurposeOnboardingModal = ({ open, onClose, existingPurpose }: PurposeOnboardingModalProps) => {
-  const [step, setStep] = useState<"question" | "knows-purpose" | "discovering" | "dialogue" | "complete">("question");
+  const [step, setStep] = useState<"question" | "knows-purpose" | "discovering" | "dialogue" | "complete">("knows-purpose");
   const [purposeText, setPurposeText] = useState("");
   const [saving, setSaving] = useState(false);
-  const [discoveryMessages, setDiscoveryMessages] = useState<Array<{role: 'assistant' | 'user', content: string}>>([]);
+  const [discoveryMessages, setDiscoveryMessages] = useState<
+    Array<{ role: "assistant" | "user"; content: string }>
+  >([]);
   const [userResponse, setUserResponse] = useState("");
   const [isProcessing, setIsProcessing] = useState(false);
 
-  // If editing existing purpose, start at the right step with pre-filled text
+  // Always start on the direct purpose editor; remove the "Welcome to Your Constellation" question step.
   useEffect(() => {
-    if (existingPurpose && open) {
-      setPurposeText(existingPurpose);
-      setStep("knows-purpose");
-    } else if (open && !existingPurpose) {
-      setPurposeText("");
-      setStep("question");
-    }
+    if (!open) return;
+
+    setPurposeText(existingPurpose || "");
+    setStep("knows-purpose");
   }, [existingPurpose, open]);
 
   const handleKnowsPurpose = () => {
@@ -249,10 +248,10 @@ export const PurposeOnboardingModal = ({ open, onClose, existingPurpose }: Purpo
                 <div className="flex gap-3">
                   <Button
                     variant="outline"
-                    onClick={() => setStep("question")}
+                    onClick={onClose}
                     className="flex-1"
                   >
-                    Back
+                    Cancel
                   </Button>
                   <Button
                     onClick={savePurpose}

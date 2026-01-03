@@ -3,7 +3,6 @@ import { useNavigate } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
 import { DailyRitualModal } from "@/components/DailyRitualModal";
-import { PurposeOnboardingModal } from "@/components/PurposeOnboardingModal";
 import { MentorWhisperNotification } from "@/components/MentorWhisperNotification";
 import { useMentorWhisper } from "@/hooks/useMentorWhisper";
 import { useMentorOutreach } from "@/hooks/useMentorOutreach";
@@ -44,7 +43,6 @@ const Dashboard = () => {
   const [todayGoal, setTodayGoal] = useState<string | null>(null);
   const [currentUserId, setCurrentUserId] = useState<string | null>(null);
   const [displayName, setDisplayName] = useState<string | undefined>();
-  const [purposeModalOpen, setPurposeModalOpen] = useState(false);
   const [showWhisperNotification, setShowWhisperNotification] = useState(false);
   const [mentorNotifications, setMentorNotifications] = useState<Record<string, number>>({});
   const [processingMentor, setProcessingMentor] = useState<string | null>(null);
@@ -53,36 +51,32 @@ const Dashboard = () => {
   const [isCreationLabLocked, setIsCreationLabLocked] = useState(true);
   const [hasQuestPending, setHasQuestPending] = useState(false);
   const [areMentorsLocked, setAreMentorsLocked] = useState(false);
-  
-  const { 
-    unreadWhisper, 
-    checkAndGenerateWhisper, 
-    markAsRead,
-    latestWhisper 
-  } = useMentorWhisper();
 
   const {
-    outreach: mentorOutreach,
-    generateOutreach
-  } = useMentorOutreach();
+    unreadWhisper,
+    checkAndGenerateWhisper,
+    markAsRead,
+    latestWhisper,
+  } = useMentorWhisper();
+
+  const { outreach: mentorOutreach, generateOutreach } = useMentorOutreach();
 
   const { unreadCount: councilNotificationCount } = useCouncilNotifications();
 
   useEffect(() => {
     loadDashboardData();
     checkRitualStatus();
-    checkPurposeStatus();
     loadMentorNotifications();
     checkFirstTimeUser();
-    
+
     const whisperTimer = setTimeout(() => {
       checkAndGenerateWhisper();
     }, 2000);
-    
+
     const outreachTimer = setTimeout(() => {
       generateOutreach().catch(() => {});
     }, 3000);
-    
+
     return () => {
       clearTimeout(whisperTimer);
       clearTimeout(outreachTimer);
@@ -91,12 +85,16 @@ const Dashboard = () => {
 
   const checkFirstTimeUser = async () => {
     try {
-      const { data: { user } } = await supabase.auth.getUser();
+      const {
+        data: { user },
+      } = await supabase.auth.getUser();
       if (!user) return;
 
       const { data: profile } = await supabase
         .from("profiles")
-        .select("council_introduction_completed, display_name, council_unlocked, self_discovery_completed")
+        .select(
+          "council_introduction_completed, display_name, council_unlocked, self_discovery_completed",
+        )
         .eq("id", user.id)
         .single();
 
@@ -110,20 +108,20 @@ const Dashboard = () => {
 
       if (profile) {
         setDisplayName(profile.display_name || undefined);
-        
+
         // Check if council is locked
         const councilUnlocked = profile.council_unlocked === true;
         const selfDiscoveryCompleted = profile.self_discovery_completed === true;
-        
+
         setIsCouncilLocked(!councilUnlocked);
         setHasQuestPending(!selfDiscoveryCompleted);
-        
+
         // Creation Lab unlocks after first project (for now, keep locked until council is unlocked)
         setIsCreationLabLocked(!councilUnlocked);
-        
+
         // Mentors unlock after first council meeting
         setAreMentorsLocked(!hasHadCouncilMeeting);
-        
+
         if (!profile.council_introduction_completed && councilUnlocked) {
           setIsFirstTimeUser(true);
         }
@@ -141,12 +139,14 @@ const Dashboard = () => {
 
   const loadDashboardData = async () => {
     try {
-      const { data: { user } } = await supabase.auth.getUser();
+      const {
+        data: { user },
+      } = await supabase.auth.getUser();
       if (!user) {
         navigate("/auth");
         return;
       }
-      
+
       setCurrentUserId(user.id);
 
       const { data: mentorsData, error: mentorsError } = await supabase
@@ -165,7 +165,9 @@ const Dashboard = () => {
 
   const checkRitualStatus = async () => {
     try {
-      const { data: { user } } = await supabase.auth.getUser();
+      const {
+        data: { user },
+      } = await supabase.auth.getUser();
       if (!user) return;
 
       const today = new Date();
@@ -195,7 +197,7 @@ const Dashboard = () => {
           const lastDate = new Date(lastRitual[0].completed_at);
           const diffTime = Math.abs(today.getTime() - lastDate.getTime());
           const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
-          
+
           if (diffDays === 1) {
             setCurrentStreak(lastRitual[0].streak_count);
           } else {
@@ -220,24 +222,6 @@ const Dashboard = () => {
     }
   };
 
-  const checkPurposeStatus = async () => {
-    try {
-      const { data: { user } } = await supabase.auth.getUser();
-      if (!user) return;
-
-      const { data: profile } = await supabase
-        .from("profiles")
-        .select("main_mission")
-        .eq("id", user.id)
-        .single();
-
-      if (profile && !profile.main_mission) {
-        setPurposeModalOpen(true);
-      }
-    } catch (error: any) {
-      console.error("Error checking purpose status:", error);
-    }
-  };
 
   const loadMentorNotifications = async () => {
     try {
@@ -421,12 +405,6 @@ const Dashboard = () => {
           setRitualModalOpen(false);
         }}
       />
-      
-      <PurposeOnboardingModal 
-        open={purposeModalOpen}
-        onClose={() => setPurposeModalOpen(false)}
-      />
-
       {/* Whisper Notification */}
       {showWhisperNotification && latestWhisper && (
         <MentorWhisperNotification
