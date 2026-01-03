@@ -75,6 +75,7 @@ export const DailyJournal = () => {
       if (!user) throw new Error("Not authenticated");
 
       const today = format(new Date(), "yyyy-MM-dd");
+      let entryId = todayEntry?.id;
 
       if (todayEntry) {
         // Update existing entry
@@ -102,8 +103,20 @@ export const DailyJournal = () => {
           .single();
 
         if (error) throw error;
+        entryId = data.id;
         setTodayEntry(data);
         toast.success("Journal entry saved");
+      }
+
+      // Trigger AI analysis of the journal entry
+      if (entryId) {
+        supabase.functions.invoke('analyze-journal-entry', {
+          body: {
+            journalEntryId: entryId,
+            content: content.trim(),
+            userId: user.id
+          }
+        }).catch(err => console.error("Journal analysis error (non-fatal):", err));
       }
 
       setIsWriting(false);

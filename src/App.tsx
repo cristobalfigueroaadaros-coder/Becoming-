@@ -20,7 +20,7 @@ import OnboardingQuest from "./pages/OnboardingQuest";
 import OnboardingWorkContext from "./pages/OnboardingWorkContext";
 import Dashboard from "./pages/Dashboard";
 import CommunityHub from "./pages/CommunityHub";
-import FutureSelf from "./pages/FutureSelf";
+
 import LifeDomainsPage from "./pages/LifeDomainsPage";
 import GoalStructurePage from "./pages/GoalStructurePage";
 import ConstellationPage from "./pages/ConstellationPage";
