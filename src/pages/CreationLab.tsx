@@ -315,15 +315,17 @@ const CreationLab = () => {
             <ArrowLeft className="w-4 h-4" />
             Dashboard
           </Button>
-          <Button
-            variant="outline"
-            size="sm"
-            onClick={() => setShowPurposeModal(true)}
-            className="gap-2"
-          >
-            <Target className="w-4 h-4" />
-            {userPurpose ? "Edit Purpose" : "Set Purpose"}
-          </Button>
+          {projectType === "creating" && (
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={() => setShowPurposeModal(true)}
+              className="gap-2"
+            >
+              <Target className="w-4 h-4" />
+              {userPurpose ? "Edit Purpose" : "Set Purpose"}
+            </Button>
+          )}
         </div>
 
         {/* Hero Section */}

@@ -452,6 +452,17 @@ const Chat = () => {
           setShowFirstWinNaming(true);
         }
       }
+
+      // Detect quest progress for Future Self conversations (identity discovery)
+      if (mentorType === 'future_self' && newExchangeCount % 5 === 0) {
+        const recentMessages = [...messages.slice(-10), { role: "user", content: userMessage }, { role: "assistant", content: data.response }];
+        supabase.functions.invoke('detect-quest-progress', {
+          body: {
+            messages: recentMessages.map(m => ({ role: m.role, content: m.content })),
+            questType: questType || null
+          }
+        }).catch(err => console.error("Quest detection error (non-fatal):", err));
+      }
     } catch (error: any) {
       toast.error(error.message);
       await loadMessages();
