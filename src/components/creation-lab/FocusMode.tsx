@@ -2,12 +2,13 @@ import { useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
-import { Rocket, Sparkles, TrendingUp, Clock, Calendar } from "lucide-react";
-import { IntegratorPhaseTimeline } from "@/components/integrator/IntegratorPhaseTimeline";
+import { Rocket, Sparkles, TrendingUp, Calendar, Target } from "lucide-react";
 import { IntegratorCalendar } from "@/components/integrator/IntegratorCalendar";
 import { IntegratorDailyStepCard } from "@/components/integrator/IntegratorDailyStepCard";
 import { ProjectHeaderEditor } from "@/components/integrator/ProjectHeaderEditor";
 import { CatchUpMode } from "@/components/integrator/CatchUpMode";
+import { ProgressNarrativeBlock } from "@/components/integrator/ProgressNarrativeBlock";
+import { CelebrationMoment } from "@/components/integrator/CelebrationMoment";
 import type { IntegratorProject, IntegratorPhase, IntegratorDailyStep } from "@/hooks/useIntegratorProjects";
 
 interface FocusModeProps {
@@ -17,7 +18,11 @@ interface FocusModeProps {
   todaysStep: IntegratorDailyStep | undefined;
   currentPhase: IntegratorPhase | undefined;
   missedSteps: IntegratorDailyStep[];
-  onCompleteStep: (stepId: string, insight?: string) => Promise<void>;
+  onCompleteStep: (stepId: string, insight?: string, feedback?: {
+    win: string;
+    improvement?: string;
+    rating: number;
+  }) => Promise<void>;
   onSkipStep: (stepId: string, reason?: string) => Promise<void>;
   onEditStep: (stepId: string, title: string, description: string) => Promise<void>;
   onRescheduleStep: (stepId: string, newDate: Date) => Promise<void>;
@@ -41,6 +46,28 @@ export const FocusMode = ({
 }: FocusModeProps) => {
   const navigate = useNavigate();
   const [showCatchUp, setShowCatchUp] = useState(missedSteps.length >= 3);
+  const [showCelebration, setShowCelebration] = useState(false);
+  const [earnedXP, setEarnedXP] = useState(0);
+
+  const completedSteps = steps.filter(s => s.status === 'completed');
+
+  // Calculate overall progress percentage
+  const progressPercentage = steps.length > 0 
+    ? Math.round((completedSteps.length / steps.length) * 100) 
+    : 0;
+
+  const handleStepComplete = async (stepId: string, insight?: string, feedback?: {
+    win: string;
+    improvement?: string;
+    rating: number;
+  }) => {
+    await onCompleteStep(stepId, insight, feedback);
+    
+    // Show celebration with XP
+    const xp = 25; // Base XP for task completion
+    setEarnedXP(xp);
+    setShowCelebration(true);
+  };
 
   if (!activeProject) {
     return (
@@ -73,7 +100,7 @@ export const FocusMode = ({
     );
   }
 
-  // Show catch-up mode if returning after many missed days
+  // Show catch-up mode if returning after many missed days (without guilt framing)
   if (showCatchUp && missedSteps.length >= 3) {
     return (
       <div className="space-y-6">
@@ -88,7 +115,6 @@ export const FocusMode = ({
           missedDays={missedSteps.length}
           onResume={() => setShowCatchUp(false)}
           onCompress={() => {
-            // For now, just resume - compression would require AI regeneration
             setShowCatchUp(false);
           }}
           onSkipMissed={async () => {
@@ -102,7 +128,15 @@ export const FocusMode = ({
 
   return (
     <div className="space-y-6">
-      {/* Project Header with Progress */}
+      {/* Celebration overlay */}
+      {showCelebration && (
+        <CelebrationMoment 
+          xpEarned={earnedXP} 
+          onDismiss={() => setShowCelebration(false)} 
+        />
+      )}
+
+      {/* Project Header - Clean hierarchy without phases */}
       <ProjectHeaderEditor
         project={activeProject}
         currentPhase={currentPhase}
@@ -110,29 +144,39 @@ export const FocusMode = ({
         onProjectUpdate={onProjectUpdate}
       />
 
-      {/* Phase Timeline */}
+      {/* Simple Progress Bar (replaces phase timeline) */}
       <Card>
         <CardContent className="pt-6">
-          <IntegratorPhaseTimeline
-            phases={phases}
-            currentDay={activeProject.current_day}
-            totalDays={activeProject.timeframe_days}
-          />
+          <div className="space-y-3">
+            <div className="flex items-center justify-between text-sm">
+              <span className="flex items-center gap-2 text-muted-foreground">
+                <Target className="w-4 h-4" />
+                Day {activeProject.current_day} of {activeProject.timeframe_days}
+              </span>
+              <span className="font-medium text-primary">{progressPercentage}% complete</span>
+            </div>
+            <div className="h-2 bg-muted rounded-full overflow-hidden">
+              <div 
+                className="h-full bg-gradient-to-r from-primary to-primary/60 rounded-full transition-all duration-500"
+                style={{ width: `${progressPercentage}%` }}
+              />
+            </div>
+          </div>
         </CardContent>
       </Card>
 
-      {/* Today's Step */}
+      {/* Today's Task - Clean naming without phase reference */}
       {todaysStep && currentPhase && (
         <div className="space-y-2">
           <h3 className="font-semibold text-lg flex items-center gap-2">
-            <Clock className="w-5 h-5 text-primary" />
-            Today's Step
+            <Sparkles className="w-5 h-5 text-primary" />
+            Today's Task
           </h3>
           <IntegratorDailyStepCard
             step={todaysStep}
             phase={currentPhase}
             totalDays={activeProject.timeframe_days}
-            onComplete={onCompleteStep}
+            onComplete={handleStepComplete}
             onSkip={onSkipStep}
             onEdit={onEditStep}
             onReschedule={onRescheduleStep}
@@ -157,6 +201,13 @@ export const FocusMode = ({
             phases={phases}
             onCompleteStep={onCompleteStep}
             currentDay={activeProject.current_day}
+          />
+          
+          {/* Progress Narrative Block */}
+          <ProgressNarrativeBlock
+            completedSteps={completedSteps}
+            totalSteps={steps.length}
+            projectTitle={activeProject.project_title}
           />
         </CardContent>
       </Card>

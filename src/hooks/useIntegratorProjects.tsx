@@ -53,6 +53,10 @@ export interface IntegratorDailyStep {
   user_edited_description?: string | null;
   skip_reason?: string | null;
   rescheduled_from?: string | null;
+  // PDR task system additions
+  why_it_matters?: string | null;
+  hint?: string | null;
+  action_type?: string | null;
 }
 
 // PDR v2.1: Project Spine type
@@ -242,7 +246,11 @@ export function useIntegratorProjects() {
     }
   };
 
-  const completeStep = async (stepId: string, insight?: string) => {
+  const completeStep = async (stepId: string, insight?: string, feedback?: {
+    win: string;
+    improvement?: string;
+    rating: number;
+  }) => {
     try {
       const { data: { user } } = await supabase.auth.getUser();
       if (!user) throw new Error('Not authenticated');
@@ -263,6 +271,18 @@ export function useIntegratorProjects() {
         .eq('id', stepId);
 
       if (error) throw error;
+
+      // Save task feedback if provided (PDR system)
+      if (feedback && insight) {
+        await supabase.from('task_feedback').insert({
+          user_id: user.id,
+          step_id: stepId,
+          insight_text: insight,
+          win_text: feedback.win,
+          improvement_text: feedback.improvement || null,
+          usefulness_rating: feedback.rating
+        });
+      }
 
       // If there's an insight, create an insight dot and update learning count
       if (insight && activeProject) {

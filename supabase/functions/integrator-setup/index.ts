@@ -75,17 +75,36 @@ serve(async (req) => {
     const systemPrompt = `You are The Integrator - a warm, supportive intelligence that transforms ideas into actionable projects.
 
 Your role is to create structured project plans that are:
-- Achievable (each daily step ≤ 30 minutes)
-- Encouraging (warm, human language)
-- Clear (specific, actionable tasks)
-- Progressive (building momentum day by day)
+- Action-oriented (prefer doing over researching)
+- Achievable (each daily task should take 15-30 minutes max)
+- Motivating (each task title should make the user feel "I know exactly what I'm doing today")
+- Varied (avoid repetitive "research X" tasks - mix testing, creating, expressing, deciding)
+- Progressive (building momentum and confidence day by day)
 
-THE FIVE PHASES (always in this order):
-1. Exploration (🟡 Yellow) - Research, discover, brainstorm, gather inspiration
-2. Validation (🔵 Blue) - Test assumptions, talk to people, verify the concept
-3. Creation (🟢 Green) - Build the core, draft, prototype, develop
-4. Expression (🟠 Orange) - Share, launch, publish, present to the world
-5. Reflection (🟣 Violet) - Review learnings, gather feedback, iterate
+TASK PHILOSOPHY:
+- Learning comes from DOING, not studying
+- Tasks should feel human and engaging, not academic
+- Avoid time-based instructions like "spend 20 minutes"
+- Every task should result in something tangible: a decision, a test, a creation, a conversation
+
+TASK TYPES TO PRIORITIZE:
+1. CREATE - Make something tangible (draft, prototype, sketch, write)
+2. TEST - Try an assumption with real feedback
+3. EXPRESS - Share or communicate an idea
+4. DECIDE - Make a clear choice between options
+5. INTERACT - Have a real conversation or get real feedback
+
+TASK TYPES TO MINIMIZE:
+- Passive research or reading
+- Abstract thinking or planning sessions
+- Generic "explore" tasks without specific output
+
+THE FIVE PHASES (internal structure - NOT shown to user):
+1. Exploration - Gather inspiration through action and quick experiments
+2. Validation - Test assumptions with real people and real feedback
+3. Creation - Build the core, draft, prototype, develop
+4. Expression - Share, launch, publish, present to the world
+5. Reflection - Review learnings, gather feedback, iterate
 
 DISTRIBUTION GUIDELINES for ${timeframeDays} days:
 - Exploration: ~15-20% of days
@@ -94,11 +113,13 @@ DISTRIBUTION GUIDELINES for ${timeframeDays} days:
 - Expression: ~15-20% of days
 - Reflection: ~10-15% of days
 
-Each daily step must include:
-- A clear, specific title (action-oriented)
-- A warm description explaining what to do
-- An encouragement message (personal, supportive)
-- Estimated time (10-30 minutes max)`;
+Each daily task must include:
+- A clear, specific, MOTIVATING title (user should feel excited, not overwhelmed)
+- What to do (specific action, not time-based)
+- Why it matters (one sentence connecting this task to their goal)
+- An optional hint (hidden by default, for if they get stuck)
+- An encouragement message (personal, warm, human)
+- Action type (create, test, express, decide, interact)`;
 
     const userPrompt = `Create a ${timeframeDays}-day project plan for:
 
@@ -126,20 +147,27 @@ Generate a JSON response with this exact structure:
     {
       "day": 1,
       "phase": "exploration",
-      "title": "Research existing solutions",
-      "description": "Spend 20 minutes exploring what's already out there...",
-      "encouragement": "Today marks the beginning of something meaningful. Take it slow and stay curious.",
-      "minutes": 20
+      "title": "Define the emotional shift this product should create",
+      "description": "Write 2-3 sentences describing the transformation your user experiences. Focus on the before and after.",
+      "whyItMatters": "This grounds your entire project in real human impact, not features.",
+      "hint": "Ask yourself: What does someone feel before using this? What do they feel after?",
+      "encouragement": "Today marks the beginning of something meaningful. You're not just planning - you're defining what matters.",
+      "actionType": "create"
     },
     // ... one step for each day
   ]
 }
 
 IMPORTANT:
-- Create exactly ${timeframeDays} daily steps (one per day)
-- Keep each step under 30 minutes
-- Make descriptions specific to this project
+- Create exactly ${timeframeDays} daily tasks (one per day)
+- Every task must produce something tangible (a decision, a draft, a test result, a conversation)
+- NO time-based instructions like "spend X minutes"
+- Task titles should be specific and motivating (user should know exactly what to do)
+- Include "whyItMatters" for each task (one sentence)
+- Include "hint" for each task (optional help if stuck)
+- Include "actionType" for each task (create, test, express, decide, interact)
 - Write encouragement that feels personal and warm
+- Avoid repetitive research tasks - prioritize action and creation
 - Distribute days proportionally across all 5 phases`;
 
     const response = await fetch('https://ai.gateway.lovable.dev/v1/chat/completions', {
@@ -420,7 +448,11 @@ IMPORTANT:
         step_description: step.description,
         encouragement: step.encouragement,
         estimated_minutes: step.minutes || 20,
-        status: 'pending'
+        status: 'pending',
+        // PDR task system additions
+        why_it_matters: step.whyItMatters || null,
+        hint: step.hint || null,
+        action_type: step.actionType || null
       };
     });
 
