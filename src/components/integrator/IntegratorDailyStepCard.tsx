@@ -2,9 +2,9 @@ import { useState } from "react";
 import { motion } from "framer-motion";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
-import { Clock, Check, Sparkles, ChevronRight } from "lucide-react";
+import { Check, Sparkles, ChevronRight, ChevronDown, Lightbulb } from "lucide-react";
 import { StepActionsMenu } from "./StepActionsMenu";
-import { MandatoryInsightCapture } from "./MandatoryInsightCapture";
+import { TaskCompletionFlow } from "./TaskCompletionFlow";
 
 interface DailyStep {
   id: string;
@@ -18,6 +18,8 @@ interface DailyStep {
   reflection_question?: string | null;
   user_edited_title?: string | null;
   user_edited_description?: string | null;
+  why_it_matters?: string | null;
+  hint?: string | null;
 }
 
 interface Phase {
@@ -29,20 +31,16 @@ interface IntegratorDailyStepCardProps {
   step: DailyStep;
   phase: Phase;
   totalDays: number;
-  onComplete: (stepId: string, insight?: string) => Promise<void>;
+  onComplete: (stepId: string, insight?: string, feedback?: {
+    win: string;
+    improvement?: string;
+    rating: number;
+  }) => Promise<void>;
   onSkip: (stepId: string, reason?: string) => Promise<void>;
   onEdit: (stepId: string, title: string, description: string) => Promise<void>;
   onReschedule: (stepId: string, newDate: Date) => Promise<void>;
   isLoading?: boolean;
 }
-
-const PHASE_EMOJIS: Record<string, string> = {
-  exploration: '🔍',
-  validation: '✓',
-  creation: '🔨',
-  expression: '📢',
-  reflection: '💭',
-};
 
 export function IntegratorDailyStepCard({
   step,
@@ -54,15 +52,25 @@ export function IntegratorDailyStepCard({
   onReschedule,
   isLoading = false
 }: IntegratorDailyStepCardProps) {
-  const [showInsightCapture, setShowInsightCapture] = useState(false);
+  const [showCompletionFlow, setShowCompletionFlow] = useState(false);
+  const [showHint, setShowHint] = useState(false);
 
   // Use edited values if available
   const displayTitle = step.user_edited_title || step.step_title;
   const displayDescription = step.user_edited_description || step.step_description;
 
-  const handleComplete = async (insight: string) => {
-    await onComplete(step.id, insight);
-    setShowInsightCapture(false);
+  const handleComplete = async (data: {
+    insight: string;
+    win: string;
+    improvement?: string;
+    rating: number;
+  }) => {
+    await onComplete(step.id, data.insight, {
+      win: data.win,
+      improvement: data.improvement,
+      rating: data.rating
+    });
+    setShowCompletionFlow(false);
   };
 
   if (step.status === 'completed') {
@@ -74,7 +82,7 @@ export function IntegratorDailyStepCard({
               <Check className="w-5 h-5 text-green-600" />
             </div>
             <div>
-              <p className="font-medium text-green-700 dark:text-green-400">Today's step completed!</p>
+              <p className="font-medium text-green-700 dark:text-green-400">Today's task completed!</p>
               <p className="text-sm text-muted-foreground">Great work. See you tomorrow.</p>
             </div>
           </div>
@@ -92,8 +100,8 @@ export function IntegratorDailyStepCard({
               <ChevronRight className="w-5 h-5 text-muted-foreground" />
             </div>
             <div>
-              <p className="font-medium text-muted-foreground">Step skipped</p>
-              <p className="text-sm text-muted-foreground">Moving to the next step...</p>
+              <p className="font-medium text-muted-foreground">Task skipped</p>
+              <p className="text-sm text-muted-foreground">Moving to the next one...</p>
             </div>
           </div>
         </CardContent>
@@ -107,84 +115,96 @@ export function IntegratorDailyStepCard({
       animate={{ opacity: 1, y: 0 }}
       transition={{ duration: 0.3 }}
     >
-      <Card 
-        className="overflow-hidden border-2"
-        style={{ borderColor: `${phase.phase_color}80` }}
-      >
-        <div 
-          className="h-1"
-          style={{ backgroundColor: phase.phase_color }}
-        />
+      <Card className="overflow-hidden border-2 border-primary/20">
+        <div className="h-1 bg-gradient-to-r from-primary to-primary/60" />
         
         <CardHeader className="pb-2">
           <div className="flex items-center justify-between">
-            <div className="flex items-center gap-2">
-              <span className="text-lg">{PHASE_EMOJIS[phase.phase_name] || '📍'}</span>
-              <span 
-                className="text-xs px-2 py-0.5 rounded-full capitalize"
-                style={{ 
-                  backgroundColor: `${phase.phase_color}40`,
-                  color: phase.phase_color === '#FEF9C3' ? '#854D0E' : undefined
-                }}
-              >
-                {phase.phase_name}
-              </span>
-            </div>
-            <div className="flex items-center gap-2">
-              <div className="flex items-center gap-1 text-xs text-muted-foreground">
-                <Clock className="w-3 h-3" />
-                {step.estimated_minutes} min
-              </div>
-              <StepActionsMenu
-                stepId={step.id}
-                stepTitle={displayTitle}
-                stepDescription={displayDescription}
-                scheduledDate={step.scheduled_date}
-                onEdit={onEdit}
-                onSkip={onSkip}
-                onReschedule={onReschedule}
-              />
-            </div>
+            <span className="text-sm text-muted-foreground">
+              Day {step.day_number} of {totalDays}
+            </span>
+            <StepActionsMenu
+              stepId={step.id}
+              stepTitle={displayTitle}
+              stepDescription={displayDescription}
+              scheduledDate={step.scheduled_date}
+              onEdit={onEdit}
+              onSkip={onSkip}
+              onReschedule={onReschedule}
+            />
           </div>
           <CardTitle className="text-lg mt-2">
-            Day {step.day_number}/{totalDays}: {displayTitle}
+            {displayTitle}
           </CardTitle>
         </CardHeader>
 
         <CardContent className="space-y-4">
+          {/* What to do */}
           <p className="text-sm text-muted-foreground leading-relaxed">
             {displayDescription}
           </p>
 
+          {/* Why it matters (if available) */}
+          {step.why_it_matters && (
+            <div className="p-3 rounded-lg bg-primary/5 border border-primary/10">
+              <p className="text-sm text-primary/80">
+                <span className="font-medium">Why this matters:</span> {step.why_it_matters}
+              </p>
+            </div>
+          )}
+
+          {/* Encouragement message */}
           {step.encouragement && (
             <motion.div 
               initial={{ opacity: 0 }}
               animate={{ opacity: 1 }}
               transition={{ delay: 0.2 }}
-              className="p-3 rounded-lg bg-primary/5 border border-primary/20"
+              className="p-3 rounded-lg bg-muted/50"
             >
               <div className="flex items-start gap-2">
                 <Sparkles className="w-4 h-4 text-primary mt-0.5 flex-shrink-0" />
-                <p className="text-sm italic text-primary/80">
+                <p className="text-sm italic text-muted-foreground">
                   {step.encouragement}
                 </p>
               </div>
             </motion.div>
           )}
 
-          {showInsightCapture ? (
-            <MandatoryInsightCapture
-              phaseName={phase.phase_name}
-              reflectionQuestion={step.reflection_question || undefined}
+          {/* Optional Hint (expandable) */}
+          {step.hint && (
+            <div>
+              <button
+                onClick={() => setShowHint(!showHint)}
+                className="flex items-center gap-2 text-sm text-muted-foreground hover:text-foreground transition-colors"
+              >
+                <Lightbulb className="w-4 h-4" />
+                <span>Need a hint?</span>
+                <ChevronDown className={`w-4 h-4 transition-transform ${showHint ? 'rotate-180' : ''}`} />
+              </button>
+              {showHint && (
+                <motion.p
+                  initial={{ opacity: 0, height: 0 }}
+                  animate={{ opacity: 1, height: 'auto' }}
+                  className="mt-2 text-sm text-muted-foreground pl-6"
+                >
+                  {step.hint}
+                </motion.p>
+              )}
+            </div>
+          )}
+
+          {showCompletionFlow ? (
+            <TaskCompletionFlow
+              stepTitle={displayTitle}
               onComplete={handleComplete}
               isLoading={isLoading}
             />
           ) : (
             <Button 
               className="w-full gap-2"
-              onClick={() => setShowInsightCapture(true)}
+              onClick={() => setShowCompletionFlow(true)}
             >
-              I've completed this step
+              I've completed this task
               <ChevronRight className="w-4 h-4" />
             </Button>
           )}

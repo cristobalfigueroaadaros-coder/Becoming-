@@ -1176,11 +1176,13 @@ export type Database = {
       }
       integrator_daily_steps: {
         Row: {
+          action_type: string | null
           completed_at: string | null
           created_at: string
           day_number: number
           encouragement: string | null
           estimated_minutes: number
+          hint: string | null
           id: string
           insight_shared_with_mentors: boolean
           insight_text: string | null
@@ -1198,13 +1200,16 @@ export type Database = {
           user_edited_description: string | null
           user_edited_title: string | null
           user_id: string
+          why_it_matters: string | null
         }
         Insert: {
+          action_type?: string | null
           completed_at?: string | null
           created_at?: string
           day_number: number
           encouragement?: string | null
           estimated_minutes?: number
+          hint?: string | null
           id?: string
           insight_shared_with_mentors?: boolean
           insight_text?: string | null
@@ -1222,13 +1227,16 @@ export type Database = {
           user_edited_description?: string | null
           user_edited_title?: string | null
           user_id: string
+          why_it_matters?: string | null
         }
         Update: {
+          action_type?: string | null
           completed_at?: string | null
           created_at?: string
           day_number?: number
           encouragement?: string | null
           estimated_minutes?: number
+          hint?: string | null
           id?: string
           insight_shared_with_mentors?: boolean
           insight_text?: string | null
@@ -1246,6 +1254,7 @@ export type Database = {
           user_edited_description?: string | null
           user_edited_title?: string | null
           user_id?: string
+          why_it_matters?: string | null
         }
         Relationships: [
           {
@@ -2250,6 +2259,47 @@ export type Database = {
           user_id?: string
         }
         Relationships: []
+      }
+      task_feedback: {
+        Row: {
+          created_at: string | null
+          id: string
+          improvement_text: string | null
+          insight_text: string
+          step_id: string | null
+          usefulness_rating: number | null
+          user_id: string
+          win_text: string
+        }
+        Insert: {
+          created_at?: string | null
+          id?: string
+          improvement_text?: string | null
+          insight_text: string
+          step_id?: string | null
+          usefulness_rating?: number | null
+          user_id: string
+          win_text: string
+        }
+        Update: {
+          created_at?: string | null
+          id?: string
+          improvement_text?: string | null
+          insight_text?: string
+          step_id?: string | null
+          usefulness_rating?: number | null
+          user_id?: string
+          win_text?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "task_feedback_step_id_fkey"
+            columns: ["step_id"]
+            isOneToOne: false
+            referencedRelation: "integrator_daily_steps"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       tasks: {
         Row: {
