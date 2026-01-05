@@ -68,6 +68,7 @@ const Dashboard = () => {
     checkRitualStatus();
     loadMentorNotifications();
     checkFirstTimeUser();
+    checkReengagementNotifications();
 
     const whisperTimer = setTimeout(() => {
       checkAndGenerateWhisper();
@@ -82,6 +83,45 @@ const Dashboard = () => {
       clearTimeout(outreachTimer);
     };
   }, []);
+
+  // Check for re-engagement notifications when user returns
+  const checkReengagementNotifications = async () => {
+    try {
+      const { data: { user } } = await supabase.auth.getUser();
+      if (!user) return;
+
+      // Check for unread re-engagement notifications
+      const { data: reengagementNotifications } = await supabase
+        .from("council_notifications")
+        .select("*")
+        .eq("user_id", user.id)
+        .eq("notification_type", "reengagement")
+        .is("read_at", null)
+        .eq("dismissed", false)
+        .order("created_at", { ascending: false })
+        .limit(1);
+
+      if (reengagementNotifications && reengagementNotifications.length > 0) {
+        const notification = reengagementNotifications[0];
+        toast.info(notification.title, {
+          description: notification.message,
+          duration: 8000,
+          action: {
+            label: "Let's talk",
+            onClick: () => navigate("/chat/future_self"),
+          },
+        });
+
+        // Mark as read
+        await supabase
+          .from("council_notifications")
+          .update({ read_at: new Date().toISOString() })
+          .eq("id", notification.id);
+      }
+    } catch (error) {
+      console.error("Error checking re-engagement notifications:", error);
+    }
+  };
 
   const checkFirstTimeUser = async () => {
     try {

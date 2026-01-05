@@ -842,7 +842,7 @@ Example: "I see you've been building on this idea from ${journeyPath[0]?.replace
       }
     }
 
-    // 1. Fetch recent chat history for context (last 20 messages)
+    // 1. Fetch recent chat history for context (last 20 messages with THIS mentor)
     const { data: chatHistory } = await supabaseClient
       .from("chats")
       .select("role, content, created_at")
@@ -853,6 +853,72 @@ Example: "I see you've been building on this idea from ${journeyPath[0]?.replace
 
     // Get conversation depth for handoff and breakthrough detection
     const conversationDepth = chatHistory?.filter(m => m.role === "user").length || 0;
+
+    // === CROSS-MENTOR MEMORY: Fetch recent conversations across ALL mentors ===
+    const { data: allRecentChats } = await supabaseClient
+      .from("chats")
+      .select("mentor_type, role, content, created_at")
+      .eq("user_id", user.id)
+      .neq("mentor_type", mentorType) // Exclude current mentor (already have that)
+      .order("created_at", { ascending: false })
+      .limit(50);
+
+    // Build cross-mentor context summary
+    let crossMentorContext = "";
+    if (allRecentChats && allRecentChats.length > 0) {
+      const mentorSummaries: Record<string, Array<{ role: string; content: string }>> = {};
+      for (const chat of allRecentChats) {
+        if (!mentorSummaries[chat.mentor_type]) {
+          mentorSummaries[chat.mentor_type] = [];
+        }
+        if (mentorSummaries[chat.mentor_type].length < 6) {
+          mentorSummaries[chat.mentor_type].push({ role: chat.role, content: chat.content });
+        }
+      }
+
+      if (Object.keys(mentorSummaries).length > 0) {
+        crossMentorContext = `
+=== CROSS-MENTOR MEMORY (Recent conversations with other mentors) ===
+The user has been discussing various topics with other mentors. You have access to this context:
+
+${Object.entries(mentorSummaries).map(([type, msgs]) => 
+  `--- ${type.replace(/_/g, ' ').toUpperCase()} ---
+${msgs.slice(0, 4).map(m => `${m.role === 'user' ? 'USER' : 'MENTOR'}: ${m.content.substring(0, 150)}${m.content.length > 150 ? '...' : ''}`).join('\n')}`
+).join('\n\n')}
+
+=== END CROSS-MENTOR MEMORY ===
+
+IMPORTANT: You know what the user discussed with other mentors. Reference this naturally to show continuity. NEVER ask questions they already answered elsewhere. Build on insights from other mentors.
+`;
+      }
+    }
+
+    // === VALUE MAP PROGRESS: Fetch user's current Value Map to guide conversation ===
+    let valueMapContext = "";
+    try {
+      const { data: valueMapBlocks } = await supabaseClient
+        .from("value_map_blocks")
+        .select("block_key, content, is_unlocked")
+        .eq("user_id", user.id);
+
+      const unlockedBlocks = valueMapBlocks?.filter(b => b.is_unlocked && b.content?.trim()) || [];
+      const allBlockKeys = ["purpose", "strengths", "audience", "problems", "impact", "solution", "value_prop", "channels", "revenue"];
+      const emptyBlocks = allBlockKeys.filter(key => !unlockedBlocks.find(b => b.block_key === key));
+
+      if (unlockedBlocks.length > 0 || emptyBlocks.length > 0) {
+        valueMapContext = `
+=== VALUE MAP PROGRESS (Hidden - Guide naturally toward unfilled blocks) ===
+Completed blocks: ${unlockedBlocks.map(b => `${b.block_key}: "${b.content?.substring(0, 50)}..."`).join(', ') || 'None yet'}
+Needs clarity: ${emptyBlocks.slice(0, 3).join(', ')}
+
+When appropriate, naturally guide the conversation toward topics that would help fill: ${emptyBlocks[0] || 'none needed'}
+DO NOT mention "Value Map" or "blocks" - just ask questions that naturally uncover this information.
+=== END VALUE MAP ===
+`;
+      }
+    } catch (error) {
+      console.log("Value Map progress fetch failed (non-fatal):", error);
+    }
 
     // 2. Find the most recent private message from this mentor (links to council meeting)
     const { data: privateMessage } = await supabaseClient
@@ -878,6 +944,16 @@ Example: "I see you've been building on this idea from ${journeyPath[0]?.replace
     
     // Add keyword highlighting rules to all prompts
     systemPrompt += `\n\n${KEYWORD_HIGHLIGHTING_RULES}`;
+
+    // Add cross-mentor memory context
+    if (crossMentorContext) {
+      systemPrompt += `\n\n${crossMentorContext}`;
+    }
+
+    // Add value map progress context
+    if (valueMapContext) {
+      systemPrompt += `\n\n${valueMapContext}`;
+    }
 
     // Add handoff context if present
     if (handoffContext) {
