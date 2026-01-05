@@ -122,3 +122,6 @@ verify_jwt = true
 
 [functions.analyze-journal-entry]
 verify_jwt = true
+
+[functions.check-user-inactivity]
+verify_jwt = false

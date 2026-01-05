@@ -106,6 +106,8 @@ const Chat = () => {
   const [projectCoherence, setProjectCoherence] = useState<ProjectCoherence | null>(null);
   const [showCommitmentCard, setShowCommitmentCard] = useState(false);
   const [questInitialized, setQuestInitialized] = useState(false);
+  const [showWelcomeBack, setShowWelcomeBack] = useState(false);
+  const [conversationSummary, setConversationSummary] = useState<string | null>(null);
   const messagesEndRef = useRef<HTMLDivElement>(null);
   
   // Micro wins for post-first-win celebrations
@@ -250,11 +252,26 @@ const Chat = () => {
 
       if (error) throw error;
       setMessages(data || []);
-      setExchangeCount(data?.filter((m: any) => m.role === "user").length || 0);
+      const userMessageCount = data?.filter((m: any) => m.role === "user").length || 0;
+      setExchangeCount(userMessageCount);
       
       // If there are existing messages and we have a quest param, mark as initialized
       if (data && data.length > 0 && questType) {
         setQuestInitialized(true);
+      }
+
+      // Show "welcome back" summary if user has previous conversation history (>= 4 exchanges)
+      if (data && data.length >= 4) {
+        // Get last few topics discussed
+        const recentUserMessages = data
+          .filter((m: any) => m.role === "user")
+          .slice(-3)
+          .map((m: any) => m.content.substring(0, 50));
+        
+        if (recentUserMessages.length > 0) {
+          setConversationSummary(`We discussed: ${recentUserMessages.join("... / ")}...`);
+          setShowWelcomeBack(true);
+        }
       }
     } catch (error: any) {
       toast.error(error.message);
@@ -628,6 +645,31 @@ const Chat = () => {
                 dismissBreakthrough();
               }}
             />
+          )}
+
+          {/* Welcome Back - Conversation Memory Card */}
+          {showWelcomeBack && conversationSummary && (
+            <Card className="p-4 bg-gradient-to-br from-accent/20 to-primary/10 border-accent/30">
+              <div className="flex items-start gap-3">
+                <div className="w-8 h-8 rounded-full bg-accent/20 flex items-center justify-center">
+                  <Sparkles className="w-4 h-4 text-accent-foreground" />
+                </div>
+                <div className="flex-1">
+                  <p className="font-medium text-sm mb-1">Welcome back! I remember you.</p>
+                  <p className="text-xs text-muted-foreground mb-2">{conversationSummary}</p>
+                  <div className="flex gap-2">
+                    <Button 
+                      variant="outline" 
+                      size="sm" 
+                      onClick={() => setShowWelcomeBack(false)}
+                      className="text-xs"
+                    >
+                      Continue where we left off
+                    </Button>
+                  </div>
+                </div>
+              </div>
+            </Card>
           )}
 
           {/* Whispers */}

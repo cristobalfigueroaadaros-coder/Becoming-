@@ -25,8 +25,18 @@ const VALUE_MAP_BLOCKS = {
     key: "audience",
     title: "Who This Is For",
     description: "People, groups, communities",
-    triggers: ["for", "people", "who", "target", "audience", "help", "serve", "clients", "customers", "community"],
-    detectPrompt: "User is describing who they want to help or serve - a specific group, demographic, or community."
+    triggers: [
+      "for", "people", "who", "target", "audience", "help", "serve", "clients", "customers", "community",
+      // Enhanced triggers for specific audience segments
+      "professionals", "employees", "corporate", "9-5", "nine to five", "working", "career",
+      "travelers", "traveler", "nomads", "digital nomad", "backpackers", "travel",
+      "spiritual", "seekers", "seekers", "mindfulness", "meditation", "consciousness",
+      "entrepreneurs", "founders", "creators", "artists", "coaches", "consultants",
+      "women", "men", "millennials", "gen z", "boomers", "parents", "mothers", "fathers",
+      "burned out", "overwhelmed", "stuck", "lost", "searching", "transitioning",
+      "looking for meaning", "seeking purpose", "self-discovery", "journey"
+    ],
+    detectPrompt: "User is describing WHO they want to help or serve - a specific group, demographic, psychographic, or community. Look for: professions (9-5 workers, entrepreneurs), life stages (travelers, parents), mindsets (spiritual seekers, burned out professionals), or specific characteristics."
   },
   problems: {
     key: "problems",
