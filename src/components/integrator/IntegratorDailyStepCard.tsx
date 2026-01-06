@@ -144,7 +144,7 @@ export function IntegratorDailyStepCard({
             {displayDescription}
           </p>
 
-          {/* Why it matters (if available) */}
+          {/* Why it matters */}
           {step.why_it_matters && (
             <div className="p-3 rounded-lg bg-primary/5 border border-primary/10">
               <p className="text-sm text-primary/80">
@@ -204,7 +204,7 @@ export function IntegratorDailyStepCard({
               className="w-full gap-2"
               onClick={() => setShowCompletionFlow(true)}
             >
-              I've completed this task
+              Complete & Reflect
               <ChevronRight className="w-4 h-4" />
             </Button>
           )}

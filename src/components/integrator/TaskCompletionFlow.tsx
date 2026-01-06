@@ -46,9 +46,13 @@ export function TaskCompletionFlow({
   const [rating, setRating] = useState(0);
   const [showError, setShowError] = useState(false);
 
-  // Random prompts for variety
-  const insightPrompt = INSIGHT_PROMPTS[Math.floor(Math.random() * INSIGHT_PROMPTS.length)];
-  const winPrompt = WIN_PROMPTS[Math.floor(Math.random() * WIN_PROMPTS.length)];
+  // Use stable prompts (no random on re-render)
+  const [insightPrompt] = useState(() => 
+    INSIGHT_PROMPTS[Math.floor(Math.random() * INSIGHT_PROMPTS.length)]
+  );
+  const [winPrompt] = useState(() => 
+    WIN_PROMPTS[Math.floor(Math.random() * WIN_PROMPTS.length)]
+  );
 
   const handleNextStep = () => {
     if (currentStep === 'insight') {
@@ -85,6 +89,9 @@ export function TaskCompletionFlow({
     setCurrentStep('rating');
   };
 
+  // Check if complete button should be enabled
+  const canComplete = rating > 0;
+
   const renderStepIndicator = () => {
     const steps = ['insight', 'win', 'improvement', 'rating'];
     const currentIndex = steps.indexOf(currentStep);
@@ -114,7 +121,7 @@ export function TaskCompletionFlow({
           {renderStepIndicator()}
 
           <AnimatePresence mode="wait">
-            {/* Step 1: Insight Capture */}
+            {/* Step 1: Insight Capture (REQUIRED) */}
             {currentStep === 'insight' && (
               <motion.div
                 key="insight"
@@ -128,7 +135,10 @@ export function TaskCompletionFlow({
                     <Lightbulb className="w-5 h-5 text-primary" />
                   </div>
                   <div>
-                    <h4 className="font-medium text-sm">Capture Your Insight</h4>
+                    <h4 className="font-medium text-sm">
+                      Capture Your Insight
+                      <span className="text-destructive ml-1">*</span>
+                    </h4>
                     <p className="text-sm text-muted-foreground mt-1">
                       {insightPrompt}
                     </p>
@@ -150,12 +160,12 @@ export function TaskCompletionFlow({
                 
                 <div className="flex items-center justify-between">
                   <span className={`text-xs ${insight.length < MIN_INSIGHT_LENGTH ? 'text-muted-foreground' : 'text-green-600'}`}>
-                    {insight.length}/{MIN_INSIGHT_LENGTH} min
+                    {insight.length}/{MIN_INSIGHT_LENGTH} characters
                   </span>
                   {showError && (
                     <span className="text-xs text-destructive flex items-center gap-1">
                       <AlertCircle className="w-3 h-3" />
-                      Share a bit more
+                      Please share at least {MIN_INSIGHT_LENGTH} characters
                     </span>
                   )}
                 </div>
@@ -163,6 +173,7 @@ export function TaskCompletionFlow({
                 <Button 
                   className="w-full gap-2"
                   onClick={handleNextStep}
+                  disabled={insight.trim().length < MIN_INSIGHT_LENGTH}
                 >
                   Next: Capture Your Win
                   <ChevronRight className="w-4 h-4" />
@@ -170,7 +181,7 @@ export function TaskCompletionFlow({
               </motion.div>
             )}
 
-            {/* Step 2: Win Capture */}
+            {/* Step 2: Win Capture (REQUIRED) */}
             {currentStep === 'win' && (
               <motion.div
                 key="win"
@@ -184,7 +195,10 @@ export function TaskCompletionFlow({
                     <Trophy className="w-5 h-5 text-yellow-600" />
                   </div>
                   <div>
-                    <h4 className="font-medium text-sm">Claim Your Win</h4>
+                    <h4 className="font-medium text-sm">
+                      Claim Your Win
+                      <span className="text-destructive ml-1">*</span>
+                    </h4>
                     <p className="text-sm text-muted-foreground mt-1">
                       {winPrompt}
                     </p>
@@ -206,12 +220,12 @@ export function TaskCompletionFlow({
                 
                 <div className="flex items-center justify-between">
                   <span className={`text-xs ${win.length < MIN_WIN_LENGTH ? 'text-muted-foreground' : 'text-green-600'}`}>
-                    {win.length}/{MIN_WIN_LENGTH} min
+                    {win.length}/{MIN_WIN_LENGTH} characters
                   </span>
                   {showError && (
                     <span className="text-xs text-destructive flex items-center gap-1">
                       <AlertCircle className="w-3 h-3" />
-                      Share your win
+                      Please share at least {MIN_WIN_LENGTH} characters
                     </span>
                   )}
                 </div>
@@ -219,6 +233,7 @@ export function TaskCompletionFlow({
                 <Button 
                   className="w-full gap-2"
                   onClick={handleNextStep}
+                  disabled={win.trim().length < MIN_WIN_LENGTH}
                 >
                   Next
                   <ChevronRight className="w-4 h-4" />
@@ -226,7 +241,7 @@ export function TaskCompletionFlow({
               </motion.div>
             )}
 
-            {/* Step 3: Improvement (Optional) */}
+            {/* Step 3: Improvement (OPTIONAL) */}
             {currentStep === 'improvement' && (
               <motion.div
                 key="improvement"
@@ -274,7 +289,7 @@ export function TaskCompletionFlow({
               </motion.div>
             )}
 
-            {/* Step 4: Usefulness Rating */}
+            {/* Step 4: Usefulness Rating (REQUIRED) */}
             {currentStep === 'rating' && (
               <motion.div
                 key="rating"
@@ -288,7 +303,10 @@ export function TaskCompletionFlow({
                     <Star className="w-5 h-5 text-primary" />
                   </div>
                   <div>
-                    <h4 className="font-medium text-sm">How useful was this task?</h4>
+                    <h4 className="font-medium text-sm">
+                      How useful was this task?
+                      <span className="text-destructive ml-1">*</span>
+                    </h4>
                     <p className="text-sm text-muted-foreground mt-1">
                       This helps us create better tasks for you.
                     </p>
@@ -324,7 +342,7 @@ export function TaskCompletionFlow({
                 <Button 
                   className="w-full gap-2"
                   onClick={handleNextStep}
-                  disabled={isLoading}
+                  disabled={!canComplete || isLoading}
                 >
                   {isLoading ? (
                     'Completing...'
