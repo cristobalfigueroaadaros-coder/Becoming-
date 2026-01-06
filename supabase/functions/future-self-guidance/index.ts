@@ -35,6 +35,7 @@ const MESSAGE_ARCHETYPES = [
   { name: "QUESTION_GUIDE", instruction: "Suggest 1-2 powerful questions they should ask the mentors. Connect their unique background (traveler, psychologist, etc.) to opportunities. Example: 'Because you're a [background], ask: What problems do [target group] face that you could solve?'" },
   { name: "JOURNEY_ORCHESTRATOR", instruction: "Suggest a specific mentor journey for their current topic. Example: 'Start with Creative Visionary to explore ideas, then Business Mentor for validation, then Marketing for distribution.' Be specific about WHY each mentor in the journey." },
   { name: "QUEST_NUDGE", instruction: "Gently remind them about their Becoming Path. Guide them to Creation Lab → Becoming Path to continue exploring their Self-Discovery Quests. Example: 'There's a quest waiting for you in the Becoming Path. Your values are ready to be discovered.' or 'Head to the Creation Lab and open your Becoming Path — your Ikigai quest is calling.'" },
+  { name: "NARRATIVE", instruction: "Connect TWO of their recent actions, insights, or discoveries using the Dot Bridge formula. Find common ground: shared value, shared emotion, identity pattern, transferable skill, or repeating need. Use templates like: 'Because you {action}, you learned {learning}, and now {effect} feels more possible.' or 'Last time you learned {x}. Today you applied it by doing {y}. That's how this path is forming.' Reference SPECIFIC insights from their task completions, discoveries, or journal entries. Help them SEE how their dots connect. Create a 'that's true' moment." },
 ];
 
 Deno.serve(async (req) => {
@@ -78,6 +79,24 @@ Deno.serve(async (req) => {
       .eq("user_id", user.id)
       .order("created_at", { ascending: false })
       .limit(5);
+
+    // Get recent completed task insights (for NARRATIVE archetype dot-bridging)
+    const { data: recentTaskInsights } = await supabaseClient
+      .from("integrator_daily_steps")
+      .select("step_title, insight_text, why_it_matters, completed_at")
+      .eq("user_id", user.id)
+      .eq("status", "completed")
+      .not("insight_text", "is", null)
+      .order("completed_at", { ascending: false })
+      .limit(8);
+
+    // Get becoming discoveries (values, strengths, Ikigai)
+    const { data: becomingDiscoveries } = await supabaseClient
+      .from("becoming_discoveries")
+      .select("discovery_type, element_key, element_value")
+      .eq("user_id", user.id)
+      .order("created_at", { ascending: false })
+      .limit(10);
 
     // Get life domains
     const { data: lifeDomains } = await supabaseClient
@@ -285,6 +304,12 @@ ${shadows?.map((s: any) => `- "${s.shadow_name}" (${s.status}): ${s.shadow_state
 
 RECENT INSIGHTS & BREAKTHROUGHS:
 ${recentDots?.map((d: any) => `- ${d.core_theme}: ${d.insight_text.slice(0, 120)}...`).join("\n") || "None captured yet"}
+
+TASK COMPLETION INSIGHTS (for NARRATIVE dot-bridging):
+${recentTaskInsights?.map((t: any) => `- Task: "${t.step_title}" → Insight: "${t.insight_text?.slice(0, 100) || 'none'}"`).join("\n") || "No task insights yet"}
+
+BECOMING DISCOVERIES (values, Ikigai, strengths):
+${becomingDiscoveries?.map((d: any) => `- ${d.discovery_type}/${d.element_key}: "${d.element_value}"`).join("\n") || "None discovered yet"}
 
 ACTIONABLE HINTS YOU CAN WEAVE IN:
 ${actionableHints.map(h => `- [${h.type}]: ${h.hint}`).join("\n") || "None identified"}

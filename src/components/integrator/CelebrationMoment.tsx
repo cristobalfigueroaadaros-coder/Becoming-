@@ -1,14 +1,16 @@
 import { useEffect, useState } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import confetti from "canvas-confetti";
-import { Sparkles, Star, Zap, Heart } from "lucide-react";
+import { Sparkles, Star, Zap, Heart, Loader2 } from "lucide-react";
+import { supabase } from "@/integrations/supabase/client";
 
 interface CelebrationMomentProps {
   xpEarned: number;
   onDismiss: () => void;
+  taskContext?: string; // Optional context about the completed task
 }
 
-const CELEBRATION_MESSAGES = [
+const FALLBACK_MESSAGES = [
   "Nice work. Progress unlocked.",
   "That moved you forward.",
   "You showed up today.",
@@ -21,10 +23,11 @@ const CELEBRATION_MESSAGES = [
 
 const CELEBRATION_ICONS = [Sparkles, Star, Zap, Heart];
 
-export function CelebrationMoment({ xpEarned, onDismiss }: CelebrationMomentProps) {
-  const [message] = useState(() => 
-    CELEBRATION_MESSAGES[Math.floor(Math.random() * CELEBRATION_MESSAGES.length)]
+export function CelebrationMoment({ xpEarned, onDismiss, taskContext }: CelebrationMomentProps) {
+  const [message, setMessage] = useState<string>(() => 
+    FALLBACK_MESSAGES[Math.floor(Math.random() * FALLBACK_MESSAGES.length)]
   );
+  const [narrativeLoaded, setNarrativeLoaded] = useState(false);
   const [IconComponent] = useState(() => 
     CELEBRATION_ICONS[Math.floor(Math.random() * CELEBRATION_ICONS.length)]
   );
@@ -59,13 +62,37 @@ export function CelebrationMoment({ xpEarned, onDismiss }: CelebrationMomentProp
 
     frame();
 
-    // Auto-dismiss after 3 seconds
+    // Auto-dismiss after 4 seconds (slightly longer for narrative)
     const timer = setTimeout(() => {
       onDismiss();
-    }, 3000);
+    }, 4000);
 
     return () => clearTimeout(timer);
   }, [onDismiss]);
+
+  // Fetch personalized narrative
+  useEffect(() => {
+    const fetchNarrative = async () => {
+      try {
+        const { data, error } = await supabase.functions.invoke("generate-narrative-bridge", {
+          body: { 
+            context: "task_completion",
+            recentAction: taskContext || "Completed a task"
+          }
+        });
+
+        if (!error && data?.narrative && data.dots_connected > 0) {
+          setMessage(data.narrative);
+        }
+        setNarrativeLoaded(true);
+      } catch (err) {
+        console.error("Error fetching narrative:", err);
+        setNarrativeLoaded(true);
+      }
+    };
+
+    fetchNarrative();
+  }, [taskContext]);
 
   return (
     <AnimatePresence>
@@ -98,15 +125,26 @@ export function CelebrationMoment({ xpEarned, onDismiss }: CelebrationMomentProp
             <IconComponent className="w-10 h-10 text-primary" />
           </motion.div>
 
-          {/* Message */}
-          <motion.h3
+          {/* Message - with narrative loading state */}
+          <motion.div
             initial={{ opacity: 0, y: 10 }}
             animate={{ opacity: 1, y: 0 }}
             transition={{ delay: 0.2 }}
-            className="text-xl font-semibold mb-2"
+            className="mb-2 min-h-[3rem]"
           >
-            {message}
-          </motion.h3>
+            {!narrativeLoaded ? (
+              <div className="flex items-center justify-center gap-2">
+                <Loader2 className="w-4 h-4 animate-spin text-muted-foreground" />
+              </div>
+            ) : (
+              <p 
+                className="text-lg font-medium leading-relaxed"
+                dangerouslySetInnerHTML={{ 
+                  __html: message.replace(/\*\*(.*?)\*\*/g, '<strong class="text-primary">$1</strong>') 
+                }}
+              />
+            )}
+          </motion.div>
 
           {/* XP Display */}
           <motion.div
