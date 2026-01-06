@@ -114,13 +114,6 @@ export const FocusMode = ({
         <CatchUpMode
           missedDays={missedSteps.length}
           onResume={() => setShowCatchUp(false)}
-          onCompress={() => {
-            setShowCatchUp(false);
-          }}
-          onSkipMissed={async () => {
-            await onSkipMissedSteps();
-            setShowCatchUp(false);
-          }}
         />
       </div>
     );

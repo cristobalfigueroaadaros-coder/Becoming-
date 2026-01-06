@@ -83,6 +83,74 @@ export type Database = {
         }
         Relationships: []
       }
+      archived_integrator_steps: {
+        Row: {
+          action_type: string | null
+          archive_reason: string | null
+          archived_at: string | null
+          day_number: number
+          encouragement: string | null
+          estimated_minutes: number | null
+          hint: string | null
+          id: string
+          insight_text: string | null
+          original_step_id: string
+          project_id: string
+          scheduled_date: string | null
+          status: string | null
+          step_description: string
+          step_title: string
+          user_id: string
+          why_it_matters: string | null
+        }
+        Insert: {
+          action_type?: string | null
+          archive_reason?: string | null
+          archived_at?: string | null
+          day_number: number
+          encouragement?: string | null
+          estimated_minutes?: number | null
+          hint?: string | null
+          id?: string
+          insight_text?: string | null
+          original_step_id: string
+          project_id: string
+          scheduled_date?: string | null
+          status?: string | null
+          step_description: string
+          step_title: string
+          user_id: string
+          why_it_matters?: string | null
+        }
+        Update: {
+          action_type?: string | null
+          archive_reason?: string | null
+          archived_at?: string | null
+          day_number?: number
+          encouragement?: string | null
+          estimated_minutes?: number | null
+          hint?: string | null
+          id?: string
+          insight_text?: string | null
+          original_step_id?: string
+          project_id?: string
+          scheduled_date?: string | null
+          status?: string | null
+          step_description?: string
+          step_title?: string
+          user_id?: string
+          why_it_matters?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "archived_integrator_steps_project_id_fkey"
+            columns: ["project_id"]
+            isOneToOne: false
+            referencedRelation: "integrator_projects"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       becoming_discoveries: {
         Row: {
           created_at: string | null

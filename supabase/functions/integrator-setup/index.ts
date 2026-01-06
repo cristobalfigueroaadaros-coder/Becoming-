@@ -7,14 +7,12 @@ const corsHeaders = {
 };
 
 const PHASE_COLORS = {
-  exploration: '#FEF9C3', // Light yellow
-  validation: '#DBEAFE',  // Light blue
-  creation: '#D1FAE5',    // Soft green
-  expression: '#FED7AA',  // Coral/orange
-  reflection: '#E9D5FF',  // Violet
+  exploration: '#FEF9C3',
+  validation: '#DBEAFE',
+  creation: '#D1FAE5',
+  expression: '#FED7AA',
+  reflection: '#E9D5FF',
 };
-
-const PHASE_ORDER = ['exploration', 'validation', 'creation', 'expression', 'reflection'];
 
 serve(async (req) => {
   if (req.method === 'OPTIONS') {
@@ -22,13 +20,12 @@ serve(async (req) => {
   }
 
   try {
-    const { breakthroughId, projectTitle, projectDescription, timeframeDays, isEvolution, evolutionInsight } = await req.json();
+    const { breakthroughId, projectTitle, projectDescription, timeframeDays, isEvolution, evolutionInsight, regenerate } = await req.json();
     
     const supabaseUrl = Deno.env.get('SUPABASE_URL')!;
     const supabaseKey = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!;
     const supabase = createClient(supabaseUrl, supabaseKey);
 
-    // Get user from auth header
     const authHeader = req.headers.get('Authorization')?.replace('Bearer ', '');
     const { data: { user }, error: userError } = await supabase.auth.getUser(authHeader);
     
@@ -36,7 +33,7 @@ serve(async (req) => {
       throw new Error('User not authenticated');
     }
 
-    // === PDR v2.1: Check for existing active Project Spine ===
+    // Check for existing active Project Spine
     const { data: existingSpine } = await supabase
       .from('project_spines')
       .select('*')
@@ -57,7 +54,32 @@ serve(async (req) => {
       .select('domain_name, current_score')
       .eq('user_id', user.id);
 
-    // Build context for AI
+    // PDR TASK MEMORY: Fetch past task feedback for context
+    const { data: pastFeedback } = await supabase
+      .from('task_feedback')
+      .select('insight_text, win_text, improvement_text, usefulness_rating')
+      .eq('user_id', user.id)
+      .order('created_at', { ascending: false })
+      .limit(10);
+
+    // Calculate patterns from feedback
+    let taskMemoryContext = '';
+    if (pastFeedback && pastFeedback.length > 0) {
+      const avgRating = pastFeedback.reduce((sum, f) => sum + (f.usefulness_rating || 0), 0) / pastFeedback.length;
+      const highRated = pastFeedback.filter(f => (f.usefulness_rating || 0) >= 4);
+      const lowRated = pastFeedback.filter(f => (f.usefulness_rating || 0) <= 2);
+      
+      taskMemoryContext = `
+USER'S TASK HISTORY (adapt tasks based on this):
+- Average usefulness rating: ${avgRating.toFixed(1)}/5
+- Tasks they loved: ${highRated.slice(0, 3).map(f => f.win_text?.substring(0, 40)).filter(Boolean).join(', ') || 'None yet'}
+- Improvement suggestions: ${lowRated.slice(0, 2).map(f => f.improvement_text?.substring(0, 40)).filter(Boolean).join(', ') || 'None yet'}
+
+${avgRating < 3 ? 'ADAPT: User prefers simpler, more concrete tasks. Avoid abstract thinking tasks.' : ''}
+${avgRating > 4 ? 'ADAPT: User thrives with current difficulty. Maintain this level.' : ''}
+`;
+    }
+
     const userContext = {
       displayName: profile?.display_name || 'Friend',
       mission: profile?.main_mission,
@@ -66,7 +88,6 @@ serve(async (req) => {
       lifeDomains: lifeDomains?.map(d => `${d.domain_name}: ${d.current_score}/10`).join(', ')
     };
 
-    // Generate AI-powered project plan
     const LOVABLE_API_KEY = Deno.env.get('LOVABLE_API_KEY');
     if (!LOVABLE_API_KEY) {
       throw new Error('LOVABLE_API_KEY not configured');
@@ -75,51 +96,41 @@ serve(async (req) => {
     const systemPrompt = `You are The Integrator - a warm, supportive intelligence that transforms ideas into actionable projects.
 
 Your role is to create structured project plans that are:
-- Action-oriented (prefer doing over researching)
-- Achievable (each daily task should take 15-30 minutes max)
-- Motivating (each task title should make the user feel "I know exactly what I'm doing today")
-- Varied (avoid repetitive "research X" tasks - mix testing, creating, expressing, deciding)
+- Action-oriented (learning through DOING, not studying)
+- Achievable (each task should feel manageable and clear)
+- Motivating (each task title should make the user feel "I know exactly what to do")
+- Varied (mix creating, testing, expressing, deciding, interacting - NEVER repetitive research)
 - Progressive (building momentum and confidence day by day)
 
-TASK PHILOSOPHY:
-- Learning comes from DOING, not studying
-- Tasks should feel human and engaging, not academic
-- Avoid time-based instructions like "spend 20 minutes"
-- Every task should result in something tangible: a decision, a test, a creation, a conversation
+CRITICAL RULES:
+1. NO TIME-BASED INSTRUCTIONS - Never say "spend 20 minutes" or any time reference
+2. NO PASSIVE RESEARCH - Never say "research" or "study" or "read about"
+3. SPECIFIC ACTIONS - Every task must produce something tangible
+4. MOTIVATING TITLES - Like "Define the emotional shift this product should create" NOT "Research market needs"
 
 TASK TYPES TO PRIORITIZE:
-1. CREATE - Make something tangible (draft, prototype, sketch, write)
-2. TEST - Try an assumption with real feedback
-3. EXPRESS - Share or communicate an idea
-4. DECIDE - Make a clear choice between options
-5. INTERACT - Have a real conversation or get real feedback
+1. CREATE - Make something tangible (draft, prototype, sketch, write, design)
+2. TEST - Try an assumption with real feedback (ask someone, send a message, run an experiment)
+3. EXPRESS - Share or communicate an idea (post, present, explain to someone)
+4. DECIDE - Make a clear choice between options (pick one direction, commit)
+5. INTERACT - Have a real conversation or get real feedback (call, message, meet)
 
-TASK TYPES TO MINIMIZE:
-- Passive research or reading
-- Abstract thinking or planning sessions
-- Generic "explore" tasks without specific output
+TASK STRUCTURE (required for each task):
+- title: Clear, specific, MOTIVATING action (e.g., "Define the emotional shift this product should create")
+- description: One clear action in natural language, NO time references, produces tangible output
+- whyItMatters: One sentence connecting this task to their larger goal
+- hint: A gentle optional suggestion (e.g., "If helpful, you could look at..." or "One way to approach this is...")
+- encouragement: Personal, warm, human message
+- actionType: create | test | express | decide | interact
 
-THE FIVE PHASES (internal structure - NOT shown to user):
-1. Exploration - Gather inspiration through action and quick experiments
-2. Validation - Test assumptions with real people and real feedback
-3. Creation - Build the core, draft, prototype, develop
-4. Expression - Share, launch, publish, present to the world
-5. Reflection - Review learnings, gather feedback, iterate
+THE FIVE PHASES (internal structure only):
+1. Exploration - Quick experiments and inspiration through action
+2. Validation - Real feedback from real people
+3. Creation - Build, draft, prototype, develop
+4. Expression - Share, launch, present to the world
+5. Reflection - Review learnings, iterate
 
-DISTRIBUTION GUIDELINES for ${timeframeDays} days:
-- Exploration: ~15-20% of days
-- Validation: ~15-20% of days
-- Creation: ~35-40% of days
-- Expression: ~15-20% of days
-- Reflection: ~10-15% of days
-
-Each daily task must include:
-- A clear, specific, MOTIVATING title (user should feel excited, not overwhelmed)
-- What to do (specific action, not time-based)
-- Why it matters (one sentence connecting this task to their goal)
-- An optional hint (hidden by default, for if they get stuck)
-- An encouragement message (personal, warm, human)
-- Action type (create, test, express, decide, interact)`;
+${taskMemoryContext}`;
 
     const userPrompt = `Create a ${timeframeDays}-day project plan for:
 
@@ -139,9 +150,8 @@ Generate a JSON response with this exact structure:
       "name": "exploration",
       "description": "A warm description of this phase for this specific project",
       "startDay": 1,
-      "endDay": 4
-    },
-    // ... all 5 phases
+      "endDay": X
+    }
   ],
   "dailySteps": [
     {
@@ -153,22 +163,20 @@ Generate a JSON response with this exact structure:
       "hint": "Ask yourself: What does someone feel before using this? What do they feel after?",
       "encouragement": "Today marks the beginning of something meaningful. You're not just planning - you're defining what matters.",
       "actionType": "create"
-    },
-    // ... one step for each day
+    }
   ]
 }
 
-IMPORTANT:
+CRITICAL REQUIREMENTS:
 - Create exactly ${timeframeDays} daily tasks (one per day)
-- Every task must produce something tangible (a decision, a draft, a test result, a conversation)
-- NO time-based instructions like "spend X minutes"
-- Task titles should be specific and motivating (user should know exactly what to do)
-- Include "whyItMatters" for each task (one sentence)
-- Include "hint" for each task (optional help if stuck)
-- Include "actionType" for each task (create, test, express, decide, interact)
-- Write encouragement that feels personal and warm
-- Avoid repetitive research tasks - prioritize action and creation
-- Distribute days proportionally across all 5 phases`;
+- NO time-based instructions like "spend X minutes" - EVER
+- Every task produces something tangible
+- Task titles are specific and motivating
+- Include whyItMatters for each task
+- Include hint for each task
+- Include actionType for each task (create, test, express, decide, interact)
+- NO passive research tasks - prioritize action and creation
+- Vary task types throughout the project`;
 
     const response = await fetch('https://ai.gateway.lovable.dev/v1/chat/completions', {
       method: 'POST',
@@ -194,7 +202,6 @@ IMPORTANT:
     const aiData = await response.json();
     let planText = aiData.choices?.[0]?.message?.content || '';
     
-    // Clean up markdown if present
     planText = planText.replace(/```json\n?/g, '').replace(/```\n?/g, '').trim();
     
     let plan;
@@ -205,7 +212,6 @@ IMPORTANT:
       throw new Error('Failed to parse project plan');
     }
 
-    // Calculate dates
     const startDate = new Date();
     const targetEndDate = new Date(startDate);
     targetEndDate.setDate(targetEndDate.getDate() + timeframeDays - 1);
@@ -214,12 +220,73 @@ IMPORTANT:
     let node;
     let previousActiveNode = null;
 
-    // === PDR v2.1: Create or use existing Project Spine ===
-    if (existingSpine && (isEvolution === true)) {
-      // Use existing spine, archive old active node
+    // Handle regeneration: archive existing steps first
+    if (regenerate && existingSpine) {
+      const { data: activeNode } = await supabase
+        .from('evolution_nodes')
+        .select('*')
+        .eq('spine_id', existingSpine.id)
+        .eq('status', 'active')
+        .single();
+
+      if (activeNode) {
+        // Get the project linked to this node
+        const { data: activeProject } = await supabase
+          .from('integrator_projects')
+          .select('id')
+          .eq('user_id', user.id)
+          .eq('status', 'active')
+          .single();
+
+        if (activeProject) {
+          // Archive existing steps
+          const { data: existingSteps } = await supabase
+            .from('integrator_daily_steps')
+            .select('*')
+            .eq('project_id', activeProject.id);
+
+          if (existingSteps && existingSteps.length > 0) {
+            const archivedSteps = existingSteps.map(step => ({
+              original_step_id: step.id,
+              project_id: step.project_id,
+              user_id: user.id,
+              day_number: step.day_number,
+              step_title: step.step_title,
+              step_description: step.step_description,
+              encouragement: step.encouragement,
+              estimated_minutes: step.estimated_minutes,
+              status: step.status,
+              scheduled_date: step.scheduled_date,
+              insight_text: step.insight_text,
+              why_it_matters: step.why_it_matters,
+              hint: step.hint,
+              action_type: step.action_type,
+              archive_reason: 'pdr_regeneration'
+            }));
+
+            await supabase.from('archived_integrator_steps').insert(archivedSteps);
+            console.log(`Archived ${archivedSteps.length} existing steps`);
+
+            // Delete old steps
+            await supabase
+              .from('integrator_daily_steps')
+              .delete()
+              .eq('project_id', activeProject.id);
+
+            // Delete old phases
+            await supabase
+              .from('integrator_phases')
+              .delete()
+              .eq('project_id', activeProject.id);
+          }
+        }
+      }
+    }
+
+    // Create or use existing Project Spine
+    if (existingSpine && (isEvolution === true || regenerate)) {
       spine = existingSpine;
       
-      // Get the current active node to archive it
       const { data: activeNode } = await supabase
         .from('evolution_nodes')
         .select('*')
@@ -227,9 +294,8 @@ IMPORTANT:
         .eq('status', 'active')
         .single();
       
-      if (activeNode) {
+      if (activeNode && !regenerate) {
         previousActiveNode = activeNode;
-        // Archive the previous node
         await supabase
           .from('evolution_nodes')
           .update({ status: 'archived' })
@@ -238,46 +304,40 @@ IMPORTANT:
         console.log(`Archived previous node: ${activeNode.node_title}`);
       }
       
-      // Get the node count for numbering
-      const { count: nodeCount } = await supabase
-        .from('evolution_nodes')
-        .select('*', { count: 'exact', head: true })
-        .eq('spine_id', spine.id);
-      
-      // Create new evolution node
-      const { data: newNode, error: nodeError } = await supabase
-        .from('evolution_nodes')
-        .insert({
-          spine_id: spine.id,
-          parent_node_id: previousActiveNode?.id || null,
-          user_id: user.id,
-          node_number: (nodeCount || 0) + 1,
-          node_title: projectTitle,
-          refined_description: projectDescription,
-          evolution_insight: evolutionInsight || `Evolved from: ${previousActiveNode?.node_title || 'initial exploration'}`,
-          timeframe_days: timeframeDays,
-          start_date: startDate.toISOString().split('T')[0],
-          target_end_date: targetEndDate.toISOString().split('T')[0],
-          current_phase: 'exploration',
-          current_day: 1,
-          status: 'active',
-          seed_breakthrough_id: breakthroughId || null
-        })
-        .select()
-        .single();
-      
-      if (nodeError) {
-        console.error('Evolution node creation error:', nodeError);
-        throw new Error('Failed to create evolution node');
+      if (!regenerate) {
+        const { count: nodeCount } = await supabase
+          .from('evolution_nodes')
+          .select('*', { count: 'exact', head: true })
+          .eq('spine_id', spine.id);
+        
+        const { data: newNode, error: nodeError } = await supabase
+          .from('evolution_nodes')
+          .insert({
+            spine_id: spine.id,
+            parent_node_id: previousActiveNode?.id || null,
+            user_id: user.id,
+            node_number: (nodeCount || 0) + 1,
+            node_title: projectTitle,
+            refined_description: projectDescription,
+            evolution_insight: evolutionInsight || `Evolved from: ${previousActiveNode?.node_title || 'initial exploration'}`,
+            timeframe_days: timeframeDays,
+            start_date: startDate.toISOString().split('T')[0],
+            target_end_date: targetEndDate.toISOString().split('T')[0],
+            current_phase: 'exploration',
+            current_day: 1,
+            status: 'active',
+            seed_breakthrough_id: breakthroughId || null
+          })
+          .select()
+          .single();
+        
+        if (nodeError) throw new Error('Failed to create evolution node');
+        node = newNode;
+      } else {
+        node = activeNode;
       }
       
-      node = newNode;
-      console.log(`Created evolution node #${node.node_number}: ${node.node_title}`);
-      
     } else if (existingSpine && !isEvolution) {
-      // User has active spine but this is NOT marked as evolution
-      // This is the first commitment OR a forced new project scenario
-      // For now, we'll still use the existing spine and archive the old node
       spine = existingSpine;
       
       const { data: activeNode } = await supabase
@@ -321,15 +381,10 @@ IMPORTANT:
         .select()
         .single();
       
-      if (nodeError) {
-        console.error('Node creation error:', nodeError);
-        throw new Error('Failed to create evolution node');
-      }
-      
+      if (nodeError) throw new Error('Failed to create evolution node');
       node = newNode;
       
     } else {
-      // === FIRST PROJECT: Create new spine + first node ===
       const { data: newSpine, error: spineError } = await supabase
         .from('project_spines')
         .insert({
@@ -343,15 +398,9 @@ IMPORTANT:
         .select()
         .single();
       
-      if (spineError) {
-        console.error('Spine creation error:', spineError);
-        throw new Error('Failed to create project spine');
-      }
-      
+      if (spineError) throw new Error('Failed to create project spine');
       spine = newSpine;
-      console.log(`Created new project spine: ${spine.spine_title}`);
       
-      // Create first evolution node
       const { data: firstNode, error: nodeError } = await supabase
         .from('evolution_nodes')
         .insert({
@@ -373,39 +422,58 @@ IMPORTANT:
         .select()
         .single();
       
-      if (nodeError) {
-        console.error('First node creation error:', nodeError);
-        throw new Error('Failed to create first evolution node');
-      }
-      
+      if (nodeError) throw new Error('Failed to create first evolution node');
       node = firstNode;
-      console.log(`Created first evolution node: ${node.node_title}`);
     }
 
-    // === ALSO create in legacy integrator_projects table for backward compatibility ===
-    const { data: project, error: projectError } = await supabase
-      .from('integrator_projects')
-      .insert({
-        user_id: user.id,
-        seed_breakthrough_id: breakthroughId || null,
-        project_title: projectTitle,
-        project_description: projectDescription,
-        timeframe_days: timeframeDays,
-        start_date: startDate.toISOString().split('T')[0],
-        target_end_date: targetEndDate.toISOString().split('T')[0],
-        current_phase: 'exploration',
-        current_day: 1,
-        status: 'active'
-      })
-      .select()
-      .single();
-
-    if (projectError) {
-      console.error('Legacy project creation error:', projectError);
-      throw new Error('Failed to create project');
+    // Get or create legacy project
+    let project;
+    if (regenerate) {
+      const { data: existingProject } = await supabase
+        .from('integrator_projects')
+        .select('*')
+        .eq('user_id', user.id)
+        .eq('status', 'active')
+        .single();
+      
+      if (existingProject) {
+        project = existingProject;
+        // Reset project state
+        await supabase
+          .from('integrator_projects')
+          .update({
+            current_phase: 'exploration',
+            current_day: 1,
+            start_date: startDate.toISOString().split('T')[0],
+            target_end_date: targetEndDate.toISOString().split('T')[0]
+          })
+          .eq('id', project.id);
+      }
     }
 
-    // Create phases linked to both node and project
+    if (!project) {
+      const { data: newProject, error: projectError } = await supabase
+        .from('integrator_projects')
+        .insert({
+          user_id: user.id,
+          seed_breakthrough_id: breakthroughId || null,
+          project_title: projectTitle,
+          project_description: projectDescription,
+          timeframe_days: timeframeDays,
+          start_date: startDate.toISOString().split('T')[0],
+          target_end_date: targetEndDate.toISOString().split('T')[0],
+          current_phase: 'exploration',
+          current_day: 1,
+          status: 'active'
+        })
+        .select()
+        .single();
+
+      if (projectError) throw new Error('Failed to create project');
+      project = newProject;
+    }
+
+    // Create phases
     const phasesToInsert = plan.phases.map((phase: any, index: number) => ({
       project_id: project.id,
       node_id: node.id,
@@ -424,15 +492,11 @@ IMPORTANT:
       .insert(phasesToInsert)
       .select();
 
-    if (phasesError) {
-      console.error('Phases creation error:', phasesError);
-      throw new Error('Failed to create phases');
-    }
+    if (phasesError) throw new Error('Failed to create phases');
 
-    // Create a map of phase names to phase IDs
     const phaseMap = new Map(phases.map((p: any) => [p.phase_name, p.id]));
 
-    // Create daily steps linked to both node and project
+    // Create daily steps - NO estimated_minutes, with PDR fields
     const stepsToInsert = plan.dailySteps.map((step: any) => {
       const scheduledDate = new Date(startDate);
       scheduledDate.setDate(scheduledDate.getDate() + step.day - 1);
@@ -447,12 +511,11 @@ IMPORTANT:
         step_title: step.title,
         step_description: step.description,
         encouragement: step.encouragement,
-        estimated_minutes: step.minutes || 20,
+        estimated_minutes: 0, // Keep for backward compat, but don't use
         status: 'pending',
-        // PDR task system additions
         why_it_matters: step.whyItMatters || null,
         hint: step.hint || null,
-        action_type: step.actionType || null
+        action_type: step.actionType || 'create'
       };
     });
 
@@ -461,12 +524,8 @@ IMPORTANT:
       .insert(stepsToInsert)
       .select();
 
-    if (stepsError) {
-      console.error('Steps creation error:', stepsError);
-      throw new Error('Failed to create daily steps');
-    }
+    if (stepsError) throw new Error('Failed to create daily steps');
 
-    // If this came from a breakthrough, mark it as converted
     if (breakthroughId) {
       await supabase
         .from('conversation_breakthroughs')
@@ -475,21 +534,20 @@ IMPORTANT:
     }
 
     const isEvolutionResult = !!previousActiveNode;
-    console.log(`Created Integrator project: ${project.id} with ${phases.length} phases and ${steps.length} steps. Is evolution: ${isEvolutionResult}`);
+    console.log(`Created Integrator project: ${project.id} with ${phases.length} phases and ${steps.length} PDR-compliant steps. Is evolution: ${isEvolutionResult}`);
 
     return new Response(JSON.stringify({
       success: true,
       project,
       phases,
       steps,
-      // PDR v2.1: Include spine and node info
       spine,
       node,
       isEvolution: isEvolutionResult,
+      regenerated: regenerate || false,
       previousNode: previousActiveNode ? {
         id: previousActiveNode.id,
-        title: previousActiveNode.node_title,
-        nodeNumber: previousActiveNode.node_number
+        title: previousActiveNode.node_title
       } : null
     }), {
       headers: { ...corsHeaders, 'Content-Type': 'application/json' },
@@ -497,8 +555,9 @@ IMPORTANT:
 
   } catch (error) {
     console.error('Integrator setup error:', error);
-    return new Response(JSON.stringify({ 
-      error: error instanceof Error ? error.message : 'Unknown error' 
+    return new Response(JSON.stringify({
+      success: false,
+      error: error instanceof Error ? error.message : 'Failed to setup project'
     }), {
       status: 500,
       headers: { ...corsHeaders, 'Content-Type': 'application/json' },
