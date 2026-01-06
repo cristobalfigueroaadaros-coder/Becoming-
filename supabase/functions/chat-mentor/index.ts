@@ -851,7 +851,7 @@ Example: "I see you've been building on this idea from ${journeyPath[0]?.replace
       .order("created_at", { ascending: true })
       .limit(20);
 
-    // Get conversation depth for handoff and breakthrough detection
+    // Get conversation depth for handoff and breakthrough detection (current mentor only)
     const conversationDepth = chatHistory?.filter(m => m.role === "user").length || 0;
 
     // === CROSS-MENTOR MEMORY: Fetch recent conversations across ALL mentors ===
@@ -862,6 +862,70 @@ Example: "I see you've been building on this idea from ${journeyPath[0]?.replace
       .neq("mentor_type", mentorType) // Exclude current mentor (already have that)
       .order("created_at", { ascending: false })
       .limit(50);
+
+    // === CROSS-MENTOR PROJECT NAME DETECTION ===
+    // Detect if a project name was already agreed upon with ANY mentor
+    function detectProjectNameInContext(
+      allChats: Array<{ role: string; content: string; mentor_type: string }> | null,
+      currentMessage: string
+    ): { hasAgreedName: boolean; projectName: string | null; agreedMentor: string | null } {
+      if (!allChats || allChats.length === 0) {
+        return { hasAgreedName: false, projectName: null, agreedMentor: null };
+      }
+      
+      // Combine all chat content for pattern matching
+      const allText = [...allChats, ...(chatHistory || [])].map(c => c.content).join(' ');
+      
+      // Look for explicit naming patterns with quotes or clear naming language
+      const namingPatterns = [
+        /(?:called?|named?|call it|name it|title it)\s*[:\-]?\s*["']([^"']+)["']/i,
+        /["']([^"']+)["']\s*(?:as|is|will be)\s*(?:the|my|our)\s*project/i,
+        /(?:the|my|our)\s*project\s*(?:is|will be|called)\s*["']([^"']+)["']/i,
+        /(?:let's call it|I'll call it|we'll call it)\s*["']([^"']+)["']/i,
+        /The\s+([A-Z][A-Za-z\s]+(?:Launchpad|Project|System|Strategy|Plan|Hub|Academy|Lab|Studio|Platform))/,
+      ];
+      
+      for (const pattern of namingPatterns) {
+        const match = allText.match(pattern);
+        if (match && match[1] && match[1].trim().length > 3) {
+          // Find which mentor this was discussed with
+          const mentorWithAgreement = allChats.find(c => 
+            pattern.test(c.content)
+          )?.mentor_type || null;
+          
+          return { 
+            hasAgreedName: true, 
+            projectName: match[1].trim(),
+            agreedMentor: mentorWithAgreement
+          };
+        }
+      }
+      
+      // Also check current message for the same patterns
+      for (const pattern of namingPatterns) {
+        const match = currentMessage.match(pattern);
+        if (match && match[1] && match[1].trim().length > 3) {
+          return { 
+            hasAgreedName: true, 
+            projectName: match[1].trim(),
+            agreedMentor: mentorType
+          };
+        }
+      }
+      
+      return { hasAgreedName: false, projectName: null, agreedMentor: null };
+    }
+    
+    // Detect cross-mentor project agreement
+    const crossMentorProjectAgreement = detectProjectNameInContext(
+      allRecentChats || [],
+      message
+    );
+    
+    if (crossMentorProjectAgreement.hasAgreedName) {
+      console.log("Cross-mentor project detected:", crossMentorProjectAgreement.projectName, 
+        "from mentor:", crossMentorProjectAgreement.agreedMentor);
+    }
 
     // Build cross-mentor context summary
     let crossMentorContext = "";
@@ -1299,19 +1363,37 @@ IMPORTANT: Continue this conversation naturally. You reached out to the user abo
       return { level, signals: { avgLength, hasExcitement, hasSpecificity, hasAgreement, hasQuestions } };
     }
     
-    // Get recent user messages for engagement analysis
-    const recentUserMessages = chatHistory
+    // Get recent user messages for engagement analysis - INCLUDE CROSS-MENTOR MESSAGES
+    const currentMentorMessages = chatHistory
       ?.filter((m: any) => m.role === 'user')
       ?.slice(-4)
       ?.map((m: any) => m.content) || [];
     
-    const engagementData = analyzeEngagement(recentUserMessages);
-    console.log("Engagement analysis:", engagementData);
+    // Also include recent user messages from OTHER mentors for richer engagement signal
+    const crossMentorUserMessages = (allRecentChats || [])
+      .filter((m: any) => m.role === 'user')
+      .slice(0, 6)
+      .map((m: any) => m.content);
+    
+    // Combine for engagement analysis (prioritize current mentor)
+    const allUserMessages = [...currentMentorMessages, ...crossMentorUserMessages.slice(0, 4 - currentMentorMessages.length)];
+    
+    const engagementData = analyzeEngagement(allUserMessages);
+    console.log("Engagement analysis (cross-mentor):", engagementData);
     
     // PDR v3: Soft minimum of 4 exchanges + engagement-based detection
-    const meetsDepthRequirement = conversationDepth >= 4;
-    const meetsEngagementRequirement = engagementData.level === 'HIGH' || 
+    // IMPORTANT: If project name already agreed with another mentor, lower depth requirement
+    const baseDepthRequirement = crossMentorProjectAgreement.hasAgreedName ? 1 : 4;
+    const meetsDepthRequirement = conversationDepth >= baseDepthRequirement;
+    
+    // If we have a cross-mentor agreement, we're more lenient on engagement too
+    const meetsEngagementRequirement = crossMentorProjectAgreement.hasAgreedName || 
+      engagementData.level === 'HIGH' || 
       (engagementData.level === 'MEDIUM' && engagementData.signals.hasAgreement);
+    
+    if (crossMentorProjectAgreement.hasAgreedName) {
+      console.log("Cross-mentor project agreement found - lowered depth requirement to", baseDepthRequirement);
+    }
     
     // Only detect coherence if BOTH requirements met
     if (meetsDepthRequirement && meetsEngagementRequirement && message !== "__HANDOFF_INIT__" && chatHistory && chatHistory.length > 0) {
@@ -1365,6 +1447,21 @@ ENGAGEMENT-BASED RULES:
 - The user should feel READY, not pushed
 `;
 
+      // Add cross-mentor project agreement context
+      const crossMentorAgreementContext = crossMentorProjectAgreement.hasAgreedName ? `
+IMPORTANT - CROSS-MENTOR PROJECT AGREEMENT DETECTED:
+The user has ALREADY agreed on a project name with another mentor (${crossMentorProjectAgreement.agreedMentor?.replace(/_/g, ' ') || 'unknown'}):
+- Project Name: "${crossMentorProjectAgreement.projectName}"
+
+If the user references this project OR confirms they want to work on it:
+- Return isCoherent: true
+- Return projectName: "${crossMentorProjectAgreement.projectName}"
+- Return confidence: 0.95
+- Return coherenceType: "NEW_CORE_PROJECT"
+
+This ensures continuity across mentor switches. The user already committed elsewhere.
+` : '';
+
       const coherencePrompt = `Analyze this mentor conversation for PROJECT COHERENCE.
 
 CONVERSATION:
@@ -1372,6 +1469,8 @@ ${recentHistory}
 
 LATEST USER MESSAGE: "${message}"
 MENTOR RESPONSE: "${response}"
+
+${crossMentorAgreementContext}
 
 ${engagementContext}
 

@@ -578,19 +578,19 @@ const Chat = () => {
                 <DropdownMenuTrigger asChild>
                   <Button variant="outline" size="sm" disabled={loading} className="gap-2">
                     <RefreshCw className="w-4 h-4" />
-                    <span className="hidden sm:inline">Get Perspective</span>
+                    <span className="hidden sm:inline">Switch Mentor</span>
                     <ChevronDown className="w-3 h-3" />
                   </Button>
                 </DropdownMenuTrigger>
                 <DropdownMenuContent align="end" className="w-56 bg-popover z-50">
                   <div className="px-2 py-1.5 text-xs text-muted-foreground font-medium">
-                    Continue with another mentor
+                    Switch to another mentor
                   </div>
                   {availableHandoffs.map((mentor) => (
                     <DropdownMenuItem key={mentor} onClick={() => handleHandoff(mentor)} className="cursor-pointer">
                       <div className="flex flex-col">
                         <span className="font-medium">{mentorNames[mentor]}</span>
-                        <span className="text-xs text-muted-foreground">Get their unique perspective</span>
+                        <span className="text-xs text-muted-foreground">Continue your conversation</span>
                       </div>
                     </DropdownMenuItem>
                   ))}
