@@ -1,6 +1,7 @@
-import { useMemo } from "react";
+import { useState, useEffect, useMemo } from "react";
 import { motion } from "framer-motion";
-import { Sparkles } from "lucide-react";
+import { Sparkles, Loader2 } from "lucide-react";
+import { supabase } from "@/integrations/supabase/client";
 import type { IntegratorDailyStep } from "@/hooks/useIntegratorProjects";
 
 interface ProgressNarrativeBlockProps {
@@ -9,7 +10,8 @@ interface ProgressNarrativeBlockProps {
   projectTitle: string;
 }
 
-const NARRATIVE_TEMPLATES = {
+// Fallback templates (used while AI loads or on error)
+const FALLBACK_TEMPLATES = {
   early: [
     "You're building the foundation. Each step makes the next one clearer.",
     "The beginning is always the hardest. You showed up anyway.",
@@ -39,27 +41,69 @@ export function ProgressNarrativeBlock({
   totalSteps,
   projectTitle
 }: ProgressNarrativeBlockProps) {
-  const narrative = useMemo(() => {
+  const [aiNarrative, setAiNarrative] = useState<string | null>(null);
+  const [isLoading, setIsLoading] = useState(false);
+  const [hasFetched, setHasFetched] = useState(false);
+
+  // Fallback narrative based on progress
+  const fallbackNarrative = useMemo(() => {
     const completionRate = completedSteps.length / totalSteps;
     
     let templates: string[];
     if (completionRate < 0.25) {
-      templates = NARRATIVE_TEMPLATES.early;
+      templates = FALLBACK_TEMPLATES.early;
     } else if (completionRate < 0.5) {
-      templates = NARRATIVE_TEMPLATES.momentum;
+      templates = FALLBACK_TEMPLATES.momentum;
     } else if (completionRate < 0.9) {
-      templates = NARRATIVE_TEMPLATES.strong;
+      templates = FALLBACK_TEMPLATES.strong;
     } else {
-      templates = NARRATIVE_TEMPLATES.final;
+      templates = FALLBACK_TEMPLATES.final;
     }
     
     return templates[Math.floor(Math.random() * templates.length)];
   }, [completedSteps.length, totalSteps]);
 
+  // Fetch AI-generated narrative when component mounts (with completed steps)
+  useEffect(() => {
+    if (completedSteps.length === 0 || hasFetched) return;
+
+    const fetchNarrative = async () => {
+      setIsLoading(true);
+      try {
+        // Build context from recent completed steps
+        const recentInsights = completedSteps
+          .filter(s => s.insight_text)
+          .slice(0, 3)
+          .map(s => s.insight_text)
+          .join("; ");
+
+        const { data, error } = await supabase.functions.invoke("generate-narrative-bridge", {
+          body: { 
+            context: `project_progress_${projectTitle}`,
+            recentAction: `Completed ${completedSteps.length} steps on "${projectTitle}". Recent insights: ${recentInsights}`
+          }
+        });
+
+        if (!error && data?.narrative && data.dots_connected > 0) {
+          setAiNarrative(data.narrative);
+        }
+      } catch (err) {
+        console.error("Error fetching progress narrative:", err);
+      } finally {
+        setIsLoading(false);
+        setHasFetched(true);
+      }
+    };
+
+    fetchNarrative();
+  }, [completedSteps, projectTitle, hasFetched]);
+
   // Only show if there's some progress
   if (completedSteps.length === 0) {
     return null;
   }
+
+  const displayNarrative = aiNarrative || fallbackNarrative;
 
   return (
     <motion.div
@@ -69,11 +113,18 @@ export function ProgressNarrativeBlock({
       className="mt-6 p-4 rounded-lg bg-gradient-to-r from-primary/5 to-amber-500/5 border border-primary/10"
     >
       <div className="flex items-start gap-3">
-        <Sparkles className="w-5 h-5 text-primary mt-0.5 flex-shrink-0" />
+        {isLoading ? (
+          <Loader2 className="w-5 h-5 text-primary mt-0.5 flex-shrink-0 animate-spin" />
+        ) : (
+          <Sparkles className="w-5 h-5 text-primary mt-0.5 flex-shrink-0" />
+        )}
         <div>
-          <p className="text-sm text-muted-foreground italic leading-relaxed">
-            {narrative}
-          </p>
+          <p 
+            className="text-sm text-muted-foreground italic leading-relaxed"
+            dangerouslySetInnerHTML={{ 
+              __html: displayNarrative.replace(/\*\*(.*?)\*\*/g, '<strong class="text-primary font-medium not-italic">$1</strong>') 
+            }}
+          />
           <p className="text-xs text-muted-foreground/60 mt-2">
             {completedSteps.length} of {totalSteps} steps completed on "{projectTitle}"
           </p>

@@ -125,3 +125,6 @@ verify_jwt = true
 
 [functions.check-user-inactivity]
 verify_jwt = false
+
+[functions.generate-narrative-bridge]
+verify_jwt = true
