@@ -18,7 +18,7 @@ const GravityTransition = () => {
           .update({ gravity_transition_completed: true })
           .eq('id', user.id);
       }
-      navigate('/gravity/council-welcome');
+      navigate('/gravity/council-intro');
     } catch (error) {
       console.error('Error updating transition status:', error);
       navigate('/gravity/council-welcome');
