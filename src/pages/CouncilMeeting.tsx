@@ -39,8 +39,9 @@ interface LocationState {
     [key: string]: any;
   };
   prefilledQuestion?: string;
-  openerType?: "check_in" | "breakthrough_followup";
+  openerType?: "check_in" | "breakthrough_followup" | "gravity_first_project";
   notificationId?: string;
+  isFirstProjectFlow?: boolean;
 }
 
 // Updated mentor names with new 12-mentor system
@@ -73,6 +74,9 @@ const CouncilMeeting = () => {
     completeFirstWin 
   } = useBreakthroughDetection();
   
+  // First project flow detection
+  const isFirstProjectFlow = locationState?.isFirstProjectFlow ?? false;
+  
   const [question, setQuestion] = useState("");
   const [creatingProject, setCreatingProject] = useState(false);
   const [conversationHistory, setConversationHistory] = useState<any[]>([]);
@@ -80,6 +84,7 @@ const CouncilMeeting = () => {
   const [checkingIntroduction, setCheckingIntroduction] = useState(true);
   const [councilOpener, setCouncilOpener] = useState<string | null>(null);
   const [openerLoading, setOpenerLoading] = useState(false);
+  const [hasAutoSubmitted, setHasAutoSubmitted] = useState(false);
   
   // PDR v2.1: Grounding question state (shown after intro modal)
   const [showGroundingQuestion, setShowGroundingQuestion] = useState(false);
@@ -111,17 +116,26 @@ const CouncilMeeting = () => {
     loadProfile();
   }, []);
 
-  // Handle incoming notification context
+  // Handle incoming notification context and first project flow auto-submit
   useEffect(() => {
     if (locationState?.prefilledQuestion) {
       setQuestion(locationState.prefilledQuestion);
+      
+      // For first project flow, auto-submit the prefilled question
+      if (isFirstProjectFlow && !hasAutoSubmitted && locationState.prefilledQuestion.trim()) {
+        setHasAutoSubmitted(true);
+        // Small delay to ensure state is set
+        setTimeout(() => {
+          handleAsk(false, locationState.prefilledQuestion);
+        }, 500);
+      }
     }
     
-    // If we have an opener type, generate a personalized greeting
-    if (locationState?.openerType && locationState.notificationContext) {
+    // If we have an opener type and notification context, generate a personalized greeting
+    if (locationState?.openerType && locationState.notificationContext && !isFirstProjectFlow) {
       generateCouncilOpener();
     }
-  }, []);
+  }, [isFirstProjectFlow, hasAutoSubmitted]);
 
   const generateCouncilOpener = async () => {
     if (!locationState?.notificationContext) return;
@@ -150,9 +164,16 @@ const CouncilMeeting = () => {
   };
 
   // Check if this is the user's first time with the Council
+  // Skip intro modal and grounding for first project flow (already done in Gravity screens)
   useEffect(() => {
     const checkFirstTimeUser = async () => {
       try {
+        // If coming from first project flow, skip intro modal
+        if (isFirstProjectFlow) {
+          setCheckingIntroduction(false);
+          return;
+        }
+
         const { data: { user } } = await supabase.auth.getUser();
         if (!user) return;
 
@@ -1051,8 +1072,24 @@ const CouncilMeeting = () => {
                         );
                         
                         if (project) {
+                          // If this is the first project flow, update profile to mark first project created
+                          if (isFirstProjectFlow) {
+                            const { data: { user } } = await supabase.auth.getUser();
+                            if (user && project.project?.id) {
+                              await supabase
+                                .from("profiles")
+                                .update({ 
+                                  first_project_created_at: new Date().toISOString(),
+                                  first_project_id: project.project.id
+                                })
+                                .eq("id", user.id);
+                            }
+                          }
+                          
                           setMainGoalAccepted(true);
-                          toast.success("Goal accepted! Your project is now in Creation Lab.");
+                          toast.success(isFirstProjectFlow 
+                            ? "Your journey begins! First project created." 
+                            : "Goal accepted! Your project is now in Creation Lab.");
                           navigate('/creation-lab?mode=focus');
                         } else {
                           toast.error("Failed to create project. Please try again.");

@@ -506,15 +506,22 @@ Max 10 words.`;
       }
     }
 
-    // === GENERATE COUNCIL INSIGHT (2-3 sentences max) ===
+    // === GENERATE COUNCIL INSIGHT (Q1 and Q3 ONLY - skip Q2 to reduce repetition) ===
     const conversationContext = formatConversationHistory(conversationHistory);
     
-    const insightPrompt = `You are the Council delivering a unified insight.
+    // Only generate council insight for Q1 (discovery) and Q3 (momentum)
+    // Skip Q2 to let banter and mentor perspectives do the work
+    const shouldGenerateCouncilInsight = isQ1 || isQ3;
+    
+    let councilInsight = "";
+    
+    if (shouldGenerateCouncilInsight) {
+      const insightPrompt = `You are the Council delivering a unified insight.
 ${fullUserContext}
 ${conversationContext}
 
 CURRENT Question: "${question}"
-Question phase: ${isQ1 ? 'Q1 Discovery' : isQ2 ? 'Q2 Depth' : 'Q3 Momentum'}
+Question phase: ${isQ1 ? 'Q1 Discovery' : 'Q3 Momentum'}
 Hidden tags: ${extractedTags.join(', ') || 'none'}
 
 CRITICAL RULES:
@@ -527,28 +534,29 @@ CRITICAL RULES:
 
 Generate 2-3 sentences that:
 ${isQ1 ? '- Light, welcoming, inspiring\n- Establish understanding of their intention\n- Show you know their background' : ''}
-${isQ2 ? '- Deeper, building on what they shared in Q1\n- Connect new insights to their foundation story' : ''}
 ${isQ3 ? '- Acknowledge their full journey so far\n- Synthesize all they have shared including their foundation\n- Point toward action based on EVERYTHING discussed' : ''}
 
 Just the insight, no labels.`;
 
-    const insightResponse = await fetch("https://ai.gateway.lovable.dev/v1/chat/completions", {
-      method: "POST",
-      headers: {
-        "Authorization": `Bearer ${Deno.env.get("LOVABLE_API_KEY")}`,
-        "Content-Type": "application/json",
-      },
-      body: JSON.stringify({
-        model: "google/gemini-2.5-flash",
-        messages: [{ role: "user", content: insightPrompt }],
-      }),
-    });
+      const insightResponse = await fetch("https://ai.gateway.lovable.dev/v1/chat/completions", {
+        method: "POST",
+        headers: {
+          "Authorization": `Bearer ${Deno.env.get("LOVABLE_API_KEY")}`,
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({
+          model: "google/gemini-2.5-flash",
+          messages: [{ role: "user", content: insightPrompt }],
+        }),
+      });
 
-    let councilInsight = "";
-    if (insightResponse.ok) {
-      const data = await insightResponse.json();
-      councilInsight = data.choices[0].message.content;
+      if (insightResponse.ok) {
+        const data = await insightResponse.json();
+        councilInsight = data.choices[0].message.content;
+      }
     }
+    
+    console.log(`Q${questionNumber}: Council insight ${shouldGenerateCouncilInsight ? 'generated' : 'skipped (Q2)'}`);
 
     // === GENERATE MENTOR MICRO-PERSPECTIVES ===
     // Ensure mandatory mentors (Creative Visionary + Strategist) are always included
