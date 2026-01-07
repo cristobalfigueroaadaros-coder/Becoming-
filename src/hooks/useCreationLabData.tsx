@@ -115,8 +115,171 @@ export const useCreationLabData = () => {
         connection_ids: [],
       }));
 
-      // Combine both sources
-      const allDots = [...(dotsData || []), ...transformedEntries];
+      // === NEW DATA SOURCES ===
+
+      // 1. Fetch becoming_discoveries (Core Values, Ikigai, Strengths, My Why)
+      const { data: discoveriesData } = await supabase
+        .from("becoming_discoveries")
+        .select("*")
+        .eq("user_id", user.id);
+
+      const discoveryDots: InsightDot[] = (discoveriesData || []).map((d: any) => {
+        let parsedValue: any = {};
+        try {
+          parsedValue = typeof d.element_value === 'string' ? JSON.parse(d.element_value) : d.element_value;
+        } catch { parsedValue = { raw: d.element_value }; }
+
+        let insightText = '';
+        if (d.discovery_type === 'core_values' && parsedValue.values) {
+          insightText = `My Core Values: ${Array.isArray(parsedValue.values) ? parsedValue.values.join(', ') : parsedValue.values}`;
+        } else if (d.discovery_type === 'ikigai') {
+          insightText = `Ikigai Element: ${parsedValue.element || parsedValue.raw || d.element_key}`;
+        } else if (d.discovery_type === 'strengths') {
+          insightText = `Strength: ${parsedValue.strength || parsedValue.raw || d.element_key}`;
+        } else if (d.discovery_type === 'my_why') {
+          insightText = `My Why: ${parsedValue.why || parsedValue.raw || d.element_key}`;
+        } else {
+          insightText = `${d.discovery_type}: ${d.element_key}`;
+        }
+
+        return {
+          id: d.id,
+          source_type: d.discovery_type,
+          source_mentor: null,
+          insight_text: insightText,
+          core_theme: d.discovery_type.replace(/_/g, ' ').toUpperCase(),
+          skill_tags: [],
+          emotional_tone: null,
+          created_at: d.created_at,
+          reviewed_at: null,
+          user_reflection: parsedValue.reflection || null,
+          connection_ids: [],
+          anchor_type: 'becoming' as const,
+        };
+      });
+
+      // 2. Fetch integrator_projects (Active Projects)
+      const { data: integratorProjectsData } = await supabase
+        .from("integrator_projects")
+        .select("*")
+        .eq("user_id", user.id);
+
+      const projectDots: InsightDot[] = (integratorProjectsData || []).map((p: any) => ({
+        id: p.id,
+        source_type: 'project',
+        source_mentor: null,
+        insight_text: `Project: ${p.project_title} - ${p.project_description}`,
+        core_theme: 'Active Project',
+        skill_tags: [],
+        emotional_tone: null,
+        created_at: p.created_at,
+        reviewed_at: null,
+        user_reflection: p.why_this_matters || null,
+        connection_ids: [],
+        anchor_type: 'creating' as const,
+      }));
+
+      // 3. Fetch integrator_daily_steps with insights
+      const { data: stepsData } = await supabase
+        .from("integrator_daily_steps")
+        .select("*")
+        .eq("user_id", user.id)
+        .not("insight_text", "is", null);
+
+      const stepInsightDots: InsightDot[] = (stepsData || []).map((s: any) => ({
+        id: s.id,
+        source_type: 'focus_mode',
+        source_mentor: null,
+        insight_text: `Task: ${s.step_title} - Learning: ${s.insight_text}`,
+        core_theme: 'Focus Mode Learning',
+        skill_tags: [],
+        emotional_tone: null,
+        created_at: s.completed_at || s.created_at,
+        reviewed_at: null,
+        user_reflection: null,
+        connection_ids: [],
+        anchor_type: 'creating' as const,
+      }));
+
+      // 4. Fetch saved_insights (Mentor Perspectives)
+      const { data: savedData } = await supabase
+        .from("saved_insights")
+        .select("*")
+        .eq("user_id", user.id)
+        .is("archived_at", null);
+
+      const savedInsightDots: InsightDot[] = (savedData || []).map((s: any) => ({
+        id: s.id,
+        source_type: s.is_concept ? 'concept' : 'mentor_insight',
+        source_mentor: s.source_mentor,
+        insight_text: s.insight_text,
+        core_theme: 'Mentor Perspective',
+        skill_tags: [],
+        emotional_tone: null,
+        created_at: s.created_at,
+        reviewed_at: null,
+        user_reflection: null,
+        connection_ids: [],
+        anchor_type: 'both' as const,
+      }));
+
+      // 5. Fetch council_meetings (Resolutions & Patterns)
+      const { data: councilData } = await supabase
+        .from("council_meetings")
+        .select("*")
+        .eq("user_id", user.id);
+
+      const councilDots: InsightDot[] = (councilData || [])
+        .filter((c: any) => c.resolution || c.pattern_detected)
+        .map((c: any) => ({
+          id: c.id,
+          source_type: 'council_meeting',
+          source_mentor: null,
+          insight_text: c.resolution || `Pattern: ${c.pattern_detected}`,
+          core_theme: 'Council Wisdom',
+          skill_tags: [],
+          emotional_tone: c.emotional_tone || null,
+          created_at: c.created_at,
+          reviewed_at: null,
+          user_reflection: null,
+          connection_ids: [],
+          anchor_type: 'both' as const,
+        }));
+
+      // 6. Fetch value_map_blocks (Purpose to Value Map)
+      const { data: valueMapData } = await supabase
+        .from("value_map_blocks")
+        .select("*")
+        .eq("user_id", user.id)
+        .eq("is_unlocked", true)
+        .not("content", "is", null);
+
+      const valueMapDots: InsightDot[] = (valueMapData || []).map((v: any) => ({
+        id: v.id,
+        source_type: 'value_map',
+        source_mentor: null,
+        insight_text: `${v.block_key}: ${v.content}`,
+        core_theme: 'Value Map',
+        skill_tags: [],
+        emotional_tone: null,
+        created_at: v.updated_at || v.created_at,
+        reviewed_at: null,
+        user_reflection: null,
+        connection_ids: [],
+        anchor_type: v.block_key?.includes('purpose') ? 'becoming' as const : 'creating' as const,
+      }));
+
+      // Combine ALL sources
+      const allDots = [
+        ...(dotsData || []),
+        ...transformedEntries,
+        ...discoveryDots,
+        ...projectDots,
+        ...stepInsightDots,
+        ...savedInsightDots,
+        ...councilDots,
+        ...valueMapDots,
+      ];
       setInsightDots(allDots);
       setConstellationEntries(entriesData || []);
 

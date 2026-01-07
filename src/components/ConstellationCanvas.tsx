@@ -66,19 +66,19 @@ const getClusterForSourceType = (sourceType: string, anchorType: AnchorType): ke
     return 'skills_learning';
   }
   // Outputs & Projects
-  if (['milestone', 'project', 'creation', 'output', 'goal_achievement'].includes(sourceType)) {
+  if (['milestone', 'project', 'creation', 'output', 'goal_achievement', 'domain_milestone'].includes(sourceType)) {
     return 'outputs_projects';
   }
   // Values & Insights
-  if (['core_values', 'ikigai', 'strengths', 'insight', 'idea'].includes(sourceType)) {
+  if (['core_values', 'ikigai', 'strengths', 'insight', 'idea', 'my_why', 'value_map'].includes(sourceType)) {
     return 'values_insights';
   }
   // Self Discovery
-  if (['shadow_work', 'quest_completion', 'emotion', 'journal', 'memory'].includes(sourceType)) {
+  if (['shadow_work', 'quest_completion', 'emotion', 'journal', 'memory', 'shadow_integration', 'journal_breakthrough'].includes(sourceType)) {
     return 'self_discovery';
   }
-  // Bridge (both anchor type)
-  if (anchorType === 'both') {
+  // Bridge (council, mentor insights, concepts)
+  if (['council_meeting', 'mentor_insight', 'concept', 'mentor_chat'].includes(sourceType) || anchorType === 'both') {
     return 'bridge';
   }
   // Default to insight seeds for new/uncategorized
