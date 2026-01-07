@@ -133,10 +133,21 @@ const Dashboard = () => {
       const { data: profile } = await supabase
         .from("profiles")
         .select(
-          "council_introduction_completed, display_name, council_unlocked, self_discovery_completed",
+          "council_introduction_completed, display_name, council_unlocked, self_discovery_completed, first_project_created_at, gravity_transition_completed",
         )
         .eq("id", user.id)
         .single();
+
+      // Check if user has completed the Gravity flow (has first project)
+      if (profile && !profile.first_project_created_at) {
+        // User hasn't created their first project - redirect to Gravity flow
+        if (!profile.gravity_transition_completed) {
+          navigate("/gravity/transition");
+        } else {
+          navigate("/gravity/council-welcome");
+        }
+        return;
+      }
 
       // Check if user has had any council meetings
       const { count: councilMeetingsCount } = await supabase

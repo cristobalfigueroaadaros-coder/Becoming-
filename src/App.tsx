@@ -11,13 +11,16 @@ import { FutureSelfOmnipresenceModal } from "@/components/FutureSelfOmnipresence
 import { useFutureSelfOmnipresence } from "@/hooks/useFutureSelfOmnipresence";
 import { toast } from "@/hooks/use-toast";
 import Index from "./pages/Index";
-import Auth from "./pages/Auth";
 import OnboardingStep1 from "./pages/OnboardingStep1";
 import OnboardingStep2 from "./pages/OnboardingStep2";
 import OnboardingStep3 from "./pages/OnboardingStep3";
 import OnboardingStep4 from "./pages/OnboardingStep4";
 import OnboardingQuest from "./pages/OnboardingQuest";
 import OnboardingWorkContext from "./pages/OnboardingWorkContext";
+import GravityOrientation from "./pages/GravityOrientation";
+import GravityTransition from "./pages/GravityTransition";
+import GravityCouncilWelcome from "./pages/GravityCouncilWelcome";
+import GravityFirstProject from "./pages/GravityFirstProject";
 import Dashboard from "./pages/Dashboard";
 import CommunityHub from "./pages/CommunityHub";
 
@@ -150,150 +153,173 @@ const App = () => {
         <BrowserRouter>
           <Routes>
             <Route path="/" element={session ? <Navigate to="/dashboard" /> : <Index />} />
-            <Route path="/auth" element={!session ? <Auth /> : <Navigate to="/dashboard" />} />
+            {/* Redirect old /auth route to new merged page */}
+            <Route path="/auth" element={<Navigate to="/" replace />} />
+            
+            {/* Gravity Flow Routes */}
+            <Route
+              path="/gravity/orientation"
+              element={session ? <GravityOrientation /> : <Navigate to="/" />}
+            />
+            <Route
+              path="/gravity/transition"
+              element={session ? <GravityTransition /> : <Navigate to="/" />}
+            />
+            <Route
+              path="/gravity/council-welcome"
+              element={session ? <GravityCouncilWelcome /> : <Navigate to="/" />}
+            />
+            <Route
+              path="/gravity/first-project"
+              element={session ? <GravityFirstProject /> : <Navigate to="/" />}
+            />
+            
+            {/* Onboarding Routes */}
             <Route
               path="/onboarding"
-              element={session ? <OnboardingStep1 /> : <Navigate to="/auth" />}
+              element={session ? <OnboardingStep1 /> : <Navigate to="/" />}
             />
             <Route
               path="/onboarding/step2"
-              element={session ? <OnboardingStep2 /> : <Navigate to="/auth" />}
+              element={session ? <OnboardingStep2 /> : <Navigate to="/" />}
             />
             <Route
               path="/onboarding/step3"
-              element={session ? <OnboardingStep3 /> : <Navigate to="/auth" />}
+              element={session ? <OnboardingStep3 /> : <Navigate to="/" />}
             />
             <Route
               path="/onboarding/step4"
-              element={session ? <OnboardingStep4 /> : <Navigate to="/auth" />}
+              element={session ? <OnboardingStep4 /> : <Navigate to="/" />}
             />
             <Route
               path="/onboarding/quest"
-              element={session ? <OnboardingQuest /> : <Navigate to="/auth" />}
+              element={session ? <OnboardingQuest /> : <Navigate to="/" />}
             />
             <Route
               path="/onboarding/work-context"
-              element={session ? <OnboardingWorkContext /> : <Navigate to="/auth" />}
+              element={session ? <OnboardingWorkContext /> : <Navigate to="/" />}
             />
+            
+            {/* Main App Routes */}
             <Route
               path="/dashboard"
-              element={session ? <Dashboard /> : <Navigate to="/auth" />}
+              element={session ? <Dashboard /> : <Navigate to="/" />}
             />
             <Route
               path="/community-hub"
-              element={session ? <CommunityHub /> : <Navigate to="/auth" />}
+              element={session ? <CommunityHub /> : <Navigate to="/" />}
             />
             <Route
               path="/future-self"
-              element={session ? <Navigate to="/creation-lab?type=becoming" replace /> : <Navigate to="/auth" />}
+              element={session ? <Navigate to="/creation-lab?type=becoming" replace /> : <Navigate to="/" />}
             />
             <Route
               path="/future-self/life-domains"
-              element={session ? <LifeDomainsPage /> : <Navigate to="/auth" />}
+              element={session ? <LifeDomainsPage /> : <Navigate to="/" />}
             />
             <Route
               path="/future-self/goals"
-              element={session ? <GoalStructurePage /> : <Navigate to="/auth" />}
+              element={session ? <GoalStructurePage /> : <Navigate to="/" />}
             />
             <Route
               path="/future-self/constellation"
-              element={session ? <ConstellationPage /> : <Navigate to="/auth" />}
+              element={session ? <ConstellationPage /> : <Navigate to="/" />}
             />
             <Route
               path="/constellation-insights"
-              element={session ? <ConstellationInsightsDashboard /> : <Navigate to="/auth" />}
+              element={session ? <ConstellationInsightsDashboard /> : <Navigate to="/" />}
             />
             <Route
               path="/future-self/quests"
-              element={session ? <QuestsPage /> : <Navigate to="/auth" />}
+              element={session ? <QuestsPage /> : <Navigate to="/" />}
             />
             <Route
               path="/future-self/actual-self"
-              element={session ? <ActualSelfPage /> : <Navigate to="/auth" />}
+              element={session ? <ActualSelfPage /> : <Navigate to="/" />}
             />
             <Route
               path="/future-self/detail"
-              element={session ? <FutureSelfDetailPage /> : <Navigate to="/auth" />}
+              element={session ? <FutureSelfDetailPage /> : <Navigate to="/" />}
             />
             <Route
               path="/chat/:mentorType"
-              element={session ? <Chat /> : <Navigate to="/auth" />}
+              element={session ? <Chat /> : <Navigate to="/" />}
             />
             <Route
               path="/council-meeting"
-              element={session ? <CouncilMeeting /> : <Navigate to="/auth" />}
+              element={session ? <CouncilMeeting /> : <Navigate to="/" />}
             />
             <Route
               path="/council-log"
-              element={session ? <CouncilLog /> : <Navigate to="/auth" />}
+              element={session ? <CouncilLog /> : <Navigate to="/" />}
             />
             <Route
               path="/my-tasks"
-              element={session ? <MyTasks /> : <Navigate to="/auth" />}
+              element={session ? <MyTasks /> : <Navigate to="/" />}
             />
             <Route
               path="/your-new-tasks"
-              element={session ? <YourNewTasks /> : <Navigate to="/auth" />}
+              element={session ? <YourNewTasks /> : <Navigate to="/" />}
             />
             <Route
               path="/premium"
-              element={session ? <Premium /> : <Navigate to="/auth" />}
+              element={session ? <Premium /> : <Navigate to="/" />}
             />
             <Route
               path="/profile"
-              element={session ? <Profile /> : <Navigate to="/auth" />}
+              element={session ? <Profile /> : <Navigate to="/" />}
             />
             <Route
               path="/profile/:userId"
-              element={session ? <Profile /> : <Navigate to="/auth" />}
+              element={session ? <Profile /> : <Navigate to="/" />}
             />
             <Route
               path="/purpose-discovery"
-              element={session ? <PurposeDiscoveryFlow /> : <Navigate to="/auth" />}
+              element={session ? <PurposeDiscoveryFlow /> : <Navigate to="/" />}
             />
             <Route
               path="/purpose-evolution"
-              element={session ? <PurposeEvolution /> : <Navigate to="/auth" />}
+              element={session ? <PurposeEvolution /> : <Navigate to="/" />}
             />
             <Route
               path="/purpose-evolution-engine"
-              element={session ? <PurposeEvolutionEngine /> : <Navigate to="/auth" />}
+              element={session ? <PurposeEvolutionEngine /> : <Navigate to="/" />}
             />
             <Route
               path="/mapping-dots"
-              element={session ? <MappingDotsPage /> : <Navigate to="/auth" />}
+              element={session ? <MappingDotsPage /> : <Navigate to="/" />}
             />
             <Route
               path="/daily-portal"
-              element={session ? <DailyPortal /> : <Navigate to="/auth" />}
+              element={session ? <DailyPortal /> : <Navigate to="/" />}
             />
             <Route
               path="/challenge-history"
-              element={session ? <ChallengeHistory /> : <Navigate to="/auth" />}
+              element={session ? <ChallengeHistory /> : <Navigate to="/" />}
             />
             <Route
               path="/challenge-reports"
-              element={session ? <ChallengeReports /> : <Navigate to="/auth" />}
+              element={session ? <ChallengeReports /> : <Navigate to="/" />}
             />
             <Route
               path="/dot-connection-engine"
-              element={session ? <DotConnectionEngine /> : <Navigate to="/auth" />}
+              element={session ? <DotConnectionEngine /> : <Navigate to="/" />}
             />
             <Route
               path="/creation-lab"
-              element={session ? <CreationLab /> : <Navigate to="/auth" />}
+              element={session ? <CreationLab /> : <Navigate to="/" />}
             />
             <Route
               path="/energetic-dashboard"
-              element={session ? <EnergeticDashboard /> : <Navigate to="/auth" />}
+              element={session ? <EnergeticDashboard /> : <Navigate to="/" />}
             />
             <Route
               path="/vibrational-insights"
-              element={session ? <VibrationalPatternInsights /> : <Navigate to="/auth" />}
+              element={session ? <VibrationalPatternInsights /> : <Navigate to="/" />}
             />
             <Route
               path="/optimal-timing"
-              element={session ? <OptimalTimingDashboard /> : <Navigate to="/auth" />}
+              element={session ? <OptimalTimingDashboard /> : <Navigate to="/" />}
             />
             <Route path="*" element={<NotFound />} />
           </Routes>
