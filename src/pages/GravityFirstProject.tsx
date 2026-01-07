@@ -95,7 +95,7 @@ const GravityFirstProject = () => {
 
     // Navigate to Council Meeting with the project idea pre-filled
     // The Council will interact with the user, narrow down the idea, and eventually create the project
-    navigate('/council', { 
+    navigate('/council-meeting', { 
       state: { 
         prefilledQuestion: projectIdea,
         isFirstProjectFlow: true,
@@ -112,15 +112,27 @@ const GravityFirstProject = () => {
         transition={{ duration: 0.8 }}
         className="max-w-2xl w-full text-center space-y-8"
       >
-        {/* Title */}
-        <div className="space-y-4">
+        {/* Council Message */}
+        <div className="space-y-6">
           <h1 className="text-3xl md:text-4xl font-light text-foreground">
             We hear you.
           </h1>
-          <p className="text-lg text-muted-foreground leading-relaxed">
-            Is there an idea, a project, an experiment, or something unfinished
-            that you'd like to bring to life?
-          </p>
+          
+          <div className="space-y-4 text-lg text-muted-foreground leading-relaxed">
+            <p>
+              Becoming is here to support your growth, but growth happens through movement.
+              We believe the fastest way to understand yourself is to work toward something real.
+            </p>
+            
+            <p className="text-foreground font-medium">
+              Tell us: Is there an idea, a project, an experiment, or something unfinished
+              that you'd like to bring to life?
+            </p>
+            
+            <p className="text-sm">
+              There are no expectations. Only movement.
+            </p>
+          </div>
         </div>
 
         {/* Voice + Text Input */}
@@ -188,7 +200,12 @@ const GravityFirstProject = () => {
           <ArrowRight className="h-4 w-4" />
         </Button>
 
-        <p className="text-xs text-muted-foreground">
+        <p className="text-sm text-muted-foreground">
+          If nothing comes to mind yet, you can start small.
+          A habit, a question, or something you're curious to explore is enough.
+        </p>
+
+        <p className="text-xs text-muted-foreground mt-2">
           The Council will help you clarify and shape this into something real.
         </p>
       </motion.div>
