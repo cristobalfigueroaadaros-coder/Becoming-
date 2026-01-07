@@ -1,32 +1,144 @@
+import { useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { Button } from "@/components/ui/button";
-import { Sparkles } from "lucide-react";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
+import { Card, CardContent } from "@/components/ui/card";
+import { supabase } from "@/integrations/supabase/client";
+import { toast } from "sonner";
+import { motion } from "framer-motion";
 
 const Index = () => {
   const navigate = useNavigate();
+  const [isSignUp, setIsSignUp] = useState(false);
+  const [email, setEmail] = useState("");
+  const [password, setPassword] = useState("");
+  const [loading, setLoading] = useState(false);
+
+  const handleAuth = async (e: React.FormEvent) => {
+    e.preventDefault();
+    setLoading(true);
+
+    try {
+      if (isSignUp) {
+        const { error } = await supabase.auth.signUp({
+          email,
+          password,
+        });
+        if (error) throw error;
+        toast.success("Account created! Redirecting...");
+        // New signups go to Gravity Orientation
+        navigate("/gravity/orientation");
+      } else {
+        const { error } = await supabase.auth.signInWithPassword({
+          email,
+          password,
+        });
+        if (error) throw error;
+        toast.success("Welcome back!");
+        // Returning users - check their progress and redirect appropriately
+        navigate("/dashboard");
+      }
+    } catch (error: any) {
+      toast.error(error.message);
+    } finally {
+      setLoading(false);
+    }
+  };
 
   return (
-    <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-primary/10 via-background to-accent/10">
-      <div className="text-center space-y-8 p-8">
-        <div className="mx-auto w-24 h-24 bg-gradient-to-br from-primary to-accent rounded-3xl flex items-center justify-center shadow-xl">
-          <Sparkles className="w-12 h-12 text-primary-foreground" />
-        </div>
-        <div className="space-y-4">
-          <h1 className="text-5xl md:text-6xl font-bold bg-gradient-to-r from-primary to-accent bg-clip-text text-transparent">
-            My AI Council
+    <div className="min-h-screen flex flex-col lg:flex-row">
+      {/* Brand Side */}
+      <div className="flex-1 flex items-center justify-center bg-gradient-to-br from-background via-primary/5 to-accent/10 p-8 lg:p-16">
+        <motion.div 
+          initial={{ opacity: 0, y: 20 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ duration: 0.8 }}
+          className="text-center lg:text-left space-y-6 max-w-lg"
+        >
+          <h1 className="text-5xl md:text-6xl lg:text-7xl font-bold bg-gradient-to-r from-primary to-accent bg-clip-text text-transparent">
+            Becoming
           </h1>
-          <p className="text-xl md:text-2xl text-muted-foreground max-w-2xl mx-auto">
-            Build your personal council of AI mentors and your Future Self
+          <p className="text-xl md:text-2xl text-muted-foreground font-light">
+            We become by building.
           </p>
-        </div>
-        <div className="flex flex-col sm:flex-row gap-4 justify-center">
-          <Button size="lg" onClick={() => navigate("/auth")} className="text-lg px-8">
-            Get Started
-          </Button>
-          <Button size="lg" variant="outline" onClick={() => navigate("/auth")} className="text-lg px-8">
-            Sign In
-          </Button>
-        </div>
+        </motion.div>
+      </div>
+
+      {/* Auth Side */}
+      <div className="flex-1 flex items-center justify-center p-8 lg:p-16 bg-background">
+        <motion.div
+          initial={{ opacity: 0, x: 20 }}
+          animate={{ opacity: 1, x: 0 }}
+          transition={{ duration: 0.8, delay: 0.2 }}
+          className="w-full max-w-md"
+        >
+          <Card className="border-0 shadow-lg bg-card/50 backdrop-blur">
+            <CardContent className="p-8 space-y-6">
+              <div className="text-center space-y-2">
+                <h2 className="text-2xl font-semibold text-foreground">
+                  {isSignUp ? "Create your account" : "Welcome back"}
+                </h2>
+                <p className="text-muted-foreground">
+                  {isSignUp 
+                    ? "Begin your journey of becoming" 
+                    : "Continue your journey"}
+                </p>
+              </div>
+
+              <form onSubmit={handleAuth} className="space-y-4">
+                <div className="space-y-2">
+                  <Label htmlFor="email">Email</Label>
+                  <Input
+                    id="email"
+                    type="email"
+                    placeholder="you@example.com"
+                    value={email}
+                    onChange={(e) => setEmail(e.target.value)}
+                    required
+                  />
+                </div>
+
+                <div className="space-y-2">
+                  <Label htmlFor="password">Password</Label>
+                  <Input
+                    id="password"
+                    type="password"
+                    placeholder="••••••••"
+                    value={password}
+                    onChange={(e) => setPassword(e.target.value)}
+                    required
+                    minLength={6}
+                  />
+                </div>
+
+                <Button 
+                  type="submit" 
+                  className="w-full text-lg py-6" 
+                  disabled={loading}
+                >
+                  {loading 
+                    ? "..." 
+                    : isSignUp 
+                      ? "Sign up" 
+                      : "Sign in"}
+                </Button>
+              </form>
+
+              <div className="text-center">
+                <button
+                  type="button"
+                  onClick={() => setIsSignUp(!isSignUp)}
+                  className="text-sm text-muted-foreground hover:text-primary transition-colors"
+                >
+                  {isSignUp 
+                    ? "Already have an account? Sign in" 
+                    : "Don't have an account? Sign up"}
+                </button>
+              </div>
+            </CardContent>
+          </Card>
+        </motion.div>
       </div>
     </div>
   );

@@ -1808,6 +1808,8 @@ export type Database = {
           creation_gate_passed_at: string | null
           display_name: string | null
           emotional_tone: string | null
+          first_project_created_at: string | null
+          first_project_id: string | null
           first_win_completed_at: string | null
           first_win_path: string | null
           first_win_proof_text: string | null
@@ -1817,6 +1819,8 @@ export type Database = {
           future_location: string | null
           future_self_avatar: string | null
           future_self_voice_note: string | null
+          gravity_orientation_completed: boolean | null
+          gravity_transition_completed: boolean | null
           human_design_data: Json | null
           id: string
           last_future_self_message_at: string | null
@@ -1852,6 +1856,8 @@ export type Database = {
           creation_gate_passed_at?: string | null
           display_name?: string | null
           emotional_tone?: string | null
+          first_project_created_at?: string | null
+          first_project_id?: string | null
           first_win_completed_at?: string | null
           first_win_path?: string | null
           first_win_proof_text?: string | null
@@ -1861,6 +1867,8 @@ export type Database = {
           future_location?: string | null
           future_self_avatar?: string | null
           future_self_voice_note?: string | null
+          gravity_orientation_completed?: boolean | null
+          gravity_transition_completed?: boolean | null
           human_design_data?: Json | null
           id: string
           last_future_self_message_at?: string | null
@@ -1896,6 +1904,8 @@ export type Database = {
           creation_gate_passed_at?: string | null
           display_name?: string | null
           emotional_tone?: string | null
+          first_project_created_at?: string | null
+          first_project_id?: string | null
           first_win_completed_at?: string | null
           first_win_path?: string | null
           first_win_proof_text?: string | null
@@ -1905,6 +1915,8 @@ export type Database = {
           future_location?: string | null
           future_self_avatar?: string | null
           future_self_voice_note?: string | null
+          gravity_orientation_completed?: boolean | null
+          gravity_transition_completed?: boolean | null
           human_design_data?: Json | null
           id?: string
           last_future_self_message_at?: string | null
