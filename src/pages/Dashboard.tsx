@@ -140,11 +140,14 @@ const Dashboard = () => {
 
       // Check if user has completed the Gravity flow (has first project)
       if (profile && !profile.first_project_created_at) {
-        // User hasn't created their first project - redirect to Gravity flow
+        // Determine the correct step in the Gravity flow
         if (!profile.gravity_transition_completed) {
           navigate("/gravity/transition");
+        } else if (!profile.council_introduction_completed) {
+          navigate("/gravity/council-intro");
         } else {
-          navigate("/gravity/council-welcome");
+          // User has introduced themselves, go to first project capture
+          navigate("/gravity/first-project");
         }
         return;
       }

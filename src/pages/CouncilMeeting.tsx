@@ -1072,10 +1072,17 @@ const CouncilMeeting = () => {
                         );
                         
                         if (project) {
-                          // If this is the first project flow, update profile to mark first project created
-                          if (isFirstProjectFlow) {
-                            const { data: { user } } = await supabase.auth.getUser();
-                            if (user && project.project?.id) {
+                          // Always check if this is the user's first project and mark it
+                          const { data: { user } } = await supabase.auth.getUser();
+                          if (user && project.project?.id) {
+                            const { data: currentProfile } = await supabase
+                              .from("profiles")
+                              .select("first_project_created_at")
+                              .eq("id", user.id)
+                              .single();
+                            
+                            // If no first project yet, mark this as the first
+                            if (!currentProfile?.first_project_created_at) {
                               await supabase
                                 .from("profiles")
                                 .update({ 
@@ -1087,7 +1094,8 @@ const CouncilMeeting = () => {
                           }
                           
                           setMainGoalAccepted(true);
-                          toast.success(isFirstProjectFlow 
+                          const isFirstProject = !userProfile?.first_project_created_at;
+                          toast.success(isFirstProject 
                             ? "Your journey begins! First project created." 
                             : "Goal accepted! Your project is now in Creation Lab.");
                           navigate('/creation-lab?mode=focus');
