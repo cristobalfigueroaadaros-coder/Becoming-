@@ -140,16 +140,35 @@ const Dashboard = () => {
 
       // Check if user has completed the Gravity flow (has first project)
       if (profile && !profile.first_project_created_at) {
-        // Determine the correct step in the Gravity flow
-        if (!profile.gravity_transition_completed) {
-          navigate("/gravity/transition");
-        } else if (!profile.council_introduction_completed) {
-          navigate("/gravity/council-intro");
+        // Self-heal: Check if a project actually exists (flag might have failed to save)
+        const { data: existingProjects } = await supabase
+          .from("integrator_projects")
+          .select("id, created_at")
+          .eq("user_id", user.id)
+          .order("created_at", { ascending: true })
+          .limit(1);
+        
+        if (existingProjects && existingProjects.length > 0) {
+          // Project exists but flag is missing - backfill it
+          await supabase
+            .from("profiles")
+            .update({
+              first_project_created_at: existingProjects[0].created_at,
+              first_project_id: existingProjects[0].id
+            })
+            .eq("id", user.id);
+          // Continue to dashboard normally (don't redirect)
         } else {
-          // User has introduced themselves, go to first project capture
-          navigate("/gravity/first-project");
+          // No project exists - redirect to appropriate Gravity step
+          if (!profile.gravity_transition_completed) {
+            navigate("/gravity/transition");
+          } else if (!profile.council_introduction_completed) {
+            navigate("/gravity/council-intro");
+          } else {
+            navigate("/gravity/first-project");
+          }
+          return;
         }
-        return;
       }
 
       // Check if user has had any council meetings
