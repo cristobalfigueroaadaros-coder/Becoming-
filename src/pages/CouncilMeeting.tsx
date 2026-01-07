@@ -1074,6 +1074,8 @@ const CouncilMeeting = () => {
                         if (project) {
                           // Always check if this is the user's first project and mark it
                           const { data: { user } } = await supabase.auth.getUser();
+                          let isFirstProject = false;
+                          
                           if (user && project.project?.id) {
                             const { data: currentProfile } = await supabase
                               .from("profiles")
@@ -1081,20 +1083,27 @@ const CouncilMeeting = () => {
                               .eq("id", user.id)
                               .single();
                             
+                            isFirstProject = !currentProfile?.first_project_created_at;
+                            
                             // If no first project yet, mark this as the first
-                            if (!currentProfile?.first_project_created_at) {
-                              await supabase
+                            if (isFirstProject) {
+                              const { error: updateError } = await supabase
                                 .from("profiles")
                                 .update({ 
                                   first_project_created_at: new Date().toISOString(),
                                   first_project_id: project.project.id
                                 })
                                 .eq("id", user.id);
+                              
+                              if (updateError) {
+                                console.error("Failed to mark first project:", updateError);
+                                toast.error("Something went wrong. Please try again.");
+                                return;
+                              }
                             }
                           }
                           
                           setMainGoalAccepted(true);
-                          const isFirstProject = !userProfile?.first_project_created_at;
                           toast.success(isFirstProject 
                             ? "Your journey begins! First project created." 
                             : "Goal accepted! Your project is now in Creation Lab.");
