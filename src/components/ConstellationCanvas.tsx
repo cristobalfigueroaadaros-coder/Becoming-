@@ -16,12 +16,13 @@ import { Card } from './ui/card';
 import { Badge } from './ui/badge';
 import { Button } from './ui/button';
 import { Textarea } from './ui/textarea';
-import { BookOpen, Lightbulb, Target, Heart, Sparkles, Star, BookMarked, Brain, Smile, Layers, TrendingUp, Edit, Save, X } from 'lucide-react';
-import { detectClusters, getClusterForNode, type Cluster } from '@/lib/clusterDetection';
+import { BookOpen, Lightbulb, Target, Heart, Sparkles, Star, BookMarked, Brain, Smile, Edit, Save, X, User, Rocket } from 'lucide-react';
 import { ScrollArea } from './ui/scroll-area';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from './ui/dialog';
 import { supabase } from '@/integrations/supabase/client';
 import { useToast } from '@/hooks/use-toast';
+import { YinYangCore } from './constellation/YinYangCore';
+import { classifyAnchorType, getAnchorAngleRange, getAnchorColor, type AnchorType } from '@/lib/anchorClassification';
 
 interface InsightDot {
   id: string;
@@ -35,6 +36,7 @@ interface InsightDot {
   reviewed_at: string | null;
   user_reflection: string | null;
   connection_ids: string[];
+  anchor_type?: AnchorType;
 }
 
 interface DotConnection {
@@ -62,6 +64,8 @@ interface ConstellationCanvasProps {
   userPurpose?: string | null;
   purposeAlignments?: PurposeAlignment[];
   showPurposeView?: boolean;
+  userName?: string;
+  projectName?: string;
 }
 
 const entryTypeConfig: Record<string, { icon: any; color: string; bgColor: string }> = {
@@ -76,6 +80,13 @@ const entryTypeConfig: Record<string, { icon: any; color: string; bgColor: strin
   mentor_chat: { icon: Sparkles, color: 'hsl(140 70% 50%)', bgColor: 'hsl(140 70% 50% / 0.1)' },
   journal: { icon: BookOpen, color: 'hsl(270 70% 60%)', bgColor: 'hsl(270 70% 60% / 0.1)' },
   shadow_work: { icon: Smile, color: 'hsl(0 80% 60%)', bgColor: 'hsl(0 80% 60% / 0.1)' },
+  // Becoming types
+  core_values: { icon: Heart, color: 'hsl(280 75% 60%)', bgColor: 'hsl(280 75% 60% / 0.1)' },
+  strengths: { icon: Star, color: 'hsl(270 70% 55%)', bgColor: 'hsl(270 70% 55% / 0.1)' },
+  ikigai: { icon: Target, color: 'hsl(290 80% 60%)', bgColor: 'hsl(290 80% 60% / 0.1)' },
+  // Creating types
+  integrator_step: { icon: Target, color: 'hsl(45 85% 55%)', bgColor: 'hsl(45 85% 55% / 0.1)' },
+  focus_mode: { icon: Lightbulb, color: 'hsl(40 90% 50%)', bgColor: 'hsl(40 90% 50% / 0.1)' },
 };
 
 const CustomNode = ({ data }: { data: any }) => {
@@ -83,21 +94,27 @@ const CustomNode = ({ data }: { data: any }) => {
   const Icon = config.icon;
   const isHighAlignment = data.alignmentScore >= 61;
   const isMediumAlignment = data.alignmentScore >= 31 && data.alignmentScore < 61;
-  const hasCluster = data.clusterColor;
+  const anchorColor = data.anchorColor;
 
   return (
     <Card 
       className="p-3 min-w-[180px] max-w-[220px] border-2 cursor-pointer hover:shadow-lg transition-all relative"
       style={{ 
-        borderColor: hasCluster ? data.clusterColor : config.color,
+        borderColor: anchorColor || config.color,
         backgroundColor: config.bgColor,
-        boxShadow: hasCluster ? `0 0 20px ${data.clusterColor}40` : undefined,
+        boxShadow: anchorColor ? `0 0 15px ${anchorColor}40` : undefined,
       }}
     >
-      {hasCluster && data.clusterStrength === 'high' && (
-        <div className="absolute -top-1 -right-1">
-          <Badge variant="default" className="h-5 px-1.5 text-xs" style={{ backgroundColor: data.clusterColor }}>
-            <Layers className="h-3 w-3" />
+      {data.anchorLabel && (
+        <div className="absolute -top-2 -right-2">
+          <Badge 
+            variant="secondary" 
+            className="h-5 px-1.5 text-xs"
+            style={{ backgroundColor: anchorColor, color: 'white' }}
+          >
+            {data.anchorLabel === 'Identity' ? <User className="h-3 w-3" /> : 
+             data.anchorLabel === 'Action' ? <Rocket className="h-3 w-3" /> : 
+             <Sparkles className="h-3 w-3" />}
           </Badge>
         </div>
       )}
@@ -119,19 +136,6 @@ const CustomNode = ({ data }: { data: any }) => {
         {data.core_theme && (
           <Badge variant="outline" className="text-xs">
             {data.core_theme}
-          </Badge>
-        )}
-        {hasCluster && (
-          <Badge 
-            variant="secondary" 
-            className="text-xs"
-            style={{ 
-              backgroundColor: `${data.clusterColor}20`,
-              borderColor: data.clusterColor,
-              color: data.clusterColor
-            }}
-          >
-            Cluster
           </Badge>
         )}
       </div>
@@ -159,40 +163,69 @@ export const ConstellationCanvas = ({
   onDotClick,
   selectedDot,
   purposeAlignments = [],
-  showPurposeView = false
+  showPurposeView = false,
+  userName = "You",
+  projectName = "Your Journey"
 }: ConstellationCanvasProps) => {
   const [nodes, setNodes, onNodesChange] = useNodesState([]);
   const [edges, setEdges, onEdgesChange] = useEdgesState([]);
-  const [selectedCluster, setSelectedCluster] = useState<string | null>(null);
   const [selectedConnection, setSelectedConnection] = useState<DotConnection | null>(null);
   const [isEditingNotes, setIsEditingNotes] = useState(false);
   const [userNotes, setUserNotes] = useState('');
   const { toast } = useToast();
 
-  // Detect clusters from connections
-  const clusters = useMemo(() => {
-    return detectClusters(dots, connections, 3);
-  }, [dots, connections]);
+  // Center position for the Yin-Yang core
+  const centerX = 500;
+  const centerY = 400;
+  const coreSize = 200;
 
-  // Create nodes from dots with circular layout and cluster highlighting
+  // Classify dots and count by anchor type
+  const classifiedDots = useMemo(() => {
+    return dots.map(dot => {
+      const anchorType = dot.anchor_type || classifyAnchorType(dot.source_type, dot.insight_text);
+      return { ...dot, anchor_type: anchorType };
+    });
+  }, [dots]);
+
+  const anchorCounts = useMemo(() => {
+    const counts = { becoming: 0, creating: 0, both: 0 };
+    classifiedDots.forEach(dot => {
+      const type = dot.anchor_type || 'both';
+      counts[type]++;
+    });
+    return counts;
+  }, [classifiedDots]);
+
+  // Create nodes from dots with radial positioning around the core
   const initialNodes = useMemo((): Node[] => {
-    if (dots.length === 0) return [];
+    if (classifiedDots.length === 0) return [];
     
-    const angleStep = (2 * Math.PI) / dots.length;
-    const radius = Math.min(400, 150 + dots.length * 20);
+    // Group dots by anchor type
+    const becomingDots = classifiedDots.filter(d => d.anchor_type === 'becoming');
+    const creatingDots = classifiedDots.filter(d => d.anchor_type === 'creating');
+    const bridgeDots = classifiedDots.filter(d => d.anchor_type === 'both');
 
-    return dots.map((dot, index) => {
-      const angle = index * angleStep;
-      const x = 500 + radius * Math.cos(angle);
-      const y = 400 + radius * Math.sin(angle);
+    const allNodes: Node[] = [];
+    const baseRadius = coreSize / 2 + 80; // Start from edge of core
+
+    // Position becoming dots (left side: 135-225 degrees)
+    becomingDots.forEach((dot, index) => {
+      const angleRange = { min: 135, max: 225 };
+      const angleStep = (angleRange.max - angleRange.min) / Math.max(1, becomingDots.length - 1);
+      const angle = becomingDots.length === 1 
+        ? (angleRange.min + angleRange.max) / 2 
+        : angleRange.min + index * angleStep;
+      const radiusOffset = 50 + (index % 3) * 40; // Varied distances
+      const radius = baseRadius + radiusOffset;
+      const rad = (angle * Math.PI) / 180;
+      
+      const x = centerX + radius * Math.cos(rad);
+      const y = centerY + radius * Math.sin(rad);
 
       const alignment = purposeAlignments.find(a => a.id === dot.id);
-      const alignmentScore = alignment?.alignmentScore || 0;
+      const anchorColor = getAnchorColor('becoming');
 
-      // Find cluster for this node
-      const cluster = getClusterForNode(dot.id, clusters);
-
-      return {
+      allNodes.push({
         id: dot.id,
         type: 'constellationNode',
         position: { x, y },
@@ -200,17 +233,78 @@ export const ConstellationCanvas = ({
           title: dot.insight_text.length > 60 ? dot.insight_text.substring(0, 60) + '...' : dot.insight_text,
           source_type: dot.source_type,
           core_theme: dot.core_theme,
-          alignmentScore,
-          clusterColor: cluster?.color,
-          clusterStrength: cluster?.strength,
+          alignmentScore: alignment?.alignmentScore || 0,
+          anchorColor,
+          anchorLabel: 'Identity',
         },
-        className: selectedCluster === cluster?.id ? 'ring-2 ring-offset-2' : undefined,
-        style: selectedCluster === cluster?.id ? { 
-          zIndex: 1000,
-        } : undefined,
-      };
+      });
     });
-  }, [dots, purposeAlignments, clusters, selectedCluster]);
+
+    // Position creating dots (right side: -45 to 45 degrees)
+    creatingDots.forEach((dot, index) => {
+      const angleRange = { min: -45, max: 45 };
+      const angleStep = (angleRange.max - angleRange.min) / Math.max(1, creatingDots.length - 1);
+      const angle = creatingDots.length === 1 
+        ? (angleRange.min + angleRange.max) / 2 
+        : angleRange.min + index * angleStep;
+      const radiusOffset = 50 + (index % 3) * 40;
+      const radius = baseRadius + radiusOffset;
+      const rad = (angle * Math.PI) / 180;
+      
+      const x = centerX + radius * Math.cos(rad);
+      const y = centerY + radius * Math.sin(rad);
+
+      const alignment = purposeAlignments.find(a => a.id === dot.id);
+      const anchorColor = getAnchorColor('creating');
+
+      allNodes.push({
+        id: dot.id,
+        type: 'constellationNode',
+        position: { x, y },
+        data: {
+          title: dot.insight_text.length > 60 ? dot.insight_text.substring(0, 60) + '...' : dot.insight_text,
+          source_type: dot.source_type,
+          core_theme: dot.core_theme,
+          alignmentScore: alignment?.alignmentScore || 0,
+          anchorColor,
+          anchorLabel: 'Action',
+        },
+      });
+    });
+
+    // Position bridge dots (top and bottom: around 90 and 270 degrees)
+    bridgeDots.forEach((dot, index) => {
+      const isTop = index % 2 === 0;
+      const baseAngle = isTop ? 270 : 90;
+      const offset = (Math.floor(index / 2)) * 20 - ((bridgeDots.length / 4) * 20);
+      const angle = baseAngle + offset;
+      const radiusOffset = 60 + (index % 3) * 35;
+      const radius = baseRadius + radiusOffset;
+      const rad = (angle * Math.PI) / 180;
+      
+      const x = centerX + radius * Math.cos(rad);
+      const y = centerY + radius * Math.sin(rad);
+
+      const alignment = purposeAlignments.find(a => a.id === dot.id);
+      const anchorColor = getAnchorColor('both');
+
+      allNodes.push({
+        id: dot.id,
+        type: 'constellationNode',
+        position: { x, y },
+        data: {
+          title: dot.insight_text.length > 60 ? dot.insight_text.substring(0, 60) + '...' : dot.insight_text,
+          source_type: dot.source_type,
+          core_theme: dot.core_theme,
+          alignmentScore: alignment?.alignmentScore || 0,
+          anchorColor,
+          anchorLabel: 'Bridge',
+        },
+      });
+    });
+
+    return allNodes;
+  }, [classifiedDots, purposeAlignments, centerX, centerY, coreSize]);
 
   // Create edges from connections
   const initialEdges = useMemo((): Edge[] => {
@@ -224,6 +318,11 @@ export const ConstellationCanvas = ({
       if (!edgesMap.has(edgeId)) {
         const patternColor = patternTypeColors[connection.connection_type] || 'hsl(var(--muted-foreground))';
         
+        // Check if this is a bridge connection (crosses anchor types)
+        const sourceDot = classifiedDots.find(d => d.id === source);
+        const targetDot = classifiedDots.find(d => d.id === target);
+        const isBridgeConnection = sourceDot?.anchor_type !== targetDot?.anchor_type;
+        
         edgesMap.set(edgeId, {
           id: edgeId,
           source,
@@ -231,8 +330,8 @@ export const ConstellationCanvas = ({
           type: ConnectionLineType.Bezier,
           animated: connection.ai_generated,
           style: { 
-            stroke: patternColor,
-            strokeWidth: 2,
+            stroke: isBridgeConnection ? 'url(#bridgeGradient)' : patternColor,
+            strokeWidth: isBridgeConnection ? 3 : 2,
           },
           label: connection.connection_type,
           labelStyle: { 
@@ -249,7 +348,7 @@ export const ConstellationCanvas = ({
     });
 
     return Array.from(edgesMap.values());
-  }, [connections]);
+  }, [connections, classifiedDots]);
 
   useEffect(() => {
     setNodes(initialNodes);
@@ -296,7 +395,6 @@ export const ConstellationCanvas = ({
       description: "Your perspective has been added to this connection"
     });
 
-    // Update the local state
     setSelectedConnection({ ...selectedConnection, user_notes: userNotes });
     setIsEditingNotes(false);
   };
@@ -309,20 +407,31 @@ export const ConstellationCanvas = ({
 
   if (dots.length === 0) {
     return (
-      <Card className="p-8 text-center">
-        <div className="space-y-3">
-          <div className="w-24 h-24 mx-auto rounded-full bg-primary/10 flex items-center justify-center">
-            <span className="text-4xl">✨</span>
-          </div>
+      <Card className="p-8 text-center relative overflow-hidden min-h-[500px] flex items-center justify-center">
+        <div className="absolute inset-0 flex items-center justify-center opacity-30">
+          <YinYangCore userName={userName} projectName={projectName} size={300} />
+        </div>
+        <div className="relative z-10 space-y-3">
           <p className="text-muted-foreground text-lg">Your constellation awaits</p>
-          <p className="text-sm text-muted-foreground">Add insights to see them visualized here</p>
+          <p className="text-sm text-muted-foreground">Add insights to see them orbit around your core</p>
         </div>
       </Card>
     );
   }
 
   return (
-    <Card className="w-full h-[700px] overflow-hidden">
+    <Card className="w-full h-[700px] overflow-hidden relative">
+      {/* SVG Gradient definition for bridge connections */}
+      <svg width="0" height="0" className="absolute">
+        <defs>
+          <linearGradient id="bridgeGradient" x1="0%" y1="0%" x2="100%" y2="0%">
+            <stop offset="0%" stopColor="hsl(270 75% 60%)" />
+            <stop offset="50%" stopColor="hsl(200 70% 55%)" />
+            <stop offset="100%" stopColor="hsl(45 90% 55%)" />
+          </linearGradient>
+        </defs>
+      </svg>
+
       <ReactFlow
         nodes={nodes}
         edges={edges}
@@ -344,31 +453,43 @@ export const ConstellationCanvas = ({
         <Controls />
         <MiniMap 
           nodeColor={(node) => {
-            const alignment = purposeAlignments.find(a => a.id === node.id);
-            if (alignment) {
-              if (alignment.alignmentScore >= 61) return 'hsl(280 90% 65%)';
-              if (alignment.alignmentScore >= 31) return 'hsl(200 80% 60%)';
-              return 'hsl(220 40% 55%)';
-            }
-            return 'hsl(var(--primary))';
+            const data = node.data as any;
+            return data?.anchorColor || 'hsl(var(--primary))';
           }}
           maskColor="hsl(var(--background) / 0.8)"
         />
-        <Panel position="top-left" className="bg-background/80 backdrop-blur-sm p-3 rounded-lg border border-border m-2">
-          <div className="space-y-2">
-            <h3 className="font-semibold text-sm">Connection Types</h3>
-            <div className="space-y-1 text-xs">
-              {Object.entries(patternTypeColors).map(([type, color]) => (
-                <div key={type} className="flex items-center gap-2">
-                  <div className="w-4 h-0.5" style={{ backgroundColor: color }} />
-                  <span className="capitalize">{type}</span>
-                </div>
-              ))}
+
+        {/* Yin-Yang Core at center */}
+        <Panel position="top-left" className="!left-1/2 !top-1/2 !-translate-x-1/2 !-translate-y-1/2 !m-0 pointer-events-none">
+          <YinYangCore userName={userName} projectName={projectName} size={coreSize} />
+        </Panel>
+
+        {/* Anchor Type Legend */}
+        <Panel position="top-left" className="bg-background/90 backdrop-blur-sm p-3 rounded-lg border border-border m-2">
+          <div className="space-y-3">
+            <h3 className="font-semibold text-sm">Living Constellation</h3>
+            <div className="space-y-2 text-xs">
+              <div className="flex items-center gap-2">
+                <div className="w-3 h-3 rounded-full" style={{ backgroundColor: 'hsl(270 75% 60%)' }} />
+                <User className="w-3 h-3 text-violet-400" />
+                <span>Becoming ({anchorCounts.becoming})</span>
+              </div>
+              <div className="flex items-center gap-2">
+                <div className="w-3 h-3 rounded-full" style={{ backgroundColor: 'hsl(45 90% 55%)' }} />
+                <Rocket className="w-3 h-3 text-amber-400" />
+                <span>Creating ({anchorCounts.creating})</span>
+              </div>
+              <div className="flex items-center gap-2">
+                <div className="w-3 h-3 rounded-full" style={{ backgroundColor: 'hsl(200 70% 55%)' }} />
+                <Sparkles className="w-3 h-3 text-cyan-400" />
+                <span>Bridge ({anchorCounts.both})</span>
+              </div>
             </div>
           </div>
         </Panel>
+
         {showPurposeView && purposeAlignments.length > 0 && (
-          <Panel position="top-right" className="bg-background/80 backdrop-blur-sm p-3 rounded-lg border border-border m-2">
+          <Panel position="top-right" className="bg-background/90 backdrop-blur-sm p-3 rounded-lg border border-border m-2">
             <div className="space-y-2">
               <h3 className="font-semibold text-sm flex items-center gap-2">
                 <Target className="w-4 h-4" />
@@ -388,59 +509,6 @@ export const ConstellationCanvas = ({
                   <span>Low (0-30%)</span>
                 </div>
               </div>
-            </div>
-          </Panel>
-        )}
-        {clusters.length > 0 && (
-          <Panel position="bottom-left" className="bg-background/95 backdrop-blur-sm rounded-lg border border-border m-2 w-[280px]">
-            <div className="p-3 space-y-2">
-              <div className="flex items-center justify-between mb-2">
-                <h3 className="font-semibold text-sm flex items-center gap-2">
-                  <Layers className="w-4 h-4" />
-                  Focus Clusters
-                </h3>
-                <Badge variant="secondary" className="text-xs">
-                  {clusters.length}
-                </Badge>
-              </div>
-              <ScrollArea className="h-[200px]">
-                <div className="space-y-2 pr-3">
-                  {clusters.map((cluster) => (
-                    <button
-                      key={cluster.id}
-                      onClick={() => setSelectedCluster(selectedCluster === cluster.id ? null : cluster.id)}
-                      className={`w-full text-left p-2 rounded-lg border transition-all ${
-                        selectedCluster === cluster.id 
-                          ? 'border-2 shadow-md' 
-                          : 'border hover:border-2 hover:shadow-sm'
-                      }`}
-                      style={{ 
-                        borderColor: cluster.color,
-                        backgroundColor: `${cluster.color}10`,
-                      }}
-                    >
-                      <div className="flex items-center justify-between mb-1">
-                        <span className="font-medium text-xs" style={{ color: cluster.color }}>
-                          {cluster.dominantTheme}
-                        </span>
-                        <div className="flex items-center gap-1">
-                          {cluster.strength === 'high' && (
-                            <Badge variant="default" className="h-4 px-1 text-xs" style={{ backgroundColor: cluster.color }}>
-                              <TrendingUp className="h-3 w-3" />
-                            </Badge>
-                          )}
-                          <Badge variant="outline" className="h-4 px-1 text-xs">
-                            {cluster.size}
-                          </Badge>
-                        </div>
-                      </div>
-                      <div className="text-xs text-muted-foreground">
-                        {Math.round(cluster.density * 100)}% connected · {cluster.strength} strength
-                      </div>
-                    </button>
-                  ))}
-                </div>
-              </ScrollArea>
             </div>
           </Panel>
         )}

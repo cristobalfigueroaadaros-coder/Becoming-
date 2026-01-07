@@ -243,6 +243,7 @@ export type Database = {
       }
       constellation_entries: {
         Row: {
+          anchor_type: string | null
           created_at: string
           description: string
           emotional_tone: string | null
@@ -256,6 +257,7 @@ export type Database = {
           user_id: string
         }
         Insert: {
+          anchor_type?: string | null
           created_at?: string
           description: string
           emotional_tone?: string | null
@@ -269,6 +271,7 @@ export type Database = {
           user_id: string
         }
         Update: {
+          anchor_type?: string | null
           created_at?: string
           description?: string
           emotional_tone?: string | null
@@ -1175,6 +1178,7 @@ export type Database = {
       }
       insight_dots: {
         Row: {
+          anchor_type: string | null
           coherence_indicators: Json | null
           connection_ids: string[] | null
           core_theme: string
@@ -1197,6 +1201,7 @@ export type Database = {
           vibrational_context: Json | null
         }
         Insert: {
+          anchor_type?: string | null
           coherence_indicators?: Json | null
           connection_ids?: string[] | null
           core_theme: string
@@ -1219,6 +1224,7 @@ export type Database = {
           vibrational_context?: Json | null
         }
         Update: {
+          anchor_type?: string | null
           coherence_indicators?: Json | null
           connection_ids?: string[] | null
           core_theme?: string

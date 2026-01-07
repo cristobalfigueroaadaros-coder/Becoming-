@@ -11,8 +11,6 @@ import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, Di
 import { BookOpen, Lightbulb, Sparkles, Flag, Star, Trash2, Loader2, Network, Brain, Heart, Plus } from "lucide-react";
 import { toast } from "sonner";
 import { cn } from "@/lib/utils";
-import { TagInput } from "@/components/TagInput";
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 
 type EntryType = "book" | "idea" | "insight" | "milestone" | "memory" | "emotion" | "custom";
 
@@ -56,21 +54,6 @@ const entryTypeColors = {
   custom: "text-orange-500",
 };
 
-const emotionalTones = [
-  { value: "breakthrough", label: "✨ Breakthrough", intensity: "high" },
-  { value: "transformative", label: "🌟 Transformative", intensity: "high" },
-  { value: "profound", label: "💎 Profound", intensity: "high" },
-  { value: "excited", label: "🎉 Excited", intensity: "medium" },
-  { value: "inspired", label: "💡 Inspired", intensity: "medium" },
-  { value: "accomplished", label: "🏆 Accomplished", intensity: "medium" },
-  { value: "peaceful", label: "🕊️ Peaceful", intensity: "low" },
-  { value: "reflective", label: "🤔 Reflective", intensity: "low" },
-  { value: "curious", label: "🔍 Curious", intensity: "low" },
-  { value: "challenged", label: "💪 Challenged", intensity: "medium" },
-  { value: "uncertain", label: "❓ Uncertain", intensity: "low" },
-  { value: "grateful", label: "🙏 Grateful", intensity: "medium" },
-];
-
 export const ConstellationSystem = ({ onDataChange }: { onDataChange?: () => void }) => {
   const [entries, setEntries] = useState<ConstellationEntry[]>([]);
   const [connections, setConnections] = useState<Connection[]>([]);
@@ -79,30 +62,17 @@ export const ConstellationSystem = ({ onDataChange }: { onDataChange?: () => voi
   const [analyzingPatterns, setAnalyzingPatterns] = useState(false);
   const [activeTab, setActiveTab] = useState<EntryType>("book");
 
-  // New entry form state
+  // Simplified entry form state (per PDR Section 6)
   const [newEntry, setNewEntry] = useState({
     title: "",
     description: "",
     key_takeaway: "",
-    related_domains: [] as string[],
-    tags: [] as string[],
-    emotional_tone: "",
     custom_type: "",
   });
-
-  // Collect all existing tags for suggestions
-  const [existingTags, setExistingTags] = useState<string[]>([]);
 
   useEffect(() => {
     loadData();
   }, []);
-
-  useEffect(() => {
-    // Extract unique tags from all entries for autocomplete
-    const allTags = entries.flatMap(e => e.tags || []);
-    const uniqueTags = Array.from(new Set(allTags));
-    setExistingTags(uniqueTags);
-  }, [entries]);
 
   const loadData = async () => {
     try {
@@ -161,9 +131,6 @@ export const ConstellationSystem = ({ onDataChange }: { onDataChange?: () => voi
           title: newEntry.title.trim(),
           description: newEntry.description.trim(),
           key_takeaway: newEntry.key_takeaway.trim() || null,
-          related_domains: newEntry.related_domains.length > 0 ? newEntry.related_domains : null,
-          tags: newEntry.tags.length > 0 ? newEntry.tags : null,
-          emotional_tone: newEntry.emotional_tone.trim() || null,
         });
 
       if (error) throw error;
@@ -174,9 +141,6 @@ export const ConstellationSystem = ({ onDataChange }: { onDataChange?: () => voi
         title: "",
         description: "",
         key_takeaway: "",
-        related_domains: [],
-        tags: [],
-        emotional_tone: "",
         custom_type: "",
       });
       loadData();
@@ -236,15 +200,6 @@ export const ConstellationSystem = ({ onDataChange }: { onDataChange?: () => voi
     } finally {
       setAnalyzingPatterns(false);
     }
-  };
-
-  const toggleDomain = (domain: string) => {
-    setNewEntry(prev => ({
-      ...prev,
-      related_domains: prev.related_domains.includes(domain)
-        ? prev.related_domains.filter(d => d !== domain)
-        : [...prev.related_domains, domain]
-    }));
   };
 
   if (loading) {
@@ -368,48 +323,6 @@ export const ConstellationSystem = ({ onDataChange }: { onDataChange?: () => voi
                       value={newEntry.key_takeaway}
                       onChange={(e) => setNewEntry({ ...newEntry, key_takeaway: e.target.value })}
                     />
-                  </div>
-
-                  <TagInput
-                    label="Tags & Themes"
-                    value={newEntry.tags}
-                    onChange={(tags) => setNewEntry({ ...newEntry, tags })}
-                    suggestions={[
-                      ...existingTags,
-                      "Health & Energy",
-                      "Career & Impact",
-                      "Relationships & Love",
-                      "Friends & Community",
-                      "Creativity & Learning",
-                      "Spiritual Growth",
-                      "Personal Growth",
-                      "Breakthrough",
-                      "Challenge",
-                      "Discovery",
-                    ]}
-                    placeholder="Add tags to categorize this entry"
-                  />
-
-                  <div>
-                    <Label htmlFor="emotional-tone">How did this make you feel?</Label>
-                    <Select
-                      value={newEntry.emotional_tone}
-                      onValueChange={(value) => setNewEntry({ ...newEntry, emotional_tone: value })}
-                    >
-                      <SelectTrigger id="emotional-tone">
-                        <SelectValue placeholder="Select an emotional tone..." />
-                      </SelectTrigger>
-                      <SelectContent className="bg-popover z-50">
-                        {emotionalTones.map((tone) => (
-                          <SelectItem key={tone.value} value={tone.value}>
-                            {tone.label}
-                          </SelectItem>
-                        ))}
-                      </SelectContent>
-                    </Select>
-                    <p className="text-xs text-muted-foreground mt-1">
-                      Emotional intensity influences how this appears in your constellation
-                    </p>
                   </div>
 
                   <Button onClick={addEntry} className="w-full">
