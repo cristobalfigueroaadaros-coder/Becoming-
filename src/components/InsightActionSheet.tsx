@@ -57,8 +57,8 @@ export const InsightActionSheet = ({
         sourceContext,
         { isConcept: true }
       );
-      toast.success('Saved to Creation Lab', {
-        description: 'This insight is now in your concepts',
+      toast.success('Saved to Creative Space', {
+        description: 'This insight is now ready to explore',
         icon: <Lightbulb className="w-4 h-4" />,
       });
       onOpenChange(false);
@@ -135,9 +135,9 @@ export const InsightActionSheet = ({
                 <Lightbulb className="w-5 h-5 text-accent" />
               </div>
               <div>
-                <p className="font-medium">Add to Creation Lab</p>
+                <p className="font-medium">Add to Creative Space</p>
                 <p className="text-sm text-muted-foreground mt-0.5">
-                  Save as a concept to explore later
+                  Save as an idea tile to explore freely
                 </p>
               </div>
             </div>

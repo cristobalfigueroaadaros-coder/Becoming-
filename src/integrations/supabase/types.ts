@@ -540,6 +540,213 @@ export type Database = {
         }
         Relationships: []
       }
+      creative_space_connections: {
+        Row: {
+          connection_color: string | null
+          created_at: string
+          from_tile_id: string
+          id: string
+          page_id: string | null
+          project_id: string
+          to_tile_id: string
+          user_id: string
+        }
+        Insert: {
+          connection_color?: string | null
+          created_at?: string
+          from_tile_id: string
+          id?: string
+          page_id?: string | null
+          project_id: string
+          to_tile_id: string
+          user_id: string
+        }
+        Update: {
+          connection_color?: string | null
+          created_at?: string
+          from_tile_id?: string
+          id?: string
+          page_id?: string | null
+          project_id?: string
+          to_tile_id?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "creative_space_connections_from_tile_id_fkey"
+            columns: ["from_tile_id"]
+            isOneToOne: false
+            referencedRelation: "creative_space_tiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "creative_space_connections_page_id_fkey"
+            columns: ["page_id"]
+            isOneToOne: false
+            referencedRelation: "creative_space_pages"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "creative_space_connections_project_id_fkey"
+            columns: ["project_id"]
+            isOneToOne: false
+            referencedRelation: "integrator_projects"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "creative_space_connections_to_tile_id_fkey"
+            columns: ["to_tile_id"]
+            isOneToOne: false
+            referencedRelation: "creative_space_tiles"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      creative_space_pages: {
+        Row: {
+          created_at: string
+          id: string
+          page_name: string | null
+          page_order: number
+          project_id: string
+          user_id: string
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          page_name?: string | null
+          page_order?: number
+          project_id: string
+          user_id: string
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          page_name?: string | null
+          page_order?: number
+          project_id?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "creative_space_pages_project_id_fkey"
+            columns: ["project_id"]
+            isOneToOne: false
+            referencedRelation: "integrator_projects"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      creative_space_patterns: {
+        Row: {
+          created_at: string
+          dismissed: boolean | null
+          engaged_at: string | null
+          id: string
+          pattern_description: string
+          project_id: string
+          related_tile_ids: string[]
+          user_id: string
+        }
+        Insert: {
+          created_at?: string
+          dismissed?: boolean | null
+          engaged_at?: string | null
+          id?: string
+          pattern_description: string
+          project_id: string
+          related_tile_ids: string[]
+          user_id: string
+        }
+        Update: {
+          created_at?: string
+          dismissed?: boolean | null
+          engaged_at?: string | null
+          id?: string
+          pattern_description?: string
+          project_id?: string
+          related_tile_ids?: string[]
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "creative_space_patterns_project_id_fkey"
+            columns: ["project_id"]
+            isOneToOne: false
+            referencedRelation: "integrator_projects"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      creative_space_tiles: {
+        Row: {
+          color: string | null
+          content: string | null
+          created_at: string
+          id: string
+          page_id: string | null
+          position_x: number
+          position_y: number
+          project_id: string
+          source_id: string | null
+          source_label: string | null
+          source_type: string | null
+          tile_type: string
+          title: string
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          color?: string | null
+          content?: string | null
+          created_at?: string
+          id?: string
+          page_id?: string | null
+          position_x?: number
+          position_y?: number
+          project_id: string
+          source_id?: string | null
+          source_label?: string | null
+          source_type?: string | null
+          tile_type?: string
+          title: string
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          color?: string | null
+          content?: string | null
+          created_at?: string
+          id?: string
+          page_id?: string | null
+          position_x?: number
+          position_y?: number
+          project_id?: string
+          source_id?: string | null
+          source_label?: string | null
+          source_type?: string | null
+          tile_type?: string
+          title?: string
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "creative_space_tiles_page_id_fkey"
+            columns: ["page_id"]
+            isOneToOne: false
+            referencedRelation: "creative_space_pages"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "creative_space_tiles_project_id_fkey"
+            columns: ["project_id"]
+            isOneToOne: false
+            referencedRelation: "integrator_projects"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       current_challenge: {
         Row: {
           challenge_description: string
