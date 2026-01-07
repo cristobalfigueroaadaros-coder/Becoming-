@@ -398,13 +398,19 @@ export const LivingConstellation = ({
               type="single" 
               value={constellationView} 
               onValueChange={(v) => v && setConstellationView(v as "actual" | "future")}
-              className="bg-muted/50 p-1 rounded-lg"
+              className="bg-background/30 backdrop-blur-sm border border-white/10 p-1 rounded-lg"
             >
-              <ToggleGroupItem value="actual" className="gap-2 data-[state=on]:bg-background">
+              <ToggleGroupItem 
+                value="actual" 
+                className="gap-2 px-4 py-2 rounded-md data-[state=on]:bg-primary/20 data-[state=on]:text-primary-foreground data-[state=off]:bg-transparent data-[state=off]:text-muted-foreground hover:bg-white/10 transition-colors"
+              >
                 <User className="w-4 h-4" />
                 Actual Self
               </ToggleGroupItem>
-              <ToggleGroupItem value="future" className="gap-2 data-[state=on]:bg-background">
+              <ToggleGroupItem 
+                value="future" 
+                className="gap-2 px-4 py-2 rounded-md data-[state=on]:bg-accent/20 data-[state=on]:text-accent-foreground data-[state=off]:bg-transparent data-[state=off]:text-muted-foreground hover:bg-white/10 transition-colors"
+              >
                 <Rocket className="w-4 h-4" />
                 Future Self
               </ToggleGroupItem>

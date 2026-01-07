@@ -20,6 +20,8 @@ const BECOMING_SOURCE_TYPES = new Set([
   'belief',
   'identity',
   'reflection',
+  'shadow_integration',
+  'journal_breakthrough',
 ]);
 
 // Source types that are action-oriented (Creating)
@@ -37,6 +39,8 @@ const CREATING_SOURCE_TYPES = new Set([
   'validation',
   'failure',
   'learning',
+  'goal_achievement',
+  'domain_milestone',
 ]);
 
 // Source types that can be both (depends on content)
@@ -47,6 +51,9 @@ const HYBRID_SOURCE_TYPES = new Set([
   'idea',
   'mentor_chat',
   'council_meeting',
+  'mentor_insight',
+  'concept',
+  'value_map',
   'custom',
 ]);
 
