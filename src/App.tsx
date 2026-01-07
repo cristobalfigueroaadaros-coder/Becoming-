@@ -19,6 +19,7 @@ import OnboardingQuest from "./pages/OnboardingQuest";
 import OnboardingWorkContext from "./pages/OnboardingWorkContext";
 import GravityOrientation from "./pages/GravityOrientation";
 import GravityTransition from "./pages/GravityTransition";
+import GravityCouncilIntro from "./pages/GravityCouncilIntro";
 import GravityCouncilWelcome from "./pages/GravityCouncilWelcome";
 import GravityFirstProject from "./pages/GravityFirstProject";
 import Dashboard from "./pages/Dashboard";
@@ -164,6 +165,10 @@ const App = () => {
             <Route
               path="/gravity/transition"
               element={session ? <GravityTransition /> : <Navigate to="/" />}
+            />
+            <Route
+              path="/gravity/council-intro"
+              element={session ? <GravityCouncilIntro /> : <Navigate to="/" />}
             />
             <Route
               path="/gravity/council-welcome"

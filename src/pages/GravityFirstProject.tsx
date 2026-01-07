@@ -3,13 +3,90 @@ import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
 import { motion } from "framer-motion";
 import { supabase } from "@/integrations/supabase/client";
-import { useState } from "react";
+import { useState, useRef } from "react";
 import { toast } from "sonner";
+import { Mic, Square, Loader2 } from "lucide-react";
 
 const GravityFirstProject = () => {
   const navigate = useNavigate();
   const [projectIdea, setProjectIdea] = useState("");
   const [isLoading, setIsLoading] = useState(false);
+  const [isRecording, setIsRecording] = useState(false);
+  const [isProcessing, setIsProcessing] = useState(false);
+  const mediaRecorderRef = useRef<MediaRecorder | null>(null);
+  const chunksRef = useRef<Blob[]>([]);
+
+  const startRecording = async () => {
+    try {
+      const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
+      const mediaRecorder = new MediaRecorder(stream, {
+        mimeType: 'audio/webm',
+      });
+
+      chunksRef.current = [];
+
+      mediaRecorder.ondataavailable = (e) => {
+        if (e.data.size > 0) {
+          chunksRef.current.push(e.data);
+        }
+      };
+
+      mediaRecorder.onstop = async () => {
+        const audioBlob = new Blob(chunksRef.current, { type: 'audio/webm' });
+        await processAudio(audioBlob);
+        stream.getTracks().forEach(track => track.stop());
+      };
+
+      mediaRecorder.start();
+      mediaRecorderRef.current = mediaRecorder;
+      setIsRecording(true);
+      toast.success("Recording started");
+    } catch (error) {
+      console.error("Error starting recording:", error);
+      toast.error("Could not access microphone");
+    }
+  };
+
+  const stopRecording = () => {
+    if (mediaRecorderRef.current && isRecording) {
+      mediaRecorderRef.current.stop();
+      setIsRecording(false);
+    }
+  };
+
+  const processAudio = async (audioBlob: Blob) => {
+    setIsProcessing(true);
+    try {
+      // Convert blob to base64 for transcription
+      const reader = new FileReader();
+      reader.readAsDataURL(audioBlob);
+      reader.onloadend = async () => {
+        const base64Audio = reader.result?.toString().split(',')[1];
+        
+        if (!base64Audio) {
+          throw new Error("Failed to process audio");
+        }
+
+        const { data, error } = await supabase.functions.invoke('transcribe-audio', {
+          body: { audio: base64Audio }
+        });
+
+        if (error) throw error;
+
+        if (data?.text) {
+          setProjectIdea(prev => prev ? `${prev}\n\n${data.text}` : data.text);
+          toast.success("Voice transcribed");
+        } else {
+          throw new Error("No transcription received");
+        }
+        setIsProcessing(false);
+      };
+    } catch (error: any) {
+      console.error("Error processing audio:", error);
+      toast.error(error.message || "Failed to transcribe audio");
+      setIsProcessing(false);
+    }
+  };
 
   const handleStartBuilding = async () => {
     if (!projectIdea.trim()) {
@@ -98,12 +175,48 @@ const GravityFirstProject = () => {
             </p>
           </div>
 
-          <Textarea
-            value={projectIdea}
-            onChange={(e) => setProjectIdea(e.target.value)}
-            placeholder="Describe your idea, project, or something you want to explore..."
-            className="min-h-[150px] text-lg p-4 resize-none"
-          />
+          <div className="space-y-3">
+            <div className="flex justify-center">
+              {!isRecording ? (
+                <Button
+                  variant="outline"
+                  size="sm"
+                  onClick={startRecording}
+                  disabled={isProcessing}
+                  className="gap-2"
+                >
+                  {isProcessing ? (
+                    <>
+                      <Loader2 className="w-4 h-4 animate-spin" />
+                      Transcribing...
+                    </>
+                  ) : (
+                    <>
+                      <Mic className="w-4 h-4" />
+                      Speak your idea
+                    </>
+                  )}
+                </Button>
+              ) : (
+                <Button
+                  variant="destructive"
+                  size="sm"
+                  onClick={stopRecording}
+                  className="gap-2 animate-pulse"
+                >
+                  <Square className="w-4 h-4" />
+                  Stop Recording
+                </Button>
+              )}
+            </div>
+
+            <Textarea
+              value={projectIdea}
+              onChange={(e) => setProjectIdea(e.target.value)}
+              placeholder="Describe your idea, project, or something you want to explore..."
+              className="min-h-[150px] text-lg p-4 resize-none"
+            />
+          </div>
 
           <p className="text-sm text-muted-foreground text-center">
             There are no expectations. Only movement.
@@ -119,7 +232,7 @@ const GravityFirstProject = () => {
           <Button 
             size="lg" 
             onClick={handleStartBuilding}
-            disabled={isLoading || !projectIdea.trim()}
+            disabled={isLoading || !projectIdea.trim() || isRecording || isProcessing}
             className="w-full text-lg py-6"
           >
             {isLoading ? "Creating your project..." : "Start building"}
