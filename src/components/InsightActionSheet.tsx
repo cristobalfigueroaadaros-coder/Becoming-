@@ -6,6 +6,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { toast } from 'sonner';
 import { useSavedInsights } from '@/hooks/useSavedInsights';
 import { motion } from 'framer-motion';
+import { supabase } from '@/integrations/supabase/client';
 
 interface InsightActionSheetProps {
   open: boolean;
@@ -50,6 +51,29 @@ export const InsightActionSheet = ({
   const handleAddToConcepts = async () => {
     setSaving(true);
     try {
+      const { data: { user } } = await supabase.auth.getUser();
+      if (!user) {
+        toast.error('Please sign in first');
+        return;
+      }
+
+      // Get active project
+      const { data: activeProject } = await supabase
+        .from('integrator_projects')
+        .select('id')
+        .eq('user_id', user.id)
+        .eq('status', 'active')
+        .limit(1)
+        .single();
+
+      if (!activeProject) {
+        toast.error('No active project', {
+          description: 'Start a project first to use Creative Space',
+        });
+        return;
+      }
+
+      // Save to saved_insights
       await saveInsight(
         insightText,
         sourceType,
@@ -57,13 +81,75 @@ export const InsightActionSheet = ({
         sourceContext,
         { isConcept: true }
       );
-      toast.success('Saved to Creative Space', {
-        description: 'This insight is now ready to explore',
-        icon: <Lightbulb className="w-4 h-4" />,
-      });
+
+      // Extract concept title using edge function
+      let conceptTitle = insightText.slice(0, 40) + (insightText.length > 40 ? '...' : '');
+      try {
+        const { data: titleData } = await supabase.functions.invoke('extract-concept-title', {
+          body: { insightText }
+        });
+        if (titleData?.title) {
+          conceptTitle = titleData.title;
+        }
+      } catch (titleErr) {
+        console.error('Title extraction failed, using fallback:', titleErr);
+      }
+
+      // Get or create default page
+      let { data: pages } = await supabase
+        .from('creative_space_pages')
+        .select('id')
+        .eq('project_id', activeProject.id)
+        .eq('user_id', user.id)
+        .order('page_order', { ascending: true })
+        .limit(1);
+
+      let pageId = pages?.[0]?.id;
+
+      if (!pageId) {
+        const { data: newPage } = await supabase
+          .from('creative_space_pages')
+          .insert({
+            user_id: user.id,
+            project_id: activeProject.id,
+            page_name: 'Main',
+            page_order: 0
+          })
+          .select('id')
+          .single();
+        pageId = newPage?.id;
+      }
+
+      // Create the Creative Space tile
+      const { error: tileError } = await supabase
+        .from('creative_space_tiles')
+        .insert({
+          user_id: user.id,
+          project_id: activeProject.id,
+          tile_type: 'insight',
+          title: conceptTitle,
+          content: insightText,
+          source_type: sourceType,
+          source_label: sourceMentor ? (mentorNames[sourceMentor] || sourceMentor) : sourceType,
+          position_x: Math.random() * 300 + 50,
+          position_y: Math.random() * 200 + 50,
+          page_id: pageId
+        });
+
+      if (tileError) {
+        console.error('Error creating tile:', tileError);
+        toast.error('Saved but failed to add to Creative Space');
+      } else {
+        toast.success('Added to Creative Space', {
+          description: `"${conceptTitle}"`,
+          icon: <Lightbulb className="w-4 h-4" />,
+        });
+      }
+
       onOpenChange(false);
     } catch (error) {
-      // Error handled in hook
+      console.error('Error:', error);
+      toast.error('Failed to save');
     } finally {
       setSaving(false);
     }
