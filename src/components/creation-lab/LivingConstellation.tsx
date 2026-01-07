@@ -4,10 +4,12 @@ import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { Network, Clock, FileText, Filter, X, Sparkles, Loader2, Target, Eye, Tag } from "lucide-react";
+import { ToggleGroup, ToggleGroupItem } from "@/components/ui/toggle-group";
+import { Network, Clock, FileText, Filter, X, Sparkles, Loader2, Target, Eye, Tag, User, Rocket } from "lucide-react";
 import { ConstellationCanvas } from "@/components/ConstellationCanvas";
 import { ConstellationTimeline } from "@/components/ConstellationTimeline";
 import { ConstellationSystem } from "@/components/ConstellationSystem";
+import { FutureConstellationView } from "@/components/constellation/FutureConstellationView";
 import { KeywordBadges } from "@/components/KeywordHighlighter";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
@@ -68,6 +70,7 @@ export const LivingConstellation = ({
   const [showPurposeView, setShowPurposeView] = useState(false);
   const [purposeAlignments, setPurposeAlignments] = useState<any[]>([]);
   const [analyzingPurpose, setAnalyzingPurpose] = useState(false);
+  const [constellationView, setConstellationView] = useState<"actual" | "future">("actual");
   
   // User keywords state
   const [userKeywords, setUserKeywords] = useState<UserKeyword[]>([]);
@@ -389,7 +392,28 @@ export const LivingConstellation = ({
         </TabsContent>
 
         <TabsContent value="canvas">
-          {filteredDots.length > 0 ? (
+          {/* Actual Self / Future Self Toggle */}
+          <div className="flex justify-center mb-4">
+            <ToggleGroup 
+              type="single" 
+              value={constellationView} 
+              onValueChange={(v) => v && setConstellationView(v as "actual" | "future")}
+              className="bg-muted/50 p-1 rounded-lg"
+            >
+              <ToggleGroupItem value="actual" className="gap-2 data-[state=on]:bg-background">
+                <User className="w-4 h-4" />
+                Actual Self
+              </ToggleGroupItem>
+              <ToggleGroupItem value="future" className="gap-2 data-[state=on]:bg-background">
+                <Rocket className="w-4 h-4" />
+                Future Self
+              </ToggleGroupItem>
+            </ToggleGroup>
+          </div>
+
+          {constellationView === "future" ? (
+            <FutureConstellationView userName="Future You" />
+          ) : filteredDots.length > 0 ? (
             <ConstellationCanvas
               dots={filteredDots}
               connections={connections}
