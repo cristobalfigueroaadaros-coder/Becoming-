@@ -228,7 +228,7 @@ export function useCreativeSpace(projectId: string | null): UseCreativeSpaceRetu
     setTiles(prev => [...prev, data as CreativeSpaceTile]);
   };
 
-  const addNoteTile = async (content?: string, position?: {x: number, y: number}) => {
+  const addNoteTile = async (initialTitle?: string, position?: {x: number, y: number}) => {
     if (!projectId) return;
 
     const { data: { user } } = await supabase.auth.getUser();
@@ -245,8 +245,8 @@ export function useCreativeSpace(projectId: string | null): UseCreativeSpaceRetu
         user_id: user.id,
         project_id: projectId,
         tile_type: 'note',
-        title: 'New Note',
-        content: content || '',
+        title: initialTitle || 'New Note',
+        content: '',
         position_x: newPosition.x,
         position_y: newPosition.y,
         page_id: currentPage?.id,

@@ -2,6 +2,7 @@ import React, { useState, useRef, useCallback } from 'react';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
+import { Input } from '@/components/ui/input';
 import { Lightbulb, Plus, Maximize2, Minimize2, Inbox } from 'lucide-react';
 import { useCreativeSpace } from '@/hooks/useCreativeSpace';
 import { InsightTile } from './InsightTile';
@@ -44,7 +45,15 @@ export function CreativeSpace({ projectId, projectTitle }: CreativeSpaceProps) {
   const [isExpanded, setIsExpanded] = useState(false);
   const [connectingFrom, setConnectingFrom] = useState<string | null>(null);
   const [draggedTile, setDraggedTile] = useState<string | null>(null);
+  const [quickNote, setQuickNote] = useState('');
   const canvasRef = useRef<HTMLDivElement>(null);
+
+  const handleQuickNoteSubmit = () => {
+    if (quickNote.trim()) {
+      addNoteTile(quickNote.trim());
+      setQuickNote('');
+    }
+  };
 
   // Filter tiles and connections for current page
   const currentTiles = tiles.filter(t => 
@@ -161,6 +170,17 @@ export function CreativeSpace({ projectId, projectTitle }: CreativeSpaceProps) {
             </p>
           </div>
         )}
+
+        {/* Quick note input */}
+        <div className="mb-3">
+          <Input
+            value={quickNote}
+            onChange={(e) => setQuickNote(e.target.value)}
+            onKeyDown={(e) => e.key === 'Enter' && handleQuickNoteSubmit()}
+            placeholder="Type a quick thought and press Enter..."
+            className="bg-background/50 border-dashed"
+          />
+        </div>
 
         {/* Canvas */}
         <div
