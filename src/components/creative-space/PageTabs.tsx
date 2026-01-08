@@ -74,6 +74,7 @@ export function PageTabs({
                 onClick={() => onSelectPage(page.id)}
                 onDoubleClick={() => handleStartEdit(page)}
                 className="whitespace-nowrap"
+                title="Double-click to rename"
               >
                 {page.page_name}
               </button>

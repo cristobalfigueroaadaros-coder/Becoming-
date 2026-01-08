@@ -21,11 +21,10 @@ serve(async (req) => {
       );
     }
 
-    // Try to get API key - check multiple possible names
-    const apiKey = Deno.env.get("ANTHROPIC_API_KEY") || Deno.env.get("chatgpt") || "";
+    const LOVABLE_API_KEY = Deno.env.get("LOVABLE_API_KEY");
     
-    if (!apiKey) {
-      console.log('No API key found, using fallback title');
+    if (!LOVABLE_API_KEY) {
+      console.log('No LOVABLE_API_KEY found, using fallback title');
       const fallbackTitle = insightText.slice(0, 40) + (insightText.length > 40 ? '...' : '');
       return new Response(
         JSON.stringify({ title: fallbackTitle }),
@@ -33,15 +32,14 @@ serve(async (req) => {
       );
     }
 
-    const response = await fetch("https://api.anthropic.com/v1/messages", {
+    const response = await fetch("https://ai.gateway.lovable.dev/v1/chat/completions", {
       method: "POST",
       headers: {
         "Content-Type": "application/json",
-        "x-api-key": apiKey,
-        "anthropic-version": "2023-06-01",
+        "Authorization": `Bearer ${LOVABLE_API_KEY}`,
       },
       body: JSON.stringify({
-        model: "claude-sonnet-4-20250514",
+        model: "google/gemini-2.5-flash-lite",
         max_tokens: 50,
         messages: [
           {
@@ -64,8 +62,8 @@ Return ONLY the title, nothing else. No quotes, no explanation.`
 
     const data = await response.json();
     
-    if (data.error) {
-      console.error('API error:', data.error);
+    if (data.error || !response.ok) {
+      console.error('API error:', data.error || response.status);
       const fallbackTitle = insightText.slice(0, 40) + (insightText.length > 40 ? '...' : '');
       return new Response(
         JSON.stringify({ title: fallbackTitle }),
@@ -73,7 +71,7 @@ Return ONLY the title, nothing else. No quotes, no explanation.`
       );
     }
 
-    const title = data.content?.[0]?.text?.trim() || insightText.slice(0, 30);
+    const title = data.choices?.[0]?.message?.content?.trim() || insightText.slice(0, 30);
 
     return new Response(
       JSON.stringify({ title }),
