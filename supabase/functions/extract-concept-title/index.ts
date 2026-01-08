@@ -14,15 +14,30 @@ serve(async (req) => {
   try {
     const { insightText } = await req.json();
 
-    if (!insightText) {
-      throw new Error('No insight text provided');
+    if (!insightText || insightText.length < 5) {
+      return new Response(
+        JSON.stringify({ title: insightText?.slice(0, 30) || 'New Insight' }),
+        { headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+      );
+    }
+
+    // Try to get API key - check multiple possible names
+    const apiKey = Deno.env.get("ANTHROPIC_API_KEY") || Deno.env.get("chatgpt") || "";
+    
+    if (!apiKey) {
+      console.log('No API key found, using fallback title');
+      const fallbackTitle = insightText.slice(0, 40) + (insightText.length > 40 ? '...' : '');
+      return new Response(
+        JSON.stringify({ title: fallbackTitle }),
+        { headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+      );
     }
 
     const response = await fetch("https://api.anthropic.com/v1/messages", {
       method: "POST",
       headers: {
         "Content-Type": "application/json",
-        "x-api-key": Deno.env.get("ANTHROPIC_API_KEY") || "",
+        "x-api-key": apiKey,
         "anthropic-version": "2023-06-01",
       },
       body: JSON.stringify({
@@ -39,7 +54,7 @@ The title should be:
 - Be memorable and clear
 - Use title case
 
-Insight: "${insightText}"
+Insight: "${insightText.slice(0, 500)}"
 
 Return ONLY the title, nothing else. No quotes, no explanation.`
           }
@@ -50,10 +65,15 @@ Return ONLY the title, nothing else. No quotes, no explanation.`
     const data = await response.json();
     
     if (data.error) {
-      throw new Error(data.error.message);
+      console.error('API error:', data.error);
+      const fallbackTitle = insightText.slice(0, 40) + (insightText.length > 40 ? '...' : '');
+      return new Response(
+        JSON.stringify({ title: fallbackTitle }),
+        { headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+      );
     }
 
-    const title = data.content[0]?.text?.trim() || 'New Insight';
+    const title = data.content?.[0]?.text?.trim() || insightText.slice(0, 30);
 
     return new Response(
       JSON.stringify({ title }),

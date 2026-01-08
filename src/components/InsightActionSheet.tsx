@@ -57,21 +57,15 @@ export const InsightActionSheet = ({
         return;
       }
 
-      // Get active project
+      // Try to get active project (optional - may be null for inbox)
       const { data: activeProject } = await supabase
         .from('integrator_projects')
         .select('id')
         .eq('user_id', user.id)
         .eq('status', 'active')
+        .order('created_at', { ascending: false })
         .limit(1)
-        .single();
-
-      if (!activeProject) {
-        toast.error('No active project', {
-          description: 'Start a project first to use Creative Space',
-        });
-        return;
-      }
+        .maybeSingle();
 
       // Save to saved_insights
       await saveInsight(
@@ -95,37 +89,40 @@ export const InsightActionSheet = ({
         console.error('Title extraction failed, using fallback:', titleErr);
       }
 
-      // Get or create default page
-      let { data: pages } = await supabase
-        .from('creative_space_pages')
-        .select('id')
-        .eq('project_id', activeProject.id)
-        .eq('user_id', user.id)
-        .order('page_order', { ascending: true })
-        .limit(1);
-
-      let pageId = pages?.[0]?.id;
-
-      if (!pageId) {
-        const { data: newPage } = await supabase
+      // Get or create default page only if we have a project
+      let pageId: string | null = null;
+      if (activeProject) {
+        let { data: pages } = await supabase
           .from('creative_space_pages')
-          .insert({
-            user_id: user.id,
-            project_id: activeProject.id,
-            page_name: 'Main',
-            page_order: 0
-          })
           .select('id')
-          .single();
-        pageId = newPage?.id;
+          .eq('project_id', activeProject.id)
+          .eq('user_id', user.id)
+          .order('page_order', { ascending: true })
+          .limit(1);
+
+        pageId = pages?.[0]?.id || null;
+
+        if (!pageId) {
+          const { data: newPage } = await supabase
+            .from('creative_space_pages')
+            .insert({
+              user_id: user.id,
+              project_id: activeProject.id,
+              page_name: 'Main',
+              page_order: 0
+            })
+            .select('id')
+            .single();
+          pageId = newPage?.id || null;
+        }
       }
 
-      // Create the Creative Space tile
+      // Create the Creative Space tile (project_id can be null for inbox)
       const { error: tileError } = await supabase
         .from('creative_space_tiles')
         .insert({
           user_id: user.id,
-          project_id: activeProject.id,
+          project_id: activeProject?.id || null,
           tile_type: 'insight',
           title: conceptTitle,
           content: insightText,
@@ -138,10 +135,15 @@ export const InsightActionSheet = ({
 
       if (tileError) {
         console.error('Error creating tile:', tileError);
-        toast.error('Saved but failed to add to Creative Space');
-      } else {
+        toast.error('Failed to save insight');
+      } else if (activeProject) {
         toast.success('Added to Creative Space', {
           description: `"${conceptTitle}"`,
+          icon: <Lightbulb className="w-4 h-4" />,
+        });
+      } else {
+        toast.success('Saved to your Inbox', {
+          description: `"${conceptTitle}" — assign to a project later`,
           icon: <Lightbulb className="w-4 h-4" />,
         });
       }

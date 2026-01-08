@@ -687,7 +687,7 @@ export type Database = {
           page_id: string | null
           position_x: number
           position_y: number
-          project_id: string
+          project_id: string | null
           source_id: string | null
           source_label: string | null
           source_type: string | null
@@ -704,7 +704,7 @@ export type Database = {
           page_id?: string | null
           position_x?: number
           position_y?: number
-          project_id: string
+          project_id?: string | null
           source_id?: string | null
           source_label?: string | null
           source_type?: string | null
@@ -721,7 +721,7 @@ export type Database = {
           page_id?: string | null
           position_x?: number
           position_y?: number
-          project_id?: string
+          project_id?: string | null
           source_id?: string | null
           source_label?: string | null
           source_type?: string | null

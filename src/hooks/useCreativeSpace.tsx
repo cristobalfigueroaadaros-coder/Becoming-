@@ -5,7 +5,7 @@ import { toast } from 'sonner';
 export interface CreativeSpaceTile {
   id: string;
   user_id: string;
-  project_id: string;
+  project_id: string | null;
   tile_type: 'insight' | 'note';
   title: string;
   content: string | null;
@@ -58,6 +58,7 @@ interface UseCreativeSpaceReturn {
   patterns: CreativeSpacePattern[];
   currentPage: CreativeSpacePage | null;
   loading: boolean;
+  unassignedTiles: CreativeSpaceTile[];
   
   // Tile operations
   addInsightTile: (title: string, content: string, sourceType: string, sourceLabel: string, position?: {x: number, y: number}) => Promise<void>;
@@ -66,6 +67,7 @@ interface UseCreativeSpaceReturn {
   updateTileContent: (tileId: string, title: string, content?: string) => Promise<void>;
   updateTileColor: (tileId: string, color: string) => Promise<void>;
   deleteTile: (tileId: string) => Promise<void>;
+  assignTileToProject: (tileId: string) => Promise<void>;
   
   // Connection operations
   addConnection: (fromTileId: string, toTileId: string, color?: string) => Promise<void>;
@@ -91,6 +93,7 @@ export function useCreativeSpace(projectId: string | null): UseCreativeSpaceRetu
   const [patterns, setPatterns] = useState<CreativeSpacePattern[]>([]);
   const [currentPage, setCurrentPageState] = useState<CreativeSpacePage | null>(null);
   const [loading, setLoading] = useState(true);
+  const [unassignedTiles, setUnassignedTiles] = useState<CreativeSpaceTile[]>([]);
 
   const fetchData = useCallback(async () => {
     if (!projectId) {
@@ -161,6 +164,15 @@ export function useCreativeSpace(projectId: string | null): UseCreativeSpaceRetu
         .eq('dismissed', false);
 
       setPatterns((patternsData || []) as CreativeSpacePattern[]);
+
+      // Fetch unassigned tiles (inbox) - tiles with no project
+      const { data: unassignedData } = await supabase
+        .from('creative_space_tiles')
+        .select('*')
+        .eq('user_id', user.id)
+        .is('project_id', null);
+
+      setUnassignedTiles((unassignedData || []) as CreativeSpaceTile[]);
 
     } catch (error) {
       console.error('Error fetching creative space data:', error);
@@ -298,9 +310,42 @@ export function useCreativeSpace(projectId: string | null): UseCreativeSpaceRetu
 
     if (!error) {
       setTiles(prev => prev.filter(t => t.id !== tileId));
+      setUnassignedTiles(prev => prev.filter(t => t.id !== tileId));
       setConnections(prev => prev.filter(c => 
         c.from_tile_id !== tileId && c.to_tile_id !== tileId
       ));
+    }
+  };
+
+  const assignTileToProject = async (tileId: string) => {
+    if (!projectId) {
+      toast.error('No project selected');
+      return;
+    }
+
+    const { data: { user } } = await supabase.auth.getUser();
+    if (!user) return;
+
+    const { error } = await supabase
+      .from('creative_space_tiles')
+      .update({ 
+        project_id: projectId,
+        page_id: currentPage?.id || null
+      })
+      .eq('id', tileId);
+
+    if (error) {
+      toast.error('Failed to assign tile');
+      return;
+    }
+
+    // Move tile from unassigned to tiles
+    const tile = unassignedTiles.find(t => t.id === tileId);
+    if (tile) {
+      const updatedTile = { ...tile, project_id: projectId, page_id: currentPage?.id || null };
+      setUnassignedTiles(prev => prev.filter(t => t.id !== tileId));
+      setTiles(prev => [...prev, updatedTile]);
+      toast.success('Tile added to this project');
     }
   };
 
@@ -441,12 +486,14 @@ export function useCreativeSpace(projectId: string | null): UseCreativeSpaceRetu
     patterns,
     currentPage,
     loading,
+    unassignedTiles,
     addInsightTile,
     addNoteTile,
     updateTilePosition,
     updateTileContent,
     updateTileColor,
     deleteTile,
+    assignTileToProject,
     addConnection,
     deleteConnection,
     addPage,

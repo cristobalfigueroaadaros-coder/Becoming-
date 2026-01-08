@@ -1,7 +1,8 @@
 import React, { useState, useRef, useCallback } from 'react';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
-import { Lightbulb, Plus, Maximize2, Minimize2 } from 'lucide-react';
+import { Badge } from '@/components/ui/badge';
+import { Lightbulb, Plus, Maximize2, Minimize2, Inbox } from 'lucide-react';
 import { useCreativeSpace } from '@/hooks/useCreativeSpace';
 import { InsightTile } from './InsightTile';
 import { NoteTile } from './NoteTile';
@@ -23,11 +24,13 @@ export function CreativeSpace({ projectId, projectTitle }: CreativeSpaceProps) {
     patterns,
     currentPage,
     loading,
+    unassignedTiles,
     addNoteTile,
     updateTilePosition,
     updateTileContent,
     updateTileColor,
     deleteTile,
+    assignTileToProject,
     addConnection,
     deleteConnection,
     addPage,
@@ -133,6 +136,32 @@ export function CreativeSpace({ projectId, projectTitle }: CreativeSpaceProps) {
       </CardHeader>
       
       <CardContent className="relative">
+        {/* Inbox section - unassigned tiles */}
+        {unassignedTiles.length > 0 && (
+          <div className="mb-4 p-3 bg-muted/30 rounded-lg border border-dashed border-muted-foreground/30">
+            <div className="flex items-center gap-2 mb-2 text-sm text-muted-foreground">
+              <Inbox className="w-4 h-4" />
+              <span>Unassigned Insights ({unassignedTiles.length})</span>
+            </div>
+            <div className="flex flex-wrap gap-2">
+              {unassignedTiles.map(tile => (
+                <Badge
+                  key={tile.id}
+                  variant="secondary"
+                  className="cursor-pointer hover:bg-primary/20 transition-colors flex items-center gap-1.5 py-1.5 px-3"
+                  onClick={() => assignTileToProject(tile.id)}
+                >
+                  <span className="max-w-[200px] truncate">{tile.title}</span>
+                  <Plus className="w-3 h-3 opacity-70" />
+                </Badge>
+              ))}
+            </div>
+            <p className="text-xs text-muted-foreground mt-2">
+              Click to add to this project's Creative Space
+            </p>
+          </div>
+        )}
+
         {/* Canvas */}
         <div
           ref={canvasRef}
