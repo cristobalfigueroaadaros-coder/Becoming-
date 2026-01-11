@@ -385,16 +385,11 @@ const Profile = () => {
   return (
     <div className={cn("min-h-screen p-4 py-8", backgroundClass)}>
       <div className="max-w-6xl mx-auto space-y-6">
-        {/* Header */}
+        {/* Header - simplified since bottom nav handles navigation */}
         <div className="flex items-center justify-between gap-4">
-          <div className="flex items-center gap-4">
-            <Button variant="ghost" size="icon" onClick={() => navigate(-1)}>
-              <ArrowLeft className="w-5 h-5" />
-            </Button>
-            <h1 className="text-3xl font-bold">
-              {isOwnProfile ? "Your Profile" : `${profile.display_name}'s Profile`}
-            </h1>
-          </div>
+          <h1 className="text-3xl font-bold">
+            {isOwnProfile ? "Your Profile" : `${profile.display_name}'s Profile`}
+          </h1>
           {isOwnProfile && (
             <Button
               variant="outline"

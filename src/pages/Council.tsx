@@ -1,0 +1,280 @@
+import { useState, useEffect } from "react";
+import { useSearchParams, useNavigate, useLocation } from "react-router-dom";
+import { supabase } from "@/integrations/supabase/client";
+import { cn } from "@/lib/utils";
+import { Users, ArrowLeft } from "lucide-react";
+import { Badge } from "@/components/ui/badge";
+import { ScrollArea } from "@/components/ui/scroll-area";
+import { Button } from "@/components/ui/button";
+
+// Lazy load the actual conversation components to avoid circular deps
+import CouncilMeetingPage from "./CouncilMeeting";
+import ChatPage from "./Chat";
+
+// Mentor configuration with colors
+const mentorConfig: Record<string, { name: string; color: string; icon: string }> = {
+  discipline_mentor: { name: "Discipline Mentor", color: "bg-orange-500", icon: "🎯" },
+  strategist_mentor: { name: "Strategist Mentor", color: "bg-blue-500", icon: "♟️" },
+  creative_visionary: { name: "Creative Visionary", color: "bg-purple-500", icon: "🎨" },
+  quantum_inventor: { name: "Quantum Inventor", color: "bg-cyan-500", icon: "⚡" },
+  mystic_mentor: { name: "Mystic Mentor", color: "bg-indigo-500", icon: "🔮" },
+  business_mentor: { name: "Business Mentor", color: "bg-green-500", icon: "📈" },
+  marketing_mentor: { name: "Marketing Mentor", color: "bg-pink-500", icon: "📣" },
+  scientific_mentor: { name: "Scientific Mentor", color: "bg-teal-500", icon: "🔬" },
+  heart_mentor: { name: "Heart Mentor", color: "bg-rose-500", icon: "💗" },
+  ancient_sage: { name: "Ancient Sage", color: "bg-amber-600", icon: "📜" },
+  alignment_mentor: { name: "Alignment Mentor", color: "bg-emerald-500", icon: "🧭" },
+  oracle_mother: { name: "Oracle Mother", color: "bg-violet-500", icon: "🌙" },
+  future_self: { name: "Future Self", color: "bg-primary", icon: "✨" },
+};
+
+const Council = () => {
+  const [searchParams, setSearchParams] = useSearchParams();
+  const navigate = useNavigate();
+  const location = useLocation();
+  const [userMentors, setUserMentors] = useState<string[]>([]);
+  const [mentorNotifications, setMentorNotifications] = useState<Record<string, number>>({});
+  const [councilNotifications, setCouncilNotifications] = useState(0);
+  const [loading, setLoading] = useState(true);
+  const [showMobileList, setShowMobileList] = useState(true);
+  
+  // Get current view from URL params
+  const currentView = searchParams.get("view") || "console";
+  const isConsole = currentView === "console";
+  const selectedMentor = !isConsole ? currentView : null;
+
+  useEffect(() => {
+    loadData();
+  }, []);
+
+  // When view changes, hide mobile list if a conversation is selected
+  useEffect(() => {
+    if (currentView && currentView !== "console") {
+      setShowMobileList(false);
+    }
+  }, [currentView]);
+
+  const loadData = async () => {
+    try {
+      const { data: { user } } = await supabase.auth.getUser();
+      if (!user) return;
+
+      // Load user's mentors
+      const { data: mentors } = await supabase
+        .from("user_mentors")
+        .select("mentor_type")
+        .eq("user_id", user.id);
+
+      if (mentors) {
+        setUserMentors(mentors.map(m => m.mentor_type));
+      }
+
+      // Load mentor notifications
+      const { data: privateNotifications } = await supabase
+        .from("mentor_private_messages")
+        .select("mentor_type")
+        .eq("user_id", user.id)
+        .eq("read", false);
+
+      const { data: outreachNotifications } = await supabase
+        .from("mentor_daily_outreach")
+        .select("mentor_type")
+        .eq("user_id", user.id)
+        .is("read_at", null);
+
+      const counts: Record<string, number> = {};
+      privateNotifications?.forEach((n) => {
+        counts[n.mentor_type] = (counts[n.mentor_type] || 0) + 1;
+      });
+      outreachNotifications?.forEach((n) => {
+        counts[n.mentor_type] = (counts[n.mentor_type] || 0) + 1;
+      });
+      
+      setMentorNotifications(counts);
+
+      // Load council notifications
+      const { count } = await supabase
+        .from("council_notifications")
+        .select("*", { count: "exact", head: true })
+        .eq("user_id", user.id)
+        .eq("dismissed", false)
+        .is("read_at", null);
+
+      setCouncilNotifications(count || 0);
+    } catch (error) {
+      console.error("Error loading council data:", error);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const handleSelectConsole = () => {
+    setSearchParams({ view: "console" });
+    setShowMobileList(false);
+  };
+
+  const handleSelectMentor = (mentorType: string) => {
+    setSearchParams({ view: mentorType });
+    setShowMobileList(false);
+  };
+
+  const handleBackToList = () => {
+    setShowMobileList(true);
+    setSearchParams({});
+  };
+
+  // Sidebar content - shared between mobile and desktop
+  const SidebarContent = () => (
+    <div className="flex flex-col h-full">
+      <div className="p-4 border-b border-border">
+        <h2 className="text-lg font-semibold">Council</h2>
+      </div>
+      <ScrollArea className="flex-1">
+        <div className="p-2 space-y-1">
+          {/* Console (Group Chat) */}
+          <button
+            onClick={handleSelectConsole}
+            className={cn(
+              "w-full flex items-center gap-3 p-3 rounded-lg transition-colors text-left",
+              isConsole && !showMobileList
+                ? "bg-primary/10 text-primary" 
+                : "hover:bg-muted"
+            )}
+          >
+            <div className="w-10 h-10 rounded-full bg-primary/20 flex items-center justify-center">
+              <Users className="w-5 h-5 text-primary" />
+            </div>
+            <div className="flex-1 min-w-0">
+              <p className="font-medium truncate">Console</p>
+              <p className="text-xs text-muted-foreground truncate">Group wisdom</p>
+            </div>
+            {councilNotifications > 0 && (
+              <Badge variant="destructive" className="rounded-full px-2">
+                {councilNotifications}
+              </Badge>
+            )}
+          </button>
+
+          {/* Divider */}
+          <div className="py-2">
+            <p className="px-3 text-xs font-medium text-muted-foreground uppercase tracking-wide">
+              Mentors
+            </p>
+          </div>
+
+          {/* Mentors List */}
+          {userMentors.map((mentorType) => {
+            const config = mentorConfig[mentorType] || { 
+              name: mentorType, 
+              color: "bg-muted", 
+              icon: "👤" 
+            };
+            const notifications = mentorNotifications[mentorType] || 0;
+            const isSelected = selectedMentor === mentorType && !showMobileList;
+
+            return (
+              <button
+                key={mentorType}
+                onClick={() => handleSelectMentor(mentorType)}
+                className={cn(
+                  "w-full flex items-center gap-3 p-3 rounded-lg transition-colors text-left",
+                  isSelected 
+                    ? "bg-primary/10 text-primary" 
+                    : "hover:bg-muted"
+                )}
+              >
+                <div className={cn(
+                  "w-10 h-10 rounded-full flex items-center justify-center text-white",
+                  config.color
+                )}>
+                  <span className="text-lg">{config.icon}</span>
+                </div>
+                <div className="flex-1 min-w-0">
+                  <p className="font-medium truncate">{config.name}</p>
+                </div>
+                {notifications > 0 && (
+                  <Badge variant="destructive" className="rounded-full px-2">
+                    {notifications}
+                  </Badge>
+                )}
+              </button>
+            );
+          })}
+
+          {/* Empty state for no mentors */}
+          {userMentors.length === 0 && !loading && (
+            <div className="p-4 text-center text-muted-foreground text-sm">
+              <p>No mentors unlocked yet.</p>
+              <p className="mt-1">Complete your first Council meeting!</p>
+            </div>
+          )}
+        </div>
+      </ScrollArea>
+    </div>
+  );
+
+  // Mobile back header for conversations
+  const MobileBackHeader = () => (
+    <div className="md:hidden flex items-center gap-2 p-4 border-b border-border bg-background">
+      <Button variant="ghost" size="icon" onClick={handleBackToList}>
+        <ArrowLeft className="w-5 h-5" />
+      </Button>
+      <span className="font-medium">
+        {isConsole ? "Console" : mentorConfig[selectedMentor || ""]?.name || "Chat"}
+      </span>
+    </div>
+  );
+
+  if (loading) {
+    return (
+      <div className="min-h-screen flex items-center justify-center">
+        <p className="text-muted-foreground">Loading...</p>
+      </div>
+    );
+  }
+
+  return (
+    <div className="h-[calc(100vh-5rem)] bg-background flex overflow-hidden">
+      {/* Desktop Layout: Side-by-side */}
+      <div className="hidden md:flex w-full h-full">
+        {/* Left Sidebar */}
+        <div className="w-80 border-r border-border bg-card/50 flex-shrink-0 h-full">
+          <SidebarContent />
+        </div>
+        
+        {/* Right Content Area */}
+        <div className="flex-1 overflow-hidden h-full">
+          {isConsole ? (
+            <CouncilMeetingPage embedded />
+          ) : selectedMentor ? (
+            <ChatPage mentorTypeOverride={selectedMentor} embedded />
+          ) : (
+            <div className="flex items-center justify-center h-full text-muted-foreground">
+              Select a conversation
+            </div>
+          )}
+        </div>
+      </div>
+
+      {/* Mobile Layout: List or Conversation */}
+      <div className="md:hidden w-full h-full">
+        {showMobileList ? (
+          <SidebarContent />
+        ) : (
+          <div className="h-full flex flex-col">
+            <MobileBackHeader />
+            <div className="flex-1 overflow-hidden">
+              {isConsole ? (
+                <CouncilMeetingPage embedded />
+              ) : selectedMentor ? (
+                <ChatPage mentorTypeOverride={selectedMentor} embedded />
+              ) : null}
+            </div>
+          </div>
+        )}
+      </div>
+    </div>
+  );
+};
+
+export default Council;
