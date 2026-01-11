@@ -304,17 +304,8 @@ const CreationLab = () => {
       )}
 
       <div className="max-w-7xl mx-auto space-y-6">
-        {/* Header */}
-        <div className="flex items-center justify-between">
-          <Button
-            variant="ghost"
-            size="sm"
-            onClick={() => navigate("/dashboard")}
-            className="gap-2"
-          >
-            <ArrowLeft className="w-4 h-4" />
-            Dashboard
-          </Button>
+        {/* Header - simplified without back button since bottom nav handles it */}
+        <div className="flex items-center justify-end">
           {projectType === "creating" && (
             <Button
               variant="outline"

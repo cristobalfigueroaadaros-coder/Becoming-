@@ -81,8 +81,14 @@ const mentorNames: Record<string, string> = {
   future_self: "Your Future Self",
 };
 
-const Chat = () => {
-  const { mentorType } = useParams<{ mentorType: string }>();
+interface ChatProps {
+  mentorTypeOverride?: string;
+  embedded?: boolean;
+}
+
+const Chat = ({ mentorTypeOverride, embedded = false }: ChatProps) => {
+  const { mentorType: mentorTypeParam } = useParams<{ mentorType: string }>();
+  const mentorType = mentorTypeOverride || mentorTypeParam;
   const navigate = useNavigate();
   const location = useLocation();
   const searchParams = new URLSearchParams(location.search);
@@ -559,54 +565,59 @@ const Chat = () => {
   const availableHandoffs = userMentors.length > 0 ? userMentors : [];
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-primary/5 via-background to-accent/5 flex flex-col">
-      {/* Header */}
-      <div className="border-b bg-card/80 backdrop-blur-sm sticky top-0 z-10">
-        <div className="max-w-4xl mx-auto p-4 flex items-center gap-4">
-          <Button variant="ghost" size="icon" onClick={() => navigate("/dashboard")}>
-            <ArrowLeft className="w-5 h-5" />
-          </Button>
-          <div className="flex-1">
-            <h1 className="text-xl font-bold">{mentorNames[mentorType || ""]}</h1>
-            <p className="text-sm text-muted-foreground">
-              {fromCouncil ? "Shaping session" : "Your personal mentor"}
-            </p>
-          </div>
-          <div className="flex items-center gap-2">
-            {availableHandoffs.length > 0 && messages.length >= 2 && (
-              <DropdownMenu>
-                <DropdownMenuTrigger asChild>
-                  <Button variant="outline" size="sm" disabled={loading} className="gap-2">
-                    <RefreshCw className="w-4 h-4" />
-                    <span className="hidden sm:inline">Switch Mentor</span>
-                    <ChevronDown className="w-3 h-3" />
-                  </Button>
-                </DropdownMenuTrigger>
-                <DropdownMenuContent align="end" className="w-56 bg-popover z-50">
-                  <div className="px-2 py-1.5 text-xs text-muted-foreground font-medium">
-                    Switch to another mentor
-                  </div>
-                  {availableHandoffs.map((mentor) => (
-                    <DropdownMenuItem key={mentor} onClick={() => handleHandoff(mentor)} className="cursor-pointer">
-                      <div className="flex flex-col">
-                        <span className="font-medium">{mentorNames[mentor]}</span>
-                        <span className="text-xs text-muted-foreground">Continue your conversation</span>
-                      </div>
-                    </DropdownMenuItem>
-                  ))}
-                </DropdownMenuContent>
-              </DropdownMenu>
-            )}
-            
-            {exchangeCount >= 3 && (
-              <Button variant="outline" size="sm" onClick={handleStartLearningModule} disabled={loading} className="gap-2">
-                <Sparkles className="w-4 h-4" />
-                <span className="hidden sm:inline">Take Quiz</span>
-              </Button>
-            )}
+    <div className={cn(
+      "bg-gradient-to-br from-primary/5 via-background to-accent/5 flex flex-col",
+      embedded ? "h-full" : "min-h-screen"
+    )}>
+      {/* Header - hide when embedded (Council provides header) */}
+      {!embedded && (
+        <div className="border-b bg-card/80 backdrop-blur-sm sticky top-0 z-10">
+          <div className="max-w-4xl mx-auto p-4 flex items-center gap-4">
+            <Button variant="ghost" size="icon" onClick={() => navigate("/dashboard")}>
+              <ArrowLeft className="w-5 h-5" />
+            </Button>
+            <div className="flex-1">
+              <h1 className="text-xl font-bold">{mentorNames[mentorType || ""]}</h1>
+              <p className="text-sm text-muted-foreground">
+                {fromCouncil ? "Shaping session" : "Your personal mentor"}
+              </p>
+            </div>
+            <div className="flex items-center gap-2">
+              {availableHandoffs.length > 0 && messages.length >= 2 && (
+                <DropdownMenu>
+                  <DropdownMenuTrigger asChild>
+                    <Button variant="outline" size="sm" disabled={loading} className="gap-2">
+                      <RefreshCw className="w-4 h-4" />
+                      <span className="hidden sm:inline">Switch Mentor</span>
+                      <ChevronDown className="w-3 h-3" />
+                    </Button>
+                  </DropdownMenuTrigger>
+                  <DropdownMenuContent align="end" className="w-56 bg-popover z-50">
+                    <div className="px-2 py-1.5 text-xs text-muted-foreground font-medium">
+                      Switch to another mentor
+                    </div>
+                    {availableHandoffs.map((mentor) => (
+                      <DropdownMenuItem key={mentor} onClick={() => handleHandoff(mentor)} className="cursor-pointer">
+                        <div className="flex flex-col">
+                          <span className="font-medium">{mentorNames[mentor]}</span>
+                          <span className="text-xs text-muted-foreground">Continue your conversation</span>
+                        </div>
+                      </DropdownMenuItem>
+                    ))}
+                  </DropdownMenuContent>
+                </DropdownMenu>
+              )}
+              
+              {exchangeCount >= 3 && (
+                <Button variant="outline" size="sm" onClick={handleStartLearningModule} disabled={loading} className="gap-2">
+                  <Sparkles className="w-4 h-4" />
+                  <span className="hidden sm:inline">Take Quiz</span>
+                </Button>
+              )}
+            </div>
           </div>
         </div>
-      </div>
+      )}
 
       {/* Messages */}
       <div className="flex-1 overflow-y-auto p-4">

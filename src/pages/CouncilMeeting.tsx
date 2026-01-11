@@ -8,6 +8,7 @@ import { Badge } from "@/components/ui/badge";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { ArrowLeft, Sparkles, Target, MessageCircle, RefreshCw, GitBranch, Bell, Loader2 } from "lucide-react";
 import { toast } from "sonner";
+import { cn } from "@/lib/utils";
 import { useShadowEncounters } from "@/hooks/useShadowEncounters";
 import { useIntegratorProjects } from "@/hooks/useIntegratorProjects";
 import { useBreakthroughDetection } from "@/hooks/useBreakthroughDetection";
@@ -61,7 +62,11 @@ const mentorNames: Record<string, string> = {
   future_self: "Future Self",
 };
 
-const CouncilMeeting = () => {
+interface CouncilMeetingProps {
+  embedded?: boolean;
+}
+
+const CouncilMeeting = ({ embedded = false }: CouncilMeetingProps) => {
   const navigate = useNavigate();
   const location = useLocation();
   const locationState = location.state as LocationState | null;
@@ -470,7 +475,10 @@ const CouncilMeeting = () => {
   };
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-primary/5 via-background to-accent/5 p-4 py-8">
+    <div className={cn(
+      "bg-gradient-to-br from-primary/5 via-background to-accent/5 p-4",
+      embedded ? "h-full overflow-y-auto" : "min-h-screen py-8"
+    )}>
       {/* Council Introduction Modal for First-Time Users */}
       <CouncilIntroductionModal 
         open={showIntroductionModal} 
@@ -478,14 +486,18 @@ const CouncilMeeting = () => {
       />
 
       <div className="max-w-4xl mx-auto space-y-8">
-        {/* Header */}
+        {/* Header - hide back button when embedded */}
         <div className="flex items-center gap-4">
-          <Button variant="ghost" size="icon" onClick={() => navigate("/dashboard")}>
-            <ArrowLeft className="w-5 h-5" />
-          </Button>
+          {!embedded && (
+            <Button variant="ghost" size="icon" onClick={() => navigate("/dashboard")}>
+              <ArrowLeft className="w-5 h-5" />
+            </Button>
+          )}
           <div className="flex-1">
-            <h1 className="text-4xl font-bold">Council Meeting</h1>
-            <p className="text-muted-foreground mt-2">
+            <h1 className={cn("font-bold", embedded ? "text-2xl" : "text-4xl")}>
+              {embedded ? "Console" : "Council Meeting"}
+            </h1>
+            <p className="text-muted-foreground mt-1 text-sm">
               {questionNumber === 0 && "Deep wisdom through a 3-question journey"}
               {questionNumber === 1 && "Q1: Discovery - Light, welcoming, inspiring"}
               {questionNumber === 2 && "Q2: Depth - Council Seeking Clarity"}

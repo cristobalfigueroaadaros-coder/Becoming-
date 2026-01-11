@@ -10,6 +10,7 @@ import { useShadowEncounters } from "@/hooks/useShadowEncounters";
 import { FutureSelfOmnipresenceModal } from "@/components/FutureSelfOmnipresenceModal";
 import { useFutureSelfOmnipresence } from "@/hooks/useFutureSelfOmnipresence";
 import { toast } from "@/hooks/use-toast";
+import { AppLayout } from "@/components/layout";
 import Index from "./pages/Index";
 import OnboardingStep1 from "./pages/OnboardingStep1";
 import OnboardingStep2 from "./pages/OnboardingStep2";
@@ -34,6 +35,7 @@ import ActualSelfPage from "./pages/ActualSelfPage";
 import FutureSelfDetailPage from "./pages/FutureSelfDetailPage";
 import Chat from "./pages/Chat";
 import CouncilMeeting from "./pages/CouncilMeeting";
+import Council from "./pages/Council";
 import CouncilLog from "./pages/CouncilLog";
 import MyTasks from "./pages/MyTasks";
 import YourNewTasks from "./pages/YourNewTasks";
@@ -115,6 +117,13 @@ const FutureSelfOmnipresenceWrapper = () => {
       onDismiss={dismissMessage}
     />
   );
+};
+
+// Helper component to redirect old chat routes to new Council structure
+const ChatRedirect = () => {
+  const params = new URLSearchParams(window.location.pathname.split('/chat/')[1]);
+  const mentorType = window.location.pathname.split('/chat/')[1];
+  return <Navigate to={`/council?view=${mentorType}`} replace />;
 };
 
 const App = () => {
@@ -205,11 +214,39 @@ const App = () => {
               element={session ? <OnboardingWorkContext /> : <Navigate to="/" />}
             />
             
-            {/* Main App Routes */}
+            {/* Main App Routes with Bottom Navigation */}
             <Route
               path="/dashboard"
-              element={session ? <Dashboard /> : <Navigate to="/" />}
+              element={session ? <AppLayout><Dashboard /></AppLayout> : <Navigate to="/" />}
             />
+            <Route
+              path="/council"
+              element={session ? <AppLayout><Council /></AppLayout> : <Navigate to="/" />}
+            />
+            <Route
+              path="/creation-lab"
+              element={session ? <AppLayout><CreationLab /></AppLayout> : <Navigate to="/" />}
+            />
+            <Route
+              path="/profile"
+              element={session ? <AppLayout><Profile /></AppLayout> : <Navigate to="/" />}
+            />
+            <Route
+              path="/profile/:userId"
+              element={session ? <AppLayout><Profile /></AppLayout> : <Navigate to="/" />}
+            />
+            
+            {/* Legacy routes - redirect to new Council structure */}
+            <Route
+              path="/council-meeting"
+              element={session ? <Navigate to="/council?view=console" replace /> : <Navigate to="/" />}
+            />
+            <Route
+              path="/chat/:mentorType"
+              element={session ? <ChatRedirect /> : <Navigate to="/" />}
+            />
+            
+            {/* Secondary routes (no bottom nav) */}
             <Route
               path="/community-hub"
               element={session ? <CommunityHub /> : <Navigate to="/" />}
@@ -247,14 +284,6 @@ const App = () => {
               element={session ? <FutureSelfDetailPage /> : <Navigate to="/" />}
             />
             <Route
-              path="/chat/:mentorType"
-              element={session ? <Chat /> : <Navigate to="/" />}
-            />
-            <Route
-              path="/council-meeting"
-              element={session ? <CouncilMeeting /> : <Navigate to="/" />}
-            />
-            <Route
               path="/council-log"
               element={session ? <CouncilLog /> : <Navigate to="/" />}
             />
@@ -269,14 +298,6 @@ const App = () => {
             <Route
               path="/premium"
               element={session ? <Premium /> : <Navigate to="/" />}
-            />
-            <Route
-              path="/profile"
-              element={session ? <Profile /> : <Navigate to="/" />}
-            />
-            <Route
-              path="/profile/:userId"
-              element={session ? <Profile /> : <Navigate to="/" />}
             />
             <Route
               path="/purpose-discovery"
