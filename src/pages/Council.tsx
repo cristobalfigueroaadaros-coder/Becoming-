@@ -2,7 +2,7 @@ import { useState, useEffect } from "react";
 import { useSearchParams, useNavigate, useLocation } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
 import { cn } from "@/lib/utils";
-import { Users, ArrowLeft } from "lucide-react";
+import { Users, ArrowLeft, Lock } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { Button } from "@/components/ui/button";
@@ -10,6 +10,14 @@ import { Button } from "@/components/ui/button";
 // Lazy load the actual conversation components to avoid circular deps
 import CouncilMeetingPage from "./CouncilMeeting";
 import ChatPage from "./Chat";
+
+// All mentors in the system
+const allMentorTypes = [
+  "discipline_mentor", "strategist_mentor", "creative_visionary", 
+  "quantum_inventor", "mystic_mentor", "business_mentor",
+  "marketing_mentor", "scientific_mentor", "heart_mentor",
+  "ancient_sage", "alignment_mentor", "oracle_mother", "future_self"
+];
 
 // Mentor configuration with colors
 const mentorConfig: Record<string, { name: string; color: string; icon: string }> = {
@@ -108,14 +116,64 @@ const Council = () => {
     }
   };
 
+  // Mark mentor notifications as read when entering chat
+  const markMentorNotificationsAsRead = async (mentorType: string) => {
+    try {
+      const { data: { user } } = await supabase.auth.getUser();
+      if (!user) return;
+
+      // Mark private messages as read
+      await supabase
+        .from("mentor_private_messages")
+        .update({ read: true })
+        .eq("user_id", user.id)
+        .eq("mentor_type", mentorType);
+
+      // Mark daily outreach as read
+      await supabase
+        .from("mentor_daily_outreach")
+        .update({ read_at: new Date().toISOString() })
+        .eq("user_id", user.id)
+        .eq("mentor_type", mentorType);
+
+      // Update local state immediately
+      setMentorNotifications(prev => ({
+        ...prev,
+        [mentorType]: 0
+      }));
+    } catch (error) {
+      console.error("Error marking notifications as read:", error);
+    }
+  };
+
+  // Mark council notifications as read
+  const markCouncilNotificationsAsRead = async () => {
+    try {
+      const { data: { user } } = await supabase.auth.getUser();
+      if (!user) return;
+
+      await supabase
+        .from("council_notifications")
+        .update({ read_at: new Date().toISOString() })
+        .eq("user_id", user.id)
+        .is("read_at", null);
+
+      setCouncilNotifications(0);
+    } catch (error) {
+      console.error("Error marking council notifications as read:", error);
+    }
+  };
+
   const handleSelectConsole = () => {
     setSearchParams({ view: "console" });
     setShowMobileList(false);
+    markCouncilNotificationsAsRead();
   };
 
   const handleSelectMentor = (mentorType: string) => {
     setSearchParams({ view: mentorType });
     setShowMobileList(false);
+    markMentorNotificationsAsRead(mentorType);
   };
 
   const handleBackToList = () => {
@@ -162,8 +220,9 @@ const Council = () => {
             </p>
           </div>
 
-          {/* Mentors List */}
-          {userMentors.map((mentorType) => {
+          {/* All Mentors List - showing locked/unlocked state */}
+          {allMentorTypes.map((mentorType) => {
+            const isUnlocked = userMentors.includes(mentorType);
             const config = mentorConfig[mentorType] || { 
               name: mentorType, 
               color: "bg-muted", 
@@ -175,22 +234,35 @@ const Council = () => {
             return (
               <button
                 key={mentorType}
-                onClick={() => handleSelectMentor(mentorType)}
+                onClick={() => isUnlocked && handleSelectMentor(mentorType)}
+                disabled={!isUnlocked}
                 className={cn(
                   "w-full flex items-center gap-3 p-3 rounded-lg transition-colors text-left",
-                  isSelected 
-                    ? "bg-primary/10 text-primary" 
-                    : "hover:bg-muted"
+                  isUnlocked 
+                    ? (isSelected ? "bg-primary/10 text-primary" : "hover:bg-muted cursor-pointer")
+                    : "opacity-50 cursor-not-allowed"
                 )}
               >
                 <div className={cn(
-                  "w-10 h-10 rounded-full flex items-center justify-center text-white",
-                  config.color
+                  "w-10 h-10 rounded-full flex items-center justify-center",
+                  isUnlocked ? config.color : "bg-muted"
                 )}>
-                  <span className="text-lg">{config.icon}</span>
+                  {isUnlocked ? (
+                    <span className="text-lg">{config.icon}</span>
+                  ) : (
+                    <Lock className="w-4 h-4 text-muted-foreground" />
+                  )}
                 </div>
                 <div className="flex-1 min-w-0">
-                  <p className="font-medium truncate">{config.name}</p>
+                  <p className={cn(
+                    "font-medium truncate",
+                    !isUnlocked && "text-muted-foreground"
+                  )}>
+                    {config.name}
+                  </p>
+                  {!isUnlocked && (
+                    <p className="text-xs text-muted-foreground truncate">Locked</p>
+                  )}
                 </div>
                 {notifications > 0 && (
                   <Badge variant="destructive" className="rounded-full px-2">
@@ -200,14 +272,6 @@ const Council = () => {
               </button>
             );
           })}
-
-          {/* Empty state for no mentors */}
-          {userMentors.length === 0 && !loading && (
-            <div className="p-4 text-center text-muted-foreground text-sm">
-              <p>No mentors unlocked yet.</p>
-              <p className="mt-1">Complete your first Council meeting!</p>
-            </div>
-          )}
         </div>
       </ScrollArea>
     </div>
@@ -219,7 +283,7 @@ const Council = () => {
       <Button variant="ghost" size="icon" onClick={handleBackToList}>
         <ArrowLeft className="w-5 h-5" />
       </Button>
-      <span className="font-medium">
+      <span className="font-medium truncate">
         {isConsole ? "Council" : mentorConfig[selectedMentor || ""]?.name || "Chat"}
       </span>
     </div>

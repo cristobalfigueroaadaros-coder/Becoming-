@@ -68,7 +68,7 @@ export const BranchAdditionCard = ({
               {branchDescription}
             </p>
 
-            <div className="flex gap-2 pt-1">
+            <div className="flex flex-col sm:flex-row gap-2 pt-1 mb-8">
               <Button
                 variant="outline"
                 size="sm"
@@ -76,8 +76,8 @@ export const BranchAdditionCard = ({
                 disabled={isAdding}
                 className="gap-1.5 flex-1"
               >
-                <Lightbulb className="w-3.5 h-3.5" />
-                Keep as insight
+                <Lightbulb className="w-3.5 h-3.5 flex-shrink-0" />
+                <span className="truncate">Keep as insight</span>
               </Button>
               <Button
                 size="sm"
@@ -85,8 +85,8 @@ export const BranchAdditionCard = ({
                 disabled={isAdding || !editedTitle.trim()}
                 className="gap-1.5 flex-1 bg-gradient-to-r from-green-500 to-emerald-600 hover:opacity-90"
               >
-                <Plus className="w-3.5 h-3.5" />
-                {isAdding ? "Adding..." : "Add to project"}
+                <Plus className="w-3.5 h-3.5 flex-shrink-0" />
+                <span className="truncate">{isAdding ? "Adding..." : "Add to project"}</span>
               </Button>
             </div>
 

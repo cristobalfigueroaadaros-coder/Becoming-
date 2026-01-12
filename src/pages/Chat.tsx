@@ -567,7 +567,7 @@ const Chat = ({ mentorTypeOverride, embedded = false }: ChatProps) => {
   return (
     <div className={cn(
       "bg-gradient-to-br from-primary/5 via-background to-accent/5 flex flex-col",
-      embedded ? "h-full" : "min-h-screen"
+      embedded ? "h-full" : "min-h-screen pb-24"
     )}>
       {/* Header - hide when embedded (Council provides header) */}
       {!embedded && (

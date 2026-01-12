@@ -187,24 +187,24 @@ export const FirstWinNamingCard = ({
               initial={{ opacity: 0, y: 10 }}
               animate={{ opacity: 1, y: 0 }}
               transition={{ delay: 0.6 }}
-              className="flex gap-3 justify-center pt-2"
+              className="flex flex-col sm:flex-row gap-3 justify-center pt-2 mb-8"
             >
               <Button
                 variant="outline"
                 onClick={onKeepExploring}
                 disabled={celebrating}
-                className="gap-2"
+                className="gap-2 text-sm sm:text-base"
               >
-                <ArrowRight className="w-4 h-4" />
-                {copy.dismissButton}
+                <ArrowRight className="w-4 h-4 flex-shrink-0" />
+                <span className="truncate">{copy.dismissButton}</span>
               </Button>
               <Button
                 onClick={handleAccept}
                 disabled={celebrating || !editedName.trim()}
-                className={`gap-2 bg-gradient-to-r ${copy.gradient} hover:opacity-90`}
+                className={`gap-2 bg-gradient-to-r ${copy.gradient} hover:opacity-90 text-sm sm:text-base`}
               >
-                <Check className="w-4 h-4" />
-                {celebrating ? "Celebrating..." : copy.acceptButton}
+                <Check className="w-4 h-4 flex-shrink-0" />
+                <span className="truncate">{celebrating ? "Celebrating..." : copy.acceptButton}</span>
               </Button>
             </motion.div>
           </div>
