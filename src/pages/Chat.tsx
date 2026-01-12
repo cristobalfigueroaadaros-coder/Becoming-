@@ -784,7 +784,7 @@ const Chat = ({ mentorTypeOverride, embedded = false }: ChatProps) => {
 
       {/* PDR v2.2: Commitment Card as FIXED OVERLAY with context-aware copy */}
       {showCommitmentCard && projectCoherence && (
-        <div className="fixed inset-0 bg-black/60 backdrop-blur-sm z-50 flex items-center justify-center p-4">
+        <div className="fixed inset-0 bg-black/60 backdrop-blur-sm z-50 flex items-start justify-center overflow-y-auto py-8 px-4 pb-28">
           <FirstWinNamingCard
             proposedName={projectCoherence.projectName}
             description={projectCoherence.projectDescription}
