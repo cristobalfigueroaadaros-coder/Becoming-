@@ -1381,20 +1381,20 @@ IMPORTANT: Continue this conversation naturally. You reached out to the user abo
     const engagementData = analyzeEngagement(allUserMessages);
     console.log("Engagement analysis (cross-mentor):", engagementData);
     
-    // PDR 02: Increased minimum to 6 exchanges + HIGH engagement ONLY
-    // IMPORTANT: If project name already agreed with another mentor, lower depth requirement
-    const baseDepthRequirement = crossMentorProjectAgreement.hasAgreedName ? 1 : 6;
+    // PDR 02 v2: EVEN with cross-mentor agreement, require minimum 4 exchanges WITH THIS MENTOR
+    // This prevents switching mentors and immediately getting a project card
+    const baseDepthRequirement = crossMentorProjectAgreement.hasAgreedName ? 4 : 6;
     const meetsDepthRequirement = conversationDepth >= baseDepthRequirement;
     
-    // PDR 02: Only trigger on HIGH engagement with explicit agreement language
+    // PDR 02: Only trigger on HIGH engagement with explicit agreement language IN THIS MESSAGE
     const hasExplicitAgreement = engagementData.signals.hasAgreement && 
-      /\b(yes|let's do it|i want to|that's exactly|perfect|let's build|i'm ready|commit)\b/i.test(message);
+      /\b(yes|let's do it|i want to|that's exactly|perfect|let's build|i'm ready|commit|i agree|absolutely|definitely)\b/i.test(message);
     
-    const meetsEngagementRequirement = crossMentorProjectAgreement.hasAgreedName || 
-      (engagementData.level === 'HIGH' && hasExplicitAgreement);
+    // Cross-mentor agreement now HELPS but doesn't BYPASS engagement requirement
+    const meetsEngagementRequirement = engagementData.level === 'HIGH' && hasExplicitAgreement;
     
     if (crossMentorProjectAgreement.hasAgreedName) {
-      console.log("Cross-mentor project agreement found - lowered depth requirement to", baseDepthRequirement);
+      console.log("Cross-mentor project agreement found - depth requirement is", baseDepthRequirement, "(still requires engagement)");
     }
     
     // Only detect coherence if BOTH requirements met
