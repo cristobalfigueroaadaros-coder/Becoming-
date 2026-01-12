@@ -145,8 +145,8 @@ const Council = () => {
               <Users className="w-5 h-5 text-primary" />
             </div>
             <div className="flex-1 min-w-0">
-              <p className="font-medium truncate">Console</p>
-              <p className="text-xs text-muted-foreground truncate">Group wisdom</p>
+              <p className="font-medium truncate">Council</p>
+              <p className="text-xs text-muted-foreground truncate">Your mentors together</p>
             </div>
             {councilNotifications > 0 && (
               <Badge variant="destructive" className="rounded-full px-2">
@@ -220,7 +220,7 @@ const Council = () => {
         <ArrowLeft className="w-5 h-5" />
       </Button>
       <span className="font-medium">
-        {isConsole ? "Console" : mentorConfig[selectedMentor || ""]?.name || "Chat"}
+        {isConsole ? "Council" : mentorConfig[selectedMentor || ""]?.name || "Chat"}
       </span>
     </div>
   );
