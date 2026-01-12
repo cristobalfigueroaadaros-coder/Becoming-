@@ -495,7 +495,7 @@ const CouncilMeeting = ({ embedded = false }: CouncilMeetingProps) => {
           )}
           <div className="flex-1">
             <h1 className={cn("font-bold", embedded ? "text-2xl" : "text-4xl")}>
-              {embedded ? "Console" : "Council Meeting"}
+              {embedded ? "Council" : "Council Meeting"}
             </h1>
             <p className="text-muted-foreground mt-1 text-sm">
               {questionNumber === 0 && "Deep wisdom through a 3-question journey"}
@@ -939,14 +939,14 @@ const CouncilMeeting = ({ embedded = false }: CouncilMeetingProps) => {
                 initial={{ opacity: 0, y: 10 }}
                 animate={{ opacity: 1, y: 0 }}
               >
-                <Card className="border border-dashed border-accent/50 bg-accent/5">
-                  <CardContent className="pt-4">
-                    <p className="text-sm text-muted-foreground mb-3">
+                <Card className="border-2 border-dashed border-primary/30 bg-primary/5 hover:bg-primary/10 transition-colors cursor-pointer">
+                  <CardContent className="pt-6 pb-4">
+                    <p className="text-sm text-muted-foreground mb-4">
                       💭 The Council suggests:
                     </p>
                     <Button 
                       variant="outline" 
-                      className="w-full justify-start text-left h-auto py-3"
+                      className="w-full justify-start text-left h-auto py-4 px-4 border-primary/40 bg-background/80"
                       onClick={() => {
                         setQuestion(suggestedNextQuestion);
                         continueAsking();
@@ -954,6 +954,9 @@ const CouncilMeeting = ({ embedded = false }: CouncilMeetingProps) => {
                     >
                       {suggestedNextQuestion}
                     </Button>
+                    <p className="text-xs text-muted-foreground mt-3 italic text-center">
+                      Click to answer
+                    </p>
                   </CardContent>
                 </Card>
               </motion.div>
@@ -975,8 +978,8 @@ const CouncilMeeting = ({ embedded = false }: CouncilMeetingProps) => {
               </motion.div>
             )}
 
-            {/* Thread Continuation Options - Only show if NO mentor suggestion */}
-            {!tasksGenerated && !suggestedMentor && (
+            {/* Thread Continuation Options - Soft integration paths */}
+            {!suggestedMentor && (
               <motion.div
                 initial={{ opacity: 0, y: 10 }}
                 animate={{ opacity: 1, y: 0 }}
@@ -985,33 +988,68 @@ const CouncilMeeting = ({ embedded = false }: CouncilMeetingProps) => {
                   <CardContent className="pt-6 space-y-4">
                     <div className="flex flex-col sm:flex-row gap-3">
                       <Button 
+                        onClick={async () => {
+                          // Save insight to project
+                          try {
+                            const { data: { user } } = await supabase.auth.getUser();
+                            if (!user) throw new Error("Not authenticated");
+                            
+                            // Get active project
+                            const { data: activeProject } = await supabase
+                              .from("integrator_projects")
+                              .select("id, project_title")
+                              .eq("user_id", user.id)
+                              .eq("status", "active")
+                              .order("created_at", { ascending: false })
+                              .limit(1)
+                              .single();
+                            
+                            if (!activeProject) {
+                              toast.info("No active project found. Start one in the Creation Lab.");
+                              return;
+                            }
+                            
+                            // Save insight
+                            await supabase.from("saved_insights").insert({
+                              user_id: user.id,
+                              insight_text: councilInsight || Object.values(mentorPerspectives).join("\n\n"),
+                              source_type: "council_meeting",
+                              project_id: activeProject.id,
+                            });
+                            
+                            toast.success(`Insight saved to "${activeProject.project_title}"`);
+                            continueAsking();
+                          } catch (error) {
+                            console.error("Error saving insight:", error);
+                            toast.error("Failed to save insight");
+                          }
+                        }}
+                        variant="default" 
+                        className="flex-1"
+                        size="lg"
+                      >
+                        <Target className="w-4 h-4 mr-2" />
+                        Add this insight to my project
+                      </Button>
+                      <Button 
                         onClick={continueAsking} 
                         variant="outline" 
                         className="flex-1"
                         size="lg"
                       >
-                        <GitBranch className="w-4 h-4 mr-2" />
-                        Continue This Conversation
+                        <MessageCircle className="w-4 h-4 mr-2" />
+                        Reflect more
                       </Button>
+                    </div>
+                    <div className="flex justify-center">
                       <Button 
                         onClick={resetConversation} 
                         variant="ghost" 
-                        className="flex-1"
-                        size="lg"
+                        size="sm"
+                        className="text-muted-foreground"
                       >
-                        <RefreshCw className="w-4 h-4 mr-2" />
-                        Start New Question
-                      </Button>
-                    </div>
-                    <div className="pt-2 border-t border-border/50">
-                      <Button 
-                        onClick={generateGoals}
-                        disabled={loading}
-                        className="w-full"
-                        size="lg"
-                      >
-                        <Target className="w-4 h-4 mr-2" />
-                        {loading ? "Creating Tasks..." : "I'm Ready for Action"}
+                        <RefreshCw className="w-3 h-3 mr-2" />
+                        Start new topic
                       </Button>
                     </div>
                   </CardContent>
@@ -1021,200 +1059,6 @@ const CouncilMeeting = ({ embedded = false }: CouncilMeetingProps) => {
           </div>
         )}
 
-        {/* Action Stage - Display Goals */}
-        {stage === 'action' && goalData && (
-          <motion.div
-            initial={{ opacity: 0, y: 20 }}
-            animate={{ opacity: 1, y: 0 }}
-            className="space-y-6"
-          >
-            {/* User Direction */}
-            <Card className="border-primary/20 bg-gradient-to-br from-primary/5 to-accent/5">
-              <CardHeader>
-                <CardTitle className="flex items-center gap-2">
-                  <Target className="w-5 h-5 text-primary" />
-                  Your Direction
-                </CardTitle>
-              </CardHeader>
-              <CardContent>
-                <p className="text-foreground/90">{goalData.userDirection}</p>
-              </CardContent>
-            </Card>
-
-            {/* Main Goal */}
-            <Card className="border-primary/30 bg-gradient-to-br from-primary/10 to-secondary/10">
-              <CardHeader>
-                <CardTitle className="flex items-center gap-2">
-                  <Sparkles className="w-5 h-5 text-primary" />
-                  Your Main Goal
-                </CardTitle>
-              </CardHeader>
-              <CardContent className="space-y-4">
-                <div>
-                  <h4 className="font-semibold text-lg mb-3">{goalData.mainGoal.title}</h4>
-                  
-                  <div className="space-y-3">
-                    <div className="p-3 rounded-lg bg-background/50">
-                      <p className="text-sm font-medium text-primary mb-1">Daily Micro-Step</p>
-                      <p className="text-sm text-foreground/80">{goalData.mainGoal.daily}</p>
-                    </div>
-                    
-                    <div className="p-3 rounded-lg bg-background/50">
-                      <p className="text-sm font-medium text-primary mb-1">Weekly Step</p>
-                      <p className="text-sm text-foreground/80">{goalData.mainGoal.weekly}</p>
-                    </div>
-                    
-                    <div className="p-3 rounded-lg bg-background/50">
-                      <p className="text-sm font-medium text-primary mb-1">Monthly Outcome</p>
-                      <p className="text-sm text-foreground/80">{goalData.mainGoal.monthly}</p>
-                    </div>
-                  </div>
-                </div>
-
-                {!mainGoalAccepted ? (
-                  <Button 
-                    onClick={async () => {
-                      setCreatingProject(true);
-                      try {
-                        const project = await createProject(
-                          null,
-                          goalData.mainGoal.title,
-                          `${goalData.userDirection}\n\nDaily: ${goalData.mainGoal.daily}\nWeekly: ${goalData.mainGoal.weekly}\nMonthly: ${goalData.mainGoal.monthly}`,
-                          21
-                        );
-                        
-                        if (project) {
-                          // Always check if this is the user's first project and mark it
-                          const { data: { user } } = await supabase.auth.getUser();
-                          let isFirstProject = false;
-                          
-                          if (user && project.project?.id) {
-                            const { data: currentProfile } = await supabase
-                              .from("profiles")
-                              .select("first_project_created_at")
-                              .eq("id", user.id)
-                              .single();
-                            
-                            isFirstProject = !currentProfile?.first_project_created_at;
-                            
-                            // If no first project yet, mark this as the first
-                            if (isFirstProject) {
-                              const { error: updateError } = await supabase
-                                .from("profiles")
-                                .update({ 
-                                  first_project_created_at: new Date().toISOString(),
-                                  first_project_id: project.project.id
-                                })
-                                .eq("id", user.id);
-                              
-                              if (updateError) {
-                                console.error("Failed to mark first project:", updateError);
-                                toast.error("Something went wrong. Please try again.");
-                                return;
-                              }
-                            }
-                          }
-                          
-                          setMainGoalAccepted(true);
-                          toast.success(isFirstProject 
-                            ? "Your journey begins! First project created." 
-                            : "Goal accepted! Your project is now in Creation Lab.");
-                          navigate('/creation-lab?mode=focus');
-                        } else {
-                          toast.error("Failed to create project. Please try again.");
-                        }
-                      } catch (error) {
-                        console.error("Error creating project:", error);
-                        toast.error("Failed to create project. Please try again.");
-                      } finally {
-                        setCreatingProject(false);
-                      }
-                    }}
-                    className="w-full"
-                    disabled={creatingProject}
-                  >
-                    {creatingProject ? (
-                      <>
-                        <Loader2 className="w-4 h-4 mr-2 animate-spin" />
-                        Creating Project...
-                      </>
-                    ) : (
-                      "Accept Main Goal"
-                    )}
-                  </Button>
-                ) : (
-                  <div className="flex gap-2">
-                    <Button 
-                      onClick={() => navigate('/creation-lab?mode=focus')}
-                      className="flex-1"
-                    >
-                      <Target className="w-4 h-4 mr-2" />
-                      Go to Creation Lab
-                    </Button>
-                    <Badge className="bg-green-500 text-white px-4 py-2 text-sm flex items-center gap-2">
-                      ✓ Accepted
-                    </Badge>
-                  </div>
-                )}
-              </CardContent>
-            </Card>
-
-            {/* Optional Goals */}
-            {goalData.optionalGoals && goalData.optionalGoals.length > 0 && (
-              <div className="space-y-4">
-                <h3 className="text-lg font-semibold">Additional Growth Opportunities</h3>
-                <div className="grid gap-4">
-                  {goalData.optionalGoals.map((goal: any, index: number) => (
-                    <Card key={index} className="border-accent/20 bg-gradient-to-br from-accent/5 to-background">
-                      <CardHeader>
-                        <CardTitle className="text-base">{goal.title}</CardTitle>
-                      </CardHeader>
-                      <CardContent className="space-y-3">
-                        <div className="space-y-2 text-sm">
-                          <p><span className="font-medium text-primary">Daily:</span> {goal.daily}</p>
-                          <p><span className="font-medium text-primary">Weekly:</span> {goal.weekly}</p>
-                          <p><span className="font-medium text-primary">Monthly:</span> {goal.monthly}</p>
-                        </div>
-                        <Button 
-                          variant="outline" 
-                          className="w-full" 
-                          size="sm"
-                          onClick={() => toast.success("Optional goal added!")}
-                        >
-                          Add This Goal
-                        </Button>
-                      </CardContent>
-                    </Card>
-                  ))}
-                </div>
-              </div>
-            )}
-
-            {/* Mentor Whisper */}
-            {goalData.mentorWhisper && (
-              <Card className="border-secondary/20 bg-gradient-to-br from-secondary/5 to-primary/5">
-                <CardHeader>
-                  <CardTitle className="flex items-center gap-2">
-                    <MessageCircle className="w-5 h-5 text-secondary" />
-                    Message from {goalData.mentorWhisper.mentor}
-                  </CardTitle>
-                </CardHeader>
-                <CardContent>
-                  <p className="text-foreground/90 italic">"{goalData.mentorWhisper.message}"</p>
-                </CardContent>
-              </Card>
-            )}
-
-            {/* Back to Council Button */}
-            <Button 
-              variant="outline" 
-              onClick={continueAsking}
-              className="w-full"
-            >
-              Continue Conversation
-            </Button>
-          </motion.div>
-        )}
 
         {/* Value Map Unlock Celebration */}
         {valueMapDetection && (

@@ -6,51 +6,25 @@ import { DailyRitualModal } from "@/components/DailyRitualModal";
 import { MentorWhisperNotification } from "@/components/MentorWhisperNotification";
 import { useMentorWhisper } from "@/hooks/useMentorWhisper";
 import { useMentorOutreach } from "@/hooks/useMentorOutreach";
-import { useCouncilNotifications } from "@/hooks/useCouncilNotifications";
 
 // Dashboard components
 import DashboardHeader from "@/components/dashboard/DashboardHeader";
 import FutureSelfSpaceCard from "@/components/dashboard/FutureSelfSpaceCard";
+import NarrativeSystemCard from "@/components/dashboard/NarrativeSystemCard";
 import TodaysFocusCard from "@/components/dashboard/TodaysFocusCard";
 import DailyRitualCard from "@/components/dashboard/DailyRitualCard";
-import GuidanceCreationSection from "@/components/dashboard/GuidanceCreationSection";
-import MentorsSection from "@/components/dashboard/MentorsSection";
 import ComingSoonSection from "@/components/dashboard/ComingSoonSection";
-
-const mentorNames: Record<string, string> = {
-  discipline_mentor: "Discipline Mentor",
-  creative_visionary: "Creative Visionary",
-  quantum_inventor: "Quantum Inventor",
-  ancient_sage: "Ancient Sage",
-  future_self: "Future Self",
-  business_mentor: "Business Mentor",
-  mystic_mentor: "Mystic Mentor",
-  strategist_mentor: "Strategist Mentor",
-  marketing_mentor: "Marketing Mentor",
-  scientific_mentor: "Scientific Mentor",
-  alignment_mentor: "Alignment Mentor",
-  oracle_mother: "Oracle Mother",
-  heart_mentor: "Heart Mentor",
-};
 
 const Dashboard = () => {
   const navigate = useNavigate();
-  const [mentors, setMentors] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
   const [ritualModalOpen, setRitualModalOpen] = useState(false);
   const [hasCompletedRitualToday, setHasCompletedRitualToday] = useState(false);
   const [currentStreak, setCurrentStreak] = useState(0);
   const [todayGoal, setTodayGoal] = useState<string | null>(null);
-  const [currentUserId, setCurrentUserId] = useState<string | null>(null);
   const [displayName, setDisplayName] = useState<string | undefined>();
   const [showWhisperNotification, setShowWhisperNotification] = useState(false);
-  const [mentorNotifications, setMentorNotifications] = useState<Record<string, number>>({});
-  const [processingMentor, setProcessingMentor] = useState<string | null>(null);
-  const [isFirstTimeUser, setIsFirstTimeUser] = useState(false);
-  const [isCouncilLocked, setIsCouncilLocked] = useState(false);
-  const [isCreationLabLocked, setIsCreationLabLocked] = useState(true);
   const [hasQuestPending, setHasQuestPending] = useState(false);
-  const [areMentorsLocked, setAreMentorsLocked] = useState(false);
 
   const {
     unreadWhisper,
@@ -59,14 +33,11 @@ const Dashboard = () => {
     latestWhisper,
   } = useMentorWhisper();
 
-  const { outreach: mentorOutreach, generateOutreach } = useMentorOutreach();
-
-  const { unreadCount: councilNotificationCount } = useCouncilNotifications();
+  const { generateOutreach } = useMentorOutreach();
 
   useEffect(() => {
     loadDashboardData();
     checkRitualStatus();
-    loadMentorNotifications();
     checkFirstTimeUser();
     checkReengagementNotifications();
 
@@ -171,33 +142,11 @@ const Dashboard = () => {
         }
       }
 
-      // Check if user has had any council meetings
-      const { count: councilMeetingsCount } = await supabase
-        .from("council_meetings")
-        .select("*", { count: "exact", head: true })
-        .eq("user_id", user.id);
-
-      const hasHadCouncilMeeting = (councilMeetingsCount || 0) > 0;
-
       if (profile) {
         setDisplayName(profile.display_name || undefined);
 
-        // Check if council is locked
-        const councilUnlocked = profile.council_unlocked === true;
         const selfDiscoveryCompleted = profile.self_discovery_completed === true;
-
-        setIsCouncilLocked(!councilUnlocked);
         setHasQuestPending(!selfDiscoveryCompleted);
-
-        // Creation Lab unlocks after first project (for now, keep locked until council is unlocked)
-        setIsCreationLabLocked(!councilUnlocked);
-
-        // Mentors unlock after first council meeting
-        setAreMentorsLocked(!hasHadCouncilMeeting);
-
-        if (!profile.council_introduction_completed && councilUnlocked) {
-          setIsFirstTimeUser(true);
-        }
       }
     } catch (error: any) {
       console.error("Error checking first-time user status:", error);
@@ -219,16 +168,6 @@ const Dashboard = () => {
         navigate("/auth");
         return;
       }
-
-      setCurrentUserId(user.id);
-
-      const { data: mentorsData, error: mentorsError } = await supabase
-        .from("user_mentors")
-        .select("*")
-        .eq("user_id", user.id);
-
-      if (mentorsError) throw mentorsError;
-      setMentors(mentorsData || []);
     } catch (error: any) {
       toast.error(error.message);
     } finally {
@@ -295,129 +234,6 @@ const Dashboard = () => {
     }
   };
 
-
-  const loadMentorNotifications = async () => {
-    try {
-      const { data: { user } } = await supabase.auth.getUser();
-      if (!user) return;
-
-      const { data: privateNotifications } = await supabase
-        .from("mentor_private_messages")
-        .select("mentor_type")
-        .eq("user_id", user.id)
-        .eq("read", false);
-
-      const { data: outreachNotifications } = await supabase
-        .from("mentor_daily_outreach")
-        .select("mentor_type")
-        .eq("user_id", user.id)
-        .is("read_at", null);
-
-      const counts: Record<string, number> = {};
-      privateNotifications?.forEach((n) => {
-        counts[n.mentor_type] = (counts[n.mentor_type] || 0) + 1;
-      });
-      outreachNotifications?.forEach((n) => {
-        counts[n.mentor_type] = (counts[n.mentor_type] || 0) + 1;
-      });
-      
-      setMentorNotifications(counts);
-    } catch (error: any) {
-      console.error("Error loading mentor notifications:", error);
-    }
-  };
-
-  const handleMentorClick = async (mentorType: string) => {
-    if (processingMentor) return;
-    
-    const hasNotifications = mentorNotifications[mentorType] > 0;
-    
-    if (hasNotifications) {
-      setProcessingMentor(mentorType);
-      try {
-        const { data: { user } } = await supabase.auth.getUser();
-        if (!user) throw new Error("Not authenticated");
-        
-        const { data: messages } = await supabase
-          .from("mentor_private_messages")
-          .select("id, message")
-          .eq("user_id", user.id)
-          .eq("mentor_type", mentorType)
-          .eq("read", false)
-          .order("created_at", { ascending: true });
-        
-        if (messages && messages.length > 0) {
-          const messageIds = messages.map(m => m.id);
-          
-          await supabase
-            .from("mentor_private_messages")
-            .update({ read: true })
-            .in("id", messageIds);
-          
-          setMentorNotifications(prev => ({
-            ...prev,
-            [mentorType]: 0
-          }));
-          
-          for (const msg of messages) {
-            await supabase.from("chats").insert({
-              user_id: user.id,
-              mentor_type: mentorType as any,
-              role: "assistant",
-              content: msg.message,
-            });
-          }
-          
-          toast.success(`${mentorNames[mentorType]} wants to chat!`);
-        }
-      } catch (error: any) {
-        console.error("Error handling mentor notifications:", error);
-      } finally {
-        setProcessingMentor(null);
-      }
-    }
-    
-    navigate(`/chat/${mentorType}`);
-  };
-
-  const handleCouncilClick = async () => {
-    if (councilNotificationCount > 0) {
-      try {
-        const { data: { user } } = await supabase.auth.getUser();
-        if (user) {
-          const { data: notifications } = await supabase
-            .from("council_notifications")
-            .select("*")
-            .eq("user_id", user.id)
-            .eq("dismissed", false)
-            .order("created_at", { ascending: false })
-            .limit(1);
-          
-          if (notifications && notifications.length > 0) {
-            const notification = notifications[0];
-            const contextData = notification.context_data as Record<string, any> | null;
-            navigate("/council-meeting", {
-              state: {
-                notificationContext: contextData,
-                prefilledQuestion: contextData?.suggested_question,
-                openerType: notification.notification_type === "breakthrough_followup" 
-                  ? "breakthrough_followup" 
-                  : "check_in",
-                notificationId: notification.id
-              }
-            });
-            return;
-          }
-        }
-      } catch (error) {
-        console.error("Error fetching notification context:", error);
-      }
-    }
-    navigate("/council-meeting", {
-      state: isFirstTimeUser ? { openerType: "first_meeting" } : undefined
-    });
-  };
-
   if (loading) {
     return (
       <div className="min-h-screen flex items-center justify-center">
@@ -435,6 +251,9 @@ const Dashboard = () => {
         {/* Future Self Space */}
         <FutureSelfSpaceCard hasQuestPending={hasQuestPending} />
 
+        {/* Narrative System - Connection between values and actions */}
+        <NarrativeSystemCard />
+
         {/* Today's Focus - PRIMARY ANCHOR */}
         <TodaysFocusCard />
 
@@ -444,24 +263,6 @@ const Dashboard = () => {
           currentStreak={currentStreak}
           todayGoal={todayGoal}
           onStartRitual={() => setRitualModalOpen(true)}
-        />
-
-        {/* Guidance & Creation */}
-        <GuidanceCreationSection 
-          isFirstTimeUser={isFirstTimeUser}
-          councilNotificationCount={councilNotificationCount}
-          onCouncilClick={handleCouncilClick}
-          isCouncilLocked={isCouncilLocked}
-          isCreationLabLocked={isCreationLabLocked}
-        />
-
-        {/* Your Mentors */}
-        <MentorsSection 
-          mentors={mentors}
-          mentorNotifications={mentorNotifications}
-          processingMentor={processingMentor}
-          onMentorClick={handleMentorClick}
-          isLocked={areMentorsLocked}
         />
 
         {/* Coming Soon */}

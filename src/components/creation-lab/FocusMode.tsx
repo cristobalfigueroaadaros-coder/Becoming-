@@ -7,7 +7,6 @@ import { IntegratorCalendar } from "@/components/integrator/IntegratorCalendar";
 import { IntegratorDailyStepCard } from "@/components/integrator/IntegratorDailyStepCard";
 import { ProjectHeaderEditor } from "@/components/integrator/ProjectHeaderEditor";
 import { CatchUpMode } from "@/components/integrator/CatchUpMode";
-import { ProgressNarrativeBlock } from "@/components/integrator/ProgressNarrativeBlock";
 import { CelebrationMoment } from "@/components/integrator/CelebrationMoment";
 import { CreativeSpace } from "@/components/creative-space";
 import type { IntegratorProject, IntegratorPhase, IntegratorDailyStep } from "@/hooks/useIntegratorProjects";
@@ -195,13 +194,6 @@ export const FocusMode = ({
             phases={phases}
             onCompleteStep={onCompleteStep}
             currentDay={activeProject.current_day}
-          />
-          
-          {/* Progress Narrative Block */}
-          <ProgressNarrativeBlock
-            completedSteps={completedSteps}
-            totalSteps={steps.length}
-            projectTitle={activeProject.project_title}
           />
         </CardContent>
       </Card>
