@@ -476,7 +476,7 @@ const CouncilMeeting = ({ embedded = false }: CouncilMeetingProps) => {
 
   return (
     <div className={cn(
-      "bg-gradient-to-br from-primary/5 via-background to-accent/5 p-4",
+      "bg-gradient-to-br from-primary/5 via-background to-accent/5 p-4 pb-28",
       embedded ? "h-full overflow-y-auto" : "min-h-screen py-8"
     )}>
       {/* Council Introduction Modal for First-Time Users */}
@@ -700,8 +700,8 @@ const CouncilMeeting = ({ embedded = false }: CouncilMeetingProps) => {
                   className="w-full p-4 rounded-lg bg-gradient-to-r from-accent/10 to-primary/10 border-2 border-accent/30 hover:border-accent/60 transition-all text-left group"
                 >
                   <div className="flex items-start gap-3">
-                    <MessageCircle className="w-5 h-5 text-accent mt-0.5 group-hover:scale-110 transition-transform" />
-                    <p className="text-sm font-medium flex-1">{clarityQuestion}</p>
+                    <MessageCircle className="w-5 h-5 text-accent mt-0.5 group-hover:scale-110 transition-transform flex-shrink-0" />
+                    <p className="text-sm font-medium flex-1 break-words whitespace-normal">{clarityQuestion}</p>
                   </div>
                 </motion.button>
                 <p className="text-xs text-muted-foreground italic flex items-center gap-2">
@@ -939,20 +939,20 @@ const CouncilMeeting = ({ embedded = false }: CouncilMeetingProps) => {
                 initial={{ opacity: 0, y: 10 }}
                 animate={{ opacity: 1, y: 0 }}
               >
-                <Card className="border-2 border-dashed border-primary/30 bg-primary/5 hover:bg-primary/10 transition-colors cursor-pointer">
+              <Card className="border-2 border-dashed border-primary/30 bg-primary/5 hover:bg-primary/10 transition-colors cursor-pointer">
                   <CardContent className="pt-6 pb-4">
                     <p className="text-sm text-muted-foreground mb-4">
                       💭 The Council suggests:
                     </p>
                     <Button 
                       variant="outline" 
-                      className="w-full justify-start text-left h-auto py-4 px-4 border-primary/40 bg-background/80"
+                      className="w-full justify-start text-left h-auto py-4 px-4 border-primary/40 bg-background/80 whitespace-normal break-words"
                       onClick={() => {
                         setQuestion(suggestedNextQuestion);
                         continueAsking();
                       }}
                     >
-                      {suggestedNextQuestion}
+                      <span className="break-words whitespace-normal text-sm sm:text-base">{suggestedNextQuestion}</span>
                     </Button>
                     <p className="text-xs text-muted-foreground mt-3 italic text-center">
                       Click to answer

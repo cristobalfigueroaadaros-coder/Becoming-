@@ -1381,15 +1381,17 @@ IMPORTANT: Continue this conversation naturally. You reached out to the user abo
     const engagementData = analyzeEngagement(allUserMessages);
     console.log("Engagement analysis (cross-mentor):", engagementData);
     
-    // PDR v3: Soft minimum of 4 exchanges + engagement-based detection
+    // PDR 02: Increased minimum to 6 exchanges + HIGH engagement ONLY
     // IMPORTANT: If project name already agreed with another mentor, lower depth requirement
-    const baseDepthRequirement = crossMentorProjectAgreement.hasAgreedName ? 1 : 4;
+    const baseDepthRequirement = crossMentorProjectAgreement.hasAgreedName ? 1 : 6;
     const meetsDepthRequirement = conversationDepth >= baseDepthRequirement;
     
-    // If we have a cross-mentor agreement, we're more lenient on engagement too
+    // PDR 02: Only trigger on HIGH engagement with explicit agreement language
+    const hasExplicitAgreement = engagementData.signals.hasAgreement && 
+      /\b(yes|let's do it|i want to|that's exactly|perfect|let's build|i'm ready|commit)\b/i.test(message);
+    
     const meetsEngagementRequirement = crossMentorProjectAgreement.hasAgreedName || 
-      engagementData.level === 'HIGH' || 
-      (engagementData.level === 'MEDIUM' && engagementData.signals.hasAgreement);
+      (engagementData.level === 'HIGH' && hasExplicitAgreement);
     
     if (crossMentorProjectAgreement.hasAgreedName) {
       console.log("Cross-mentor project agreement found - lowered depth requirement to", baseDepthRequirement);
@@ -1482,26 +1484,30 @@ CLASSIFICATION (no existing project):
 - INSIGHT_ONLY - Interesting but not yet coherent enough for a project
 ` : ''}
 
-COHERENCE INDICATORS (REQUIRE VERY HIGH BAR - 0.90+ confidence):
+COHERENCE INDICATORS (REQUIRE EXTREMELY HIGH BAR - 0.95+ confidence):
 1. User language is becoming MORE SPECIFIC (not scattered)
 2. User is COMMITTING to a direction (not exploring multiple paths)
 3. User is using STABLE VOCABULARY (repeating same project/idea terms)
-4. User shows EXPLICIT AGREEMENT with mentor's naming/framing
+4. User shows EXPLICIT AGREEMENT with mentor's naming/framing (e.g. "yes", "let's do it", "that's exactly it")
 5. A clear PROJECT or CREATION is emerging with a CONCRETE name
 6. There is ENOUGH SUBSTANCE for action (not just a vague idea)
 7. User engagement is HIGH (see engagement analysis above)
 
-BE VERY CONSERVATIVE - THIS INTERRUPTS THE USER'S FLOW:
-- Only trigger when the user feels READY (look for agreement language)
-- If user is still asking questions → Return INSIGHT_ONLY
+BE EXTREMELY CONSERVATIVE - CREDIBILITY IS PARAMOUNT:
+- Default to INSIGHT_ONLY unless there is OVERWHELMING evidence
+- Require EXPLICIT user agreement with naming (e.g., "Yes, let's call it...", "That's exactly it")
+- If user has sent fewer than 6 messages in this session → Return INSIGHT_ONLY
+- If user is still asking exploratory questions → Return INSIGHT_ONLY
 - If user is still exploring multiple directions → Return INSIGHT_ONLY
-- If engagement is LOW or MEDIUM without agreement → Return INSIGHT_ONLY
+- If engagement is LOW or MEDIUM → Return INSIGHT_ONLY
 - For BRANCH_ADDITION: Only if it's a substantial, EXPLICITLY discussed complementary direction
 - For CORE_EVOLUTION: Only if user EXPLICITLY acknowledges a shift in direction
-- For NEW_CORE_PROJECT: Only if user has agreed with the concept naming
+- For NEW_CORE_PROJECT: Only if user has EXPLICITLY agreed with the concept naming
+
+The system should suggest evolution RARELY - it must feel special and earned.
 
 HOURS SINCE LAST CARD: ${hoursSinceLastCard.toFixed(1)} hours
-- If less than 24 hours → Be EXTRA conservative (prefer INSIGHT_ONLY)
+- If less than 48 hours → Be EXTRA conservative (require 0.98+ confidence, prefer INSIGHT_ONLY)
 
 YOU MUST RESPOND WITH VALID JSON ONLY:
 {
@@ -1516,10 +1522,10 @@ YOU MUST RESPOND WITH VALID JSON ONLY:
 }
 
 Only return isCoherent: true if:
-- confidence > 0.90 (higher bar)
-- You can extract a clear projectName
-- User has shown EXPLICIT agreement or HIGH engagement
-- At least 24 hours since last card (or this is truly exceptional)`;
+- confidence > 0.95 (very high bar)
+- You can extract a clear projectName that USER explicitly agreed to
+- User has shown EXPLICIT agreement language like "yes", "let's do it", "that's it"
+- At least 48 hours since last card (or 0.98+ confidence for exceptional cases)`;
 
       try {
         const coherenceResponse = await fetch("https://ai.gateway.lovable.dev/v1/chat/completions", {
@@ -1542,13 +1548,14 @@ Only return isCoherent: true if:
           try {
             const coherence = JSON.parse(coherenceText);
             
-            // PDR v3: Apply UNIVERSAL cooldown (24 hours for ALL card types)
-            const shouldApplyCooldown = hoursSinceLastCard < 24;
+            // PDR 02: Apply UNIVERSAL cooldown (48 hours for ALL card types) with 0.98 threshold during cooldown
+            const shouldApplyCooldown = hoursSinceLastCard < 48;
+            const cooldownThreshold = shouldApplyCooldown ? 0.98 : 0.95;
             
-            if (shouldApplyCooldown && coherence.confidence < 0.95) {
-              console.log("Skipping card due to 24h cooldown:", hoursSinceLastCard.toFixed(1), "hours since last card. Type:", coherence.coherenceType);
+            if (shouldApplyCooldown && coherence.confidence < 0.98) {
+              console.log("Skipping card due to 48h cooldown:", hoursSinceLastCard.toFixed(1), "hours since last card. Type:", coherence.coherenceType, "Confidence:", coherence.confidence);
               // Don't set projectCoherence - skip the card (unless extremely high confidence)
-            } else if (coherence.isCoherent && coherence.confidence > 0.90 && coherence.projectName && coherence.coherenceType !== 'INSIGHT_ONLY') {
+            } else if (coherence.isCoherent && coherence.confidence >= cooldownThreshold && coherence.projectName && coherence.coherenceType !== 'INSIGHT_ONLY') {
               projectCoherence = {
                 isCoherent: true,
                 coherenceType: coherence.coherenceType || (hasActiveSpine ? 'BRANCH_ADDITION' : 'NEW_CORE_PROJECT'),
