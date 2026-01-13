@@ -30,14 +30,36 @@ const Index = () => {
         // New signups go to Gravity Orientation
         navigate("/gravity/orientation");
       } else {
-        const { error } = await supabase.auth.signInWithPassword({
+        const { data: authData, error } = await supabase.auth.signInWithPassword({
           email,
           password,
         });
         if (error) throw error;
         toast.success("Welcome back!");
-        // Returning users - check their progress and redirect appropriately
-        navigate("/dashboard");
+        
+        // Check onboarding progress and route appropriately
+        if (authData.user) {
+          const { data: profile } = await supabase
+            .from("profiles")
+            .select("birth_name, gravity_transition_completed, council_introduction_completed, first_project_created_at")
+            .eq("id", authData.user.id)
+            .single();
+          
+          if (!profile?.birth_name) {
+            // Never started onboarding
+            navigate("/onboarding");
+          } else if (!profile.gravity_transition_completed) {
+            navigate("/gravity/transition");
+          } else if (!profile.council_introduction_completed) {
+            navigate("/gravity/council-intro");
+          } else if (!profile.first_project_created_at) {
+            navigate("/gravity/first-project");
+          } else {
+            navigate("/dashboard");
+          }
+        } else {
+          navigate("/dashboard");
+        }
       }
     } catch (error: any) {
       toast.error(error.message);

@@ -129,23 +129,32 @@ const ChatRedirect = () => {
 const App = () => {
   const [session, setSession] = useState<any>(null);
   const [loading, setLoading] = useState(true);
+  const [authReady, setAuthReady] = useState(false);
 
   useEffect(() => {
-    supabase.auth.getSession().then(({ data: { session } }) => {
+    // Initial session check
+    const checkSession = async () => {
+      const { data: { session } } = await supabase.auth.getSession();
       setSession(session);
+      setAuthReady(true);
       setLoading(false);
-    });
+    };
+    
+    checkSession();
 
+    // Listen for auth changes to prevent stale session renders
     const {
       data: { subscription },
     } = supabase.auth.onAuthStateChange((_event, session) => {
       setSession(session);
+      setAuthReady(true);
     });
 
     return () => subscription.unsubscribe();
   }, []);
 
-  if (loading) {
+  // Wait for auth state to be confirmed before rendering
+  if (loading || !authReady) {
     return (
       <div className="min-h-screen flex items-center justify-center">
         <p className="text-muted-foreground">Loading...</p>

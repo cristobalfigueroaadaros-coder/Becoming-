@@ -1,4 +1,4 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useMemo, useCallback } from "react";
 import { useSearchParams, useNavigate, useLocation } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
 import { cn } from "@/lib/utils";
@@ -6,6 +6,7 @@ import { Users, ArrowLeft, Lock } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { Button } from "@/components/ui/button";
+import { toast } from "sonner";
 
 // Lazy load the actual conversation components to avoid circular deps
 import CouncilMeetingPage from "./CouncilMeeting";
@@ -288,8 +289,14 @@ const Council = () => {
             return (
               <button
                 key={mentorType}
-                onClick={() => isUnlocked && handleSelectMentor(mentorType)}
-                disabled={!isUnlocked}
+                onClick={() => {
+                  // Strict lock enforcement - locked mentors cannot be interacted with
+                  if (!isUnlocked) {
+                    toast.info("This mentor is locked. Upgrade to unlock more mentors!");
+                    return;
+                  }
+                  handleSelectMentor(mentorType);
+                }}
                 className={cn(
                   "w-full flex items-center gap-3 p-3 rounded-lg transition-colors text-left",
                   isUnlocked 
@@ -318,8 +325,12 @@ const Council = () => {
                     <p className="text-xs text-muted-foreground truncate">Locked</p>
                   )}
                 </div>
+                {/* Locked mentors show secondary badge, unlocked show destructive */}
                 {notifications > 0 && (
-                  <Badge variant="destructive" className="rounded-full px-2">
+                  <Badge 
+                    variant={isUnlocked ? "destructive" : "secondary"} 
+                    className="rounded-full px-2"
+                  >
                     {notifications}
                   </Badge>
                 )}
