@@ -12,6 +12,7 @@ import { useFutureSelfOmnipresence } from "@/hooks/useFutureSelfOmnipresence";
 import { toast } from "@/hooks/use-toast";
 import { AppLayout } from "@/components/layout";
 import Index from "./pages/Index";
+import OnboardingRouter from "./components/OnboardingRouter";
 import OnboardingStep1 from "./pages/OnboardingStep1";
 import OnboardingStep2 from "./pages/OnboardingStep2";
 import OnboardingStep3 from "./pages/OnboardingStep3";
@@ -171,7 +172,7 @@ const App = () => {
         <FutureSelfOmnipresenceWrapper />
         <BrowserRouter>
           <Routes>
-            <Route path="/" element={session ? <Navigate to="/dashboard" /> : <Index />} />
+            <Route path="/" element={session ? <OnboardingRouter /> : <Index />} />
             {/* Redirect old /auth route to new merged page */}
             <Route path="/auth" element={<Navigate to="/" replace />} />
             
