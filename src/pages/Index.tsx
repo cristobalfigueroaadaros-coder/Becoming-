@@ -27,8 +27,8 @@ const Index = () => {
         });
         if (error) throw error;
         toast.success("Account created! Redirecting...");
-        // New signups go to Gravity Orientation
-        navigate("/gravity/orientation");
+        // OnboardingRouter will handle navigation based on profile state
+        // For new users, this will route to /gravity/orientation
       } else {
         const { data: authData, error } = await supabase.auth.signInWithPassword({
           email,
