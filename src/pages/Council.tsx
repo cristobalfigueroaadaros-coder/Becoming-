@@ -12,6 +12,15 @@ import { toast } from "sonner";
 import CouncilMeetingPage from "./CouncilMeeting";
 import ChatPage from "./Chat";
 
+// Type for location state passed from GravityFirstProject
+interface LocationState {
+  prefilledQuestion?: string;
+  isFirstProjectFlow?: boolean;
+  openerType?: string;
+  notificationContext?: any;
+  notificationId?: string;
+}
+
 // All mentors in the system
 const allMentorTypes = [
   "discipline_mentor", "strategist_mentor", "creative_visionary", 
@@ -374,7 +383,7 @@ const Council = () => {
         {/* Right Content Area */}
         <div className="flex-1 overflow-hidden h-full">
           {isConsole ? (
-            <CouncilMeetingPage embedded />
+            <CouncilMeetingPage embedded locationState={location.state} />
           ) : selectedMentor ? (
             <ChatPage mentorTypeOverride={selectedMentor} embedded />
           ) : (
@@ -394,7 +403,7 @@ const Council = () => {
             <MobileBackHeader />
             <div className="flex-1 overflow-hidden">
               {isConsole ? (
-                <CouncilMeetingPage embedded />
+                <CouncilMeetingPage embedded locationState={location.state} />
               ) : selectedMentor ? (
                 <ChatPage mentorTypeOverride={selectedMentor} embedded />
               ) : null}

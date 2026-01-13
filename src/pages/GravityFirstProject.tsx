@@ -93,9 +93,9 @@ const GravityFirstProject = () => {
       return;
     }
 
-    // Navigate to Council Meeting with the project idea pre-filled
-    // The Council will interact with the user, narrow down the idea, and eventually create the project
-    navigate('/council-meeting', { 
+    // Navigate directly to the new Council structure (not deprecated /council-meeting route)
+    // This preserves state and triggers the first project flow with mentor perspectives
+    navigate('/council?view=console', { 
       state: { 
         prefilledQuestion: projectIdea,
         isFirstProjectFlow: true,

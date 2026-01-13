@@ -64,12 +64,14 @@ const mentorNames: Record<string, string> = {
 
 interface CouncilMeetingProps {
   embedded?: boolean;
+  locationState?: LocationState | null;
 }
 
-const CouncilMeeting = ({ embedded = false }: CouncilMeetingProps) => {
+const CouncilMeeting = ({ embedded = false, locationState: propState }: CouncilMeetingProps) => {
   const navigate = useNavigate();
   const location = useLocation();
-  const locationState = location.state as LocationState | null;
+  // Use prop state if provided (embedded mode), otherwise use location state
+  const locationState = (propState || location.state) as LocationState | null;
   const { refetch } = useShadowEncounters();
   const { createProject } = useIntegratorProjects();
   const { triggerMicroWin } = useMicroWins();
