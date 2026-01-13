@@ -107,6 +107,9 @@ export function useIntegratorProjects() {
   const [activeSpine, setActiveSpine] = useState<ProjectSpine | null>(null);
   const [activeNode, setActiveNode] = useState<EvolutionNode | null>(null);
   const [nodeHistory, setNodeHistory] = useState<EvolutionNode[]>([]);
+  
+  // Track current user ID to detect session changes and prevent stale data
+  const [currentUserId, setCurrentUserId] = useState<string | null>(null);
 
   const loadProjects = useCallback(async () => {
     try {
@@ -123,10 +126,11 @@ export function useIntegratorProjects() {
       if (error) throw error;
       setProjects(data || []);
 
-      // Find active project
-      const active = data?.find(p => p.status === 'active');
+      // Find active project - explicitly check user_id matches to prevent stale data
+      const active = data?.find(p => p.status === 'active' && p.user_id === user.id);
       if (active) {
         setActiveProject(active);
+        setCurrentUserId(user.id);
         await loadProjectDetails(active.id);
       }
 
@@ -537,6 +541,36 @@ export function useIntegratorProjects() {
     return phases.find(p => p.id === todaysStep.phase_id);
   }, [phases, getTodaysStep]);
 
+  // Clear stale data and reload when user changes
+  useEffect(() => {
+    const { data: { subscription } } = supabase.auth.onAuthStateChange(
+      async (event, session) => {
+        const newUserId = session?.user?.id || null;
+        
+        // User changed - clear old data immediately to prevent stale renders
+        if (newUserId !== currentUserId) {
+          setProjects([]);
+          setActiveProject(null);
+          setPhases([]);
+          setSteps([]);
+          setActiveSpine(null);
+          setActiveNode(null);
+          setNodeHistory([]);
+          setCurrentUserId(newUserId);
+          
+          if (newUserId) {
+            loadProjects();
+          } else {
+            setLoading(false);
+          }
+        }
+      }
+    );
+
+    return () => subscription.unsubscribe();
+  }, [currentUserId, loadProjects]);
+
+  // Initial load
   useEffect(() => {
     loadProjects();
   }, [loadProjects]);
