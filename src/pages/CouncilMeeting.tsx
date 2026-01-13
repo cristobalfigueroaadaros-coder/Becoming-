@@ -420,8 +420,9 @@ const CouncilMeeting = ({ embedded = false, locationState: propState }: CouncilM
         return;
       }
 
-      // Navigate with the handoffId in state so Chat.tsx processes it
-      navigate(`/chat/${suggestedMentor.mentorType}`, {
+      // Navigate to the embedded Council view (not standalone /chat route)
+      // This ensures the handoff state is passed correctly through Council to ChatPage
+      navigate(`/council?view=${suggestedMentor.mentorType}`, {
         state: { handoffId: handoff.id }
       });
     } catch (error) {

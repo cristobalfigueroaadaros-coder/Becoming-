@@ -84,9 +84,10 @@ const mentorNames: Record<string, string> = {
 interface ChatProps {
   mentorTypeOverride?: string;
   embedded?: boolean;
+  locationState?: { handoffId?: string } | null;
 }
 
-const Chat = ({ mentorTypeOverride, embedded = false }: ChatProps) => {
+const Chat = ({ mentorTypeOverride, embedded = false, locationState: propState }: ChatProps) => {
   const { mentorType: mentorTypeParam } = useParams<{ mentorType: string }>();
   const mentorType = mentorTypeOverride || mentorTypeParam;
   const navigate = useNavigate();
@@ -148,13 +149,13 @@ const Chat = ({ mentorTypeOverride, embedded = false }: ChatProps) => {
     loadUserMentors();
   }, [mentorType]);
 
-  // Check for handoff state on mount
+  // Check for handoff state on mount - use prop state if provided (embedded mode)
   useEffect(() => {
-    const handoffState = location.state as { handoffId?: string } | null;
+    const handoffState = (propState || location.state) as { handoffId?: string } | null;
     if (handoffState?.handoffId && !isHandoffProcessed) {
       processHandoff(handoffState.handoffId);
     }
-  }, [location.state, mentorType]);
+  }, [propState, location.state, mentorType]);
 
   const processHandoff = async (handoffId: string) => {
     setLoading(true);

@@ -1267,6 +1267,16 @@ IMPORTANT: Continue this conversation naturally. You reached out to the user abo
     // === PDR v2.2: COHERENCE DETECTION WITH BRANCH CLASSIFICATION & COOLDOWN ===
     let projectCoherence = null;
     
+    // === PRE-CHECK: MENTOR-INITIATED PROJECT NAMING ===
+    // If the mentor explicitly proposed a project name in their response, detect it early
+    const mentorProposedProjectMatch = response.match(/(?:let's (?:make this a project|call it)|we'll call it|let's name it|project:?)\s*[:\-–]?\s*["']?([^"'\n.!?]+)["']?/i);
+    const mentorProposedProject = !!mentorProposedProjectMatch;
+    const extractedMentorProjectName = mentorProposedProjectMatch?.[1]?.trim().replace(/[.!?,;:]+$/, '') || null;
+    
+    if (mentorProposedProject && extractedMentorProjectName) {
+      console.log("Mentor proposed project name detected:", extractedMentorProjectName);
+    }
+    
     // Check if user has an active Project Spine
     let hasActiveSpine = false;
     let activeSpineInfo = null;
@@ -1397,8 +1407,25 @@ IMPORTANT: Continue this conversation naturally. You reached out to the user abo
       console.log("Cross-mentor project agreement found - depth requirement is", baseDepthRequirement, "(still requires engagement)");
     }
     
-    // Only detect coherence if BOTH requirements met
-    if (meetsDepthRequirement && meetsEngagementRequirement && message !== "__HANDOFF_INIT__" && chatHistory && chatHistory.length > 0) {
+    // === MENTOR-INITIATED PROJECT FAST PATH ===
+    // If mentor explicitly named a project AND user shows positive engagement, trigger commitment card with lower threshold
+    if (mentorProposedProject && extractedMentorProjectName && conversationDepth >= 4 && !hasActiveSpine) {
+      const userShowsPositiveInterest = /\b(sounds good|okay|sure|yes|interesting|love|like|great|perfect|exactly|that's it|let's do|agreed|definitely|absolutely)\b/i.test(message);
+      
+      if (userShowsPositiveInterest) {
+        projectCoherence = {
+          isCoherent: true,
+          projectName: extractedMentorProjectName,
+          projectDescription: `Project created through mentor guidance`,
+          confidence: 0.92,
+          coherenceType: 'NEW_CORE_PROJECT'
+        };
+        console.log("MENTOR-INITIATED PROJECT DETECTED:", extractedMentorProjectName);
+      }
+    }
+    
+    // Only detect coherence if BOTH requirements met AND not already detected via mentor-initiated path
+    if (!projectCoherence && meetsDepthRequirement && meetsEngagementRequirement && message !== "__HANDOFF_INIT__" && chatHistory && chatHistory.length > 0) {
       const recentHistory = chatHistory.slice(-6).map((m: any) => `${m.role.toUpperCase()}: ${m.content}`).join('\n');
       
       // PDR v2.2: Enhanced prompt with branch classification
