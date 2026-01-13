@@ -385,7 +385,7 @@ const Council = () => {
           {isConsole ? (
             <CouncilMeetingPage embedded locationState={location.state} />
           ) : selectedMentor ? (
-            <ChatPage mentorTypeOverride={selectedMentor} embedded />
+            <ChatPage mentorTypeOverride={selectedMentor} embedded locationState={location.state} />
           ) : (
             <div className="flex items-center justify-center h-full text-muted-foreground">
               Select a conversation
@@ -405,7 +405,7 @@ const Council = () => {
               {isConsole ? (
                 <CouncilMeetingPage embedded locationState={location.state} />
               ) : selectedMentor ? (
-                <ChatPage mentorTypeOverride={selectedMentor} embedded />
+                <ChatPage mentorTypeOverride={selectedMentor} embedded locationState={location.state} />
               ) : null}
             </div>
           </div>
