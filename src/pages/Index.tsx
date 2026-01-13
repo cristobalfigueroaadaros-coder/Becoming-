@@ -27,8 +27,8 @@ const Index = () => {
         });
         if (error) throw error;
         toast.success("Account created! Redirecting...");
-        // OnboardingRouter will handle navigation based on profile state
-        // For new users, this will route to /gravity/orientation
+        // New users go to orientation (Screen 2)
+        navigate("/gravity/orientation");
       } else {
         const { data: authData, error } = await supabase.auth.signInWithPassword({
           email,
@@ -41,12 +41,14 @@ const Index = () => {
         if (authData.user) {
           const { data: profile } = await supabase
             .from("profiles")
-            .select("birth_name, gravity_transition_completed, council_introduction_completed, first_project_created_at")
+            .select("birth_name, gravity_orientation_completed, gravity_transition_completed, council_introduction_completed, first_project_created_at")
             .eq("id", authData.user.id)
             .single();
           
-          if (!profile?.birth_name) {
-            // Never started onboarding
+          // Check orientation FIRST (it's the first step after sign-up)
+          if (!profile?.gravity_orientation_completed) {
+            navigate("/gravity/orientation");
+          } else if (!profile?.birth_name) {
             navigate("/onboarding");
           } else if (!profile.gravity_transition_completed) {
             navigate("/gravity/transition");
