@@ -1,9 +1,9 @@
-import React, { useState, useRef, useCallback } from 'react';
+import React, { useState, useRef, useCallback, useEffect } from 'react';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { Input } from '@/components/ui/input';
-import { Lightbulb, Plus, Maximize2, Minimize2, Inbox } from 'lucide-react';
+import { Lightbulb, Plus, Maximize2, Minimize2, Inbox, Tag, ChevronDown, ChevronUp } from 'lucide-react';
 import { useCreativeSpace } from '@/hooks/useCreativeSpace';
 import { InsightTile } from './InsightTile';
 import { NoteTile } from './NoteTile';
@@ -11,10 +11,17 @@ import { ConnectionLine } from './ConnectionLine';
 import { PageTabs } from './PageTabs';
 import { PatternHint } from './PatternHint';
 import { cn } from '@/lib/utils';
+import { supabase } from '@/integrations/supabase/client';
 
 interface CreativeSpaceProps {
   projectId: string;
   projectTitle: string;
+}
+
+interface UserKeyword {
+  id: string;
+  keyword: string;
+  frequency_count: number;
 }
 
 export function CreativeSpace({ projectId, projectTitle }: CreativeSpaceProps) {
@@ -27,6 +34,7 @@ export function CreativeSpace({ projectId, projectTitle }: CreativeSpaceProps) {
     loading,
     unassignedTiles,
     addNoteTile,
+    addKeywordTile,
     updateTilePosition,
     updateTileContent,
     updateTileColor,
@@ -46,12 +54,45 @@ export function CreativeSpace({ projectId, projectTitle }: CreativeSpaceProps) {
   const [connectingFrom, setConnectingFrom] = useState<string | null>(null);
   const [draggedTile, setDraggedTile] = useState<string | null>(null);
   const [quickNote, setQuickNote] = useState('');
+  const [keywords, setKeywords] = useState<UserKeyword[]>([]);
+  const [showKeywords, setShowKeywords] = useState(true);
   const canvasRef = useRef<HTMLDivElement>(null);
+
+  // Load user keywords
+  useEffect(() => {
+    const loadKeywords = async () => {
+      const { data: { user } } = await supabase.auth.getUser();
+      if (!user) return;
+      
+      const { data } = await supabase
+        .from('user_keywords')
+        .select('id, keyword, frequency_count')
+        .eq('user_id', user.id)
+        .order('frequency_count', { ascending: false })
+        .limit(20);
+      
+      if (data) {
+        setKeywords(data);
+      }
+    };
+    loadKeywords();
+  }, []);
+
+  // Check which keywords are already tiles
+  const keywordsInSpace = new Set(
+    tiles.filter(t => t.source_type === 'keyword').map(t => t.title.toLowerCase())
+  );
 
   const handleQuickNoteSubmit = () => {
     if (quickNote.trim()) {
       addNoteTile(quickNote.trim());
       setQuickNote('');
+    }
+  };
+
+  const handleKeywordClick = (keyword: string) => {
+    if (!keywordsInSpace.has(keyword.toLowerCase())) {
+      addKeywordTile(keyword);
     }
   };
 
@@ -168,6 +209,47 @@ export function CreativeSpace({ projectId, projectTitle }: CreativeSpaceProps) {
             <p className="text-xs text-muted-foreground mt-2">
               Click to add to this project's Creative Space
             </p>
+          </div>
+        )}
+
+        {/* Keyword Library */}
+        {keywords.length > 0 && (
+          <div className="mb-4 p-3 bg-green-500/5 rounded-lg border border-dashed border-green-500/30">
+            <div 
+              className="flex items-center justify-between cursor-pointer"
+              onClick={() => setShowKeywords(!showKeywords)}
+            >
+              <div className="flex items-center gap-2 text-sm text-green-600 dark:text-green-400">
+                <Tag className="w-4 h-4" />
+                <span>Keywords from Conversations ({keywords.length})</span>
+              </div>
+              {showKeywords ? <ChevronUp className="w-4 h-4 text-muted-foreground" /> : <ChevronDown className="w-4 h-4 text-muted-foreground" />}
+            </div>
+            {showKeywords && (
+              <>
+                <div className="flex flex-wrap gap-2 mt-2">
+                  {keywords.map(kw => (
+                    <Badge
+                      key={kw.id}
+                      variant={keywordsInSpace.has(kw.keyword.toLowerCase()) ? "outline" : "secondary"}
+                      className={cn(
+                        "cursor-pointer transition-colors",
+                        keywordsInSpace.has(kw.keyword.toLowerCase()) 
+                          ? "opacity-50 cursor-default" 
+                          : "hover:bg-green-500/20 hover:border-green-500"
+                      )}
+                      onClick={() => handleKeywordClick(kw.keyword)}
+                    >
+                      {kw.keyword}
+                      {!keywordsInSpace.has(kw.keyword.toLowerCase()) && <Plus className="w-3 h-3 ml-1 opacity-70" />}
+                    </Badge>
+                  ))}
+                </div>
+                <p className="text-xs text-muted-foreground mt-2">
+                  Click keywords to add them as tiles you can move and connect
+                </p>
+              </>
+            )}
           </div>
         )}
 

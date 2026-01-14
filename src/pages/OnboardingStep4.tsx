@@ -131,6 +131,11 @@ const OnboardingStep4 = () => {
   const [loading, setLoading] = useState(false);
   const [suggestedMentorIds, setSuggestedMentorIds] = useState<string[]>([]);
 
+  // Scroll to top on mount
+  useEffect(() => {
+    window.scrollTo({ top: 0, behavior: "auto" });
+  }, []);
+
   // Load user's focus from Step 2 and determine suggested mentors
   useEffect(() => {
     const userFocus = localStorage.getItem("onboarding_focus");
