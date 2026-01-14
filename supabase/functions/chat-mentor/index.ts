@@ -1410,17 +1410,80 @@ IMPORTANT: Continue this conversation naturally. You reached out to the user abo
     // === MENTOR-INITIATED PROJECT FAST PATH ===
     // If mentor explicitly named a project AND user shows positive engagement, trigger commitment card with lower threshold
     if (mentorProposedProject && extractedMentorProjectName && conversationDepth >= 4 && !hasActiveSpine) {
-      const userShowsPositiveInterest = /\b(sounds good|okay|sure|yes|interesting|love|like|great|perfect|exactly|that's it|let's do|agreed|definitely|absolutely)\b/i.test(message);
+      const userShowsPositiveInterest = /\b(sounds good|okay|sure|yes|interesting|love|like|great|perfect|exactly|that's it|let's do|agreed|definitely|absolutely|cool|nice)\b/i.test(message);
       
       if (userShowsPositiveInterest) {
+        // Don't use a weak name like "titled" or single word - generate a proper one if needed
+        const isWeakName = extractedMentorProjectName.length < 5 || 
+          /^(project|titled|the|my|a|an|this|it)$/i.test(extractedMentorProjectName);
+        
+        let finalProjectName = extractedMentorProjectName;
+        let projectDescription = "Project created through mentor guidance";
+        
+        // If the name is weak, generate a better one based on conversation
+        if (isWeakName) {
+          console.log("Weak project name detected:", extractedMentorProjectName, "- generating better name");
+          try {
+            const recentContext = chatHistory?.slice(-6).map((m: any) => `${m.role}: ${m.content}`).join('\n') || '';
+            const namingPrompt = `Based on this mentor conversation, generate a clear, specific project name and one-sentence intention.
+
+CONVERSATION:
+${recentContext}
+
+CURRENT MESSAGE: "${message}"
+MENTOR RESPONSE: "${response}"
+
+GENERATE:
+1. A meaningful project name (3-7 words, specific, evocative)
+2. A one-sentence intention statement explaining what this project aims to achieve
+
+RESPOND WITH JSON ONLY:
+{
+  "projectName": "Clear Specific Project Name",
+  "intentionStatement": "One sentence describing the project's purpose and intended outcome."
+}`;
+
+            const namingResponse = await fetch("https://ai.gateway.lovable.dev/v1/chat/completions", {
+              method: "POST",
+              headers: {
+                "Authorization": `Bearer ${Deno.env.get("LOVABLE_API_KEY")}`,
+                "Content-Type": "application/json",
+              },
+              body: JSON.stringify({
+                model: "google/gemini-2.5-flash-lite",
+                messages: [{ role: "user", content: namingPrompt }],
+              }),
+            });
+
+            if (namingResponse.ok) {
+              const namingData = await namingResponse.json();
+              let namingText = namingData.choices[0].message.content;
+              namingText = namingText.replace(/```json\n?/g, '').replace(/```\n?/g, '').trim();
+              
+              try {
+                const parsed = JSON.parse(namingText);
+                if (parsed.projectName && parsed.projectName.length >= 5) {
+                  finalProjectName = parsed.projectName;
+                  projectDescription = parsed.intentionStatement || projectDescription;
+                  console.log("Generated better project name:", finalProjectName);
+                }
+              } catch (e) {
+                console.error("Failed to parse project naming response");
+              }
+            }
+          } catch (e) {
+            console.error("Project name generation failed (non-fatal):", e);
+          }
+        }
+        
         projectCoherence = {
           isCoherent: true,
-          projectName: extractedMentorProjectName,
-          projectDescription: `Project created through mentor guidance`,
+          projectName: finalProjectName,
+          projectDescription: projectDescription,
           confidence: 0.92,
           coherenceType: 'NEW_CORE_PROJECT'
         };
-        console.log("MENTOR-INITIATED PROJECT DETECTED:", extractedMentorProjectName);
+        console.log("MENTOR-INITIATED PROJECT DETECTED:", finalProjectName);
       }
     }
     

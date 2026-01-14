@@ -20,6 +20,7 @@ import { HighlightedText } from "@/components/HighlightedText";
 import { InsightActionButton } from "@/components/InsightActionButton";
 import { ValueMapUnlockCelebration } from "@/components/ValueMapUnlockCelebration";
 import { MentorSuggestionCard } from "@/components/MentorSuggestionCard";
+import { canonicalizeMentorType, mentorDisplayNames } from "@/lib/mentorTypes";
 
 interface ValueMapDetection {
   blockKey: string;
@@ -390,6 +391,17 @@ const CouncilMeeting = ({ embedded = false, locationState: propState }: CouncilM
         return;
       }
 
+      // Canonicalize the mentor type to handle aliases like "creative_mentor" -> "creative_visionary"
+      const canonicalMentorType = canonicalizeMentorType(suggestedMentor.mentorType);
+      if (!canonicalMentorType) {
+        console.error("Invalid mentor type suggested:", suggestedMentor.mentorType);
+        toast.error("That mentor isn't available yet. Please choose from the list.");
+        return;
+      }
+      
+      const displayName = mentorDisplayNames[canonicalMentorType] || canonicalMentorType.replace(/_/g, ' ');
+      console.log("Mentor suggestion accepted:", suggestedMentor.mentorType, "→", canonicalMentorType);
+
       // Build source messages from conversation history
       const sourceMessages = conversationHistory.map(h => ({
         role: h.role,
@@ -405,7 +417,7 @@ const CouncilMeeting = ({ embedded = false, locationState: propState }: CouncilM
         .insert({
           user_id: user.id,
           source_mentor_type: "council",
-          target_mentor_type: suggestedMentor.mentorType,
+          target_mentor_type: canonicalMentorType,
           source_messages: sourceMessages,
           journey_topic: journeyTopic,
           handoff_summary: suggestedMentor.suggestionMessage,
@@ -420,9 +432,11 @@ const CouncilMeeting = ({ embedded = false, locationState: propState }: CouncilM
         return;
       }
 
+      toast.success(`Connecting you with ${displayName}...`);
+
       // Navigate to the embedded Council view (not standalone /chat route)
       // This ensures the handoff state is passed correctly through Council to ChatPage
-      navigate(`/council?view=${suggestedMentor.mentorType}`, {
+      navigate(`/council?view=${canonicalMentorType}`, {
         state: { handoffId: handoff.id }
       });
     } catch (error) {

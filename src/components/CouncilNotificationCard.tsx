@@ -40,11 +40,20 @@ export const CouncilNotificationCard = ({
 
       onRespond();
       
-      // Navigate to council meeting with context
-      navigate("/council-meeting", {
+      // Navigate to unified Council route with full context
+      // This ensures the Council shows the actual notification content
+      navigate("/council?view=console", {
         state: {
-          notificationContext: notification.context_data,
-          prefilledQuestion: notification.context_data?.suggested_question,
+          openerType: notification.notification_type === "breakthrough_followup" 
+            ? "breakthrough_followup" 
+            : "check_in",
+          notificationContext: {
+            ...notification.context_data,
+            notification_title: notification.title,
+            notification_message: notification.message,
+            notification_type: notification.notification_type,
+          },
+          prefilledQuestion: notification.context_data?.suggested_question || notification.message,
         }
       });
     } catch (error) {

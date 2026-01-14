@@ -63,6 +63,7 @@ interface UseCreativeSpaceReturn {
   // Tile operations
   addInsightTile: (title: string, content: string, sourceType: string, sourceLabel: string, position?: {x: number, y: number}) => Promise<void>;
   addNoteTile: (content?: string, position?: {x: number, y: number}) => Promise<void>;
+  addKeywordTile: (keyword: string, position?: {x: number, y: number}) => Promise<void>;
   updateTilePosition: (tileId: string, x: number, y: number) => Promise<void>;
   updateTileContent: (tileId: string, title: string, content?: string) => Promise<void>;
   updateTileColor: (tileId: string, color: string) => Promise<void>;
@@ -261,6 +262,44 @@ export function useCreativeSpace(projectId: string | null): UseCreativeSpaceRetu
     }
 
     setTiles(prev => [...prev, data as CreativeSpaceTile]);
+  };
+
+  const addKeywordTile = async (keyword: string, position?: {x: number, y: number}) => {
+    if (!projectId) return;
+
+    const { data: { user } } = await supabase.auth.getUser();
+    if (!user) return;
+
+    const newPosition = position || { 
+      x: 200 + Math.random() * 150, 
+      y: 200 + Math.random() * 150 
+    };
+
+    const { data, error } = await supabase
+      .from('creative_space_tiles')
+      .insert({
+        user_id: user.id,
+        project_id: projectId,
+        tile_type: 'note',
+        title: keyword,
+        content: `Keyword from your conversations`,
+        source_type: 'keyword',
+        source_label: 'Extracted Keyword',
+        position_x: newPosition.x,
+        position_y: newPosition.y,
+        page_id: currentPage?.id,
+        color: '#22c55e' // Green for keywords
+      })
+      .select()
+      .single();
+
+    if (error) {
+      toast.error('Failed to add keyword');
+      return;
+    }
+
+    setTiles(prev => [...prev, data as CreativeSpaceTile]);
+    toast.success(`Added "${keyword}" to Creative Space`);
   };
 
   const updateTilePosition = async (tileId: string, x: number, y: number) => {
@@ -489,6 +528,7 @@ export function useCreativeSpace(projectId: string | null): UseCreativeSpaceRetu
     unassignedTiles,
     addInsightTile,
     addNoteTile,
+    addKeywordTile,
     updateTilePosition,
     updateTileContent,
     updateTileColor,

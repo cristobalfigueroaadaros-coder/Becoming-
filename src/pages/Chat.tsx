@@ -381,8 +381,14 @@ const Chat = ({ mentorTypeOverride, embedded = false, locationState: propState }
     setLoading(true);
 
     try {
-      const { data: { user } } = await supabase.auth.getUser();
-      if (!user) throw new Error("Not authenticated");
+      // Use session-first auth check with retry capability
+      const { data: { session } } = await supabase.auth.getSession();
+      if (!session) {
+        toast.error("Your session has expired. Please sign in again.");
+        navigate("/");
+        return;
+      }
+      const user = session.user;
 
       const { data: userMsgData } = await supabase.from("chats").insert({
         user_id: user.id,
@@ -393,9 +399,26 @@ const Chat = ({ mentorTypeOverride, embedded = false, locationState: propState }
       
       if (userMsgData) setMessages((prev) => [...prev, userMsgData]);
 
-      const { data, error } = await supabase.functions.invoke("chat-mentor", {
+      // Invoke chat-mentor with retry on auth failure
+      let data, error;
+      ({ data, error } = await supabase.functions.invoke("chat-mentor", {
         body: { mentorType, message: userMessage },
-      });
+      }));
+
+      // If auth error, try refreshing session and retry once
+      if (error?.message?.includes("Not authenticated") || error?.message?.includes("401")) {
+        console.log("Auth error, attempting session refresh...");
+        const { error: refreshError } = await supabase.auth.refreshSession();
+        if (refreshError) {
+          toast.error("Your session has expired. Please sign in again.");
+          navigate("/");
+          return;
+        }
+        // Retry the request
+        ({ data, error } = await supabase.functions.invoke("chat-mentor", {
+          body: { mentorType, message: userMessage },
+        }));
+      }
 
       if (error) throw error;
 
