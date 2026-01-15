@@ -271,8 +271,29 @@ const CouncilMeeting = ({ embedded = false, locationState: propState }: CouncilM
 
     setLoading(true);
     try {
+      // Session-first authentication (more resilient than getUser alone)
+      const { data: { session } } = await supabase.auth.getSession();
+      
+      if (!session) {
+        // Try to refresh the session once before giving up
+        const { data: refreshData, error: refreshError } = await supabase.auth.refreshSession();
+        
+        if (refreshError || !refreshData.session) {
+          toast.error("Your session has expired. Please sign in again.");
+          navigate("/");
+          setLoading(false);
+          return;
+        }
+      }
+      
+      // Now get the user (session is valid)
       const { data: { user } } = await supabase.auth.getUser();
-      if (!user) throw new Error("Not authenticated");
+      if (!user) {
+        toast.error("Unable to verify your session. Please sign in again.");
+        navigate("/");
+        setLoading(false);
+        return;
+      }
 
       const { data: mentors } = await supabase
         .from("user_mentors")
@@ -365,9 +386,9 @@ const CouncilMeeting = ({ embedded = false, locationState: propState }: CouncilM
     setSuggestedMentor(null);
   };
 
-  const continueAsking = () => {
+  const continueAsking = (prefillQuestion?: string) => {
     setStage('input');
-    setQuestion("");
+    setQuestion(prefillQuestion || ""); // Use prefilled question if provided
     setCouncilInsight("");
     setMentorPerspectives({});
     setBanterLines([]);
@@ -965,8 +986,8 @@ const CouncilMeeting = ({ embedded = false, locationState: propState }: CouncilM
                       variant="outline" 
                       className="w-full justify-start text-left h-auto py-4 px-4 border-primary/40 bg-background/80 whitespace-normal break-words"
                       onClick={() => {
-                        setQuestion(suggestedNextQuestion);
-                        continueAsking();
+                        // Pass the suggested question directly to continueAsking
+                        continueAsking(suggestedNextQuestion);
                       }}
                     >
                       <span className="break-words whitespace-normal text-sm sm:text-base">{suggestedNextQuestion}</span>
@@ -1049,7 +1070,7 @@ const CouncilMeeting = ({ embedded = false, locationState: propState }: CouncilM
                         Add this insight to my project
                       </Button>
                       <Button 
-                        onClick={continueAsking} 
+                        onClick={() => continueAsking()} 
                         variant="outline" 
                         className="flex-1"
                         size="lg"
