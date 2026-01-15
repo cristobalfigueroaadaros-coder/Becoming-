@@ -1269,12 +1269,114 @@ IMPORTANT: Continue this conversation naturally. You reached out to the user abo
     
     // === PRE-CHECK: MENTOR-INITIATED PROJECT NAMING ===
     // If the mentor explicitly proposed a project name in their response, detect it early
-    const mentorProposedProjectMatch = response.match(/(?:let's (?:make this a project|call it)|we'll call it|let's name it|project:?)\s*[:\-–]?\s*["']?([^"'\n.!?]+)["']?/i);
-    const mentorProposedProject = !!mentorProposedProjectMatch;
-    const extractedMentorProjectName = mentorProposedProjectMatch?.[1]?.trim().replace(/[.!?,;:]+$/, '') || null;
+    // PRIORITY 1: Look for quoted titles first (most reliable)
+    const quotedNameMatch = response.match(/["']([^"']{3,60})["']/);
     
-    if (mentorProposedProject && extractedMentorProjectName) {
-      console.log("Mentor proposed project name detected:", extractedMentorProjectName);
+    // PRIORITY 2: Look for explicit naming patterns
+    const explicitNamePatterns = [
+      /(?:let's call it|we'll call it|i'd call it|name it|call this)\s*[:\-–]?\s*["']?([^"'\n.!?,;:]{3,50})["']?/i,
+      /(?:project|initiative)(?:\s*name)?[:\-–]\s*["']?([^"'\n.!?,;:]{3,50})["']?/i,
+      /(?:the\s+)?["']([^"']{3,50})["']\s*(?:project|initiative|journey)/i,
+    ];
+    
+    let extractedMentorProjectName: string | null = null;
+    let mentorProposedProject = false;
+    
+    // Try quoted name first
+    if (quotedNameMatch) {
+      const candidate = quotedNameMatch[1].trim();
+      // Sanity check: must look like a title, not a sentence
+      if (isValidProjectName(candidate)) {
+        extractedMentorProjectName = candidate;
+        mentorProposedProject = true;
+        console.log("Quoted project name found:", extractedMentorProjectName);
+      }
+    }
+    
+    // If no quoted name, try explicit patterns
+    if (!extractedMentorProjectName) {
+      for (const pattern of explicitNamePatterns) {
+        const match = response.match(pattern);
+        if (match) {
+          const candidate = match[1].trim().replace(/[.!?,;:]+$/, '');
+          if (isValidProjectName(candidate)) {
+            extractedMentorProjectName = candidate;
+            mentorProposedProject = true;
+            console.log("Explicit pattern project name found:", extractedMentorProjectName);
+            break;
+          }
+        }
+      }
+    }
+    
+    // PRIORITY 3: Scan conversation history for agreed names
+    if (!extractedMentorProjectName && chatHistory && chatHistory.length > 0) {
+      const agreedName = findAgreedProjectName(chatHistory, response);
+      if (agreedName) {
+        extractedMentorProjectName = agreedName;
+        mentorProposedProject = true;
+        console.log("Agreed project name from history:", extractedMentorProjectName);
+      }
+    }
+    
+    // Helper function to validate project name
+    function isValidProjectName(name: string): boolean {
+      if (!name || name.length < 3 || name.length > 60) return false;
+      
+      // Too many words = likely a sentence, not a title
+      const wordCount = name.split(/\s+/).length;
+      if (wordCount > 9) return false;
+      
+      // Contains sentence patterns (verbs + conjunctions suggesting action, not title)
+      const sentencePatterns = /\b(within|start|designing|build|work|would|could|should|actually|then|and then|how|when|where|what|which|because|since|although)\b/i;
+      if (sentencePatterns.test(name)) return false;
+      
+      // Too generic / placeholder
+      const genericPatterns = /^(project|titled|the|my|a|an|this|it|untitled)$/i;
+      if (genericPatterns.test(name)) return false;
+      
+      return true;
+    }
+    
+    // Helper function to find agreed project name from conversation history
+    function findAgreedProjectName(history: any[], mentorResponse: string): string | null {
+      // Check recent messages (last 10) for naming patterns
+      const recentMessages = history.slice(-10);
+      
+      // Patterns that indicate an agreed name
+      const nameAgreementPatterns = [
+        /(?:let's call it|we'll call it|i'll call it|named?|call this)\s*["']([^"']{3,50})["']/i,
+        /["']([^"']{3,50})["']\s*(?:sounds|feels|is)\s*(?:good|right|perfect)/i,
+        /project\s*(?:name)?[:\-]\s*["']?([^"'\n.!?,;:]{3,50})["']?/i,
+      ];
+      
+      // Also look for "The X" patterns that are titles
+      const titlePatterns = [
+        /["'](The [A-Z][^"']{2,47})["']/,
+      ];
+      
+      // Check mentor response first
+      for (const pattern of [...nameAgreementPatterns, ...titlePatterns]) {
+        const match = mentorResponse.match(pattern);
+        if (match && isValidProjectName(match[1].trim())) {
+          return match[1].trim();
+        }
+      }
+      
+      // Check recent messages
+      for (let i = recentMessages.length - 1; i >= 0; i--) {
+        const msg = recentMessages[i];
+        const content = msg.content || '';
+        
+        for (const pattern of [...nameAgreementPatterns, ...titlePatterns]) {
+          const match = content.match(pattern);
+          if (match && isValidProjectName(match[1].trim())) {
+            return match[1].trim();
+          }
+        }
+      }
+      
+      return null;
     }
     
     // Check if user has an active Project Spine
@@ -1413,19 +1515,28 @@ IMPORTANT: Continue this conversation naturally. You reached out to the user abo
       const userShowsPositiveInterest = /\b(sounds good|okay|sure|yes|interesting|love|like|great|perfect|exactly|that's it|let's do|agreed|definitely|absolutely|cool|nice)\b/i.test(message);
       
       if (userShowsPositiveInterest) {
-        // Don't use a weak name like "titled" or single word - generate a proper one if needed
-        const isWeakName = extractedMentorProjectName.length < 5 || 
-          /^(project|titled|the|my|a|an|this|it)$/i.test(extractedMentorProjectName);
+        // Check if name passes our stricter validation
+        const isWeakName = !isValidProjectName(extractedMentorProjectName);
         
         let finalProjectName = extractedMentorProjectName;
-        let projectDescription = "Project created through mentor guidance";
+        let projectDescription = "";
         
-        // If the name is weak, generate a better one based on conversation
-        if (isWeakName) {
-          console.log("Weak project name detected:", extractedMentorProjectName, "- generating better name");
+        // ALWAYS generate intention statement (no more generic fallback)
+        // Also regenerate name if it's weak
+        const needsRegeneration = isWeakName || !projectDescription;
+        
+        if (needsRegeneration) {
+          console.log("Generating name/intention:", isWeakName ? "weak name detected" : "need intention statement");
           try {
             const recentContext = chatHistory?.slice(-6).map((m: any) => `${m.role}: ${m.content}`).join('\n') || '';
-            const namingPrompt = `Based on this mentor conversation, generate a clear, specific project name and one-sentence intention.
+            
+            // Find any agreed names in conversation to preserve them
+            const agreedName = findAgreedProjectName(chatHistory || [], response);
+            const preserveNameInstruction = agreedName && isValidProjectName(agreedName) 
+              ? `IMPORTANT: The conversation already agreed on the name "${agreedName}". You MUST use this exact name.`
+              : '';
+            
+            const namingPrompt = `Based on this mentor conversation, ${isWeakName ? 'generate a project name and' : 'using the name "' + finalProjectName + '",'} generate an intention statement.
 
 CONVERSATION:
 ${recentContext}
@@ -1433,9 +1544,17 @@ ${recentContext}
 CURRENT MESSAGE: "${message}"
 MENTOR RESPONSE: "${response}"
 
+${preserveNameInstruction}
+
 GENERATE:
-1. A meaningful project name (3-7 words, specific, evocative)
-2. A one-sentence intention statement explaining what this project aims to achieve
+1. A meaningful project name (3-7 words, specific, evocative - NOT a sentence)
+2. A one-sentence intention statement (concrete outcome, tied to user's context)
+
+RULES:
+- Project name must be 3-7 words MAX
+- Project name should be a TITLE, not a sentence
+- Intention statement should explain the project's purpose in ONE sentence
+- Be specific to what the user discussed, NOT generic
 
 RESPOND WITH JSON ONLY:
 {
@@ -1462,10 +1581,17 @@ RESPOND WITH JSON ONLY:
               
               try {
                 const parsed = JSON.parse(namingText);
-                if (parsed.projectName && parsed.projectName.length >= 5) {
+                
+                // Only update name if we need to AND the new name is valid
+                if (isWeakName && parsed.projectName && isValidProjectName(parsed.projectName)) {
                   finalProjectName = parsed.projectName;
-                  projectDescription = parsed.intentionStatement || projectDescription;
                   console.log("Generated better project name:", finalProjectName);
+                }
+                
+                // Always take the intention statement
+                if (parsed.intentionStatement && parsed.intentionStatement.length > 10) {
+                  projectDescription = parsed.intentionStatement;
+                  console.log("Generated intention statement:", projectDescription);
                 }
               } catch (e) {
                 console.error("Failed to parse project naming response");
@@ -1476,6 +1602,11 @@ RESPOND WITH JSON ONLY:
           }
         }
         
+        // Final fallback if we still don't have a valid intention
+        if (!projectDescription || projectDescription.length < 10) {
+          projectDescription = `A focused project to bring "${finalProjectName}" to life through intentional action.`;
+        }
+        
         projectCoherence = {
           isCoherent: true,
           projectName: finalProjectName,
@@ -1483,7 +1614,7 @@ RESPOND WITH JSON ONLY:
           confidence: 0.92,
           coherenceType: 'NEW_CORE_PROJECT'
         };
-        console.log("MENTOR-INITIATED PROJECT DETECTED:", finalProjectName);
+        console.log("MENTOR-INITIATED PROJECT DETECTED:", finalProjectName, "| Intention:", projectDescription);
       }
     }
     
