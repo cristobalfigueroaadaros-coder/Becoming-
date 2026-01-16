@@ -2,7 +2,7 @@ import { useState, useEffect, useMemo, useCallback } from "react";
 import { useSearchParams, useNavigate, useLocation } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
 import { cn } from "@/lib/utils";
-import { Users, ArrowLeft, Lock } from "lucide-react";
+import { Users, ArrowLeft, Lock, Hammer } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { Button } from "@/components/ui/button";
@@ -284,6 +284,23 @@ const Council = () => {
                 {councilNotifications}
               </Badge>
             )}
+          </button>
+
+          {/* Builders Team (Group Chat) */}
+          <button
+            onClick={() => navigate('/builders-team')}
+            className={cn(
+              "w-full flex items-center gap-3 p-3 rounded-lg transition-colors text-left",
+              "hover:bg-muted"
+            )}
+          >
+            <div className="w-10 h-10 rounded-full bg-lime-500/20 flex items-center justify-center">
+              <Hammer className="w-5 h-5 text-lime-500" />
+            </div>
+            <div className="flex-1 min-w-0">
+              <p className="font-medium truncate">Builders Team</p>
+              <p className="text-xs text-muted-foreground truncate">Design, UX & Gamification</p>
+            </div>
           </button>
 
           {/* Divider */}

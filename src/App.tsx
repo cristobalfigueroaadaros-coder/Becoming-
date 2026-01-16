@@ -38,6 +38,7 @@ import Chat from "./pages/Chat";
 import CouncilMeeting from "./pages/CouncilMeeting";
 import Council from "./pages/Council";
 import CouncilLog from "./pages/CouncilLog";
+import BuildersTeam from "./pages/BuildersTeam";
 import MyTasks from "./pages/MyTasks";
 import YourNewTasks from "./pages/YourNewTasks";
 import Premium from "./pages/Premium";
@@ -232,6 +233,10 @@ const App = () => {
             <Route
               path="/council"
               element={session ? <AppLayout><Council /></AppLayout> : <Navigate to="/" />}
+            />
+            <Route
+              path="/builders-team"
+              element={session ? <AppLayout><BuildersTeam /></AppLayout> : <Navigate to="/" />}
             />
             <Route
               path="/creation-lab"
