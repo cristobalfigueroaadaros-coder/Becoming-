@@ -21,12 +21,15 @@ interface LocationState {
   notificationId?: string;
 }
 
-// All mentors in the system
+// All mentors in the system (including new PDR expansion mentors)
 const allMentorTypes = [
   "discipline_mentor", "strategist_mentor", "creative_visionary", 
   "quantum_inventor", "mystic_mentor", "business_mentor",
   "marketing_mentor", "scientific_mentor", "heart_mentor",
-  "ancient_sage", "alignment_mentor", "oracle_mother", "future_self"
+  "ancient_sage", "alignment_mentor", "oracle_mother", "future_self",
+  // New mentors from PDR expansion
+  "perspective_mentor", "challenger_mentor", "design_thinking_mentor",
+  "ux_mentor", "gamification_mentor"
 ];
 
 // Mentor configuration with colors
@@ -44,6 +47,12 @@ const mentorConfig: Record<string, { name: string; color: string; icon: string }
   alignment_mentor: { name: "Alignment Mentor", color: "bg-emerald-500", icon: "🧭" },
   oracle_mother: { name: "Oracle Mother", color: "bg-violet-500", icon: "🌙" },
   future_self: { name: "Future Self", color: "bg-primary", icon: "✨" },
+  // New mentors from PDR expansion
+  perspective_mentor: { name: "Perspective Mentor", color: "bg-sky-500", icon: "🗺️" },
+  challenger_mentor: { name: "Challenger Mentor", color: "bg-red-600", icon: "⚔️" },
+  design_thinking_mentor: { name: "Design Thinking Mentor", color: "bg-lime-500", icon: "🧪" },
+  ux_mentor: { name: "UX Mentor", color: "bg-fuchsia-500", icon: "💜" },
+  gamification_mentor: { name: "Gamification Mentor", color: "bg-yellow-500", icon: "🎮" },
 };
 
 const Council = () => {

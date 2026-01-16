@@ -13,7 +13,13 @@ export const VALID_MENTOR_IDS = [
   "ancient_sage",
   "alignment_mentor",
   "oracle_mother",
-  "future_self"
+  "future_self",
+  // New mentors from PDR expansion
+  "perspective_mentor",
+  "challenger_mentor",
+  "design_thinking_mentor",
+  "ux_mentor",
+  "gamification_mentor"
 ] as const;
 
 export type ValidMentorId = typeof VALID_MENTOR_IDS[number];
@@ -32,6 +38,12 @@ export const mentorDisplayNames: Record<ValidMentorId, string> = {
   oracle_mother: "The Oracle Mother",
   heart_mentor: "The Heart Mentor",
   future_self: "Your Future Self",
+  // New mentors from PDR expansion
+  perspective_mentor: "The Perspective Mentor",
+  challenger_mentor: "The Challenger Mentor",
+  design_thinking_mentor: "The Design Thinking Mentor",
+  ux_mentor: "The User Experience Mentor",
+  gamification_mentor: "The Gamification Mentor",
 };
 
 // Map of common aliases to canonical mentor IDs
@@ -96,6 +108,37 @@ const mentorAliases: Record<string, ValidMentorId> = {
   "future": "future_self",
   "future self": "future_self",
   "your future self": "future_self",
+  
+  // Perspective Mentor
+  "perspective": "perspective_mentor",
+  "cartographer": "perspective_mentor",
+  "the cartographer": "perspective_mentor",
+  "the perspective": "perspective_mentor",
+  
+  // Challenger Mentor
+  "challenger": "challenger_mentor",
+  "socratic": "challenger_mentor",
+  "the challenger": "challenger_mentor",
+  "socratic challenger": "challenger_mentor",
+  
+  // Design Thinking Mentor
+  "design thinking": "design_thinking_mentor",
+  "design_thinking": "design_thinking_mentor",
+  "experimenter": "design_thinking_mentor",
+  "the experimenter": "design_thinking_mentor",
+  "experimenter companion": "design_thinking_mentor",
+  
+  // UX Mentor
+  "ux": "ux_mentor",
+  "user experience": "ux_mentor",
+  "empathic guide": "ux_mentor",
+  "the empathic guide": "ux_mentor",
+  
+  // Gamification Mentor
+  "gamification": "gamification_mentor",
+  "game mentor": "gamification_mentor",
+  "experience architect": "gamification_mentor",
+  "the experience architect": "gamification_mentor",
 };
 
 /**

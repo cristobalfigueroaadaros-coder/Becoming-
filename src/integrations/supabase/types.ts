@@ -3218,6 +3218,11 @@ export type Database = {
         | "scientific_mentor"
         | "alignment_mentor"
         | "oracle_mother"
+        | "perspective_mentor"
+        | "challenger_mentor"
+        | "design_thinking_mentor"
+        | "ux_mentor"
+        | "gamification_mentor"
     }
     CompositeTypes: {
       [_ in never]: never
@@ -3363,6 +3368,11 @@ export const Constants = {
         "scientific_mentor",
         "alignment_mentor",
         "oracle_mother",
+        "perspective_mentor",
+        "challenger_mentor",
+        "design_thinking_mentor",
+        "ux_mentor",
+        "gamification_mentor",
       ],
     },
   },
