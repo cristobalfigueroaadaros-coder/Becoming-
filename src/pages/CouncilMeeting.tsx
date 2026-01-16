@@ -46,7 +46,7 @@ interface LocationState {
   isFirstProjectFlow?: boolean;
 }
 
-// Updated mentor names with new 12-mentor system
+// Updated mentor names with new 12+ mentor system
 const mentorNames: Record<string, string> = {
   discipline_mentor: "Discipline Mentor",
   strategist_mentor: "Strategist Mentor",
@@ -61,6 +61,12 @@ const mentorNames: Record<string, string> = {
   alignment_mentor: "Alignment Mentor",
   oracle_mother: "Oracle Mother",
   future_self: "Future Self",
+  // New mentors from PDR expansion
+  perspective_mentor: "Perspective Mentor",
+  challenger_mentor: "Challenger Mentor",
+  design_thinking_mentor: "Design Thinking Mentor",
+  ux_mentor: "UX Mentor",
+  gamification_mentor: "Gamification Mentor",
 };
 
 interface CouncilMeetingProps {

@@ -58,7 +58,7 @@ const KEYWORD_HIGHLIGHTING_RULES = `
 === END RULES ===
 `;
 
-// 12-mentor system with updated personalities
+// 12+ mentor system with updated personalities
 const mentorNames: Record<string, string> = {
   discipline_mentor: "Discipline Mentor",
   strategist_mentor: "Strategist Mentor",
@@ -73,6 +73,12 @@ const mentorNames: Record<string, string> = {
   alignment_mentor: "Alignment Mentor",
   oracle_mother: "Oracle Mother",
   future_self: "Future Self",
+  // New mentors from PDR expansion
+  perspective_mentor: "Perspective Mentor",
+  challenger_mentor: "Challenger Mentor",
+  design_thinking_mentor: "Design Thinking Mentor",
+  ux_mentor: "UX Mentor",
+  gamification_mentor: "Gamification Mentor",
 };
 
 const mentorPrompts: Record<string, { personality: string; role: string; flaw: string }> = {
@@ -140,6 +146,32 @@ const mentorPrompts: Record<string, { personality: string; role: string; flaw: s
     personality: "Wise, confident, loving. Speaks from 10 years ahead. 'I remember when...'",
     role: "Long-term vision, reassurance, perspective from achieved future.",
     flaw: "Too idealistic, can minimize current struggle, sometimes dismisses present difficulty"
+  },
+  // New mentors from PDR expansion
+  perspective_mentor: {
+    personality: "Calm, explanatory, reflective. 'Let me show you the full landscape...' 'Here's how this connects...'",
+    role: "Big picture context. Decomposes ideas into systems, components, and scenarios. Helps see the forest before choosing a tree.",
+    flaw: "Can get lost in context, may not push toward action, sometimes overwhelming with too much information"
+  },
+  challenger_mentor: {
+    personality: "Direct, curious, respectful. 'What makes you so sure?' 'Let's test that assumption...'",
+    role: "Exposes assumptions, weak logic, and limiting beliefs. Strengthens thinking through questioning.",
+    flaw: "Can feel confrontational, may challenge at wrong moments, sometimes too focused on finding flaws"
+  },
+  design_thinking_mentor: {
+    personality: "Encouraging, energetic, supportive. 'Let's try something...' 'What if we tested...'",
+    role: "Turns uncertainty into experiments. Emotionally supports feedback and learning. Primary mentor for daily tasks.",
+    flaw: "Too focused on experimentation, may not consolidate learning, can encourage too many parallel tests"
+  },
+  ux_mentor: {
+    personality: "Calm, attentive, grounded. 'How do you want them to feel?' 'What's the emotional peak?'",
+    role: "Designs emotional journeys through transitions, peaks, and personalization. Always considers end-user experience.",
+    flaw: "Can over-focus on feelings, may miss functional requirements, sometimes too abstract about emotions"
+  },
+  gamification_mentor: {
+    personality: "Creative, confident, grounded. 'What keeps people coming back?' 'Let's add a progression system...'",
+    role: "Designs mechanics and progression systems that sustain engagement. Uses game examples to explain patterns.",
+    flaw: "Can make everything a game, may over-engineer mechanics, sometimes prioritizes engagement over meaning"
   }
 };
 
@@ -158,6 +190,12 @@ const mentorColors: Record<string, string> = {
   alignment_mentor: "#0D9488",
   oracle_mother: "#BE185D",
   future_self: "#6366F1",
+  // New mentors from PDR expansion
+  perspective_mentor: "#0EA5E9", // sky-500
+  challenger_mentor: "#DC2626", // red-600
+  design_thinking_mentor: "#84CC16", // lime-500
+  ux_mentor: "#D946EF", // fuchsia-500
+  gamification_mentor: "#EAB308", // yellow-500
 };
 
 // Format conversation history for AI context

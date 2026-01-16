@@ -123,6 +123,48 @@ const mentors = [
     color: "bg-rose-600",
     category: "Emotional & Spiritual",
   },
+  // 🧭 Perspective & Challenge (NEW)
+  {
+    id: "perspective_mentor",
+    name: "The Perspective Mentor",
+    description: "Big picture context, systems view, orientation",
+    icon: Trees, // Using Trees as a compass-like icon
+    color: "bg-sky-500",
+    category: "Perspective & Challenge",
+  },
+  {
+    id: "challenger_mentor",
+    name: "The Challenger Mentor",
+    description: "Exposes assumptions and strengthens thinking",
+    icon: Zap,
+    color: "bg-red-600",
+    category: "Perspective & Challenge",
+  },
+  // 🛠️ Design & Creation (NEW)
+  {
+    id: "design_thinking_mentor",
+    name: "The Design Thinking Mentor",
+    description: "Learning by doing, safe iteration, experiments",
+    icon: FlaskConical,
+    color: "bg-lime-500",
+    category: "Design & Creation",
+  },
+  {
+    id: "ux_mentor",
+    name: "The User Experience Mentor",
+    description: "Emotional journeys, flow, human clarity",
+    icon: Heart,
+    color: "bg-fuchsia-500",
+    category: "Design & Creation",
+  },
+  {
+    id: "gamification_mentor",
+    name: "The Gamification Mentor",
+    description: "Engagement, progression, motivation mechanics",
+    icon: Target,
+    color: "bg-yellow-500",
+    category: "Design & Creation",
+  },
 ];
 
 const OnboardingStep4 = () => {
@@ -219,7 +261,7 @@ const OnboardingStep4 = () => {
         )}
 
         <div className="space-y-8">
-          {["Action & Discipline", "Creativity & Expression", "Knowledge & Insight", "Emotional & Spiritual"].map((category) => {
+          {["Action & Discipline", "Creativity & Expression", "Knowledge & Insight", "Emotional & Spiritual", "Perspective & Challenge", "Design & Creation"].map((category) => {
             const categoryMentors = mentors.filter((m) => m.category === category);
             return (
               <div key={category}>
@@ -228,6 +270,8 @@ const OnboardingStep4 = () => {
                   {category === "Creativity & Expression" && "💡"}
                   {category === "Knowledge & Insight" && "🔬"}
                   {category === "Emotional & Spiritual" && "💜"}
+                  {category === "Perspective & Challenge" && "🧭"}
+                  {category === "Design & Creation" && "🛠️"}
                   {category}
                 </h2>
                 <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
