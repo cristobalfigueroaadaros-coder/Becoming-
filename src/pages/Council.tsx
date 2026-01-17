@@ -189,64 +189,78 @@ const Council = () => {
     markCouncilNotificationsAsRead();
   };
 
+  const [isNavigating, setIsNavigating] = useState(false);
+
   const handleSelectMentor = async (mentorType: string) => {
-    // Get the previous mentor we were viewing (if any)
-    const previousMentor = currentView && currentView !== "console" ? currentView : null;
+    // Prevent double-clicks and race conditions
+    if (isNavigating) return;
+    setIsNavigating(true);
     
-    // Create automatic handoff if switching FROM another mentor
-    if (previousMentor && previousMentor !== mentorType) {
-      try {
-        const { data: { user } } = await supabase.auth.getUser();
-        if (user) {
-          // Fetch last 10 messages from previous mentor for context
-          const { data: prevMessages } = await supabase
-            .from("chats")
-            .select("role, content")
-            .eq("user_id", user.id)
-            .eq("mentor_type", previousMentor as any)
-            .order("created_at", { ascending: false })
-            .limit(10);
+    try {
+      // Get the previous mentor we were viewing (if any)
+      const previousMentor = currentView && currentView !== "console" ? currentView : null;
+      
+      // Create automatic handoff if switching FROM another mentor
+      if (previousMentor && previousMentor !== mentorType) {
+        try {
+          const { data: { user } } = await supabase.auth.getUser();
+          if (user) {
+            // Fetch last 10 messages from previous mentor for context
+            const { data: prevMessages } = await supabase
+              .from("chats")
+              .select("role, content")
+              .eq("user_id", user.id)
+              .eq("mentor_type", previousMentor as any)
+              .order("created_at", { ascending: false })
+              .limit(10);
 
-          if (prevMessages && prevMessages.length > 0) {
-            // Create handoff record so the new mentor knows the context
-            const chainId = crypto.randomUUID();
-            const { data: handoff } = await supabase
-              .from("conversation_handoffs")
-              .insert({
-                user_id: user.id,
-                source_mentor_type: previousMentor,
-                target_mentor_type: mentorType,
-                source_messages: prevMessages.reverse(),
-                handoff_chain_id: chainId,
-                chain_position: 1,
-                journey_topic: "Continuing exploration from another mentor",
-                processed: false
-              })
-              .select()
-              .single();
+            if (prevMessages && prevMessages.length > 0) {
+              // Create handoff record so the new mentor knows the context
+              const chainId = crypto.randomUUID();
+              const { data: handoff, error: handoffError } = await supabase
+                .from("conversation_handoffs")
+                .insert({
+                  user_id: user.id,
+                  source_mentor_type: previousMentor,
+                  target_mentor_type: mentorType,
+                  source_messages: prevMessages.reverse(),
+                  handoff_chain_id: chainId,
+                  chain_position: 1,
+                  journey_topic: "Continuing exploration from another mentor",
+                  processed: false
+                })
+                .select()
+                .single();
 
-            if (handoff) {
-              // Navigate with handoff context so Chat.tsx triggers __HANDOFF_INIT__
-              navigate(`/council?view=${mentorType}`, { 
-                state: { handoffId: handoff.id },
-                replace: true
-              });
-              setShowMobileList(false);
-              markMentorNotificationsAsRead(mentorType);
-              return;
+              if (handoff && !handoffError) {
+                // Navigate with handoff context so Chat.tsx triggers __HANDOFF_INIT__
+                navigate(`/council?view=${mentorType}`, { 
+                  state: { handoffId: handoff.id },
+                  replace: true
+                });
+                setShowMobileList(false);
+                markMentorNotificationsAsRead(mentorType);
+                return;
+              }
+              // If handoff creation failed, fall through to simple navigation
+              if (handoffError) {
+                console.error("Handoff creation failed:", handoffError);
+              }
             }
           }
+        } catch (error) {
+          console.error("Error creating automatic handoff:", error);
+          // Fall through to simple navigation on error
         }
-      } catch (error) {
-        console.error("Error creating automatic handoff:", error);
-        // Fall through to simple navigation on error
       }
+      
+      // Simple navigation (first mentor selection or no previous context)
+      setSearchParams({ view: mentorType });
+      setShowMobileList(false);
+      markMentorNotificationsAsRead(mentorType);
+    } finally {
+      setIsNavigating(false);
     }
-    
-    // Simple navigation (first mentor selection or no previous context)
-    setSearchParams({ view: mentorType });
-    setShowMobileList(false);
-    markMentorNotificationsAsRead(mentorType);
   };
 
   const handleBackToList = () => {

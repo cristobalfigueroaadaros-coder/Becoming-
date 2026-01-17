@@ -80,6 +80,42 @@ function formatConversationHistory(history: any[]): string {
   return formatted;
 }
 
+// Detect if user is stuck in reflection loop
+function detectReflectionLoop(history: any[]): boolean {
+  if (!history || history.length < 6) return false;
+  
+  const recentUserMessages = history
+    .filter((m: any) => m.role === 'user')
+    .slice(-3);
+  
+  if (recentUserMessages.length < 3) return false;
+  
+  // Check for reflective patterns
+  const reflectivePatterns = [
+    /\bi think\b/i,
+    /\bi feel\b/i,
+    /\bi wonder\b/i,
+    /\bmaybe\b/i,
+    /\bi'm not sure\b/i,
+    /\bperhaps\b/i,
+    /\bstill thinking\b/i,
+    /\bneed to figure out\b/i,
+  ];
+  
+  let reflectiveCount = 0;
+  for (const msg of recentUserMessages) {
+    const content = typeof msg.content === 'string' ? msg.content : '';
+    for (const pattern of reflectivePatterns) {
+      if (pattern.test(content)) {
+        reflectiveCount++;
+        break;
+      }
+    }
+  }
+  
+  return reflectiveCount >= 2;
+}
+
 Deno.serve(async (req) => {
   if (req.method === "OPTIONS") {
     return new Response(null, { headers: corsHeaders });
@@ -126,11 +162,21 @@ Deno.serve(async (req) => {
     const conversationContext = formatConversationHistory(conversationHistory);
     const questionNumber = conversationHistory.filter((m: any) => m.role === 'user').length + 1;
 
-    // Determine stage based on question number
+    // Determine stage based on question number (Council-like phases)
+    // Q1: Discovery - Full response
+    // Q2: Seeking clarity - Focused question
+    // Q3+: Momentum - Full response with mentor handoff suggestion
     let stage = 'complete';
     if (questionNumber === 2) {
       stage = 'seeking_clarity';
     }
+
+    // Detect reflection loop
+    const isStuckInReflection = detectReflectionLoop(conversationHistory);
+    const reflectionInterruption = isStuckInReflection ? `
+IMPORTANT: The user has been reflective for 3+ messages without taking action.
+Design Thinking Mentor MUST interrupt with: "I notice we've been exploring ideas for a while. What can we actually BUILD or TEST this week? Even a small prototype or experiment would help us learn faster."
+` : '';
 
     // Build the system prompt for Builders Team
     const systemPrompt = `You are the Builders Team - three hands-on mentors focused on CREATION, ITERATION, and EXPERIENCE DESIGN.
@@ -160,6 +206,8 @@ You turn:
 3. Be practical and hands-on - focus on DOING, not just thinking
 4. Use real examples from games, products, and experiences
 5. Always suggest a concrete next step or experiment
+6. BANTER is essential - show the mentors interacting with each other, agreeing, disagreeing, building on ideas
+${reflectionInterruption}
 ${taskContext}
 
 ${KEYWORD_HIGHLIGHTING_RULES}
@@ -174,14 +222,14 @@ ${profile.user_foundation_story}
 
     // Stage 2: Seeking Clarity (ask one deep question)
     if (stage === 'seeking_clarity') {
-      const clarityResponse = await fetch("https://api.openai.com/v1/chat/completions", {
+      const clarityResponse = await fetch("https://ai.gateway.lovable.dev/v1/chat/completions", {
         method: "POST",
         headers: {
-          "Authorization": `Bearer ${Deno.env.get("chatgpt")}`,
+          "Authorization": `Bearer ${Deno.env.get("LOVABLE_API_KEY")}`,
           "Content-Type": "application/json",
         },
         body: JSON.stringify({
-          model: "gpt-4o-mini",
+          model: "google/gemini-2.5-flash",
           messages: [
             { role: "system", content: systemPrompt },
             { role: "user", content: `The user asked: "${question}"
@@ -211,15 +259,15 @@ Return ONLY the question, nothing else.` }
       });
     }
 
-    // Complete stage: Full team response
-    const fullResponse = await fetch("https://api.openai.com/v1/chat/completions", {
+    // Complete stage: Full team response with banter and handoff suggestions
+    const fullResponse = await fetch("https://ai.gateway.lovable.dev/v1/chat/completions", {
       method: "POST",
       headers: {
-        "Authorization": `Bearer ${Deno.env.get("chatgpt")}`,
+        "Authorization": `Bearer ${Deno.env.get("LOVABLE_API_KEY")}`,
         "Content-Type": "application/json",
       },
       body: JSON.stringify({
-        model: "gpt-4o",
+        model: "google/gemini-2.5-flash",
         messages: [
           { role: "system", content: systemPrompt },
           { role: "user", content: `User's question: "${question}"
@@ -233,11 +281,20 @@ Respond as the Builders Team. Provide:
    - ux_mentor: Focus on emotional journey and user feeling
    - gamification_mentor: Focus on engagement and progression
 
-3. **banterLines**: 2-3 short exchanges between the builders (like a design meeting). Each line should be 1-2 sentences.
+3. **banterLines**: 3-4 short exchanges between the builders (like a design meeting). Each line should be 1-2 sentences. Show them:
+   - Building on each other's ideas
+   - Playfully disagreeing or challenging
+   - Finding common ground
+   - Making the conversation feel alive
 
 4. **emotionalReflection**: A brief observation about where the user might be in their creative process.
 
 5. **suggestedNextQuestion**: One specific question to explore next (focus on action/building).
+
+6. **suggestedMentor**: If the user should continue 1-on-1 with one of the builders for deeper work, suggest which one and why. Otherwise set to null.
+   - design_thinking_mentor: For experimentation, prototyping, and iterating
+   - ux_mentor: For designing emotional journeys and user flows
+   - gamification_mentor: For adding engagement mechanics and progression
 
 Return as JSON:
 {
@@ -250,14 +307,16 @@ Return as JSON:
   "banterLines": [
     {"mentor": "design_thinking_mentor", "text": "...", "color": "#84CC16"},
     {"mentor": "ux_mentor", "text": "...", "color": "#D946EF"},
-    {"mentor": "gamification_mentor", "text": "...", "color": "#EAB308"}
+    {"mentor": "gamification_mentor", "text": "...", "color": "#EAB308"},
+    {"mentor": "design_thinking_mentor", "text": "...", "color": "#84CC16"}
   ],
   "emotionalReflection": "...",
-  "suggestedNextQuestion": "..."
+  "suggestedNextQuestion": "...",
+  "suggestedMentor": { "targetMentor": "ux_mentor", "reason": "..." } or null
 }` }
         ],
         temperature: 0.8,
-        max_tokens: 1500,
+        max_tokens: 2000,
         response_format: { type: "json_object" }
       }),
     });
@@ -275,9 +334,14 @@ Return as JSON:
           ux_mentor: "How do you want your users to feel at the end?",
           gamification_mentor: "What would make someone want to come back?"
         },
-        banterLines: [],
+        banterLines: [
+          { mentor: "design_thinking_mentor", text: "I say we just build something quick and see what happens!", color: "#84CC16" },
+          { mentor: "ux_mentor", text: "Sure, but let's make sure it feels right to the user.", color: "#D946EF" },
+          { mentor: "gamification_mentor", text: "And give them a reason to stick around!", color: "#EAB308" }
+        ],
         emotionalReflection: "You're in the exploration phase - that's exactly where you should be.",
-        suggestedNextQuestion: "What's the smallest version of this we could build and test?"
+        suggestedNextQuestion: "What's the smallest version of this we could build and test?",
+        suggestedMentor: null
       };
     }
 
@@ -300,7 +364,8 @@ Return as JSON:
       mentorPerspectives: response.mentorPerspectives,
       banterLines: response.banterLines || [],
       emotionalReflection: response.emotionalReflection,
-      suggestedNextQuestion: response.suggestedNextQuestion
+      suggestedNextQuestion: response.suggestedNextQuestion,
+      suggestedMentor: response.suggestedMentor || null
     }), {
       headers: { ...corsHeaders, "Content-Type": "application/json" }
     });

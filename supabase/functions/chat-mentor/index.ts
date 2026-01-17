@@ -1455,10 +1455,16 @@ IMPORTANT: Continue this conversation naturally. You reached out to the user abo
     const quotedNameMatch = response.match(/["']([^"']{3,60})["']/);
     
     // PRIORITY 2: Look for explicit naming patterns
+    // More precise patterns - require the naming phrase to be complete before capturing
     const explicitNamePatterns = [
-      /(?:let's call it|we'll call it|i'd call it|name it|call this)\s*[:\-–]?\s*["']?([^"'\n.!?,;:]{3,50})["']?/i,
-      /(?:project|initiative)(?:\s*name)?[:\-–]\s*["']?([^"'\n.!?,;:]{3,50})["']?/i,
-      /(?:the\s+)?["']([^"']{3,50})["']\s*(?:project|initiative|journey)/i,
+      // Pattern 1: Quoted names after naming phrases
+      /(?:let['']s|we['']ll|i['']d)\s+(?:call\s+(?:it|this)|name\s+(?:it|this)|title\s+this)\s*[:\-–]?\s*["']([^"']{3,50})["']/i,
+      // Pattern 2: Unquoted but capitalized names after naming phrases
+      /(?:let['']s|we['']ll|i['']d)\s+(?:call\s+(?:it|this)|name\s+(?:it|this)|title\s+this)\s*[:\-–]?\s*["']?([A-Z][^"\n.!?,;:]{2,49})["']?/i,
+      // Pattern 3: "Project name:" or "Initiative:" prefix
+      /(?:project|initiative)(?:\s+name)?[:\-–]\s*["']?([A-Z][^"'\n.!?,;:]{2,49})["']?/i,
+      // Pattern 4: Quoted phrase followed by "project/journey"
+      /(?:the\s+)?["']([A-Z][^"']{2,47})["']\s*(?:project|initiative|journey)/i,
     ];
     
     let extractedMentorProjectName: string | null = null;
@@ -1509,8 +1515,36 @@ IMPORTANT: Continue this conversation naturally. You reached out to the user abo
       const wordCount = name.split(/\s+/).length;
       if (wordCount > 9) return false;
       
+      // Block obvious extraction failures - patterns that indicate we captured part of a sentence
+      const invalidStartPatterns = [
+        /^s\s+/i,                          // Starts with "s " (from "let's")
+        /^title\s+this/i,                  // "title this project"
+        /^call\s+(?:it|this)/i,            // "call this"
+        /^name\s+(?:it|this)/i,            // "name this"
+        /^it\s+/i,                         // Starts with "it "
+        /^within\s+/i,                     // Starts with "within"
+        /^and\s+/i,                        // Starts with "and"
+      ];
+      
+      for (const pattern of invalidStartPatterns) {
+        if (pattern.test(name)) return false;
+      }
+      
+      // Block markdown artifacts and sentence fragments
+      const invalidContentPatterns = [
+        /\*\*/,                            // Contains markdown bold
+        /and\s+start\s+/i,                 // Fragment of sentence
+        /start\s+with/i,                   // Fragment
+        /^(how|would|should|could)\s+/i,   // Starts with question word
+        /we\s+(?:can|could|should)/i,      // We can/could/should...
+      ];
+      
+      for (const pattern of invalidContentPatterns) {
+        if (pattern.test(name)) return false;
+      }
+      
       // Contains sentence patterns (verbs + conjunctions suggesting action, not title)
-      const sentencePatterns = /\b(within|start|designing|build|work|would|could|should|actually|then|and then|how|when|where|what|which|because|since|although)\b/i;
+      const sentencePatterns = /\b(within|designing|work|would|could|should|actually|then|and then|how|when|where|what|which|because|since|although)\b/i;
       if (sentencePatterns.test(name)) return false;
       
       // Too generic / placeholder
