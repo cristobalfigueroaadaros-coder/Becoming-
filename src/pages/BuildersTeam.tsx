@@ -68,6 +68,7 @@ const BuildersTeam = ({ embedded = false }: BuildersTeamProps) => {
   const [banterLines, setBanterLines] = useState<Array<{mentor: string, text: string, color: string}>>([]);
   const [emotionalReflection, setEmotionalReflection] = useState("");
   const [suggestedNextQuestion, setSuggestedNextQuestion] = useState<string | null>(null);
+  const [suggestedMentor, setSuggestedMentor] = useState<{ targetMentor: string; reason: string } | null>(null);
   const [loading, setLoading] = useState(false);
   const [voiceUrl, setVoiceUrl] = useState<string>("");
   const [currentAnswer, setCurrentAnswer] = useState("");
@@ -135,6 +136,7 @@ const BuildersTeam = ({ embedded = false }: BuildersTeamProps) => {
         setBanterLines(data.banterLines || []);
         setEmotionalReflection(data.emotionalReflection || "");
         setSuggestedNextQuestion(data.suggestedNextQuestion || null);
+        setSuggestedMentor(data.suggestedMentor || null);
 
         toast.success("Builders Team has responded!");
       }
@@ -155,6 +157,7 @@ const BuildersTeam = ({ embedded = false }: BuildersTeamProps) => {
     setBanterLines([]);
     setEmotionalReflection("");
     setSuggestedNextQuestion(null);
+    setSuggestedMentor(null);
     setConversationHistory([]);
     setVoiceUrl("");
     setCurrentAnswer("");
@@ -168,6 +171,11 @@ const BuildersTeam = ({ embedded = false }: BuildersTeamProps) => {
     setBanterLines([]);
     setEmotionalReflection("");
     setSuggestedNextQuestion(null);
+    setSuggestedMentor(null);
+  };
+
+  const handleMentorHandoff = (targetMentor: string) => {
+    navigate(`/council?view=${targetMentor}`);
   };
 
   const handleVoiceTranscription = (text: string, audioUrl: string) => {
@@ -567,6 +575,38 @@ const BuildersTeam = ({ embedded = false }: BuildersTeamProps) => {
                         <p className="text-xs text-muted-foreground mb-1">Suggested next step:</p>
                         <p className="text-sm font-medium">{suggestedNextQuestion}</p>
                       </div>
+                    </div>
+                  </CardContent>
+                </Card>
+              </motion.div>
+            )}
+
+            {/* Suggested Mentor Handoff */}
+            {suggestedMentor && (
+              <motion.div
+                initial={{ opacity: 0, y: 10 }}
+                animate={{ opacity: 1, y: 0 }}
+                transition={{ delay: 0.45 }}
+              >
+                <Card className="border-2 border-lime-500/50 bg-gradient-to-r from-lime-500/10 to-fuchsia-500/10">
+                  <CardContent className="pt-4">
+                    <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3">
+                      <div className="flex items-start gap-3">
+                        <div className="w-10 h-10 rounded-full bg-lime-500/20 flex items-center justify-center flex-shrink-0">
+                          <span className="text-lg">{mentorIcons[suggestedMentor.targetMentor] || "🔧"}</span>
+                        </div>
+                        <div>
+                          <p className="text-sm font-medium">Want to go deeper?</p>
+                          <p className="text-xs text-muted-foreground">{suggestedMentor.reason}</p>
+                        </div>
+                      </div>
+                      <Button
+                        onClick={() => handleMentorHandoff(suggestedMentor.targetMentor)}
+                        variant="outline"
+                        className="border-lime-500/50 hover:bg-lime-500/10"
+                      >
+                        Continue with {mentorNames[suggestedMentor.targetMentor]}
+                      </Button>
                     </div>
                   </CardContent>
                 </Card>
