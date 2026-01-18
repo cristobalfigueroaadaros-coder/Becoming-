@@ -1449,150 +1449,151 @@ IMPORTANT: Continue this conversation naturally. You reached out to the user abo
     // === PDR v2.2: COHERENCE DETECTION WITH BRANCH CLASSIFICATION & COOLDOWN ===
     let projectCoherence = null;
     
-    // === PRE-CHECK: MENTOR-INITIATED PROJECT NAMING ===
-    // If the mentor explicitly proposed a project name in their response, detect it early
-    // PRIORITY 1: Look for quoted titles first (most reliable)
-    const quotedNameMatch = response.match(/["']([^"']{3,60})["']/);
-    
-    // PRIORITY 2: Look for explicit naming patterns
-    // More precise patterns - require the naming phrase to be complete before capturing
-    const explicitNamePatterns = [
-      // Pattern 1: Quoted names after naming phrases
-      /(?:let['']s|we['']ll|i['']d)\s+(?:call\s+(?:it|this)|name\s+(?:it|this)|title\s+this)\s*[:\-–]?\s*["']([^"']{3,50})["']/i,
-      // Pattern 2: Unquoted but capitalized names after naming phrases
-      /(?:let['']s|we['']ll|i['']d)\s+(?:call\s+(?:it|this)|name\s+(?:it|this)|title\s+this)\s*[:\-–]?\s*["']?([A-Z][^"\n.!?,;:]{2,49})["']?/i,
-      // Pattern 3: "Project name:" or "Initiative:" prefix
-      /(?:project|initiative)(?:\s+name)?[:\-–]\s*["']?([A-Z][^"'\n.!?,;:]{2,49})["']?/i,
-      // Pattern 4: Quoted phrase followed by "project/journey"
-      /(?:the\s+)?["']([A-Z][^"']{2,47})["']\s*(?:project|initiative|journey)/i,
-    ];
+    // === SIMPLIFIED PROJECT DETECTION ===
+    // Step 1: Check if PREVIOUS AI message proposed a project name
+    // Step 2: Check if CURRENT user message shows agreement
+    // Step 3: If both true -> trigger commitment card immediately
     
     let extractedMentorProjectName: string | null = null;
     let mentorProposedProject = false;
-    
-    // Try quoted name first
-    if (quotedNameMatch) {
-      const candidate = quotedNameMatch[1].trim();
-      // Sanity check: must look like a title, not a sentence
-      if (isValidProjectName(candidate)) {
-        extractedMentorProjectName = candidate;
-        mentorProposedProject = true;
-        console.log("Quoted project name found:", extractedMentorProjectName);
-      }
-    }
-    
-    // If no quoted name, try explicit patterns
-    if (!extractedMentorProjectName) {
-      for (const pattern of explicitNamePatterns) {
-        const match = response.match(pattern);
-        if (match) {
-          const candidate = match[1].trim().replace(/[.!?,;:]+$/, '');
-          if (isValidProjectName(candidate)) {
-            extractedMentorProjectName = candidate;
-            mentorProposedProject = true;
-            console.log("Explicit pattern project name found:", extractedMentorProjectName);
-            break;
-          }
-        }
-      }
-    }
-    
-    // PRIORITY 3: Scan conversation history for agreed names
-    if (!extractedMentorProjectName && chatHistory && chatHistory.length > 0) {
-      const agreedName = findAgreedProjectName(chatHistory, response);
-      if (agreedName) {
-        extractedMentorProjectName = agreedName;
-        mentorProposedProject = true;
-        console.log("Agreed project name from history:", extractedMentorProjectName);
-      }
-    }
+    let userAgreesWithProject = false;
     
     // Helper function to validate project name
     function isValidProjectName(name: string): boolean {
       if (!name || name.length < 3 || name.length > 60) return false;
       
-      // Too many words = likely a sentence, not a title
       const wordCount = name.split(/\s+/).length;
-      if (wordCount > 9) return false;
+      if (wordCount > 9 || wordCount < 2) return false; // Need at least 2 words for a real project name
       
-      // Block obvious extraction failures - patterns that indicate we captured part of a sentence
-      const invalidStartPatterns = [
-        /^s\s+/i,                          // Starts with "s " (from "let's")
-        /^title\s+this/i,                  // "title this project"
-        /^call\s+(?:it|this)/i,            // "call this"
-        /^name\s+(?:it|this)/i,            // "name this"
-        /^it\s+/i,                         // Starts with "it "
-        /^within\s+/i,                     // Starts with "within"
-        /^and\s+/i,                        // Starts with "and"
+      // Block obvious extraction failures
+      const invalidPatterns = [
+        /^(s|it|and|the|a|an|this|my|within|how|would|should|could)\s+/i,
+        /^(log\s+in|sign\s+in|log\s+out|sign\s+up)/i, // Common UI phrases
+        /\*\*/,                            // Markdown bold
+        /\b(within|designing|work|would|could|should|actually|then|because|since|although)\b/i,
+        /^(project|titled|untitled)$/i,
       ];
       
-      for (const pattern of invalidStartPatterns) {
+      for (const pattern of invalidPatterns) {
         if (pattern.test(name)) return false;
       }
       
-      // Block markdown artifacts and sentence fragments
-      const invalidContentPatterns = [
-        /\*\*/,                            // Contains markdown bold
-        /and\s+start\s+/i,                 // Fragment of sentence
-        /start\s+with/i,                   // Fragment
-        /^(how|would|should|could)\s+/i,   // Starts with question word
-        /we\s+(?:can|could|should)/i,      // We can/could/should...
-      ];
-      
-      for (const pattern of invalidContentPatterns) {
-        if (pattern.test(name)) return false;
-      }
-      
-      // Contains sentence patterns (verbs + conjunctions suggesting action, not title)
-      const sentencePatterns = /\b(within|designing|work|would|could|should|actually|then|and then|how|when|where|what|which|because|since|although)\b/i;
-      if (sentencePatterns.test(name)) return false;
-      
-      // Too generic / placeholder
-      const genericPatterns = /^(project|titled|the|my|a|an|this|it|untitled)$/i;
-      if (genericPatterns.test(name)) return false;
+      // Must start with capital letter (title case)
+      if (!/^[A-Z]/.test(name)) return false;
       
       return true;
     }
     
-    // Helper function to find agreed project name from conversation history
-    function findAgreedProjectName(history: any[], mentorResponse: string): string | null {
-      // Check recent messages (last 10) for naming patterns
-      const recentMessages = history.slice(-10);
-      
-      // Patterns that indicate an agreed name
-      const nameAgreementPatterns = [
-        /(?:let's call it|we'll call it|i'll call it|named?|call this)\s*["']([^"']{3,50})["']/i,
-        /["']([^"']{3,50})["']\s*(?:sounds|feels|is)\s*(?:good|right|perfect)/i,
-        /project\s*(?:name)?[:\-]\s*["']?([^"'\n.!?,;:]{3,50})["']?/i,
-      ];
-      
-      // Also look for "The X" patterns that are titles
-      const titlePatterns = [
-        /["'](The [A-Z][^"']{2,47})["']/,
-      ];
-      
-      // Check mentor response first
-      for (const pattern of [...nameAgreementPatterns, ...titlePatterns]) {
-        const match = mentorResponse.match(pattern);
-        if (match && isValidProjectName(match[1].trim())) {
-          return match[1].trim();
+    // === CONTEXT-AWARE PROJECT NAME EXTRACTION ===
+    // Only capture quoted phrases that appear AFTER naming phrases
+    const contextAwarePatterns = [
+      // "your 'Strategic Mentorship Network' tool"
+      /your\s+["']([^"']{3,50})["']\s+(?:project|tool|initiative|platform|app)/i,
+      // "'Strategic Mentorship Network' tool/project"
+      /["']([A-Z][^"']{2,49})["']\s+(?:tool|project|platform|initiative|app)/i,
+      // "let's call it 'Name Here'" / "we'll name this 'Name Here'"
+      /(?:let['']?s|we['']?ll|i['']?d)\s+(?:call|name|title)\s+(?:it|this)\s+["']([^"']{3,50})["']/i,
+      // "call it 'Name Here'" / "name this 'Name Here'"
+      /(?:call|name|title)\s+(?:it|this)\s+["']([^"']{3,50})["']/i,
+      // "I suggest 'Name Here'" / "I'd recommend 'Name Here'"
+      /(?:suggest|propose|recommend)\s+["']([^"']{3,50})["']/i,
+      // "project: 'Name Here'" or "Project Name: X"
+      /(?:project|initiative)(?:\s+name)?[:\-–]\s*["']?([A-Z][^"'\n.!?,;:]{2,49})["']?/i,
+    ];
+    
+    // Extract from CURRENT mentor response
+    for (const pattern of contextAwarePatterns) {
+      const match = response.match(pattern);
+      if (match && isValidProjectName(match[1].trim())) {
+        extractedMentorProjectName = match[1].trim();
+        mentorProposedProject = true;
+        console.log("Context-aware project name extracted:", extractedMentorProjectName);
+        break;
+      }
+    }
+    
+    // Fallback: Look for capitalized multi-word phrases (3-7 words, title case)
+    if (!extractedMentorProjectName) {
+      const titleCasePattern = /\b([A-Z][a-z]+(?:\s+[A-Z][a-z]+){2,6})\b/g;
+      const matches = [...response.matchAll(titleCasePattern)];
+      for (const match of matches) {
+        const candidate = match[1].trim();
+        if (isValidProjectName(candidate) && candidate.split(/\s+/).length >= 3) {
+          extractedMentorProjectName = candidate;
+          mentorProposedProject = true;
+          console.log("Title-case project name extracted:", extractedMentorProjectName);
+          break;
         }
       }
-      
-      // Check recent messages
-      for (let i = recentMessages.length - 1; i >= 0; i--) {
-        const msg = recentMessages[i];
-        const content = msg.content || '';
-        
-        for (const pattern of [...nameAgreementPatterns, ...titlePatterns]) {
-          const match = content.match(pattern);
-          if (match && isValidProjectName(match[1].trim())) {
-            return match[1].trim();
+    }
+    
+    // === CHECK PREVIOUS AI MESSAGE FOR PROJECT PROPOSAL ===
+    // If we didn't find a name in the current response, check the PREVIOUS AI message
+    let previousProposedName: string | null = null;
+    if (!extractedMentorProjectName && chatHistory && chatHistory.length >= 2) {
+      const previousMessages = chatHistory.slice(-4);
+      for (let i = previousMessages.length - 1; i >= 0; i--) {
+        const msg = previousMessages[i];
+        if (msg.role === 'assistant') {
+          const prevContent = msg.content || '';
+          for (const pattern of contextAwarePatterns) {
+            const match = prevContent.match(pattern);
+            if (match && isValidProjectName(match[1].trim())) {
+              previousProposedName = match[1].trim();
+              console.log("Found project name in previous AI message:", previousProposedName);
+              break;
+            }
           }
+          // Also check title-case pattern in previous message
+          if (!previousProposedName) {
+            const titleCasePattern = /\b([A-Z][a-z]+(?:\s+[A-Z][a-z]+){2,6})\b/g;
+            const matches = [...prevContent.matchAll(titleCasePattern)];
+            for (const match of matches) {
+              const candidate = match[1].trim();
+              if (isValidProjectName(candidate) && candidate.split(/\s+/).length >= 3) {
+                previousProposedName = candidate;
+                console.log("Title-case name in previous AI message:", previousProposedName);
+                break;
+              }
+            }
+          }
+          if (previousProposedName) break;
         }
       }
-      
-      return null;
+    }
+    
+    // === USER AGREEMENT DETECTION ===
+    // Simple patterns that indicate user agrees with a project proposal
+    const userAgreementPatterns = [
+      /\b(yes|yeah|yep|yup|sure|okay|ok|definitely|absolutely)\b/i,
+      /\bsounds?\s+(good|great|perfect|right)\b/i,
+      /\blet['']?s\s+(do|build|start|go|formalize|create)\b/i,
+      /\bi['']?m\s+in\b/i,
+      /\bagreed\b/i,
+      /\bthat['']?s\s+(it|perfect|great|exactly)\b/i,
+      /\bexactly\b/i,
+      /\blove\s+(it|that)\b/i,
+      /\bstart\s+building\b/i,
+      /\bdetailed\s+plan\b/i,
+      /\bformalize\s+(this|it)\b/i,
+    ];
+    
+    userAgreesWithProject = userAgreementPatterns.some(p => p.test(message));
+    
+    console.log("Project detection state:", {
+      currentResponseName: extractedMentorProjectName,
+      previousMessageName: previousProposedName,
+      userAgreesWithProject,
+      conversationDepth,
+      currentUserMessage: message.substring(0, 80),
+    });
+    
+    // === TRIGGER COMMITMENT CARD ===
+    // If previous AI message proposed a name AND user now agrees -> use that name
+    if (!extractedMentorProjectName && previousProposedName && userAgreesWithProject) {
+      extractedMentorProjectName = previousProposedName;
+      mentorProposedProject = true;
+      console.log("Using previous proposed name with user agreement:", extractedMentorProjectName);
     }
     
     // Check if user has an active Project Spine
@@ -1725,12 +1726,12 @@ IMPORTANT: Continue this conversation naturally. You reached out to the user abo
       console.log("Cross-mentor project agreement found - depth requirement is", baseDepthRequirement, "(still requires engagement)");
     }
     
-    // === MENTOR-INITIATED PROJECT FAST PATH ===
-    // If mentor explicitly named a project AND user shows positive engagement, trigger commitment card with lower threshold
-    if (mentorProposedProject && extractedMentorProjectName && conversationDepth >= 4 && !hasActiveSpine) {
-      const userShowsPositiveInterest = /\b(sounds good|okay|sure|yes|interesting|love|like|great|perfect|exactly|that's it|let's do|agreed|definitely|absolutely|cool|nice)\b/i.test(message);
-      
-      if (userShowsPositiveInterest) {
+    // === SIMPLIFIED MENTOR-INITIATED PROJECT FAST PATH ===
+    // If mentor proposed a name AND user agrees -> trigger commitment card immediately
+    // Lower threshold: only need conversationDepth >= 4 (not the strict engagement scoring)
+    if (mentorProposedProject && extractedMentorProjectName && conversationDepth >= 4 && !hasActiveSpine && userAgreesWithProject) {
+      console.log("FAST PATH TRIGGERED: Mentor proposed name + User agrees");
+      {
         // Check if name passes our stricter validation
         const isWeakName = !isValidProjectName(extractedMentorProjectName);
         
@@ -1746,12 +1747,10 @@ IMPORTANT: Continue this conversation naturally. You reached out to the user abo
           try {
             const recentContext = chatHistory?.slice(-6).map((m: any) => `${m.role}: ${m.content}`).join('\n') || '';
             
-            // Find any agreed names in conversation to preserve them
-            const agreedName = findAgreedProjectName(chatHistory || [], response);
-            const preserveNameInstruction = agreedName && isValidProjectName(agreedName) 
-              ? `IMPORTANT: The conversation already agreed on the name "${agreedName}". You MUST use this exact name.`
+            // Preserve the already extracted name if it's valid
+            const preserveNameInstruction = extractedMentorProjectName && isValidProjectName(extractedMentorProjectName) 
+              ? `IMPORTANT: The conversation already agreed on the name "${extractedMentorProjectName}". You MUST use this exact name.`
               : '';
-            
             const namingPrompt = `Based on this mentor conversation, ${isWeakName ? 'generate a project name and' : 'using the name "' + finalProjectName + '",'} generate an intention statement.
 
 CONVERSATION:
