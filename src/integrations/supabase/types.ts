@@ -993,6 +993,47 @@ export type Database = {
         }
         Relationships: []
       }
+      design_thinking_content: {
+        Row: {
+          content: Json | null
+          created_at: string | null
+          id: string
+          phase: string
+          project_id: string
+          reflection_response: string | null
+          updated_at: string | null
+          user_id: string
+        }
+        Insert: {
+          content?: Json | null
+          created_at?: string | null
+          id?: string
+          phase: string
+          project_id: string
+          reflection_response?: string | null
+          updated_at?: string | null
+          user_id: string
+        }
+        Update: {
+          content?: Json | null
+          created_at?: string | null
+          id?: string
+          phase?: string
+          project_id?: string
+          reflection_response?: string | null
+          updated_at?: string | null
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "design_thinking_content_project_id_fkey"
+            columns: ["project_id"]
+            isOneToOne: false
+            referencedRelation: "integrator_projects"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       dot_analysis_history: {
         Row: {
           connections: Json
@@ -2244,6 +2285,47 @@ export type Database = {
           user_id?: string
         }
         Relationships: []
+      }
+      project_thread_milestones: {
+        Row: {
+          created_at: string | null
+          explanation: string | null
+          id: string
+          milestone_date: string | null
+          project_id: string
+          related_phase: string | null
+          title: string
+          user_id: string
+        }
+        Insert: {
+          created_at?: string | null
+          explanation?: string | null
+          id?: string
+          milestone_date?: string | null
+          project_id: string
+          related_phase?: string | null
+          title: string
+          user_id: string
+        }
+        Update: {
+          created_at?: string | null
+          explanation?: string | null
+          id?: string
+          milestone_date?: string | null
+          project_id?: string
+          related_phase?: string | null
+          title?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "project_thread_milestones_project_id_fkey"
+            columns: ["project_id"]
+            isOneToOne: false
+            referencedRelation: "integrator_projects"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       purpose_history: {
         Row: {

@@ -9,6 +9,7 @@ import { ProjectHeaderEditor } from "@/components/integrator/ProjectHeaderEditor
 import { CatchUpMode } from "@/components/integrator/CatchUpMode";
 import { CelebrationMoment } from "@/components/integrator/CelebrationMoment";
 import { CreativeSpace } from "@/components/creative-space";
+import { DesignThinkingLab } from "@/components/design-thinking-lab";
 import type { IntegratorProject, IntegratorPhase, IntegratorDailyStep } from "@/hooks/useIntegratorProjects";
 
 interface FocusModeProps {
@@ -197,6 +198,9 @@ export const FocusMode = ({
           />
         </CardContent>
       </Card>
+
+      {/* Design Thinking Lab */}
+      <DesignThinkingLab projectId={activeProject.id} />
 
       {/* Creative Space */}
       <CreativeSpace 
