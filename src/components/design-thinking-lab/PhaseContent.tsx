@@ -18,18 +18,20 @@ interface PhaseContentProps {
   onUpdateReflection: (response: string) => Promise<void>;
 }
 
-const SOURCE_ICONS = {
+const SOURCE_ICONS: Record<string, React.ComponentType<{ className?: string }>> = {
   manual: PenLine,
   task: CheckCircle,
   mentor: MessageSquare,
   feedback: Zap,
+  name_evolution: Zap,
 };
 
-const SOURCE_COLORS = {
+const SOURCE_COLORS: Record<string, string> = {
   manual: 'bg-blue-500/20 text-blue-400',
   task: 'bg-green-500/20 text-green-400',
   mentor: 'bg-purple-500/20 text-purple-400',
   feedback: 'bg-amber-500/20 text-amber-400',
+  name_evolution: 'bg-orange-500/20 text-orange-400',
 };
 
 export const PhaseContent: React.FC<PhaseContentProps> = ({
@@ -144,21 +146,38 @@ export const PhaseContent: React.FC<PhaseContentProps> = ({
             {/* Notes list */}
             <div className="space-y-2 max-h-48 overflow-y-auto">
               {allNotes.length === 0 ? (
-                <p className="text-sm text-muted-foreground text-center py-4">
-                  No notes yet. Add your first observation above.
-                </p>
+                <div className="text-center py-8 space-y-3">
+                  <p className="text-sm text-muted-foreground">
+                    No content yet in this phase.
+                  </p>
+                  <Button 
+                    variant="outline" 
+                    onClick={handleMentorClick}
+                    className="gap-2"
+                  >
+                    <MessageSquare className="w-4 h-4" />
+                    Start a conversation
+                  </Button>
+                </div>
               ) : (
                 allNotes.map((note) => {
-                  const SourceIcon = SOURCE_ICONS[note.source];
+                  const SourceIcon = SOURCE_ICONS[note.source] || Zap;
                   return (
                     <div 
                       key={note.id}
                       className="flex items-start gap-2 p-3 rounded-lg bg-muted/50"
                     >
-                      <Badge className={`${SOURCE_COLORS[note.source]} text-xs px-1.5`}>
+                      <Badge className={`${SOURCE_COLORS[note.source] || 'bg-muted text-muted-foreground'} text-xs px-1.5`}>
                         <SourceIcon className="w-3 h-3" />
                       </Badge>
-                      <p className="text-sm text-foreground flex-1">{note.text}</p>
+                      <div className="flex-1">
+                        <p className="text-sm text-foreground">{note.text}</p>
+                        {note.sourceContext && (
+                          <p className="text-[10px] text-muted-foreground mt-0.5">
+                            via {note.sourceContext}
+                          </p>
+                        )}
+                      </div>
                     </div>
                   );
                 })

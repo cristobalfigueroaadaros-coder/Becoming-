@@ -34,7 +34,7 @@ export const DesignThinkingLab: React.FC<DesignThinkingLabProps> = ({ projectId 
       return evolutionTimeline[0].explanation || evolutionTimeline[0].title;
     }
     if (keyLearnings.length > 0) {
-      return keyLearnings[0];
+      return keyLearnings[0].text;
     }
     return undefined;
   };

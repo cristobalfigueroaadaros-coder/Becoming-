@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import { motion } from 'framer-motion';
-import { X, Plus, Sparkles, GitBranch, Lightbulb, ArrowRight } from 'lucide-react';
+import { X, Plus, Sparkles, GitBranch, Lightbulb, RefreshCw } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Textarea } from '@/components/ui/textarea';
@@ -8,14 +8,14 @@ import { ScrollArea } from '@/components/ui/scroll-area';
 import { Badge } from '@/components/ui/badge';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-import { ProjectInfo, EvolutionMilestone, PhaseType } from './types';
+import { ProjectInfo, EvolutionMilestone, PhaseType, KeyLearning } from './types';
 import { PHASE_CONFIG, PHASE_ORDER } from './constants';
 import { format } from 'date-fns';
 
 interface ProjectThreadExpandedProps {
   projectInfo: ProjectInfo;
   timeline: EvolutionMilestone[];
-  keyLearnings: string[];
+  keyLearnings: KeyLearning[];
   beforeNow: { before: string; now: string } | null;
   onClose: () => void;
   onAddMilestone: (title: string, explanation: string, phase?: PhaseType) => Promise<void>;
@@ -151,45 +151,62 @@ export const ProjectThreadExpanded: React.FC<ProjectThreadExpandedProps> = ({
               </p>
             ) : (
               <div className="space-y-3">
-                {timeline.map((milestone, index) => (
-                  <motion.div
-                    key={milestone.id}
-                    initial={{ opacity: 0, x: -10 }}
-                    animate={{ opacity: 1, x: 0 }}
-                    transition={{ delay: index * 0.05 }}
-                    className="relative pl-6 pb-4 border-l-2 border-muted last:border-l-0 last:pb-0"
-                  >
-                    <div className="absolute -left-[5px] top-0 w-2 h-2 rounded-full bg-primary" />
-                    <div className="space-y-1">
-                      <div className="flex items-center gap-2">
-                        <span className="text-sm font-medium text-foreground">
-                          {milestone.title}
-                        </span>
-                        {milestone.relatedPhase && (
-                          <Badge 
-                            variant="outline" 
-                            className="text-xs cursor-pointer"
-                            style={{ 
-                              borderColor: PHASE_CONFIG[milestone.relatedPhase].borderColor,
-                              color: PHASE_CONFIG[milestone.relatedPhase].color,
-                            }}
-                            onClick={() => onJumpToPhase(milestone.relatedPhase!)}
-                          >
-                            {milestone.relatedPhase}
-                          </Badge>
+                {timeline.map((milestone, index) => {
+                  const isNameChange = milestone.type === 'name_change';
+                  const isTaskCompleted = milestone.type === 'task_completed';
+                  
+                  return (
+                    <motion.div
+                      key={milestone.id}
+                      initial={{ opacity: 0, x: -10 }}
+                      animate={{ opacity: 1, x: 0 }}
+                      transition={{ delay: index * 0.05 }}
+                      className="relative pl-6 pb-4 border-l-2 border-muted last:border-l-0 last:pb-0"
+                    >
+                      <div 
+                        className={`absolute -left-[5px] top-0 w-2 h-2 rounded-full ${
+                          isNameChange ? 'bg-amber-500' : 
+                          isTaskCompleted ? 'bg-green-500' : 
+                          'bg-primary'
+                        }`} 
+                      />
+                      <div className="space-y-1">
+                        <div className="flex items-center gap-2 flex-wrap">
+                          <span className="text-sm font-medium text-foreground">
+                            {milestone.title}
+                          </span>
+                          {isNameChange && (
+                            <Badge variant="outline" className="text-xs bg-amber-500/10 border-amber-500/30 text-amber-400">
+                              <RefreshCw className="w-2.5 h-2.5 mr-1" />
+                              Evolution
+                            </Badge>
+                          )}
+                          {milestone.relatedPhase && (
+                            <Badge 
+                              variant="outline" 
+                              className="text-xs cursor-pointer"
+                              style={{ 
+                                borderColor: PHASE_CONFIG[milestone.relatedPhase].borderColor,
+                                color: PHASE_CONFIG[milestone.relatedPhase].color,
+                              }}
+                              onClick={() => onJumpToPhase(milestone.relatedPhase!)}
+                            >
+                              {milestone.relatedPhase}
+                            </Badge>
+                          )}
+                        </div>
+                        {milestone.explanation && (
+                          <p className="text-xs text-muted-foreground">
+                            {milestone.explanation}
+                          </p>
                         )}
-                      </div>
-                      {milestone.explanation && (
-                        <p className="text-xs text-muted-foreground">
-                          {milestone.explanation}
+                        <p className="text-[10px] text-muted-foreground/60">
+                          {format(new Date(milestone.date), 'MMM d, yyyy')}
                         </p>
-                      )}
-                      <p className="text-[10px] text-muted-foreground/60">
-                        {format(new Date(milestone.date), 'MMM d, yyyy')}
-                      </p>
-                    </div>
-                  </motion.div>
-                ))}
+                      </div>
+                    </motion.div>
+                  );
+                })}
               </div>
             )}
           </div>
@@ -202,12 +219,15 @@ export const ProjectThreadExpanded: React.FC<ProjectThreadExpandedProps> = ({
                 Key Learnings
               </h3>
               <div className="space-y-2">
-                {keyLearnings.map((learning, index) => (
+                {keyLearnings.map((learning) => (
                   <div 
-                    key={index}
+                    key={learning.id}
                     className="p-3 rounded-lg bg-amber-500/5 border border-amber-500/20"
                   >
-                    <p className="text-sm text-foreground">{learning}</p>
+                    <p className="text-sm text-foreground">{learning.text}</p>
+                    <p className="text-[10px] text-muted-foreground mt-1">
+                      From: {learning.source}
+                    </p>
                   </div>
                 ))}
               </div>

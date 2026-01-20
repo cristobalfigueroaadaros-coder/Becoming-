@@ -2241,6 +2241,50 @@ export type Database = {
           },
         ]
       }
+      project_name_history: {
+        Row: {
+          change_reason: string | null
+          change_type: string | null
+          created_at: string | null
+          id: string
+          new_name: string
+          old_name: string
+          project_id: string
+          related_phase: string | null
+          user_id: string
+        }
+        Insert: {
+          change_reason?: string | null
+          change_type?: string | null
+          created_at?: string | null
+          id?: string
+          new_name: string
+          old_name: string
+          project_id: string
+          related_phase?: string | null
+          user_id: string
+        }
+        Update: {
+          change_reason?: string | null
+          change_type?: string | null
+          created_at?: string | null
+          id?: string
+          new_name?: string
+          old_name?: string
+          project_id?: string
+          related_phase?: string | null
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "project_name_history_project_id_fkey"
+            columns: ["project_id"]
+            isOneToOne: false
+            referencedRelation: "integrator_projects"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       project_spines: {
         Row: {
           broad_contribution: string | null
