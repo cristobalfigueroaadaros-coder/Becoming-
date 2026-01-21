@@ -10,9 +10,10 @@ import { useDesignThinkingLab } from '@/hooks/useDesignThinkingLab';
 
 interface DesignThinkingLabProps {
   projectId: string;
+  needsProblemClarification?: boolean; // PDR 3
 }
 
-export const DesignThinkingLab: React.FC<DesignThinkingLabProps> = ({ projectId }) => {
+export const DesignThinkingLab: React.FC<DesignThinkingLabProps> = ({ projectId, needsProblemClarification = false }) => {
   const [selectedPhase, setSelectedPhase] = useState<PhaseType | null>(null);
   const [hoveredPhase, setHoveredPhase] = useState<PhaseType | null>(null);
   const [showThread, setShowThread] = useState(false);
@@ -75,6 +76,7 @@ export const DesignThinkingLab: React.FC<DesignThinkingLabProps> = ({ projectId 
                 phaseContent={phaseContent}
                 projectInfo={projectInfo}
                 latestSnapshot={generateSnapshot()}
+                highlightedPhase={needsProblemClarification ? 'define' : null}
                 onSelectPhase={setSelectedPhase}
                 onHoverPhase={setHoveredPhase}
                 onOpenThread={() => setShowThread(true)}

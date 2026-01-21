@@ -11,6 +11,7 @@ interface PhaseCircleProps {
   phaseContent: Record<PhaseType, PhaseContentData>;
   projectInfo: ProjectInfo | null;
   latestSnapshot?: string;
+  highlightedPhase?: PhaseType | null; // PDR 3: For notification cascade
   onSelectPhase: (phase: PhaseType) => void;
   onHoverPhase: (phase: PhaseType | null) => void;
   onOpenThread: () => void;
@@ -22,6 +23,7 @@ export const PhaseCircle: React.FC<PhaseCircleProps> = ({
   phaseContent,
   projectInfo,
   latestSnapshot,
+  highlightedPhase,
   onSelectPhase,
   onHoverPhase,
   onOpenThread,
@@ -87,6 +89,7 @@ export const PhaseCircle: React.FC<PhaseCircleProps> = ({
             isSelected={selectedPhase === phase}
             isHovered={hoveredPhase === phase}
             hasContent={hasContent(phase)}
+            isHighlighted={highlightedPhase === phase}
             onClick={() => onSelectPhase(phase)}
             onHover={(hovered) => onHoverPhase(hovered ? phase : null)}
             position={position}

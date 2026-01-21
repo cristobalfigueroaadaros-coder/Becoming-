@@ -9,6 +9,7 @@ interface ModeSelectorProps {
   onModeChange: (mode: CreationLabMode) => void;
   hasActiveProject?: boolean;
   dotCount?: number;
+  needsProblemClarification?: boolean;
 }
 
 const modes = [
@@ -46,6 +47,7 @@ export const ModeSelector = ({
   onModeChange,
   hasActiveProject,
   dotCount = 0,
+  needsProblemClarification = false,
 }: ModeSelectorProps) => {
   return (
     <div className="flex flex-col sm:flex-row gap-2 p-1.5 bg-muted/50 rounded-xl border border-border/50">
@@ -90,11 +92,19 @@ export const ModeSelector = ({
             </div>
             
             {/* Indicators */}
-            {mode.id === "focus" && hasActiveProject && (
+            {mode.id === "focus" && hasActiveProject && !needsProblemClarification && (
               <span className={cn(
                 "relative z-10 w-2 h-2 rounded-full ml-auto",
                 isActive ? "bg-white/80" : "bg-primary"
               )} />
+            )}
+            {mode.id === "focus" && needsProblemClarification && (
+              <span className={cn(
+                "relative z-10 w-4 h-4 rounded-full ml-auto flex items-center justify-center text-[10px] font-bold animate-pulse",
+                isActive ? "bg-white/90 text-primary" : "bg-destructive text-destructive-foreground"
+              )}>
+                1
+              </span>
             )}
             {mode.id === "constellation" && dotCount > 0 && (
               <span className={cn(

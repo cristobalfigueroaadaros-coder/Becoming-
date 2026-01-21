@@ -19,6 +19,7 @@ interface FocusModeProps {
   todaysStep: IntegratorDailyStep | undefined;
   currentPhase: IntegratorPhase | undefined;
   missedSteps: IntegratorDailyStep[];
+  needsProblemClarification?: boolean; // PDR 3
   onCompleteStep: (stepId: string, insight?: string, feedback?: {
     win: string;
     improvement?: string;
@@ -38,6 +39,7 @@ export const FocusMode = ({
   todaysStep,
   currentPhase,
   missedSteps,
+  needsProblemClarification = false,
   onCompleteStep,
   onSkipStep,
   onEditStep,
@@ -200,7 +202,7 @@ export const FocusMode = ({
       </Card>
 
       {/* Design Thinking Lab */}
-      <DesignThinkingLab projectId={activeProject.id} />
+      <DesignThinkingLab projectId={activeProject.id} needsProblemClarification={needsProblemClarification} />
 
       {/* Creative Space */}
       <CreativeSpace 

@@ -14,6 +14,7 @@ import { PurposeToValueMap } from "@/components/creation-lab/PurposeToValueMap";
 import { PurposeOnboardingModal } from "@/components/PurposeOnboardingModal";
 import { ProjectTypeSelector, type ProjectType } from "@/components/creation-lab/ProjectTypeSelector";
 import { BecomingPath } from "@/components/creation-lab/BecomingPath";
+import { useProblemClarificationStatus } from "@/hooks/useProblemClarificationStatus";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
 
@@ -106,6 +107,9 @@ const CreationLab = () => {
   const todaysStep = getTodaysStep();
   const currentPhase = getCurrentPhase();
   const config = modeConfig[currentMode];
+  
+  // PDR 3: Problem clarification status
+  const { needsClarification: needsProblemClarification } = useProblemClarificationStatus();
 
   // Update URL when mode changes
   const handleModeChange = (mode: CreationLabMode) => {
@@ -345,6 +349,7 @@ const CreationLab = () => {
             onModeChange={handleModeChange}
             hasActiveProject={!!activeProject}
             dotCount={insightDots.length}
+            needsProblemClarification={needsProblemClarification}
           />
         )}
 
@@ -366,6 +371,7 @@ const CreationLab = () => {
                 todaysStep={todaysStep}
                 currentPhase={currentPhase}
                 missedSteps={getMissedSteps()}
+                needsProblemClarification={needsProblemClarification}
                 onCompleteStep={handleCompleteStep}
                 onSkipStep={skipStep}
                 onEditStep={editStep}
