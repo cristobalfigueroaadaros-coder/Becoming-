@@ -1673,6 +1673,8 @@ export type Database = {
           current_phase: string
           id: string
           learning_insights_count: number | null
+          needs_problem_clarification: boolean | null
+          problem_clarified_at: string | null
           project_description: string
           project_title: string
           seed_breakthrough_id: string | null
@@ -1691,6 +1693,8 @@ export type Database = {
           current_phase?: string
           id?: string
           learning_insights_count?: number | null
+          needs_problem_clarification?: boolean | null
+          problem_clarified_at?: string | null
           project_description: string
           project_title: string
           seed_breakthrough_id?: string | null
@@ -1709,6 +1713,8 @@ export type Database = {
           current_phase?: string
           id?: string
           learning_insights_count?: number | null
+          needs_problem_clarification?: boolean | null
+          problem_clarified_at?: string | null
           project_description?: string
           project_title?: string
           seed_breakthrough_id?: string | null
@@ -2080,6 +2086,7 @@ export type Database = {
           priority_growth_area: string | null
           purpose_path: string | null
           reflection_loop_count: number | null
+          second_win_completed_at: string | null
           self_discovery_completed: boolean | null
           self_discovery_completed_at: string | null
           shadow_intensity: string | null
@@ -2128,6 +2135,7 @@ export type Database = {
           priority_growth_area?: string | null
           purpose_path?: string | null
           reflection_loop_count?: number | null
+          second_win_completed_at?: string | null
           self_discovery_completed?: boolean | null
           self_discovery_completed_at?: string | null
           shadow_intensity?: string | null
@@ -2176,6 +2184,7 @@ export type Database = {
           priority_growth_area?: string | null
           purpose_path?: string | null
           reflection_loop_count?: number | null
+          second_win_completed_at?: string | null
           self_discovery_completed?: boolean | null
           self_discovery_completed_at?: string | null
           shadow_intensity?: string | null
@@ -2278,6 +2287,81 @@ export type Database = {
         Relationships: [
           {
             foreignKeyName: "project_name_history_project_id_fkey"
+            columns: ["project_id"]
+            isOneToOne: false
+            referencedRelation: "integrator_projects"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      project_problems: {
+        Row: {
+          change_reason: string | null
+          confirmation_source: string | null
+          confirmed_at: string | null
+          created_at: string | null
+          full_problem_text: string
+          id: string
+          is_confirmed: boolean | null
+          mentor_conversation_id: string | null
+          pain_points: string | null
+          previous_version_id: string | null
+          problem_statement: string
+          project_id: string
+          root_cause: string | null
+          target_audience: string | null
+          updated_at: string | null
+          user_id: string
+          version: number | null
+        }
+        Insert: {
+          change_reason?: string | null
+          confirmation_source?: string | null
+          confirmed_at?: string | null
+          created_at?: string | null
+          full_problem_text: string
+          id?: string
+          is_confirmed?: boolean | null
+          mentor_conversation_id?: string | null
+          pain_points?: string | null
+          previous_version_id?: string | null
+          problem_statement: string
+          project_id: string
+          root_cause?: string | null
+          target_audience?: string | null
+          updated_at?: string | null
+          user_id: string
+          version?: number | null
+        }
+        Update: {
+          change_reason?: string | null
+          confirmation_source?: string | null
+          confirmed_at?: string | null
+          created_at?: string | null
+          full_problem_text?: string
+          id?: string
+          is_confirmed?: boolean | null
+          mentor_conversation_id?: string | null
+          pain_points?: string | null
+          previous_version_id?: string | null
+          problem_statement?: string
+          project_id?: string
+          root_cause?: string | null
+          target_audience?: string | null
+          updated_at?: string | null
+          user_id?: string
+          version?: number | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "project_problems_previous_version_id_fkey"
+            columns: ["previous_version_id"]
+            isOneToOne: false
+            referencedRelation: "project_problems"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "project_problems_project_id_fkey"
             columns: ["project_id"]
             isOneToOne: false
             referencedRelation: "integrator_projects"

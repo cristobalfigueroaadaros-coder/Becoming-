@@ -8,6 +8,7 @@ interface PhaseSegmentProps {
   isSelected: boolean;
   isHovered: boolean;
   hasContent: boolean;
+  isHighlighted?: boolean; // PDR 3: For notification cascade
   onClick: () => void;
   onHover: (hovered: boolean) => void;
   position: { x: number; y: number };
@@ -19,6 +20,7 @@ export const PhaseSegment: React.FC<PhaseSegmentProps> = ({
   isSelected,
   isHovered,
   hasContent,
+  isHighlighted = false,
   onClick,
   onHover,
   position,
@@ -27,7 +29,7 @@ export const PhaseSegment: React.FC<PhaseSegmentProps> = ({
   const config = PHASE_CONFIG[phase];
   const Icon = config.icon;
   
-  const scale = isSelected ? 1.15 : isHovered ? 1.08 : 1;
+  const scale = isSelected ? 1.15 : isHovered ? 1.08 : isHighlighted ? 1.05 : 1;
   const opacity = isSelected ? 1 : 0.85;
 
   return (
@@ -51,19 +53,29 @@ export const PhaseSegment: React.FC<PhaseSegmentProps> = ({
         className="relative flex flex-col items-center justify-center rounded-2xl p-4 backdrop-blur-sm"
         style={{
           background: config.bgColor,
-          border: `2px solid ${config.borderColor}`,
+          border: `2px solid ${isHighlighted ? 'hsl(var(--destructive))' : config.borderColor}`,
           minWidth: '80px',
           minHeight: '80px',
-          boxShadow: isSelected 
-            ? `0 8px 32px ${config.color.replace(')', ', 0.4)')}` 
-            : isHovered 
-              ? `0 4px 16px ${config.color.replace(')', ', 0.3)')}`
-              : 'none',
+          boxShadow: isHighlighted
+            ? `0 0 20px hsl(var(--destructive) / 0.4), 0 8px 32px ${config.color.replace(')', ', 0.3)')}`
+            : isSelected 
+              ? `0 8px 32px ${config.color.replace(')', ', 0.4)')}` 
+              : isHovered 
+                ? `0 4px 16px ${config.color.replace(')', ', 0.3)')}`
+                : 'none',
         }}
         whileHover={{ y: -2 }}
+        animate={isHighlighted ? { scale: [1, 1.02, 1] } : {}}
+        transition={isHighlighted ? { repeat: Infinity, duration: 2 } : undefined}
       >
-        {/* Content indicator */}
-        {hasContent && (
+        {/* Content indicator or highlight badge */}
+        {isHighlighted ? (
+          <div 
+            className="absolute -top-1 -right-1 w-4 h-4 rounded-full bg-destructive text-destructive-foreground text-[10px] font-bold flex items-center justify-center animate-pulse"
+          >
+            1
+          </div>
+        ) : hasContent && (
           <div 
             className="absolute -top-1 -right-1 w-3 h-3 rounded-full"
             style={{ background: config.color }}

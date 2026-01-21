@@ -1,6 +1,7 @@
 import { useLocation, useNavigate } from "react-router-dom";
 import { LayoutGrid, Users, FlaskConical, User } from "lucide-react";
 import { cn } from "@/lib/utils";
+import { useProblemClarificationStatus } from "@/hooks/useProblemClarificationStatus";
 
 interface NavItem {
   icon: React.ElementType;
@@ -39,6 +40,7 @@ const navItems: NavItem[] = [
 export const BottomNavigation = () => {
   const location = useLocation();
   const navigate = useNavigate();
+  const { needsClarification, badgeCount } = useProblemClarificationStatus();
 
   const isActive = (item: NavItem) => {
     const currentPath = location.pathname;
@@ -60,19 +62,27 @@ export const BottomNavigation = () => {
         {navItems.map((item) => {
           const active = isActive(item);
           const Icon = item.icon;
+          const showBadge = item.path === "/creation-lab" && needsClarification && badgeCount > 0;
           
           return (
             <button
               key={item.path}
               onClick={() => navigate(item.path)}
               className={cn(
-                "flex flex-col items-center justify-center gap-1 flex-1 h-full transition-colors",
+                "relative flex flex-col items-center justify-center gap-1 flex-1 h-full transition-colors",
                 active 
                   ? "text-primary" 
                   : "text-muted-foreground hover:text-foreground"
               )}
             >
-              <Icon className={cn("w-6 h-6", active && "text-primary")} />
+              <div className="relative">
+                <Icon className={cn("w-6 h-6", active && "text-primary")} />
+                {showBadge && (
+                  <span className="absolute -top-1.5 -right-1.5 w-4 h-4 rounded-full bg-destructive text-destructive-foreground text-[10px] font-bold flex items-center justify-center animate-pulse">
+                    {badgeCount}
+                  </span>
+                )}
+              </div>
               <span className={cn(
                 "text-xs font-medium",
                 active && "text-primary"

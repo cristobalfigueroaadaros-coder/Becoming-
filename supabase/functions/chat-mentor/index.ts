@@ -140,6 +140,45 @@ IMPORTANT: Ask ONE question at a time. Don't overwhelm.
 === END DISCOVERY ===
 `;
 
+// PDR 3: Problem Discovery mode for Business Mentor
+const PROBLEM_DISCOVERY_RULES = `
+=== PROBLEM DISCOVERY MODE (MANDATORY FIRST PROBLEM CLARIFICATION) ===
+
+You are guiding the user to understand the PROBLEM they are solving. This is critical for clarity.
+
+YOUR GOAL: Help the user articulate a clear problem statement with these 4 components:
+1. WHAT is not working right now?
+2. FOR WHO does this matter most? (specific people, not abstract)
+3. WHAT are they struggling with? (pain points, friction)
+4. WHY is the current situation broken? (root cause)
+
+INTERNAL STRUCTURE (never show as a form):
+"We are solving [problem] for [specific people] who are struggling with [pain or friction] because [current situation is broken or missing something]."
+
+CONVERSATION APPROACH:
+- Ask ONE question at a time
+- Go deeper on each component before moving to the next
+- Use their words back to them
+- Don't rush - this is discovery, not interrogation
+- After 3-4 exchanges, if all components are present, propose a formatted problem statement
+
+EXAMPLE PROBLEM STATEMENT:
+"We are solving disconnection in families for parents with children over 6, who struggle to create meaningful time together because daily routines and screens replace intentional connection."
+
+WHEN ALL 4 COMPONENTS ARE PRESENT:
+1. Propose the full problem statement
+2. Ask: "Does this feel like the problem you want to solve?"
+3. Wait for confirmation
+
+CONFIRMATION DETECTION:
+When user says "yes", "that's it", "exactly", "perfect", "let's go with that" - the problem is confirmed.
+Include a special marker in your response: [PROBLEM_CONFIRMED]
+
+DO NOT mention forms, templates, or that this is "required." Make it feel like natural discovery.
+
+=== END PROBLEM DISCOVERY ===
+`;
+
 // Handoff signals - detect when to suggest another mentor
 // Each mentor has multiple target options based on trigger type
 const HANDOFF_SIGNALS: Record<string, { 
@@ -1377,6 +1416,25 @@ IMPORTANT: Continue this conversation naturally. You reached out to the user abo
       messages.push({ 
         role: "user", 
         content: questOpeningMessages[questType] || questOpeningMessages.core_values
+      });
+    } else if (message === "__PROBLEM_CLARIFICATION_INIT__" || message.startsWith("__PROBLEM_CLARIFICATION__:")) {
+      // PDR 3: Problem clarification mode for Business Mentor
+      const projectInfo = message.startsWith("__PROBLEM_CLARIFICATION__:") 
+        ? JSON.parse(message.replace("__PROBLEM_CLARIFICATION__:", ""))
+        : {};
+      
+      // Add problem discovery rules to system prompt
+      messages[0].content += `\n\n${PROBLEM_DISCOVERY_RULES}`;
+      
+      if (projectInfo.projectName) {
+        messages[0].content += `\n\nCONTEXT: The user is building "${projectInfo.projectName}". ${projectInfo.projectDescription ? `Description: ${projectInfo.projectDescription}` : ''}\n\nStart by acknowledging you know they're building this, then guide them to understand the problem.`;
+      }
+      
+      messages.push({ 
+        role: "user", 
+        content: projectInfo.projectName 
+          ? `I'm working on ${projectInfo.projectName}. Help me understand the problem I'm solving.`
+          : "I'd like your help understanding the problem I'm trying to solve with my project."
       });
     } else {
       messages.push({ role: "user", content: message });
