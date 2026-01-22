@@ -1,4 +1,5 @@
 import { useState, useEffect } from "react";
+import { useLocation } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
 
 interface ProblemClarificationStatus {
@@ -8,10 +9,12 @@ interface ProblemClarificationStatus {
   projectDescription: string | null;
   badgeCount: number;
   loading: boolean;
+  isInClarificationSession: boolean;
 }
 
 export const useProblemClarificationStatus = (): ProblemClarificationStatus => {
-  const [status, setStatus] = useState<ProblemClarificationStatus>({
+  const location = useLocation();
+  const [status, setStatus] = useState<Omit<ProblemClarificationStatus, 'isInClarificationSession'>>({
     needsClarification: false,
     projectId: null,
     projectName: null,
@@ -20,8 +23,29 @@ export const useProblemClarificationStatus = (): ProblemClarificationStatus => {
     loading: true,
   });
 
+  // Hide badges during onboarding
+  const isOnboarding = location.pathname.startsWith('/gravity');
+  
+  // Auto-detect if user is in business mentor chat for problem clarification
+  const isInClarificationSession = 
+    location.pathname === '/chat/business_mentor' || 
+    (location.pathname.includes('/chat') && location.search.includes('mentor=business_mentor'));
+
   useEffect(() => {
     const checkStatus = async () => {
+      // If user is in onboarding, no badges needed
+      if (isOnboarding) {
+        setStatus({
+          needsClarification: false,
+          projectId: null,
+          projectName: null,
+          projectDescription: null,
+          badgeCount: 0,
+          loading: false,
+        });
+        return;
+      }
+
       try {
         const { data: { user } } = await supabase.auth.getUser();
         if (!user) {
@@ -109,7 +133,10 @@ export const useProblemClarificationStatus = (): ProblemClarificationStatus => {
     return () => {
       supabase.removeChannel(channel);
     };
-  }, []);
+  }, [isOnboarding]);
 
-  return status;
+  return {
+    ...status,
+    isInClarificationSession,
+  };
 };

@@ -30,8 +30,8 @@ export const PHASE_CONFIG: Record<PhaseType, PhaseConfig> = {
     borderColor: 'hsl(20, 85%, 62%)',
     coreQuestion: "What am I focusing on solving right now?",
     reflectionPrompt: "What would change if this wasn't the real problem?",
-    mentorType: 'challenger',
-    mentorLabel: "Explore this with the Challenger mentor"
+    mentorType: 'business_mentor',
+    mentorLabel: "Clarify the problem with the Business mentor"
   },
   ideate: {
     icon: Lightbulb,

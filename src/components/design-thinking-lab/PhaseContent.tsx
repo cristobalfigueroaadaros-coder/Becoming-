@@ -8,11 +8,15 @@ import { ScrollArea } from '@/components/ui/scroll-area';
 import { Badge } from '@/components/ui/badge';
 import { PhaseType, PhaseContentData, PhaseNote } from './types';
 import { PHASE_CONFIG } from './constants';
+import { DefinePhaseClarificationPrompt } from './DefinePhaseClarificationPrompt';
 import { useNavigate } from 'react-router-dom';
 
 interface PhaseContentProps {
   phase: PhaseType;
   content: PhaseContentData;
+  needsProblemClarification?: boolean;
+  projectId?: string;
+  projectName?: string;
   onClose: () => void;
   onAddNote: (note: string) => Promise<void>;
   onUpdateReflection: (response: string) => Promise<void>;
@@ -37,6 +41,9 @@ const SOURCE_COLORS: Record<string, string> = {
 export const PhaseContent: React.FC<PhaseContentProps> = ({
   phase,
   content,
+  needsProblemClarification = false,
+  projectId,
+  projectName,
   onClose,
   onAddNote,
   onUpdateReflection,
@@ -44,7 +51,62 @@ export const PhaseContent: React.FC<PhaseContentProps> = ({
   const config = PHASE_CONFIG[phase];
   const Icon = config.icon;
   const navigate = useNavigate();
-  
+
+  // CRITICAL: Define phase + first-time = special read-only UI with clarification prompt
+  if (phase === 'define' && needsProblemClarification) {
+    return (
+      <motion.div
+        initial={{ opacity: 0, x: 20 }}
+        animate={{ opacity: 1, x: 0 }}
+        exit={{ opacity: 0, x: 20 }}
+        className="absolute inset-0 z-20 bg-background/98 backdrop-blur-lg rounded-2xl border border-border overflow-hidden"
+      >
+        {/* Header */}
+        <div 
+          className="flex items-center justify-between p-4 border-b border-border"
+          style={{ borderColor: config.borderColor }}
+        >
+          <div className="flex items-center gap-3">
+            <div 
+              className="w-10 h-10 rounded-xl flex items-center justify-center"
+              style={{ background: config.bgColor }}
+            >
+              <Icon className="w-5 h-5" style={{ color: config.color }} />
+            </div>
+            <div>
+              <h2 className="font-semibold capitalize" style={{ color: config.color }}>
+                Define
+              </h2>
+              <p className="text-xs text-muted-foreground">Design Thinking Phase</p>
+            </div>
+          </div>
+          <Button variant="ghost" size="icon" onClick={onClose}>
+            <X className="w-5 h-5" />
+          </Button>
+        </div>
+
+        <ScrollArea className="h-[calc(100%-64px)]">
+          <div className="p-4">
+            <DefinePhaseClarificationPrompt
+              projectName={projectName || 'your project'}
+              onStartClarification={() => {
+                navigate('/chat/business_mentor', {
+                  state: {
+                    problemClarificationMode: true,
+                    projectId,
+                    projectName
+                  }
+                });
+                onClose();
+              }}
+            />
+          </div>
+        </ScrollArea>
+      </motion.div>
+    );
+  }
+
+  // Standard phase content for all other phases OR Define after clarification
   const [newNote, setNewNote] = useState('');
   const [reflection, setReflection] = useState(content.reflectionResponse || '');
   const [isAddingNote, setIsAddingNote] = useState(false);

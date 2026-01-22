@@ -9,7 +9,7 @@ interface DefinePhaseClarificationPromptProps {
   onStartClarification: () => void;
 }
 
-const EXAMPLE_PROBLEM = `We are solving disconnection in families for parents with children over 6, who struggle to create meaningful time together because daily routines and screens replace intentional connection.`;
+const EXAMPLE_PROBLEM = `We are solving [problem] for [specific people], who struggle with [pain or friction] because [current situation is broken or missing something].`;
 
 export const DefinePhaseClarificationPrompt: React.FC<DefinePhaseClarificationPromptProps> = ({
   projectName,
@@ -22,10 +22,10 @@ export const DefinePhaseClarificationPrompt: React.FC<DefinePhaseClarificationPr
       className="space-y-6"
     >
       {/* Core Question */}
-      <div className="p-4 rounded-xl bg-primary/10 border border-primary/20">
+      <div className="p-4 rounded-xl bg-[hsl(20,85%,72%,0.15)] border border-[hsl(20,85%,62%,0.3)]">
         <div className="flex items-center gap-2 mb-2">
-          <Target className="w-5 h-5 text-primary" />
-          <span className="font-medium text-primary">Core Question</span>
+          <Target className="w-5 h-5 text-[hsl(20,85%,72%)]" />
+          <span className="font-medium text-[hsl(20,85%,72%)]">Core Question</span>
         </div>
         <p className="text-lg font-medium text-foreground">
           What am I focusing on solving right now?
@@ -38,17 +38,15 @@ export const DefinePhaseClarificationPrompt: React.FC<DefinePhaseClarificationPr
           <div className="flex items-center gap-2 mb-3">
             <Lightbulb className="w-4 h-4 text-amber-500" />
             <span className="text-xs font-medium text-muted-foreground uppercase tracking-wider">
-              Example Format
+              Example
             </span>
           </div>
           <p className="text-sm text-muted-foreground italic leading-relaxed">
             "{EXAMPLE_PROBLEM}"
           </p>
-          <div className="mt-4 pt-3 border-t border-border/50">
-            <p className="text-xs text-muted-foreground">
-              <span className="font-medium">Structure:</span> We are solving [problem] for [people] who struggle with [pain] because [root cause].
-            </p>
-          </div>
+          <p className="text-xs text-muted-foreground/70 mt-3">
+            This example disappears once your problem is confirmed.
+          </p>
         </CardContent>
       </Card>
 
@@ -65,26 +63,22 @@ export const DefinePhaseClarificationPrompt: React.FC<DefinePhaseClarificationPr
         </p>
       </div>
 
-      {/* Primary CTA */}
+      {/* Primary CTA - Mandatory first time */}
       <div className="space-y-3">
         <Button 
           onClick={onStartClarification}
-          className="w-full h-12 gap-3 text-base bg-gradient-to-r from-primary to-primary/80 hover:opacity-90"
+          className="w-full h-12 gap-3 text-base bg-gradient-to-r from-[hsl(20,85%,55%)] to-[hsl(20,85%,65%)] hover:from-[hsl(20,85%,50%)] hover:to-[hsl(20,85%,60%)] text-white"
         >
           <MessageSquare className="w-5 h-5" />
-          Clarify the problem with the Business Mentor
+          Clarify the problem with the Business mentor
         </Button>
         <p className="text-xs text-center text-muted-foreground">
-          Understand who this is for, what's not working, and why it matters.
+          Work through who this is for, what's not working, and why it matters.
         </p>
       </div>
 
-      {/* Info Note */}
-      <div className="p-3 rounded-lg bg-amber-500/10 border border-amber-500/20">
-        <p className="text-xs text-amber-700 dark:text-amber-300 text-center">
-          💡 This is a one-time conversation. After you clarify your problem, you can edit it freely.
-        </p>
-      </div>
+      {/* No Save / Manual Completion for first-time */}
+      {/* This component intentionally has no input fields or save buttons */}
     </motion.div>
   );
 };

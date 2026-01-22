@@ -10,6 +10,7 @@ interface ModeSelectorProps {
   hasActiveProject?: boolean;
   dotCount?: number;
   needsProblemClarification?: boolean;
+  isInClarificationSession?: boolean;
 }
 
 const modes = [
@@ -48,6 +49,7 @@ export const ModeSelector = ({
   hasActiveProject,
   dotCount = 0,
   needsProblemClarification = false,
+  isInClarificationSession = false,
 }: ModeSelectorProps) => {
   return (
     <div className="flex flex-col sm:flex-row gap-2 p-1.5 bg-muted/50 rounded-xl border border-border/50">
@@ -98,7 +100,7 @@ export const ModeSelector = ({
                 isActive ? "bg-white/80" : "bg-primary"
               )} />
             )}
-            {mode.id === "focus" && needsProblemClarification && (
+            {mode.id === "focus" && needsProblemClarification && !isInClarificationSession && (
               <span className={cn(
                 "relative z-10 w-4 h-4 rounded-full ml-auto flex items-center justify-center text-[10px] font-bold animate-pulse",
                 isActive ? "bg-white/90 text-primary" : "bg-destructive text-destructive-foreground"
