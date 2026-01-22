@@ -40,7 +40,7 @@ const navItems: NavItem[] = [
 export const BottomNavigation = () => {
   const location = useLocation();
   const navigate = useNavigate();
-  const { needsClarification, badgeCount } = useProblemClarificationStatus();
+  const { needsClarification, badgeCount, isInClarificationSession } = useProblemClarificationStatus();
 
   const isActive = (item: NavItem) => {
     const currentPath = location.pathname;
@@ -62,7 +62,8 @@ export const BottomNavigation = () => {
         {navItems.map((item) => {
           const active = isActive(item);
           const Icon = item.icon;
-          const showBadge = item.path === "/creation-lab" && needsClarification && badgeCount > 0;
+          // Hide badge when user is in the clarification session
+          const showBadge = item.path === "/creation-lab" && needsClarification && badgeCount > 0 && !isInClarificationSession;
           
           return (
             <button

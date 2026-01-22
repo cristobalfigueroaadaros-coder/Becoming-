@@ -7,6 +7,7 @@ import { PhaseCircle } from './PhaseCircle';
 import { PhaseContent } from './PhaseContent';
 import { ProjectThreadExpanded } from './ProjectThreadExpanded';
 import { useDesignThinkingLab } from '@/hooks/useDesignThinkingLab';
+import { useProblemClarificationStatus } from '@/hooks/useProblemClarificationStatus';
 
 interface DesignThinkingLabProps {
   projectId: string;
@@ -17,6 +18,8 @@ export const DesignThinkingLab: React.FC<DesignThinkingLabProps> = ({ projectId,
   const [selectedPhase, setSelectedPhase] = useState<PhaseType | null>(null);
   const [hoveredPhase, setHoveredPhase] = useState<PhaseType | null>(null);
   const [showThread, setShowThread] = useState(false);
+
+  const { needsClarification } = useProblemClarificationStatus();
 
   const {
     phaseContent,
@@ -95,6 +98,9 @@ export const DesignThinkingLab: React.FC<DesignThinkingLabProps> = ({ projectId,
               key={`phase-${selectedPhase}`}
               phase={selectedPhase}
               content={phaseContent[selectedPhase]}
+              needsProblemClarification={needsClarification && selectedPhase === 'define'}
+              projectId={projectId}
+              projectName={projectInfo?.title}
               onClose={() => setSelectedPhase(null)}
               onAddNote={(note) => addNoteToPhase(selectedPhase, note)}
               onUpdateReflection={(response) => updateReflection(selectedPhase, response)}
