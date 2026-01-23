@@ -6,6 +6,7 @@ import { DailyRitualModal } from "@/components/DailyRitualModal";
 import { MentorWhisperNotification } from "@/components/MentorWhisperNotification";
 import { useMentorWhisper } from "@/hooks/useMentorWhisper";
 import { useMentorOutreach } from "@/hooks/useMentorOutreach";
+import { VoiceOfSystemModal } from "@/components/voice/VoiceOfSystemModal";
 
 // Dashboard components
 import DashboardHeader from "@/components/dashboard/DashboardHeader";
@@ -25,6 +26,7 @@ const Dashboard = () => {
   const [displayName, setDisplayName] = useState<string | undefined>();
   const [showWhisperNotification, setShowWhisperNotification] = useState(false);
   const [hasQuestPending, setHasQuestPending] = useState(false);
+  const [showVoiceModal, setShowVoiceModal] = useState(false);
 
   const {
     unreadWhisper,
@@ -255,7 +257,7 @@ const Dashboard = () => {
         <NarrativeSystemCard />
 
         {/* Today's Focus - PRIMARY ANCHOR */}
-        <TodaysFocusCard />
+        <TodaysFocusCard onOpenVoice={() => setShowVoiceModal(true)} />
 
         {/* Daily Ritual */}
         <DailyRitualCard 
@@ -294,6 +296,12 @@ const Dashboard = () => {
           }}
         />
       )}
+      
+      {/* Voice of the System Modal */}
+      <VoiceOfSystemModal 
+        open={showVoiceModal} 
+        onOpenChange={setShowVoiceModal} 
+      />
     </div>
   );
 };

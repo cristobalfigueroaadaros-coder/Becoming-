@@ -979,6 +979,22 @@ Deno.serve(async (req) => {
     const { data: { user }, error: userError } = await supabaseClient.auth.getUser(token);
     if (userError || !user) throw new Error("Not authenticated");
 
+    // ========== VOICE OF SYSTEM INIT ==========
+    // Handle __VOICE_INIT__ prefix for proactive mentor opening
+    let voiceContext: any = null;
+    let actualMessage = message;
+    
+    if (message && typeof message === 'string' && message.startsWith("__VOICE_INIT__:")) {
+      const voiceContextStr = message.replace("__VOICE_INIT__:", "");
+      try {
+        voiceContext = JSON.parse(voiceContextStr);
+        console.log("Voice of System init detected:", voiceContext.blockerType);
+        actualMessage = ""; // Will be handled specially below
+      } catch (e) {
+        console.error("Failed to parse voice context:", e);
+      }
+    }
+
     // Check for handoff context - WITH FULL CHAIN MEMORY
     let handoffContext = "";
     let journeyPath: string[] = [];
@@ -1243,6 +1259,31 @@ DO NOT mention "Value Map" or "blocks" - just ask questions that naturally uncov
     // Add handoff context if present
     if (handoffContext) {
       systemPrompt += `\n\n${handoffContext}`;
+    }
+
+    // Add Voice of System context for proactive opening
+    if (voiceContext) {
+      systemPrompt += `
+
+=== VOICE OF SYSTEM HANDOFF (PROACTIVE START) ===
+The Voice of the System identified that this user is experiencing: ${voiceContext.blockerType}
+
+WHAT THEY SAID: "${voiceContext.userInput}"
+WHAT THEY NEED: ${voiceContext.handoffContext}
+
+CRITICAL INSTRUCTION:
+- You MUST START THE CONVERSATION PROACTIVELY
+- Do NOT ask "what's going on?" - you already KNOW their situation
+- Acknowledge what you know and guide them forward immediately
+- Be warm but direct - movement over perfection
+- Reference their specific situation in your opening
+
+EXAMPLE OPENING STYLE:
+"I can see you're feeling ${voiceContext.blockerType.replace(/_/g, ' ')}. That's a familiar place, and we can work through this together. Here's what I'm noticing..."
+
+Generate a welcoming, proactive opening message that shows you understand their situation.
+=== END VOICE CONTEXT ===
+`;
     }
 
     // If Future Self, get profile data

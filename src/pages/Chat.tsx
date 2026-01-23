@@ -84,7 +84,7 @@ const mentorNames: Record<string, string> = {
 interface ChatProps {
   mentorTypeOverride?: string;
   embedded?: boolean;
-  locationState?: { handoffId?: string } | null;
+  locationState?: { handoffId?: string; voiceHandoffId?: string; voiceContext?: string } | null;
 }
 
 const Chat = ({ mentorTypeOverride, embedded = false, locationState: propState }: ChatProps) => {
@@ -115,6 +115,7 @@ const Chat = ({ mentorTypeOverride, embedded = false, locationState: propState }
   const [questInitialized, setQuestInitialized] = useState(false);
   const [showWelcomeBack, setShowWelcomeBack] = useState(false);
   const [conversationSummary, setConversationSummary] = useState<string | null>(null);
+  const [isVoiceHandoffProcessed, setIsVoiceHandoffProcessed] = useState(false);
   const messagesEndRef = useRef<HTMLDivElement>(null);
   
   // Micro wins for post-first-win celebrations
@@ -151,9 +152,13 @@ const Chat = ({ mentorTypeOverride, embedded = false, locationState: propState }
 
   // Check for handoff state on mount - use prop state if provided (embedded mode)
   useEffect(() => {
-    const handoffState = (propState || location.state) as { handoffId?: string } | null;
+    const handoffState = (propState || location.state) as { handoffId?: string; voiceHandoffId?: string; voiceContext?: string } | null;
     if (handoffState?.handoffId && !isHandoffProcessed) {
       processHandoff(handoffState.handoffId);
+    }
+    // Voice of System handoff
+    if (handoffState?.voiceHandoffId && !isVoiceHandoffProcessed) {
+      processVoiceHandoff(handoffState.voiceHandoffId);
     }
   }, [propState, location.state, mentorType]);
 
@@ -186,6 +191,62 @@ const Chat = ({ mentorTypeOverride, embedded = false, locationState: propState }
     } catch (error: any) {
       console.error("Error processing handoff:", error);
       toast.error("Failed to process handoff");
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  // Voice of System handoff processing
+  const processVoiceHandoff = async (voiceHandoffId: string) => {
+    setLoading(true);
+    try {
+      const { data: { user } } = await supabase.auth.getUser();
+      if (!user) return;
+
+      // Get the voice handoff record
+      const { data: handoffRecord, error: handoffError } = await supabase
+        .from("conversation_handoffs")
+        .select("voice_context")
+        .eq("id", voiceHandoffId)
+        .single();
+
+      if (handoffError || !handoffRecord?.voice_context) {
+        console.error("Failed to get voice handoff record:", handoffError);
+        setIsVoiceHandoffProcessed(true);
+        return;
+      }
+
+      const voiceContext = handoffRecord.voice_context as any;
+
+      // Invoke chat-mentor with __VOICE_INIT__ to get proactive opening
+      const { data, error } = await supabase.functions.invoke("chat-mentor", {
+        body: { 
+          mentorType, 
+          message: `__VOICE_INIT__:${JSON.stringify(voiceContext)}` 
+        },
+      });
+
+      if (error) throw error;
+
+      // Save the AI opening message
+      const { data: welcomeMsgData } = await supabase.from("chats").insert({
+        user_id: user.id,
+        mentor_type: mentorType as any,
+        role: "assistant",
+        content: data.response,
+      }).select().single();
+
+      if (welcomeMsgData) {
+        setMessages((prev) => [...prev, welcomeMsgData]);
+      }
+
+      // Mark handoff as processed
+      await supabase.from("conversation_handoffs").update({ processed: true }).eq("id", voiceHandoffId);
+      setIsVoiceHandoffProcessed(true);
+      navigate(location.pathname, { replace: true, state: {} });
+    } catch (error: any) {
+      console.error("Error processing voice handoff:", error);
+      toast.error("Failed to start guided conversation");
     } finally {
       setLoading(false);
     }
