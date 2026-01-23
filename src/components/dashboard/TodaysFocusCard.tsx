@@ -4,12 +4,16 @@ import { motion } from "framer-motion";
 import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
-import { Target, ChevronRight, CheckCircle2, Sparkles, Users, FlaskConical } from "lucide-react";
+import { Target, ChevronRight, CheckCircle2, Sparkles, Users, FlaskConical, Compass } from "lucide-react";
 import { toast } from "sonner";
 import { supabase } from "@/integrations/supabase/client";
 import { useIntegratorProjects } from "@/hooks/useIntegratorProjects";
 
-const TodaysFocusCard = () => {
+interface TodaysFocusCardProps {
+  onOpenVoice?: () => void;
+}
+
+const TodaysFocusCard = ({ onOpenVoice }: TodaysFocusCardProps) => {
   const navigate = useNavigate();
   const { activeProject, activeNode, steps, getTodaysStep, completeStep, loading } = useIntegratorProjects();
   const [showInsightCapture, setShowInsightCapture] = useState(false);
@@ -67,6 +71,12 @@ const TodaysFocusCard = () => {
                 <FlaskConical className="w-4 h-4" />
                 Enter Creation Lab
               </Button>
+              {onOpenVoice && (
+                <Button variant="ghost" onClick={onOpenVoice} className="gap-2">
+                  <Compass className="w-4 h-4" />
+                  What's Next?
+                </Button>
+              )}
             </div>
           </div>
         </CardContent>

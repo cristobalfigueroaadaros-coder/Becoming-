@@ -335,12 +335,14 @@ export type Database = {
           handoff_chain_id: string | null
           handoff_summary: string | null
           id: string
+          initiated_by: string | null
           journey_topic: string | null
           processed: boolean
           source_mentor_type: string
           source_messages: Json
           target_mentor_type: string
           user_id: string
+          voice_context: Json | null
         }
         Insert: {
           chain_position?: number | null
@@ -348,12 +350,14 @@ export type Database = {
           handoff_chain_id?: string | null
           handoff_summary?: string | null
           id?: string
+          initiated_by?: string | null
           journey_topic?: string | null
           processed?: boolean
           source_mentor_type: string
           source_messages?: Json
           target_mentor_type: string
           user_id: string
+          voice_context?: Json | null
         }
         Update: {
           chain_position?: number | null
@@ -361,12 +365,14 @@ export type Database = {
           handoff_chain_id?: string | null
           handoff_summary?: string | null
           id?: string
+          initiated_by?: string | null
           journey_topic?: string | null
           processed?: boolean
           source_mentor_type?: string
           source_messages?: Json
           target_mentor_type?: string
           user_id?: string
+          voice_context?: Json | null
         }
         Relationships: []
       }
@@ -2546,6 +2552,7 @@ export type Database = {
           followup_requested: boolean
           followup_triggered_at: string | null
           id: string
+          initiated_by: string | null
           insight_text: string
           is_concept: boolean
           source_context: Json | null
@@ -2560,6 +2567,7 @@ export type Database = {
           followup_requested?: boolean
           followup_triggered_at?: string | null
           id?: string
+          initiated_by?: string | null
           insight_text: string
           is_concept?: boolean
           source_context?: Json | null
@@ -2574,6 +2582,7 @@ export type Database = {
           followup_requested?: boolean
           followup_triggered_at?: string | null
           id?: string
+          initiated_by?: string | null
           insight_text?: string
           is_concept?: boolean
           source_context?: Json | null
