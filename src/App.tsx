@@ -2,7 +2,7 @@ import { Toaster } from "@/components/ui/toaster";
 import { Toaster as Sonner } from "@/components/ui/sonner";
 import { TooltipProvider } from "@/components/ui/tooltip";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
-import { BrowserRouter, Routes, Route, Navigate } from "react-router-dom";
+import { BrowserRouter, Routes, Route, Navigate, useParams, useLocation } from "react-router-dom";
 import { useEffect, useState } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { ShadowEncounterModal } from "@/components/ShadowEncounterModal";
@@ -122,10 +122,19 @@ const FutureSelfOmnipresenceWrapper = () => {
 };
 
 // Helper component to redirect old chat routes to new Council structure
+// CRITICAL: Preserves location.state for Voice handoff and Problem Clarification flows
 const ChatRedirect = () => {
-  const params = new URLSearchParams(window.location.pathname.split('/chat/')[1]);
-  const mentorType = window.location.pathname.split('/chat/')[1];
-  return <Navigate to={`/council?view=${mentorType}`} replace />;
+  const { mentorType } = useParams<{ mentorType: string }>();
+  const location = useLocation();
+  
+  // Forward state to preserve voiceHandoffId, problemClarificationMode, etc.
+  return (
+    <Navigate 
+      to={`/council?view=${mentorType}`} 
+      replace 
+      state={location.state}
+    />
+  );
 };
 
 const App = () => {

@@ -84,7 +84,14 @@ const mentorNames: Record<string, string> = {
 interface ChatProps {
   mentorTypeOverride?: string;
   embedded?: boolean;
-  locationState?: { handoffId?: string; voiceHandoffId?: string; voiceContext?: string } | null;
+  locationState?: { 
+    handoffId?: string; 
+    voiceHandoffId?: string; 
+    voiceContext?: string;
+    problemClarificationMode?: boolean;
+    projectId?: string;
+    projectName?: string;
+  } | null;
 }
 
 const Chat = ({ mentorTypeOverride, embedded = false, locationState: propState }: ChatProps) => {
@@ -116,6 +123,7 @@ const Chat = ({ mentorTypeOverride, embedded = false, locationState: propState }
   const [showWelcomeBack, setShowWelcomeBack] = useState(false);
   const [conversationSummary, setConversationSummary] = useState<string | null>(null);
   const [isVoiceHandoffProcessed, setIsVoiceHandoffProcessed] = useState(false);
+  const [isProblemClarificationProcessed, setIsProblemClarificationProcessed] = useState(false);
   const messagesEndRef = useRef<HTMLDivElement>(null);
   
   // Micro wins for post-first-win celebrations
@@ -152,13 +160,27 @@ const Chat = ({ mentorTypeOverride, embedded = false, locationState: propState }
 
   // Check for handoff state on mount - use prop state if provided (embedded mode)
   useEffect(() => {
-    const handoffState = (propState || location.state) as { handoffId?: string; voiceHandoffId?: string; voiceContext?: string } | null;
+    const handoffState = (propState || location.state) as { 
+      handoffId?: string; 
+      voiceHandoffId?: string; 
+      voiceContext?: string;
+      problemClarificationMode?: boolean;
+      projectId?: string;
+      projectName?: string;
+    } | null;
+    
+    console.log('[Chat] Checking handoff state:', { handoffState, mentorType, isHandoffProcessed, isVoiceHandoffProcessed, isProblemClarificationProcessed });
+    
     if (handoffState?.handoffId && !isHandoffProcessed) {
       processHandoff(handoffState.handoffId);
     }
     // Voice of System handoff
     if (handoffState?.voiceHandoffId && !isVoiceHandoffProcessed) {
       processVoiceHandoff(handoffState.voiceHandoffId);
+    }
+    // Problem Clarification mode (Design Thinking Define phase)
+    if (handoffState?.problemClarificationMode && mentorType === 'business_mentor' && !isProblemClarificationProcessed) {
+      processProblemClarification(handoffState.projectId, handoffState.projectName);
     }
   }, [propState, location.state, mentorType]);
 
@@ -247,6 +269,50 @@ const Chat = ({ mentorTypeOverride, embedded = false, locationState: propState }
     } catch (error: any) {
       console.error("Error processing voice handoff:", error);
       toast.error("Failed to start guided conversation");
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  // Problem Clarification processing (Design Thinking Define phase)
+  const processProblemClarification = async (projectId?: string, projectName?: string) => {
+    setLoading(true);
+    setIsProblemClarificationProcessed(true); // Mark immediately to prevent double-fire
+    
+    console.log('[Chat] Processing problem clarification init:', { projectId, projectName, mentorType });
+    
+    try {
+      const { data: { user } } = await supabase.auth.getUser();
+      if (!user) return;
+
+      // Invoke chat-mentor with __PROBLEM_CLARIFICATION_INIT__ to get proactive opening
+      const { data, error } = await supabase.functions.invoke("chat-mentor", {
+        body: { 
+          mentorType: 'business_mentor', 
+          message: `__PROBLEM_CLARIFICATION_INIT__:${JSON.stringify({ projectId, projectName })}` 
+        },
+      });
+
+      if (error) throw error;
+
+      // Save the AI opening message
+      const { data: welcomeMsgData } = await supabase.from("chats").insert({
+        user_id: user.id,
+        mentor_type: 'business_mentor',
+        role: "assistant",
+        content: data.response,
+      }).select().single();
+
+      if (welcomeMsgData) {
+        setMessages((prev) => [...prev, welcomeMsgData]);
+      }
+
+      // Clear navigation state to prevent re-triggering on refresh
+      navigate(location.pathname + location.search, { replace: true, state: {} });
+    } catch (error: any) {
+      console.error("Error processing problem clarification:", error);
+      toast.error("Failed to start problem clarification");
+      setIsProblemClarificationProcessed(false); // Allow retry on error
     } finally {
       setLoading(false);
     }

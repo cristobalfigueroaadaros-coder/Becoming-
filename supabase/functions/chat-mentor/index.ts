@@ -995,6 +995,21 @@ Deno.serve(async (req) => {
       }
     }
 
+    // ========== PROBLEM CLARIFICATION INIT ==========
+    // Handle __PROBLEM_CLARIFICATION_INIT__ prefix for Design Thinking Define phase
+    let problemClarificationContext: any = null;
+    
+    if (message && typeof message === 'string' && message.startsWith("__PROBLEM_CLARIFICATION_INIT__:")) {
+      const contextStr = message.replace("__PROBLEM_CLARIFICATION_INIT__:", "");
+      try {
+        problemClarificationContext = JSON.parse(contextStr);
+        console.log("Problem Clarification init detected:", problemClarificationContext);
+        actualMessage = ""; // Will be handled specially below
+      } catch (e) {
+        console.error("Failed to parse problem clarification context:", e);
+      }
+    }
+
     // Check for handoff context - WITH FULL CHAIN MEMORY
     let handoffContext = "";
     let journeyPath: string[] = [];
@@ -1458,17 +1473,27 @@ IMPORTANT: Continue this conversation naturally. You reached out to the user abo
         role: "user", 
         content: questOpeningMessages[questType] || questOpeningMessages.core_values
       });
-    } else if (message === "__PROBLEM_CLARIFICATION_INIT__" || message.startsWith("__PROBLEM_CLARIFICATION__:")) {
+    } else if (problemClarificationContext || message === "__PROBLEM_CLARIFICATION_INIT__" || message.startsWith("__PROBLEM_CLARIFICATION__:") || message.startsWith("__PROBLEM_CLARIFICATION_INIT__:")) {
       // PDR 3: Problem clarification mode for Business Mentor
-      const projectInfo = message.startsWith("__PROBLEM_CLARIFICATION__:") 
-        ? JSON.parse(message.replace("__PROBLEM_CLARIFICATION__:", ""))
-        : {};
+      let projectInfo = problemClarificationContext || {};
+      
+      if (!problemClarificationContext && message.startsWith("__PROBLEM_CLARIFICATION__:")) {
+        try {
+          projectInfo = JSON.parse(message.replace("__PROBLEM_CLARIFICATION__:", ""));
+        } catch (e) {
+          console.error("Failed to parse problem clarification context:", e);
+        }
+      }
+      
+      console.log("Problem Clarification mode activated:", projectInfo);
       
       // Add problem discovery rules to system prompt
       messages[0].content += `\n\n${PROBLEM_DISCOVERY_RULES}`;
       
       if (projectInfo.projectName) {
-        messages[0].content += `\n\nCONTEXT: The user is building "${projectInfo.projectName}". ${projectInfo.projectDescription ? `Description: ${projectInfo.projectDescription}` : ''}\n\nStart by acknowledging you know they're building this, then guide them to understand the problem.`;
+        messages[0].content += `\n\nCONTEXT: The user is building "${projectInfo.projectName}". ${projectInfo.projectDescription ? `Description: ${projectInfo.projectDescription}` : ''}\n\nStart by acknowledging you know they're building this, then guide them to understand the problem they are solving. Be warm and conversational, not interrogative.`;
+      } else {
+        messages[0].content += `\n\nCONTEXT: The user has just started a project and needs help clarifying the problem they're solving. This is their first time doing this exercise. Be encouraging and guide them through it naturally.\n\nStart by welcoming them and asking: "What's not working right now? What situation or gap made you want to start this project?"`;
       }
       
       messages.push({ 
