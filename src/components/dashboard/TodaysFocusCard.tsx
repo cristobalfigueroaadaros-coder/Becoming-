@@ -172,29 +172,42 @@ const TodaysFocusCard = ({ onOpenVoice }: TodaysFocusCardProps) => {
             </div>
           )}
 
-          {/* CTA Button */}
-          <motion.div
-            whileHover={{ scale: 1.02 }}
-            whileTap={{ scale: 0.98 }}
-          >
-            <Button 
-              onClick={handleWorkOnGoal}
-              className="w-full gap-2 h-12 text-base"
-              size="lg"
+          {/* CTA Buttons */}
+          <div className="flex flex-col gap-2">
+            <motion.div
+              whileHover={{ scale: 1.02 }}
+              whileTap={{ scale: 0.98 }}
             >
-              {todaysStep ? (
-                <>
-                  Work on Today's Goal
-                  <ChevronRight className="w-5 h-5" />
-                </>
-              ) : (
-                <>
-                  <FlaskConical className="w-5 h-5" />
-                  Plan Next Steps
-                </>
-              )}
-            </Button>
-          </motion.div>
+              <Button 
+                onClick={handleWorkOnGoal}
+                className="w-full gap-2 h-12 text-base"
+                size="lg"
+              >
+                {todaysStep ? (
+                  <>
+                    Work on Today's Goal
+                    <ChevronRight className="w-5 h-5" />
+                  </>
+                ) : (
+                  <>
+                    <FlaskConical className="w-5 h-5" />
+                    Plan Next Steps
+                  </>
+                )}
+              </Button>
+            </motion.div>
+            
+            {onOpenVoice && (
+              <Button 
+                variant="ghost" 
+                onClick={onOpenVoice} 
+                className="gap-2 text-muted-foreground hover:text-foreground"
+              >
+                <Compass className="w-4 h-4" />
+                What's Next?
+              </Button>
+            )}
+          </div>
         </div>
       </CardContent>
     </Card>
