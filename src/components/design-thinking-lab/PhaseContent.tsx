@@ -131,7 +131,8 @@ export const PhaseContent: React.FC<PhaseContentProps> = ({
   };
 
   const handleMentorClick = () => {
-    navigate(`/chat?mentor=${config.mentorType}`);
+    // Navigate to Council view with the mentor, not the legacy /chat route
+    navigate(`/council?view=${config.mentorType}`);
     onClose();
   };
 

@@ -12,13 +12,20 @@ import { toast } from "sonner";
 import CouncilMeetingPage from "./CouncilMeeting";
 import ChatPage from "./Chat";
 
-// Type for location state passed from GravityFirstProject
+// Type for location state passed from various flows
 interface LocationState {
   prefilledQuestion?: string;
   isFirstProjectFlow?: boolean;
   openerType?: string;
   notificationContext?: any;
   notificationId?: string;
+  // Voice of System handoff
+  voiceHandoffId?: string;
+  voiceContext?: string;
+  // Problem Clarification (Design Thinking Define phase)
+  problemClarificationMode?: boolean;
+  projectId?: string;
+  projectName?: string;
 }
 
 // All mentors in the system (including new PDR expansion mentors)
