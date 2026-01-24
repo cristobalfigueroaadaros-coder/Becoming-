@@ -45,23 +45,26 @@ export const consciousnessDirections = {
 // Used to shape responses, never shown as "levels" to users
 export const emotionalGuidanceMap = {
   // Lower states - mentors respond with safety, gentleness, grounding
-  shame: { approach: "deep validation", priority: "safety", mentorFit: ["heart_mentor", "oracle_mother"] },
-  guilt: { approach: "self-forgiveness", priority: "release", mentorFit: ["heart_mentor", "ancient_sage"] },
-  apathy: { approach: "tiny sparks", priority: "any movement", mentorFit: ["creative_visionary", "explorer_mentor"] },
-  grief: { approach: "witnessing", priority: "feeling fully", mentorFit: ["oracle_mother", "heart_mentor"] },
-  fear: { approach: "gentle courage", priority: "small brave steps", mentorFit: ["mamba_mentor", "explorer_mentor"] },
+  shame: { approach: "deep validation", priority: "safety", mentorFit: ["heart_mentor", "oracle_mother", "release_mentor"] },
+  guilt: { approach: "self-forgiveness", priority: "release", mentorFit: ["heart_mentor", "ancient_sage", "release_mentor"] },
+  apathy: { approach: "tiny sparks", priority: "any movement", mentorFit: ["creative_visionary", "inner_clarity_mentor"] },
+  grief: { approach: "witnessing", priority: "feeling fully", mentorFit: ["oracle_mother", "heart_mentor", "release_mentor"] },
+  fear: { approach: "gentle courage", priority: "small brave steps", mentorFit: ["discipline_mentor", "inner_clarity_mentor"] },
   
   // Neutral states - mentors encourage expansion
-  anger: { approach: "channeling energy", priority: "constructive action", mentorFit: ["mamba_mentor", "business_mentor"] },
+  anger: { approach: "channeling energy", priority: "constructive action", mentorFit: ["discipline_mentor", "business_mentor", "release_mentor"] },
   pride: { approach: "humble confidence", priority: "contribution", mentorFit: ["heart_mentor", "ancient_sage"] },
+  confusion: { approach: "clarity through structure", priority: "problem articulation", mentorFit: ["problem_mentor", "strategist_mentor"] },
+  overwhelm: { approach: "breaking down", priority: "one clear thing", mentorFit: ["problem_mentor", "discipline_mentor"] },
+  stuck: { approach: "pattern recognition", priority: "seeing what's hidden", mentorFit: ["inner_clarity_mentor", "problem_mentor"] },
   
   // Higher states - mentors amplify and celebrate
-  courage: { approach: "amplification", priority: "bold action", mentorFit: ["mamba_mentor", "explorer_mentor"] },
+  courage: { approach: "amplification", priority: "bold action", mentorFit: ["discipline_mentor", "creative_visionary"] },
   willingness: { approach: "momentum", priority: "experiments", mentorFit: ["creative_visionary", "business_mentor"] },
-  acceptance: { approach: "deepening", priority: "integration", mentorFit: ["ancient_sage", "mystic_mentor"] },
+  acceptance: { approach: "deepening", priority: "integration", mentorFit: ["ancient_sage", "mystic_mentor", "release_mentor"] },
   love: { approach: "expansion", priority: "giving", mentorFit: ["heart_mentor", "oracle_mother"] },
   joy: { approach: "celebration", priority: "sharing", mentorFit: ["creative_visionary", "marketing_mentor"] },
-  peace: { approach: "presence", priority: "being", mentorFit: ["mystic_mentor", "ancient_sage"] }
+  peace: { approach: "presence", priority: "being", mentorFit: ["mystic_mentor", "ancient_sage", "release_mentor"] }
 } as const;
 
 // Helper to get appropriate mentor guidance tone

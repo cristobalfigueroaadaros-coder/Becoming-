@@ -36,7 +36,9 @@ const allMentorTypes = [
   "ancient_sage", "alignment_mentor", "oracle_mother", "future_self",
   // New mentors from PDR expansion
   "perspective_mentor", "challenger_mentor", "design_thinking_mentor",
-  "ux_mentor", "gamification_mentor"
+  "ux_mentor", "gamification_mentor",
+  // Clarity & Understanding mentors
+  "problem_mentor", "inner_clarity_mentor", "release_mentor"
 ];
 
 // Mentor configuration with colors
@@ -60,6 +62,10 @@ const mentorConfig: Record<string, { name: string; color: string; icon: string }
   design_thinking_mentor: { name: "Design Thinking Mentor", color: "bg-lime-500", icon: "🧪" },
   ux_mentor: { name: "UX Mentor", color: "bg-fuchsia-500", icon: "💜" },
   gamification_mentor: { name: "Gamification Mentor", color: "bg-yellow-500", icon: "🎮" },
+  // Clarity & Understanding mentors
+  problem_mentor: { name: "Problem Mentor", color: "bg-slate-600", icon: "🔍" },
+  inner_clarity_mentor: { name: "Inner Clarity Mentor", color: "bg-indigo-600", icon: "🪞" },
+  release_mentor: { name: "Release Mentor", color: "bg-teal-600", icon: "🌊" },
 };
 
 const Council = () => {
