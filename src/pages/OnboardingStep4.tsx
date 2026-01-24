@@ -5,7 +5,7 @@ import { Button } from "@/components/ui/button";
 import { Card, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { toast } from "sonner";
-import { Brain, Lightbulb, Zap, Trees, Heart, Sparkles, Target, TrendingUp, Megaphone, FlaskConical, Scale, Moon, Lock, Star } from "lucide-react";
+import { Brain, Lightbulb, Zap, Trees, Heart, Sparkles, Target, TrendingUp, Megaphone, FlaskConical, Scale, Moon, Lock, Star, Search, Eye, Waves } from "lucide-react";
 import { cn } from "@/lib/utils";
 
 // Mandatory mentors - always selected and cannot be removed
@@ -13,11 +13,11 @@ const MANDATORY_MENTORS = ["creative_visionary", "strategist_mentor"];
 
 // Mentor suggestions based on user's Step 2 selection
 const mentorSuggestions: Record<string, string[]> = {
-  discover_purpose: ["alignment_mentor", "mystic_mentor"],
+  discover_purpose: ["alignment_mentor", "mystic_mentor", "inner_clarity_mentor"],
   grow_purpose: ["business_mentor", "discipline_mentor"],
-  already_working: ["business_mentor", "marketing_mentor"],
-  stuck_unclear: ["heart_mentor", "alignment_mentor"],
-  dont_know: ["ancient_sage", "oracle_mother"],
+  already_working: ["business_mentor", "marketing_mentor", "problem_mentor"],
+  stuck_unclear: ["heart_mentor", "alignment_mentor", "problem_mentor"],
+  dont_know: ["ancient_sage", "oracle_mother", "inner_clarity_mentor"],
 };
 
 const mentors = [
@@ -165,6 +165,31 @@ const mentors = [
     color: "bg-yellow-500",
     category: "Design & Creation",
   },
+  // 🔮 Clarity & Understanding (NEW)
+  {
+    id: "problem_mentor",
+    name: "The Problem Mentor",
+    description: "Breaks down confusion into clear problem statements",
+    icon: Search,
+    color: "bg-slate-600",
+    category: "Clarity & Understanding",
+  },
+  {
+    id: "inner_clarity_mentor",
+    name: "The Inner Clarity Mentor",
+    description: "Reveals inner patterns, conflicts, and awareness",
+    icon: Eye,
+    color: "bg-indigo-600",
+    category: "Clarity & Understanding",
+  },
+  {
+    id: "release_mentor",
+    name: "The Release Mentor",
+    description: "Guides emotional release through presence, not fixing",
+    icon: Waves,
+    color: "bg-teal-600",
+    category: "Clarity & Understanding",
+  },
 ];
 
 const OnboardingStep4 = () => {
@@ -261,7 +286,7 @@ const OnboardingStep4 = () => {
         )}
 
         <div className="space-y-8">
-          {["Action & Discipline", "Creativity & Expression", "Knowledge & Insight", "Emotional & Spiritual", "Perspective & Challenge", "Design & Creation"].map((category) => {
+          {["Action & Discipline", "Creativity & Expression", "Knowledge & Insight", "Emotional & Spiritual", "Perspective & Challenge", "Design & Creation", "Clarity & Understanding"].map((category) => {
             const categoryMentors = mentors.filter((m) => m.category === category);
             return (
               <div key={category}>
@@ -272,6 +297,7 @@ const OnboardingStep4 = () => {
                   {category === "Emotional & Spiritual" && "💜"}
                   {category === "Perspective & Challenge" && "🧭"}
                   {category === "Design & Creation" && "🛠️"}
+                  {category === "Clarity & Understanding" && "🔮"}
                   {category}
                 </h2>
                 <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">

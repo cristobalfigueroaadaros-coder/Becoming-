@@ -10,14 +10,32 @@ const BLOCKER_TYPES = [
   {
     type: 'lack_of_clarity',
     signals: ['unclear', 'confused', "don't know", 'not sure what', 'what should i', 'which direction', 'no idea'],
-    targets: ['strategist_mentor', 'business_mentor'],
+    targets: ['strategist_mentor', 'problem_mentor'],
     mentorPrompt: 'Help them clarify what they\'re actually trying to solve'
+  },
+  {
+    type: 'problem_confusion',
+    signals: ["don't know what the problem is", 'confused about the problem', 'too many issues', "can't articulate", 'what am i even solving'],
+    targets: ['problem_mentor', 'strategist_mentor'],
+    mentorPrompt: 'Help them break down and articulate the actual problem they face'
   },
   {
     type: 'emotional_resistance',
     signals: ['afraid', 'scared', 'anxious', 'overwhelmed', 'stuck', 'paralyzed', 'can\'t move', 'blocked'],
-    targets: ['heart_mentor', 'alignment_mentor'],
+    targets: ['heart_mentor', 'release_mentor'],
     mentorPrompt: 'Acknowledge their feelings, help them process the emotion before action'
+  },
+  {
+    type: 'emotional_release_needed',
+    signals: ['heavy', "can't let go", 'holding', 'stuck feeling', 'carrying', 'weight', 'burden', "can't move past", 'looping'],
+    targets: ['release_mentor', 'heart_mentor'],
+    mentorPrompt: 'Guide them through letting go without trying to fix or reframe'
+  },
+  {
+    type: 'inner_pattern_recognition',
+    signals: ['pattern', 'keep doing', 'always', 'repeating', 'why do I', "can't stop", 'same thing', 'again and again'],
+    targets: ['inner_clarity_mentor', 'heart_mentor'],
+    mentorPrompt: 'Help them see the inner pattern that drives this behavior'
   },
   {
     type: 'missing_feedback',
@@ -34,7 +52,7 @@ const BLOCKER_TYPES = [
   {
     type: 'avoidance_overwhelm',
     signals: ['too much', 'paralyzed', "can't start", 'procrastinating', 'avoiding', 'putting off', 'overwhelmed'],
-    targets: ['discipline_mentor', 'strategist_mentor'],
+    targets: ['discipline_mentor', 'problem_mentor'],
     mentorPrompt: 'Break down the overwhelm into one tiny actionable step'
   },
   {
@@ -54,6 +72,10 @@ const mentorDisplayNames: Record<string, string> = {
   heart_mentor: "The Heart Mentor",
   alignment_mentor: "The Alignment Mentor",
   future_self: "Your Future Self",
+  // Clarity & Understanding mentors
+  problem_mentor: "The Problem Mentor",
+  inner_clarity_mentor: "The Inner Clarity Mentor",
+  release_mentor: "The Release Mentor",
 };
 
 Deno.serve(async (req) => {
@@ -199,10 +221,10 @@ CRITICAL RULES:
 
 RESPOND IN VALID JSON ONLY:
 {
-  "blockerType": "one of: lack_of_clarity, emotional_resistance, missing_feedback, direction_uncertainty, avoidance_overwhelm, execution_block",
+  "blockerType": "one of: lack_of_clarity, problem_confusion, emotional_resistance, emotional_release_needed, inner_pattern_recognition, missing_feedback, direction_uncertainty, avoidance_overwhelm, execution_block",
   "blockerMessage": "A 1-2 sentence acknowledgment that shows you understand exactly where they are",
   "targetType": "mentor",
-  "targetId": "one of: discipline_mentor, strategist_mentor, business_mentor, creative_visionary, heart_mentor, alignment_mentor, future_self",
+  "targetId": "one of: discipline_mentor, strategist_mentor, business_mentor, creative_visionary, heart_mentor, alignment_mentor, future_self, problem_mentor, inner_clarity_mentor, release_mentor",
   "actionExplanation": "Why this specific mentor will help them move forward (1-2 sentences)",
   "ctaLabel": "Button text like 'Talk to [Mentor Name]'",
   "handoffContext": "Full context for the mentor: what the user is struggling with, what they need, how to approach them"

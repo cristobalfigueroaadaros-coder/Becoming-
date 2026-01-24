@@ -19,7 +19,11 @@ export const VALID_MENTOR_IDS = [
   "challenger_mentor",
   "design_thinking_mentor",
   "ux_mentor",
-  "gamification_mentor"
+  "gamification_mentor",
+  // Clarity & Understanding mentors
+  "problem_mentor",
+  "inner_clarity_mentor",
+  "release_mentor"
 ] as const;
 
 export type ValidMentorId = typeof VALID_MENTOR_IDS[number];
@@ -44,6 +48,10 @@ export const mentorDisplayNames: Record<ValidMentorId, string> = {
   design_thinking_mentor: "The Design Thinking Mentor",
   ux_mentor: "The User Experience Mentor",
   gamification_mentor: "The Gamification Mentor",
+  // Clarity & Understanding mentors
+  problem_mentor: "The Problem Mentor",
+  inner_clarity_mentor: "The Inner Clarity Mentor",
+  release_mentor: "The Release Mentor",
 };
 
 // Map of common aliases to canonical mentor IDs
@@ -139,6 +147,29 @@ const mentorAliases: Record<string, ValidMentorId> = {
   "game mentor": "gamification_mentor",
   "experience architect": "gamification_mentor",
   "the experience architect": "gamification_mentor",
+  
+  // Problem Mentor
+  "problem": "problem_mentor",
+  "the problem": "problem_mentor",
+  "analyst": "problem_mentor",
+  "systems thinker": "problem_mentor",
+  "problem clarity": "problem_mentor",
+  
+  // Inner Clarity Mentor
+  "inner clarity": "inner_clarity_mentor",
+  "inner_clarity": "inner_clarity_mentor",
+  "jung": "inner_clarity_mentor",
+  "jungian": "inner_clarity_mentor",
+  "inner guide": "inner_clarity_mentor",
+  "inner observer": "inner_clarity_mentor",
+  
+  // Release Mentor
+  "release": "release_mentor",
+  "the release": "release_mentor",
+  "letting go": "release_mentor",
+  "surrender": "release_mentor",
+  "hawkins": "release_mentor",
+  "emotional release": "release_mentor",
 };
 
 /**
