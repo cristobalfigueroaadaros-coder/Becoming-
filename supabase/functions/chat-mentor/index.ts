@@ -1806,31 +1806,46 @@ IMPORTANT: Continue this conversation naturally. You reached out to the user abo
     let mentorProposedProject = false;
     let userAgreesWithProject = false;
     
+    // Helper function to strip markdown formatting for extraction
+    function stripMarkdown(text: string): string {
+      return text
+        .replace(/\*\*([^*]+)\*\*/g, '$1')  // Remove **bold**
+        .replace(/\*([^*]+)\*/g, '$1')       // Remove *italic*
+        .replace(/_([^_]+)_/g, '$1')         // Remove _underline_
+        .replace(/`([^`]+)`/g, '$1');        // Remove `code`
+    }
+    
     // Helper function to validate project name
     function isValidProjectName(name: string): boolean {
-      if (!name || name.length < 3 || name.length > 60) return false;
+      // Clean markdown before validation
+      const cleanName = stripMarkdown(name).trim();
       
-      const wordCount = name.split(/\s+/).length;
+      if (!cleanName || cleanName.length < 3 || cleanName.length > 60) return false;
+      
+      const wordCount = cleanName.split(/\s+/).length;
       if (wordCount > 9 || wordCount < 2) return false; // Need at least 2 words for a real project name
       
       // Block obvious extraction failures
       const invalidPatterns = [
         /^(s|it|and|the|a|an|this|my|within|how|would|should|could)\s+/i,
         /^(log\s+in|sign\s+in|log\s+out|sign\s+up)/i, // Common UI phrases
-        /\*\*/,                            // Markdown bold
         /\b(within|designing|work|would|could|should|actually|then|because|since|although)\b/i,
         /^(project|titled|untitled)$/i,
       ];
       
       for (const pattern of invalidPatterns) {
-        if (pattern.test(name)) return false;
+        if (pattern.test(cleanName)) return false;
       }
       
       // Must start with capital letter (title case)
-      if (!/^[A-Z]/.test(name)) return false;
+      if (!/^[A-Z]/.test(cleanName)) return false;
       
       return true;
     }
+    
+    // === PRE-PROCESS: Strip markdown from response for name extraction ===
+    const cleanedResponse = stripMarkdown(response);
+    console.log("Cleaned response (first 200 chars):", cleanedResponse.substring(0, 200));
     
     // === CONTEXT-AWARE PROJECT NAME EXTRACTION ===
     // Only capture quoted phrases that appear AFTER naming phrases
@@ -1847,11 +1862,15 @@ IMPORTANT: Continue this conversation naturally. You reached out to the user abo
       /(?:suggest|propose|recommend)\s+["']([^"']{3,50})["']/i,
       // "project: 'Name Here'" or "Project Name: X"
       /(?:project|initiative)(?:\s+name)?[:\-–]\s*["']?([A-Z][^"'\n.!?,;:]{2,49})["']?/i,
+      // "let's call this project 'Name Here'"
+      /let['']?s\s+call\s+this\s+(?:project|initiative)\s+["']([^"']{3,50})["']/i,
+      // Handle quoted names after markdown was stripped: "Name Here" (standalone quoted phrase after naming context)
+      /(?:call(?:ed)?|name(?:d)?|title(?:d)?|project)\s+[""]([A-Z][^""]{2,49})[""]/i,
     ];
     
-    // Extract from CURRENT mentor response
+    // Extract from CLEANED response (markdown stripped)
     for (const pattern of contextAwarePatterns) {
-      const match = response.match(pattern);
+      const match = cleanedResponse.match(pattern);
       if (match && isValidProjectName(match[1].trim())) {
         extractedMentorProjectName = match[1].trim();
         mentorProposedProject = true;
@@ -1860,16 +1879,33 @@ IMPORTANT: Continue this conversation naturally. You reached out to the user abo
       }
     }
     
-    // Fallback: Look for capitalized multi-word phrases (3-7 words, title case)
+    // Fallback: Look for capitalized multi-word phrases with mixed case (allows "of", "the", "and", etc.)
+    // Matches: "Echoes of Self", "The Art of Becoming", "Journey to Bali"
     if (!extractedMentorProjectName) {
-      const titleCasePattern = /\b([A-Z][a-z]+(?:\s+[A-Z][a-z]+){2,6})\b/g;
-      const matches = [...response.matchAll(titleCasePattern)];
+      // Pattern allows: Capital Word + (lowercase articles OR Capital Words) + optional colon subtitle
+      const titleCasePattern = /\b([A-Z][a-z]+(?:\s+(?:of|the|and|in|for|to|a|an|with|[A-Z][a-z]+))+(?::\s*[A-Z][a-z]+(?:\s+[A-Za-z]+)*)?)\b/g;
+      const matches = [...cleanedResponse.matchAll(titleCasePattern)];
       for (const match of matches) {
         const candidate = match[1].trim();
         if (isValidProjectName(candidate) && candidate.split(/\s+/).length >= 3) {
           extractedMentorProjectName = candidate;
           mentorProposedProject = true;
           console.log("Title-case project name extracted:", extractedMentorProjectName);
+          break;
+        }
+      }
+    }
+    
+    // Secondary fallback: Look for any quoted phrase that looks like a title
+    if (!extractedMentorProjectName) {
+      const quotedPattern = /["'""']([A-Z][^"'""']{5,49})["'""']/g;
+      const matches = [...cleanedResponse.matchAll(quotedPattern)];
+      for (const match of matches) {
+        const candidate = match[1].trim();
+        if (isValidProjectName(candidate)) {
+          extractedMentorProjectName = candidate;
+          mentorProposedProject = true;
+          console.log("Quoted project name extracted:", extractedMentorProjectName);
           break;
         }
       }
@@ -1884,23 +1920,39 @@ IMPORTANT: Continue this conversation naturally. You reached out to the user abo
         const msg = previousMessages[i];
         if (msg.role === 'assistant') {
           const prevContent = msg.content || '';
+          // Strip markdown from previous message too
+          const cleanedPrevContent = stripMarkdown(prevContent);
+          
           for (const pattern of contextAwarePatterns) {
-            const match = prevContent.match(pattern);
+            const match = cleanedPrevContent.match(pattern);
             if (match && isValidProjectName(match[1].trim())) {
               previousProposedName = match[1].trim();
               console.log("Found project name in previous AI message:", previousProposedName);
               break;
             }
           }
-          // Also check title-case pattern in previous message
+          // Also check title-case pattern in previous message (with mixed case support)
           if (!previousProposedName) {
-            const titleCasePattern = /\b([A-Z][a-z]+(?:\s+[A-Z][a-z]+){2,6})\b/g;
-            const matches = [...prevContent.matchAll(titleCasePattern)];
+            const titleCasePattern = /\b([A-Z][a-z]+(?:\s+(?:of|the|and|in|for|to|a|an|with|[A-Z][a-z]+))+(?::\s*[A-Z][a-z]+(?:\s+[A-Za-z]+)*)?)\b/g;
+            const matches = [...cleanedPrevContent.matchAll(titleCasePattern)];
             for (const match of matches) {
               const candidate = match[1].trim();
               if (isValidProjectName(candidate) && candidate.split(/\s+/).length >= 3) {
                 previousProposedName = candidate;
                 console.log("Title-case name in previous AI message:", previousProposedName);
+                break;
+              }
+            }
+          }
+          // Also check for quoted names in previous message
+          if (!previousProposedName) {
+            const quotedPattern = /["'""']([A-Z][^"'""']{5,49})["'""']/g;
+            const matches = [...cleanedPrevContent.matchAll(quotedPattern)];
+            for (const match of matches) {
+              const candidate = match[1].trim();
+              if (isValidProjectName(candidate)) {
+                previousProposedName = candidate;
+                console.log("Quoted name in previous AI message:", previousProposedName);
                 break;
               }
             }
