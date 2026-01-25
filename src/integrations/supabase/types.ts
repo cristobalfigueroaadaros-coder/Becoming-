@@ -3442,6 +3442,9 @@ export type Database = {
         | "design_thinking_mentor"
         | "ux_mentor"
         | "gamification_mentor"
+        | "problem_mentor"
+        | "inner_clarity_mentor"
+        | "release_mentor"
     }
     CompositeTypes: {
       [_ in never]: never
@@ -3592,6 +3595,9 @@ export const Constants = {
         "design_thinking_mentor",
         "ux_mentor",
         "gamification_mentor",
+        "problem_mentor",
+        "inner_clarity_mentor",
+        "release_mentor",
       ],
     },
   },

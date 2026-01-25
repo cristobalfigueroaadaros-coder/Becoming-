@@ -2,7 +2,7 @@ import { useState, useEffect, useMemo, useCallback } from "react";
 import { useSearchParams, useNavigate, useLocation } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
 import { cn } from "@/lib/utils";
-import { Users, ArrowLeft, Lock, Hammer } from "lucide-react";
+import { Users, ArrowLeft, Lock, Hammer, Heart } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { Button } from "@/components/ui/button";
@@ -327,6 +327,23 @@ const Council = () => {
             <div className="flex-1 min-w-0">
               <p className="font-medium truncate">Builders Team</p>
               <p className="text-xs text-muted-foreground truncate">Design, UX & Gamification</p>
+            </div>
+          </button>
+
+          {/* Inner Self Council (Group Chat) */}
+          <button
+            onClick={() => navigate('/inner-self-council')}
+            className={cn(
+              "w-full flex items-center gap-3 p-3 rounded-lg transition-colors text-left",
+              "hover:bg-muted"
+            )}
+          >
+            <div className="w-10 h-10 rounded-full bg-indigo-500/20 flex items-center justify-center">
+              <Heart className="w-5 h-5 text-indigo-500" />
+            </div>
+            <div className="flex-1 min-w-0">
+              <p className="font-medium truncate">Inner Self Council</p>
+              <p className="text-xs text-muted-foreground truncate">Clarity & Emotional Understanding</p>
             </div>
           </button>
 

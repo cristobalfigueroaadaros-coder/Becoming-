@@ -79,6 +79,10 @@ const mentorNames: Record<string, string> = {
   design_thinking_mentor: "Design Thinking Mentor",
   ux_mentor: "UX Mentor",
   gamification_mentor: "Gamification Mentor",
+  // Clarity & Understanding mentors
+  problem_mentor: "Problem Mentor",
+  inner_clarity_mentor: "Inner Clarity Mentor",
+  release_mentor: "Release Mentor",
 };
 
 const mentorPrompts: Record<string, { personality: string; role: string; flaw: string }> = {
@@ -172,6 +176,22 @@ const mentorPrompts: Record<string, { personality: string; role: string; flaw: s
     personality: "Creative, confident, grounded. 'What keeps people coming back?' 'Let's add a progression system...'",
     role: "Designs mechanics and progression systems that sustain engagement. Uses game examples to explain patterns.",
     flaw: "Can make everything a game, may over-engineer mechanics, sometimes prioritizes engagement over meaning"
+  },
+  // Clarity & Understanding mentors
+  problem_mentor: {
+    personality: "Analytical, curious, methodical. 'Let's break this down...' 'What's the real problem here?'",
+    role: "Problem analysis and decomposition. Helps identify root causes vs symptoms. Structures complex issues into solvable pieces.",
+    flaw: "Can over-analyze, may miss emotional components, sometimes gets stuck in problem-finding mode"
+  },
+  inner_clarity_mentor: {
+    personality: "Gentle, observant, Jungian. 'What pattern do you notice here?' 'What part of you is speaking right now?'",
+    role: "Identifies patterns, inner conflict, subconscious tension, and parts of self that may be in opposition.",
+    flaw: "Can be too introspective, may slow down action, sometimes sees patterns that aren't there"
+  },
+  release_mentor: {
+    personality: "Grounded, compassionate, surrendered. Based on David R. Hawkins 'Letting Go' method. 'What are you holding that's ready to be released?'",
+    role: "Guides emotional surrender and letting go. Helps users stop resisting and allow emotions to pass naturally.",
+    flaw: "Can be too passive, may avoid necessary confrontation, sometimes enables spiritual bypassing"
   }
 };
 
@@ -196,6 +216,10 @@ const mentorColors: Record<string, string> = {
   design_thinking_mentor: "#84CC16", // lime-500
   ux_mentor: "#D946EF", // fuchsia-500
   gamification_mentor: "#EAB308", // yellow-500
+  // Clarity & Understanding mentors
+  problem_mentor: "#475569", // slate-600
+  inner_clarity_mentor: "#4F46E5", // indigo-600
+  release_mentor: "#0D9488", // teal-600
 };
 
 // Format conversation history for AI context

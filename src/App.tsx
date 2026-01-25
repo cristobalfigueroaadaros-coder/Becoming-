@@ -39,6 +39,7 @@ import CouncilMeeting from "./pages/CouncilMeeting";
 import Council from "./pages/Council";
 import CouncilLog from "./pages/CouncilLog";
 import BuildersTeam from "./pages/BuildersTeam";
+import InnerSelfCouncil from "./pages/InnerSelfCouncil";
 import MyTasks from "./pages/MyTasks";
 import YourNewTasks from "./pages/YourNewTasks";
 import Premium from "./pages/Premium";
@@ -242,6 +243,10 @@ const App = () => {
             <Route
               path="/council"
               element={session ? <AppLayout><Council /></AppLayout> : <Navigate to="/" />}
+            />
+            <Route
+              path="/inner-self-council"
+              element={session ? <AppLayout><InnerSelfCouncil /></AppLayout> : <Navigate to="/" />}
             />
             <Route
               path="/builders-team"
