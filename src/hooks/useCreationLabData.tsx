@@ -269,6 +269,27 @@ export const useCreationLabData = () => {
         anchor_type: v.block_key?.includes('purpose') ? 'becoming' as const : 'creating' as const,
       }));
 
+      // 7. Fetch inner_patterns (Inner Work Lab)
+      const { data: innerPatternsData } = await supabase
+        .from("inner_patterns")
+        .select("*")
+        .eq("user_id", user.id);
+
+      const patternDots: InsightDot[] = (innerPatternsData || []).map((p: any) => ({
+        id: p.id,
+        source_type: 'inner_pattern',
+        source_mentor: p.source_mentor,
+        insight_text: `Pattern: ${p.pattern_name}${p.pattern_description ? ' - ' + p.pattern_description : ''}`,
+        core_theme: 'Inner Pattern',
+        skill_tags: p.related_emotions || [],
+        emotional_tone: p.primary_emotion,
+        created_at: p.created_at,
+        reviewed_at: null,
+        user_reflection: p.gold_shift_text,
+        connection_ids: [],
+        anchor_type: 'becoming' as const,
+      }));
+
       // Combine ALL sources
       const allDots = [
         ...(dotsData || []),
@@ -279,6 +300,7 @@ export const useCreationLabData = () => {
         ...savedInsightDots,
         ...councilDots,
         ...valueMapDots,
+        ...patternDots,
       ];
       setInsightDots(allDots);
       setConstellationEntries(entriesData || []);

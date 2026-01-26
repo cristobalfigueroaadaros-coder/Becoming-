@@ -271,6 +271,17 @@ Respond as the Inner Self Council with deep emotional intelligence. Provide:
    - quantum_inventor: When ready for transformation
    - release_mentor: When emotions are high and need releasing
 
+7. **detectedPattern**: If a clear inner pattern has emerged from what the user shared (like "I'm not enough", "I always sabotage when it's going well", "I freeze when I need to act"), extract it:
+   {
+     "patternName": "The core belief or pattern in 2-7 words",
+     "patternType": "limiting_belief" | "protection_mechanism" | "relational_pattern" | "self_sabotage" | "emotional_block" | "core_wound",
+     "triggerContext": "What situations trigger this pattern",
+     "primaryEmotion": "The main emotion connected to this pattern",
+     "relatedEmotions": ["other", "emotions", "involved"],
+     "bodySensation": "Where they might feel this in their body (if mentioned or likely)"
+   }
+   ONLY include if the pattern is clearly articulated. Otherwise set to null.
+
 Return as JSON:
 {
   "councilInsight": "...",
@@ -289,7 +300,8 @@ Return as JSON:
   ],
   "emotionalReflection": "...",
   "suggestedNextQuestion": "...",
-  "suggestedMentor": { "targetMentor": "release_mentor", "reason": "..." } or null
+  "suggestedMentor": { "targetMentor": "release_mentor", "reason": "..." } or null,
+  "detectedPattern": { "patternName": "...", "patternType": "...", "triggerContext": "...", "primaryEmotion": "...", "relatedEmotions": [...], "bodySensation": "..." } or null
 }` }
         ],
         temperature: 0.8,
@@ -344,7 +356,8 @@ Return as JSON:
       banterLines: response.banterLines || [],
       emotionalReflection: response.emotionalReflection,
       suggestedNextQuestion: response.suggestedNextQuestion,
-      suggestedMentor: response.suggestedMentor || null
+      suggestedMentor: response.suggestedMentor || null,
+      detectedPattern: response.detectedPattern || null
     }), {
       headers: { ...corsHeaders, "Content-Type": "application/json" }
     });
