@@ -1430,6 +1430,77 @@ export type Database = {
         }
         Relationships: []
       }
+      inner_patterns: {
+        Row: {
+          body_sensation: string | null
+          created_at: string
+          earliest_memory_age: number | null
+          gold_shift_text: string | null
+          id: string
+          life_events: Json | null
+          pattern_description: string | null
+          pattern_name: string
+          pattern_type: string
+          primary_emotion: string | null
+          related_emotions: string[] | null
+          source_council_meeting_id: string | null
+          source_mentor: string | null
+          status: string
+          transformed_at: string | null
+          trigger_context: string | null
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          body_sensation?: string | null
+          created_at?: string
+          earliest_memory_age?: number | null
+          gold_shift_text?: string | null
+          id?: string
+          life_events?: Json | null
+          pattern_description?: string | null
+          pattern_name: string
+          pattern_type?: string
+          primary_emotion?: string | null
+          related_emotions?: string[] | null
+          source_council_meeting_id?: string | null
+          source_mentor?: string | null
+          status?: string
+          transformed_at?: string | null
+          trigger_context?: string | null
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          body_sensation?: string | null
+          created_at?: string
+          earliest_memory_age?: number | null
+          gold_shift_text?: string | null
+          id?: string
+          life_events?: Json | null
+          pattern_description?: string | null
+          pattern_name?: string
+          pattern_type?: string
+          primary_emotion?: string | null
+          related_emotions?: string[] | null
+          source_council_meeting_id?: string | null
+          source_mentor?: string | null
+          status?: string
+          transformed_at?: string | null
+          trigger_context?: string | null
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "inner_patterns_source_council_meeting_id_fkey"
+            columns: ["source_council_meeting_id"]
+            isOneToOne: false
+            referencedRelation: "council_meetings"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       insight_dots: {
         Row: {
           anchor_type: string | null

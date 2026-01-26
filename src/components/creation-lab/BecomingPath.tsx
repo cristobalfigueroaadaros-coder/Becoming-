@@ -5,6 +5,7 @@ import { SelfDiscoveryQuests } from "@/components/becoming/SelfDiscoveryQuests";
 import { CoreDiscoveries } from "@/components/becoming/CoreDiscoveries";
 import { DailyJournal } from "@/components/becoming/DailyJournal";
 import { ActualSelfSummaryCard } from "@/components/becoming/ActualSelfSummaryCard";
+import { InnerWorkLabCard } from "@/components/becoming/InnerWorkLabCard";
 import { LifeDomainsRadar } from "@/components/LifeDomainsRadar";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { User, Sparkles } from "lucide-react";
@@ -41,6 +42,9 @@ export const BecomingPath = () => {
       <div className="grid gap-6 lg:grid-cols-2">
         {/* Left Column - Primary Journey */}
         <div className="space-y-6">
+          {/* Inner Work Lab - Pattern exploration */}
+          <InnerWorkLabCard />
+          
           {/* Future Self Inbox - Primary communication */}
           <FutureSelfInbox />
           
