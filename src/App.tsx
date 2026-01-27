@@ -57,6 +57,7 @@ import CreationLab from "./pages/CreationLab";
 import EnergeticDashboard from "./pages/EnergeticDashboard";
 import VibrationalPatternInsights from "./pages/VibrationalPatternInsights";
 import OptimalTimingDashboard from "./pages/OptimalTimingDashboard";
+import PatternMap from "./pages/PatternMap";
 
 const queryClient = new QueryClient();
 
@@ -375,6 +376,10 @@ const App = () => {
             <Route
               path="/optimal-timing"
               element={session ? <OptimalTimingDashboard /> : <Navigate to="/" />}
+            />
+            <Route
+              path="/pattern-map/:patternId"
+              element={session ? <PatternMap /> : <Navigate to="/" />}
             />
             <Route path="*" element={<NotFound />} />
           </Routes>

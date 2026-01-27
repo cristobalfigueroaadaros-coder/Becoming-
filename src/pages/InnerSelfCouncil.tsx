@@ -6,13 +6,15 @@ import { Textarea } from "@/components/ui/textarea";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
-import { ArrowLeft, Sparkles, Target, MessageCircle, RefreshCw, GitBranch, Loader2, Heart } from "lucide-react";
+import { ArrowLeft, Sparkles, Target, MessageCircle, RefreshCw, GitBranch, Loader2, Heart, Orbit } from "lucide-react";
 import { toast } from "sonner";
 import { cn } from "@/lib/utils";
 import { motion } from "framer-motion";
 import { VoiceRecorder } from "@/components/VoiceRecorder";
 import { HighlightedText } from "@/components/HighlightedText";
 import { InsightActionButton } from "@/components/InsightActionButton";
+import { PatternDiscoveryCard, PatternCelebration } from "@/components/pattern-map";
+import { useInnerPatterns } from "@/hooks/useInnerPatterns";
 
 // Inner Self Council mentors
 const INNER_SELF_MENTORS = ['alignment_mentor', 'perspective_mentor', 'inner_clarity_mentor', 'quantum_inventor', 'release_mentor'];
@@ -39,6 +41,7 @@ interface InnerSelfCouncilProps {
 
 const InnerSelfCouncil = ({ embedded = false }: InnerSelfCouncilProps) => {
   const navigate = useNavigate();
+  const { createPattern } = useInnerPatterns();
   
   const [question, setQuestion] = useState("");
   const [conversationHistory, setConversationHistory] = useState<any[]>([]);
@@ -75,6 +78,13 @@ const InnerSelfCouncil = ({ embedded = false }: InnerSelfCouncilProps) => {
   const [voiceUrl, setVoiceUrl] = useState<string>("");
   const [currentAnswer, setCurrentAnswer] = useState("");
   const [answerDialogOpen, setAnswerDialogOpen] = useState(false);
+  
+  // Pattern detection state
+  const [detectedPattern, setDetectedPattern] = useState<any>(null);
+  const [showPatternCard, setShowPatternCard] = useState(false);
+  const [showPatternCelebration, setShowPatternCelebration] = useState(false);
+  const [createdPatternId, setCreatedPatternId] = useState<string | null>(null);
+  const [showAgeQuestion, setShowAgeQuestion] = useState(false);
 
   // Track if we have an active thread
   const hasActiveThread = conversationHistory.length > 0;
@@ -139,6 +149,12 @@ const InnerSelfCouncil = ({ embedded = false }: InnerSelfCouncilProps) => {
         setEmotionalReflection(data.emotionalReflection || "");
         setSuggestedNextQuestion(data.suggestedNextQuestion || null);
         setSuggestedMentor(data.suggestedMentor || null);
+        
+        // Check for detected pattern
+        if (data.detectedPattern) {
+          setDetectedPattern(data.detectedPattern);
+          setShowPatternCard(true);
+        }
 
         toast.success("The Inner Self Council has responded.");
       }
@@ -163,6 +179,11 @@ const InnerSelfCouncil = ({ embedded = false }: InnerSelfCouncilProps) => {
     setConversationHistory([]);
     setVoiceUrl("");
     setCurrentAnswer("");
+    setDetectedPattern(null);
+    setShowPatternCard(false);
+    setShowPatternCelebration(false);
+    setCreatedPatternId(null);
+    setShowAgeQuestion(false);
   };
 
   const continueAsking = (prefillQuestion?: string) => {
@@ -174,6 +195,44 @@ const InnerSelfCouncil = ({ embedded = false }: InnerSelfCouncilProps) => {
     setEmotionalReflection("");
     setSuggestedNextQuestion(null);
     setSuggestedMentor(null);
+  };
+
+  // Pattern acceptance handler
+  const handlePatternAccept = async (patternName: string) => {
+    if (!detectedPattern) return;
+    
+    try {
+      const pattern = await createPattern({
+        pattern_name: patternName,
+        pattern_description: detectedPattern.triggerContext || undefined,
+        pattern_type: detectedPattern.patternType || 'limiting_belief',
+        trigger_context: detectedPattern.triggerContext || undefined,
+        primary_emotion: detectedPattern.primaryEmotion || undefined,
+        related_emotions: detectedPattern.relatedEmotions || undefined,
+        body_sensation: detectedPattern.bodySensation || undefined,
+      });
+      
+      if (pattern) {
+        setCreatedPatternId(pattern.id);
+        setShowPatternCard(false);
+        setShowPatternCelebration(true);
+      }
+    } catch (error) {
+      console.error("Failed to create pattern:", error);
+      toast.error("Failed to save pattern");
+    }
+  };
+
+  const handlePatternCelebrationContinue = () => {
+    setShowPatternCelebration(false);
+    if (createdPatternId) {
+      navigate(`/pattern-map/${createdPatternId}`);
+    }
+  };
+
+  const handlePatternDismiss = () => {
+    setShowPatternCard(false);
+    setDetectedPattern(null);
   };
 
   const handleMentorHandoff = (targetMentor: string) => {
@@ -234,8 +293,8 @@ const InnerSelfCouncil = ({ embedded = false }: InnerSelfCouncilProps) => {
             animate={{ opacity: 1, y: 0 }}
           >
             <Card className="border-indigo-500/30 bg-gradient-to-r from-indigo-500/5 to-purple-500/5">
-              <CardContent className="pt-6">
-                <div className="flex flex-wrap gap-4 mb-4">
+              <CardContent className="pt-6 space-y-4">
+                <div className="flex flex-wrap gap-4">
                   {INNER_SELF_MENTORS.map((mentor) => (
                     <div key={mentor} className="flex items-center gap-2">
                       <span className="text-xl">{mentorIcons[mentor]}</span>
@@ -243,10 +302,21 @@ const InnerSelfCouncil = ({ embedded = false }: InnerSelfCouncilProps) => {
                     </div>
                   ))}
                 </div>
-                <p className="text-sm text-muted-foreground">
-                  For moments when you're facing <strong>emotional challenges</strong>, <strong>inner conflict</strong>, or seeking <strong>deep clarity</strong>. 
-                  This council prioritizes understanding before fixing, awareness before action, and depth before speed.
-                </p>
+                
+                <div className="space-y-3 pt-2">
+                  <p className="text-sm text-muted-foreground">
+                    Now that we know what you are building...
+                    <br />
+                    let's work on what is happening <strong>inside you</strong>.
+                  </p>
+                  <p className="text-sm text-muted-foreground">
+                    This is a safe space. You can share as much or as little as you want.
+                  </p>
+                  <p className="text-sm font-medium text-foreground">
+                    Tell us one thing that feels heavy right now,
+                    or one pattern you keep repeating.
+                  </p>
+                </div>
               </CardContent>
             </Card>
           </motion.div>
@@ -292,10 +362,15 @@ const InnerSelfCouncil = ({ embedded = false }: InnerSelfCouncilProps) => {
             <Textarea
               placeholder={hasActiveThread 
                 ? "Continue exploring what you're feeling..." 
-                : "What are you feeling? What's weighing on you? What do you need clarity on?"}
+                : `Examples:
+• "I feel like I'm not enough"
+• "I'm scared of being rejected"
+• "I freeze when it matters"
+• "My father left home when I was young"
+• "I always sabotage when it's going well"`}
               value={question}
               onChange={(e) => setQuestion(e.target.value)}
-              rows={4}
+              rows={5}
               disabled={loading || stage === 'complete' || stage === 'seeking_clarity'}
             />
             
@@ -638,6 +713,26 @@ const InnerSelfCouncil = ({ embedded = false }: InnerSelfCouncilProps) => {
           </div>
         )}
       </div>
+      
+      {/* Pattern Discovery Overlay */}
+      {showPatternCard && detectedPattern && (
+        <PatternDiscoveryCard
+          proposedName={detectedPattern.patternName}
+          patternType={detectedPattern.patternType}
+          triggerContext={detectedPattern.triggerContext || ""}
+          primaryEmotion={detectedPattern.primaryEmotion || ""}
+          onAccept={handlePatternAccept}
+          onKeepExploring={handlePatternDismiss}
+        />
+      )}
+      
+      {/* Pattern Celebration Overlay */}
+      {showPatternCelebration && (
+        <PatternCelebration
+          patternName={detectedPattern?.patternName || "Your Pattern"}
+          onContinue={handlePatternCelebrationContinue}
+        />
+      )}
     </div>
   );
 };

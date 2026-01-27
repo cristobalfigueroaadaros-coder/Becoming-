@@ -75,7 +75,7 @@ export const InnerWorkLabCard = () => {
                   <div
                     key={pattern.id}
                     className="flex items-center gap-3 p-2 rounded-lg bg-background/50 hover:bg-background/80 transition-colors cursor-pointer"
-                    onClick={() => navigate('/inner-self-council')}
+                    onClick={() => navigate(`/pattern-map/${pattern.id}`)}
                   >
                     <Badge 
                       variant="secondary" 
