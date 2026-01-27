@@ -155,6 +155,26 @@ export function useInnerPatterns() {
     }
   };
 
+  const updatePatternNodes = async (id: string, nodes: Record<string, string | undefined>) => {
+    try {
+      const { error: updateError } = await supabase
+        .from("inner_patterns")
+        .update({ life_events: nodes })
+        .eq("id", id);
+
+      if (updateError) throw updateError;
+
+      setPatterns(prev => 
+        prev.map(p => p.id === id ? { ...p, life_events: nodes } : p)
+      );
+      return true;
+    } catch (err: any) {
+      console.error("Error updating pattern nodes:", err);
+      toast.error("Failed to update pattern map");
+      return false;
+    }
+  };
+
   const deletePattern = async (id: string) => {
     try {
       const { error: deleteError } = await supabase
@@ -186,6 +206,7 @@ export function useInnerPatterns() {
     createPattern,
     updatePatternStatus,
     updatePattern,
+    updatePatternNodes,
     deletePattern,
     getExploringPatterns,
     getTransformedPatterns,

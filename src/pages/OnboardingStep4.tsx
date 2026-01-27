@@ -9,7 +9,7 @@ import { Brain, Lightbulb, Zap, Trees, Heart, Sparkles, Target, TrendingUp, Mega
 import { cn } from "@/lib/utils";
 
 // Mandatory mentors - always selected and cannot be removed
-const MANDATORY_MENTORS = ["creative_visionary", "strategist_mentor"];
+const MANDATORY_MENTORS = ["creative_visionary", "strategist_mentor", "inner_clarity_mentor"];
 
 // Mentor suggestions based on user's Step 2 selection
 const mentorSuggestions: Record<string, string[]> = {
@@ -269,8 +269,8 @@ const OnboardingStep4 = () => {
         <div className="p-4 rounded-xl bg-primary/5 border border-primary/20 text-center">
           <p className="text-sm text-foreground">
             <Lock className="w-4 h-4 inline mr-2" />
-            <strong>Creative Visionary</strong> and <strong>Strategist Mentor</strong> are required for your journey.
-            They ensure you take action and create something real.
+            <strong>Creative Visionary</strong>, <strong>Strategist Mentor</strong>, and <strong>Inner Clarity Mentor</strong> are required for your journey.
+            They ensure you take action, create something real, and understand yourself deeply.
           </p>
         </div>
 
