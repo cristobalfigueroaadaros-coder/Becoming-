@@ -3,6 +3,19 @@ import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
 import type { Json } from "@/integrations/supabase/types";
 
+export interface TransmutationData {
+  shadow?: string;
+  dark_night?: string;
+  shift_moment?: string;
+  protective_purpose?: string;
+  lesson_learned?: string;
+  gold_insight?: string;
+  letter_to_self?: string;
+  brave_step?: string;
+  phase_completed?: 'black' | 'white' | 'gold';
+  completed_at?: string;
+}
+
 export interface InnerPattern {
   id: string;
   user_id: string;
@@ -17,6 +30,7 @@ export interface InnerPattern {
   body_sensation: string | null;
   earliest_memory_age: number | null;
   life_events: Json;
+  transmutation_data?: TransmutationData;
   status: string;
   gold_shift_text: string | null;
   transformed_at: string | null;
@@ -135,11 +149,14 @@ export function useInnerPatterns() {
     }
   };
 
-  const updatePattern = async (id: string, updates: Partial<InnerPattern>) => {
+  const updatePattern = async (id: string, updates: Partial<Omit<InnerPattern, 'transmutation_data'>> & { transmutation_data?: TransmutationData }) => {
     try {
+      // Cast for Supabase - transmutation_data needs to be Json
+      const dbUpdates = updates as Record<string, unknown>;
+      
       const { error: updateError } = await supabase
         .from("inner_patterns")
-        .update(updates)
+        .update(dbUpdates)
         .eq("id", id);
 
       if (updateError) throw updateError;
@@ -194,9 +211,70 @@ export function useInnerPatterns() {
     }
   };
 
+  const updateTransmutationData = async (id: string, data: TransmutationData) => {
+    try {
+      const pattern = patterns.find(p => p.id === id);
+      if (!pattern) return false;
+
+      // Check if gold phase is complete
+      const isGoldComplete = !!(data.gold_insight && data.letter_to_self);
+      
+      const updatePayload: Record<string, any> = {
+        transmutation_data: data as unknown as Json,
+      };
+
+      // If gold phase complete, also update pattern status
+      if (isGoldComplete && data.phase_completed === 'gold') {
+        updatePayload.gold_shift_text = data.gold_insight;
+        updatePayload.status = 'transformed';
+        updatePayload.transformed_at = new Date().toISOString();
+      }
+
+      const { error: updateError } = await supabase
+        .from("inner_patterns")
+        .update(updatePayload)
+        .eq("id", id);
+
+      if (updateError) throw updateError;
+
+      setPatterns(prev => 
+        prev.map(p => p.id === id ? { 
+          ...p, 
+          transmutation_data: data,
+          ...(isGoldComplete && data.phase_completed === 'gold' ? {
+            gold_shift_text: data.gold_insight,
+            status: 'transformed',
+            transformed_at: new Date().toISOString(),
+          } : {})
+        } : p)
+      );
+      return true;
+    } catch (err: any) {
+      console.error("Error updating transmutation data:", err);
+      toast.error("Failed to update transmutation map");
+      return false;
+    }
+  };
+
+  // Helper to get transmutation phase status
+  const getTransmutationStatus = (data: TransmutationData | undefined) => {
+    if (!data) return { black: false, white: false, gold: false };
+    return {
+      black: !!data.shadow,
+      white: !!(data.shift_moment && data.protective_purpose && data.lesson_learned),
+      gold: !!(data.gold_insight && data.letter_to_self),
+    };
+  };
+
   // Get patterns by status
   const getExploringPatterns = () => patterns.filter(p => p.status === "exploring");
   const getTransformedPatterns = () => patterns.filter(p => p.status === "transformed");
+  const getInTransmutationPatterns = () => patterns.filter(p => {
+    const transData = p.transmutation_data;
+    if (!transData) return false;
+    const status = getTransmutationStatus(transData);
+    return (status.black || status.white) && !status.gold;
+  });
 
   return {
     patterns,
@@ -207,8 +285,11 @@ export function useInnerPatterns() {
     updatePatternStatus,
     updatePattern,
     updatePatternNodes,
+    updateTransmutationData,
     deletePattern,
     getExploringPatterns,
     getTransformedPatterns,
+    getInTransmutationPatterns,
+    getTransmutationStatus,
   };
 }

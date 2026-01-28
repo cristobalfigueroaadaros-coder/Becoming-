@@ -8,6 +8,12 @@ import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { ArrowLeft, Orbit, MessageCircle, Sparkles, Lock, Loader2 } from "lucide-react";
 import { useInnerPatterns, type InnerPattern } from "@/hooks/useInnerPatterns";
 import { PatternMapCanvas, PatternNodeEditModal } from "@/components/pattern-map";
+import { 
+  TransmutationMapCanvas, 
+  TransmutationNodeEditModal, 
+  TransmutationCelebration,
+  type TransmutationData 
+} from "@/components/transmutation-map";
 import { toast } from "sonner";
 import type { Json } from "@/integrations/supabase/types";
 
@@ -30,14 +36,28 @@ const nodeLabels: Record<string, string> = {
   life_event: "Life Event",
 };
 
+const transmutationNodeLabels: Record<string, { label: string; phase: 'black' | 'white' | 'gold' }> = {
+  shadow: { label: "The Shadow", phase: 'black' },
+  dark_night: { label: "Dark Night", phase: 'black' },
+  shift_moment: { label: "The Shift", phase: 'white' },
+  protective_purpose: { label: "Protective Role", phase: 'white' },
+  lesson_learned: { label: "The Lesson", phase: 'white' },
+  gold_insight: { label: "The Gold", phase: 'gold' },
+  letter_to_self: { label: "To Younger Me", phase: 'gold' },
+  brave_step: { label: "Brave Step", phase: 'gold' },
+};
+
 const PatternMap = () => {
   const { patternId } = useParams<{ patternId: string }>();
   const navigate = useNavigate();
-  const { patterns, loading, updatePattern } = useInnerPatterns();
+  const { patterns, loading, updatePattern, updateTransmutationData } = useInnerPatterns();
   
   const [pattern, setPattern] = useState<InnerPattern | null>(null);
   const [nodeData, setNodeData] = useState<PatternNodeData>({});
+  const [transmutationData, setTransmutationData] = useState<TransmutationData>({});
   const [editingNode, setEditingNode] = useState<string | null>(null);
+  const [editingTransmutationNode, setEditingTransmutationNode] = useState<string | null>(null);
+  const [showCelebration, setShowCelebration] = useState(false);
   const [activeTab, setActiveTab] = useState("pattern-map");
 
   // Find the pattern
@@ -50,6 +70,18 @@ const PatternMap = () => {
         const lifeEvents = found.life_events;
         if (lifeEvents && typeof lifeEvents === 'object' && !Array.isArray(lifeEvents)) {
           setNodeData(lifeEvents as PatternNodeData);
+        }
+        // Parse transmutation_data
+        const transData = (found as any).transmutation_data;
+        if (transData && typeof transData === 'object') {
+          setTransmutationData(transData as TransmutationData);
+          // Auto-populate from pattern map data if transmutation is empty
+          if (!transData.protective_purpose && lifeEvents && (lifeEvents as PatternNodeData).protective_role) {
+            setTransmutationData(prev => ({
+              ...prev,
+              protective_purpose: (lifeEvents as PatternNodeData).protective_role,
+            }));
+          }
         }
       }
     }
@@ -75,6 +107,50 @@ const PatternMap = () => {
     }
     
     setEditingNode(null);
+  };
+
+  const handleTransmutationNodeClick = (nodeId: string) => {
+    setEditingTransmutationNode(nodeId);
+  };
+
+  const handleTransmutationNodeSave = async (content: string) => {
+    if (!pattern || !editingTransmutationNode) return;
+    
+    const updatedData = { ...transmutationData, [editingTransmutationNode]: content };
+    setTransmutationData(updatedData);
+    
+    // Check if gold phase is complete
+    const isGoldComplete = !!(
+      updatedData.gold_insight && 
+      updatedData.letter_to_self
+    );
+    
+    if (isGoldComplete && !transmutationData.phase_completed) {
+      updatedData.phase_completed = 'gold';
+      updatedData.completed_at = new Date().toISOString();
+    }
+    
+    const success = await updateTransmutationData(pattern.id, updatedData);
+    
+    if (success) {
+      toast.success("Transmutation map updated");
+      // Show celebration if gold phase just completed
+      if (isGoldComplete && !transmutationData.phase_completed) {
+        setShowCelebration(true);
+      }
+    }
+    
+    setEditingTransmutationNode(null);
+  };
+
+  const handleCelebrationSaveGold = () => {
+    setShowCelebration(false);
+    toast.success("Gold insight saved to your journey");
+  };
+
+  const handleCelebrationViewLifetime = () => {
+    setShowCelebration(false);
+    toast.info("Lifetime Map coming soon");
   };
 
   const handleKeepTalking = () => {
@@ -144,10 +220,12 @@ const PatternMap = () => {
               <Orbit className="w-3 h-3" />
               Pattern Map
             </TabsTrigger>
-            <TabsTrigger value="transmutation" className="gap-1" disabled>
+            <TabsTrigger value="transmutation" className="gap-1">
               <Sparkles className="w-3 h-3" />
               Transmutation
-              <Lock className="w-3 h-3 ml-1" />
+              {pattern.status === 'transformed' && (
+                <span className="ml-1 text-amber-500">✨</span>
+              )}
             </TabsTrigger>
             <TabsTrigger value="lifetime" className="gap-1" disabled>
               Lifetime
@@ -157,30 +235,65 @@ const PatternMap = () => {
         </Tabs>
 
         {/* Pattern Map Canvas */}
-        <motion.div
-          initial={{ opacity: 0, y: 20 }}
-          animate={{ opacity: 1, y: 0 }}
-          transition={{ delay: 0.1 }}
-        >
-          <Card className="border-indigo-500/20 bg-gradient-to-br from-indigo-500/5 to-transparent overflow-hidden">
-            <CardHeader className="pb-2">
-              <CardTitle className="text-sm text-muted-foreground flex items-center gap-2">
-                <span className="w-2 h-2 rounded-full bg-indigo-500" />
-                Tap any node to explore deeper
-              </CardTitle>
-            </CardHeader>
-            <CardContent className="pt-0">
-              <PatternMapCanvas
-                patternName={pattern.pattern_name}
-                nodeData={nodeData}
-                onNodeClick={handleNodeClick}
-              />
-            </CardContent>
-          </Card>
-        </motion.div>
+        {activeTab === "pattern-map" && (
+          <motion.div
+            initial={{ opacity: 0, y: 20 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ delay: 0.1 }}
+          >
+            <Card className="border-indigo-500/20 bg-gradient-to-br from-indigo-500/5 to-transparent overflow-hidden">
+              <CardHeader className="pb-2">
+                <CardTitle className="text-sm text-muted-foreground flex items-center gap-2">
+                  <span className="w-2 h-2 rounded-full bg-indigo-500" />
+                  Tap any node to explore deeper
+                </CardTitle>
+              </CardHeader>
+              <CardContent className="pt-0">
+                <PatternMapCanvas
+                  patternName={pattern.pattern_name}
+                  nodeData={nodeData}
+                  onNodeClick={handleNodeClick}
+                />
+              </CardContent>
+            </Card>
+          </motion.div>
+        )}
 
-        {/* Pattern description */}
-        {pattern.pattern_description && (
+        {/* Transmutation Map Canvas */}
+        {activeTab === "transmutation" && (
+          <motion.div
+            initial={{ opacity: 0, y: 20 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ delay: 0.1 }}
+          >
+            <Card className={`overflow-hidden ${
+              pattern.status === 'transformed' 
+                ? 'border-amber-500/40 bg-gradient-to-br from-amber-500/10 to-transparent'
+                : 'border-slate-500/20 bg-gradient-to-br from-slate-500/5 to-transparent'
+            }`}>
+              <CardHeader className="pb-2">
+                <CardTitle className="text-sm text-muted-foreground flex items-center gap-2">
+                  <Sparkles className={`w-4 h-4 ${pattern.status === 'transformed' ? 'text-amber-500' : 'text-slate-400'}`} />
+                  {pattern.status === 'transformed' 
+                    ? 'Transmutation Complete — Your wisdom is now gold'
+                    : 'Black → White → Gold — Tap nodes to begin your transmutation'
+                  }
+                </CardTitle>
+              </CardHeader>
+              <CardContent className="pt-0">
+                <TransmutationMapCanvas
+                  patternName={pattern.pattern_name}
+                  transmutationData={transmutationData}
+                  onNodeClick={handleTransmutationNodeClick}
+                  isCompleted={pattern.status === 'transformed'}
+                />
+              </CardContent>
+            </Card>
+          </motion.div>
+        )}
+
+        {/* Pattern description (only on pattern-map tab) */}
+        {activeTab === "pattern-map" && pattern.pattern_description && (
           <motion.div
             initial={{ opacity: 0 }}
             animate={{ opacity: 1 }}
@@ -233,7 +346,7 @@ const PatternMap = () => {
         </motion.div>
       </div>
 
-      {/* Edit Modal */}
+      {/* Pattern Node Edit Modal */}
       {editingNode && (
         <PatternNodeEditModal
           open={!!editingNode}
@@ -244,6 +357,29 @@ const PatternMap = () => {
           onSave={handleNodeSave}
         />
       )}
+
+      {/* Transmutation Node Edit Modal */}
+      {editingTransmutationNode && (
+        <TransmutationNodeEditModal
+          open={!!editingTransmutationNode}
+          onClose={() => setEditingTransmutationNode(null)}
+          nodeId={editingTransmutationNode}
+          nodeLabel={transmutationNodeLabels[editingTransmutationNode]?.label || editingTransmutationNode}
+          phase={transmutationNodeLabels[editingTransmutationNode]?.phase || 'white'}
+          currentContent={transmutationData[editingTransmutationNode as keyof TransmutationData] as string || null}
+          onSave={handleTransmutationNodeSave}
+        />
+      )}
+
+      {/* Transmutation Celebration */}
+      <TransmutationCelebration
+        open={showCelebration}
+        patternName={pattern?.pattern_name || ''}
+        goldInsight={transmutationData.gold_insight || ''}
+        onSaveGold={handleCelebrationSaveGold}
+        onViewLifetime={handleCelebrationViewLifetime}
+        onClose={() => setShowCelebration(false)}
+      />
     </div>
   );
 };

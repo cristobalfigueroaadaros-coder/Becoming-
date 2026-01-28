@@ -8,18 +8,22 @@ import { useInnerPatterns } from "@/hooks/useInnerPatterns";
 
 export const InnerWorkLabCard = () => {
   const navigate = useNavigate();
-  const { patterns, loading, getExploringPatterns, getTransformedPatterns } = useInnerPatterns();
+  const { patterns, loading, getExploringPatterns, getTransformedPatterns, getInTransmutationPatterns, getTransmutationStatus } = useInnerPatterns();
 
   const exploringPatterns = getExploringPatterns();
   const transformedPatterns = getTransformedPatterns();
+  const inTransmutationPatterns = getInTransmutationPatterns();
 
-  const getStatusColor = (status: string) => {
-    switch (status) {
-      case "exploring": return "bg-indigo-500/20 text-indigo-400";
-      case "transforming": return "bg-amber-500/20 text-amber-400";
-      case "transformed": return "bg-emerald-500/20 text-emerald-400";
-      default: return "bg-muted text-muted-foreground";
+  const getStatusInfo = (pattern: typeof patterns[0]) => {
+    const transStatus = getTransmutationStatus(pattern.transmutation_data);
+    
+    if (pattern.status === "transformed") {
+      return { label: "Transmuted", color: "bg-amber-500/20 text-amber-400" };
     }
+    if (transStatus.black || transStatus.white) {
+      return { label: "In Transmutation", color: "bg-purple-500/20 text-purple-400" };
+    }
+    return { label: "Exploring", color: "bg-indigo-500/20 text-indigo-400" };
   };
 
   return (
@@ -54,45 +58,54 @@ export const InnerWorkLabCard = () => {
           ) : patterns.length > 0 ? (
             <>
               {/* Stats Row */}
-              <div className="flex items-center gap-4 text-sm">
+              <div className="flex items-center gap-4 text-sm flex-wrap">
                 <div className="flex items-center gap-2">
                   <div className="w-2 h-2 rounded-full bg-indigo-500" />
                   <span className="text-muted-foreground">
                     {exploringPatterns.length} exploring
                   </span>
                 </div>
+                {inTransmutationPatterns.length > 0 && (
+                  <div className="flex items-center gap-2">
+                    <div className="w-2 h-2 rounded-full bg-purple-500" />
+                    <span className="text-muted-foreground">
+                      {inTransmutationPatterns.length} in progress
+                    </span>
+                  </div>
+                )}
                 <div className="flex items-center gap-2">
-                  <div className="w-2 h-2 rounded-full bg-emerald-500" />
+                  <div className="w-2 h-2 rounded-full bg-amber-500" />
                   <span className="text-muted-foreground">
-                    {transformedPatterns.length} transformed
+                    {transformedPatterns.length} transmuted
                   </span>
                 </div>
               </div>
 
               {/* Recent Patterns */}
               <div className="space-y-2">
-                {patterns.slice(0, 3).map((pattern) => (
-                  <div
-                    key={pattern.id}
-                    className="flex items-center gap-3 p-2 rounded-lg bg-background/50 hover:bg-background/80 transition-colors cursor-pointer"
-                    onClick={() => navigate(`/pattern-map/${pattern.id}`)}
-                  >
-                    <Badge 
-                      variant="secondary" 
-                      className={`text-xs ${getStatusColor(pattern.status)}`}
+                {patterns.slice(0, 3).map((pattern) => {
+                  const statusInfo = getStatusInfo(pattern);
+                  return (
+                    <div
+                      key={pattern.id}
+                      className="flex items-center gap-3 p-2 rounded-lg bg-background/50 hover:bg-background/80 transition-colors cursor-pointer"
+                      onClick={() => navigate(`/pattern-map/${pattern.id}`)}
                     >
-                      {pattern.status}
-                    </Badge>
-                    <span className="text-sm truncate flex-1">
-                      {pattern.pattern_name}
-                    </span>
-                    {pattern.primary_emotion && (
-                      <span className="text-xs text-muted-foreground">
-                        {pattern.primary_emotion}
+                      <Badge 
+                        variant="secondary" 
+                        className={`text-xs ${statusInfo.color}`}
+                      >
+                        {statusInfo.label}
+                      </Badge>
+                      <span className="text-sm truncate flex-1">
+                        {pattern.pattern_name}
                       </span>
-                    )}
-                  </div>
-                ))}
+                      {pattern.status === 'transformed' && (
+                        <Sparkles className="w-4 h-4 text-amber-500" />
+                      )}
+                    </div>
+                  );
+                })}
               </div>
 
               {patterns.length > 3 && (

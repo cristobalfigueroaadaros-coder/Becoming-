@@ -1447,6 +1447,7 @@ export type Database = {
           source_mentor: string | null
           status: string
           transformed_at: string | null
+          transmutation_data: Json | null
           trigger_context: string | null
           updated_at: string
           user_id: string
@@ -1467,6 +1468,7 @@ export type Database = {
           source_mentor?: string | null
           status?: string
           transformed_at?: string | null
+          transmutation_data?: Json | null
           trigger_context?: string | null
           updated_at?: string
           user_id: string
@@ -1487,6 +1489,7 @@ export type Database = {
           source_mentor?: string | null
           status?: string
           transformed_at?: string | null
+          transmutation_data?: Json | null
           trigger_context?: string | null
           updated_at?: string
           user_id?: string
