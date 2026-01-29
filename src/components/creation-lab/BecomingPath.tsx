@@ -1,16 +1,84 @@
+import { useState, useEffect } from "react";
+import { useSearchParams } from "react-router-dom";
 import { motion } from "framer-motion";
-import { FutureSelfInbox } from "@/components/becoming/FutureSelfInbox";
-import { IdealLifeSnapshot } from "@/components/becoming/IdealLifeSnapshot";
-import { SelfDiscoveryQuests } from "@/components/becoming/SelfDiscoveryQuests";
-import { CoreDiscoveries } from "@/components/becoming/CoreDiscoveries";
-import { DailyJournal } from "@/components/becoming/DailyJournal";
-import { ActualSelfSummaryCard } from "@/components/becoming/ActualSelfSummaryCard";
-import { InnerWorkLabCard } from "@/components/becoming/InnerWorkLabCard";
-import { LifeDomainsRadar } from "@/components/LifeDomainsRadar";
-import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
+import { Card, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { User, Sparkles } from "lucide-react";
+import { useInnerPatterns } from "@/hooks/useInnerPatterns";
+import { useLifetimeEvents } from "@/hooks/useLifetimeEvents";
+import { BecomingModeSelector, type BecomingMode } from "./BecomingModeSelector";
+import { BecomingHome } from "./BecomingHome";
+import { BecomingPatternMap } from "./BecomingPatternMap";
+import { BecomingTransmutation } from "./BecomingTransmutation";
+import { BecomingLifetime } from "./BecomingLifetime";
+import type { Json } from "@/integrations/supabase/types";
 
-export const BecomingPath = () => {
+interface BecomingPathProps {
+  initialMode?: BecomingMode;
+  onModeChange?: (mode: BecomingMode) => void;
+}
+
+export const BecomingPath = ({ initialMode = "becoming", onModeChange }: BecomingPathProps) => {
+  const [searchParams] = useSearchParams();
+  const [currentMode, setCurrentMode] = useState<BecomingMode>(initialMode);
+  const [selectedPatternId, setSelectedPatternId] = useState<string | null>(null);
+
+  // Load patterns
+  const {
+    patterns,
+    loading: patternsLoading,
+    updatePattern,
+    updateTransmutationData,
+    getTransformedPatterns,
+  } = useInnerPatterns();
+
+  // Load lifetime events
+  const {
+    events: lifetimeEvents,
+    loading: lifetimeLoading,
+    createEvent,
+    updateEvent,
+    deleteEvent,
+    getEventsByPeriod,
+    syncGoldOutcome,
+  } = useLifetimeEvents();
+
+  // Sync mode with URL param
+  useEffect(() => {
+    const bmodeParam = searchParams.get("bmode") as BecomingMode | null;
+    if (bmodeParam && ["becoming", "pattern-map", "transmutation", "lifetime"].includes(bmodeParam)) {
+      setCurrentMode(bmodeParam);
+    }
+  }, [searchParams]);
+
+  // Auto-select first pattern if none selected
+  useEffect(() => {
+    if (patterns.length > 0 && !selectedPatternId) {
+      setSelectedPatternId(patterns[0].id);
+    }
+  }, [patterns, selectedPatternId]);
+
+  const handleModeChange = (mode: BecomingMode) => {
+    setCurrentMode(mode);
+    onModeChange?.(mode);
+  };
+
+  const handleUpdatePatternNodes = async (
+    id: string,
+    updates: { life_events: Json }
+  ): Promise<boolean> => {
+    return updatePattern(id, updates);
+  };
+
+  const hasTransmuted = getTransformedPatterns().length > 0;
+
+  if (patternsLoading || lifetimeLoading) {
+    return (
+      <div className="flex items-center justify-center py-12">
+        <p className="text-muted-foreground">Loading...</p>
+      </div>
+    );
+  }
+
   return (
     <motion.div
       initial={{ opacity: 0, y: 20 }}
@@ -38,38 +106,55 @@ export const BecomingPath = () => {
         </CardHeader>
       </Card>
 
-      {/* Main Grid */}
-      <div className="grid gap-6 lg:grid-cols-2">
-        {/* Left Column - Primary Journey */}
-        <div className="space-y-6">
-          {/* Inner Work Lab - Pattern exploration */}
-          <InnerWorkLabCard />
-          
-          {/* Future Self Inbox - Primary communication */}
-          <FutureSelfInbox />
-          
-          {/* Self-Discovery Quests */}
-          <SelfDiscoveryQuests />
-          
-          {/* Daily Journal */}
-          <DailyJournal />
-        </div>
+      {/* Mode Selector (4 tabs) */}
+      <BecomingModeSelector
+        currentMode={currentMode}
+        onModeChange={handleModeChange}
+        patternCount={patterns.length}
+        hasTransmuted={hasTransmuted}
+      />
 
-        {/* Right Column - Discoveries & Vision */}
-        <div className="space-y-6">
-          {/* Actual Self - Pattern Profile */}
-          <ActualSelfSummaryCard />
-          
-          {/* Ideal Life Snapshot - Visual north star */}
-          <IdealLifeSnapshot />
-          
-          {/* Core Discoveries - Living insights */}
-          <CoreDiscoveries />
-          
-          {/* Life Domains Radar - Awareness view */}
-          <LifeDomainsRadar />
-        </div>
-      </div>
+      {/* Content based on mode */}
+      <motion.div
+        key={currentMode}
+        initial={{ opacity: 0, y: 20 }}
+        animate={{ opacity: 1, y: 0 }}
+        transition={{ duration: 0.3 }}
+      >
+        {currentMode === "becoming" && <BecomingHome />}
+
+        {currentMode === "pattern-map" && (
+          <BecomingPatternMap
+            patterns={patterns}
+            selectedPatternId={selectedPatternId}
+            onPatternSelect={setSelectedPatternId}
+            onUpdatePattern={handleUpdatePatternNodes}
+          />
+        )}
+
+        {currentMode === "transmutation" && (
+          <BecomingTransmutation
+            patterns={patterns}
+            selectedPatternId={selectedPatternId}
+            onPatternSelect={setSelectedPatternId}
+            onUpdateTransmutation={updateTransmutationData}
+            onSyncGoldOutcome={syncGoldOutcome}
+            onModeChange={handleModeChange}
+          />
+        )}
+
+        {currentMode === "lifetime" && (
+          <BecomingLifetime
+            events={lifetimeEvents}
+            eventsByPeriod={getEventsByPeriod()}
+            onCreateEvent={createEvent}
+            onUpdateEvent={updateEvent}
+            onDeleteEvent={deleteEvent}
+            onModeChange={handleModeChange}
+            currentPatternId={selectedPatternId}
+          />
+        )}
+      </motion.div>
     </motion.div>
   );
 };
