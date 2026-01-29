@@ -253,7 +253,7 @@ const PatternMap = () => {
       <div className="min-h-screen flex flex-col items-center justify-center gap-4 p-4 bg-gradient-to-br from-indigo-500/5 via-background to-purple-500/5">
         <Orbit className="w-12 h-12 text-muted-foreground" />
         <p className="text-muted-foreground">Pattern not found</p>
-        <Button variant="outline" onClick={() => navigate('/creation-lab?type=becoming')}>
+        <Button variant="outline" onClick={() => navigate('/creation-lab?type=becoming&bmode=pattern-map')}>
           Back to Inner Work Lab
         </Button>
       </div>
@@ -265,7 +265,7 @@ const PatternMap = () => {
       <div className="max-w-2xl mx-auto space-y-6">
         {/* Header */}
         <div className="flex items-center gap-4">
-          <Button variant="ghost" size="icon" onClick={() => navigate('/creation-lab?type=becoming')}>
+          <Button variant="ghost" size="icon" onClick={() => navigate('/creation-lab?type=becoming&bmode=pattern-map')}>
             <ArrowLeft className="w-5 h-5" />
           </Button>
           <div className="flex-1">
@@ -443,7 +443,7 @@ const PatternMap = () => {
           
           <Button
             variant="ghost"
-            onClick={() => navigate('/creation-lab?type=becoming')}
+            onClick={() => navigate('/creation-lab?type=becoming&bmode=pattern-map')}
             className="w-full"
           >
             Back to Inner Work Lab

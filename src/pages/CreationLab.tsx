@@ -14,6 +14,7 @@ import { PurposeToValueMap } from "@/components/creation-lab/PurposeToValueMap";
 import { PurposeOnboardingModal } from "@/components/PurposeOnboardingModal";
 import { ProjectTypeSelector, type ProjectType } from "@/components/creation-lab/ProjectTypeSelector";
 import { BecomingPath } from "@/components/creation-lab/BecomingPath";
+import type { BecomingMode } from "@/components/creation-lab/BecomingModeSelector";
 import { useProblemClarificationStatus } from "@/hooks/useProblemClarificationStatus";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
@@ -59,6 +60,9 @@ const CreationLab = () => {
   const [projectType, setProjectType] = useState<ProjectType>(
     typeParam === "becoming" ? "becoming" : "creating"
   );
+  
+  // Becoming mode from URL
+  const bmodeParam = searchParams.get("bmode") as BecomingMode | null;
   
   // PDR v2.1: Accept project info from navigation state (from Commitment Card)
   const navState = location.state as ProjectSetupState | null;
@@ -119,7 +123,15 @@ const CreationLab = () => {
 
   const handleProjectTypeChange = (type: ProjectType) => {
     setProjectType(type);
-    setSearchParams({ type, mode: currentMode });
+    if (type === "becoming") {
+      setSearchParams({ type, bmode: "becoming" });
+    } else {
+      setSearchParams({ type, mode: currentMode });
+    }
+  };
+
+  const handleBecomingModeChange = (mode: BecomingMode) => {
+    setSearchParams({ type: "becoming", bmode: mode });
   };
 
   // Sync mode from URL on mount
@@ -355,7 +367,10 @@ const CreationLab = () => {
 
         {/* Content based on project type */}
         {projectType === "becoming" ? (
-          <BecomingPath />
+          <BecomingPath 
+            initialMode={bmodeParam || "becoming"}
+            onModeChange={handleBecomingModeChange}
+          />
         ) : (
           <motion.div
             key={currentMode}
