@@ -1,383 +1,403 @@
 
 
-# Lifetime Map Implementation Plan
+# Becoming Path Tab Reorganization Plan
 
 ## Overview
 
-The Lifetime Map is the third tab of the Inner Work Lab, providing a horizontal timeline view of the user's life events connected to patterns and transmutations. The key design principle is **"Life Event Label first"** - users describe what happened before naming any psychological patterns.
+This plan reorganizes the Becoming Path to match the Creating Project structure with a 4-tab navigation system. The Inner Work Lab's three maps (Pattern, Transmutation, Lifetime) will move from the separate `/pattern-map/:patternId` page into the Becoming Path as tabs.
 
 ---
 
-## Architecture Summary
+## Current vs. New Structure
 
-| Existing Component | Lifetime Map Equivalent |
-|-------------------|------------------------|
-| `PatternMapCanvas.tsx` | `LifetimeMapTimeline.tsx` (NEW) |
-| `PatternMapNode.tsx` | `LifetimeEventCard.tsx` (NEW) |
-| `PatternNodeEditModal.tsx` | `LifetimeEventEditModal.tsx` (NEW) |
-| Pattern tab in `PatternMap.tsx` | Lifetime tab enabled in same page |
+| Current (Becoming Path) | New Structure |
+|------------------------|---------------|
+| Single grid layout with all components | 4 tabs with organized content |
+| Pattern Map on separate page (`/pattern-map/:patternId`) | Pattern Map as Tab 2 |
+| Transmutation on separate page | Transmutation as Tab 3 |
+| Lifetime on separate page | Lifetime as Tab 4 |
 
 ---
 
-## Database Changes
+## New Tab Structure
 
-### Create new `lifetime_events` table
-
-This table stores life events separately from patterns, allowing standalone event creation:
-
-```sql
-CREATE TABLE public.lifetime_events (
-  id UUID NOT NULL DEFAULT gen_random_uuid() PRIMARY KEY,
-  user_id UUID NOT NULL,
-  
-  -- Time Anchor (required)
-  time_period TEXT NOT NULL,  -- 'childhood', 'teen', 'early_20s', 'mid_20s', 'late_20s', '30s', 'current'
-  
-  -- Life Event (required entry point)
-  event_label TEXT NOT NULL,  -- "My parents separated"
-  event_description TEXT,      -- Optional longer description
-  
-  -- Event Type (optional helper tag)
-  event_type TEXT,  -- 'family', 'love', 'health', 'money', 'work', 'friendship', 'identity', 'loss', 'change'
-  
-  -- Pattern Connection (optional, can be linked later)
-  pattern_id UUID REFERENCES public.inner_patterns(id) ON DELETE SET NULL,
-  pattern_name TEXT,  -- Cached for display when no pattern_id
-  
-  -- Transmutation Connection (synced from pattern)
-  gold_outcome TEXT,  -- "I became resilient" - from transmutation gold_insight
-  is_transmuted BOOLEAN DEFAULT false,
-  
-  -- Metadata
-  created_at TIMESTAMP WITH TIME ZONE NOT NULL DEFAULT now(),
-  updated_at TIMESTAMP WITH TIME ZONE NOT NULL DEFAULT now()
-);
-
--- RLS Policies
-ALTER TABLE public.lifetime_events ENABLE ROW LEVEL SECURITY;
-
-CREATE POLICY "Users can CRUD own lifetime events" 
-ON public.lifetime_events FOR ALL 
-USING (auth.uid() = user_id);
-
--- Indexes
-CREATE INDEX idx_lifetime_events_user ON public.lifetime_events(user_id);
-CREATE INDEX idx_lifetime_events_pattern ON public.lifetime_events(pattern_id);
-CREATE INDEX idx_lifetime_events_time ON public.lifetime_events(time_period);
+```
+Becoming Path
+├── Tab 1: Becoming (Home)
+│   ├── ActualSelfSummaryCard (Your Pattern Profile)
+│   ├── IdealLifeSnapshot
+│   ├── SelfDiscoveryQuests
+│   ├── DailyJournal
+│   ├── FutureSelfInbox
+│   ├── CoreDiscoveries
+│   └── LifeDomainsRadar
+│
+├── Tab 2: Pattern Map
+│   ├── Pattern selector (if multiple patterns exist)
+│   └── PatternMapCanvas (interactive nodes)
+│
+├── Tab 3: Transmutation
+│   ├── Pattern selector
+│   └── TransmutationMapCanvas (Black → White → Gold)
+│
+└── Tab 4: Lifetime
+    └── LifetimeMapTimeline (horizontal timeline)
 ```
 
 ---
 
 ## Implementation Steps
 
-### Step 1: Create Database Migration
+### Step 1: Create Becoming Mode Selector Component
 
-Add the `lifetime_events` table with the schema defined above.
+**File:** `src/components/creation-lab/BecomingModeSelector.tsx` (NEW)
 
----
-
-### Step 2: Create Lifetime Events Hook
-
-**File:** `src/hooks/useLifetimeEvents.tsx` (NEW)
-
-A dedicated hook for managing lifetime events:
+A new mode selector similar to `ModeSelector.tsx` but for the Becoming Path's 4 tabs:
 
 ```typescript
-export interface LifetimeEvent {
-  id: string;
-  user_id: string;
-  time_period: TimePeriod;
-  event_label: string;
-  event_description: string | null;
-  event_type: EventType | null;
-  pattern_id: string | null;
-  pattern_name: string | null;
-  gold_outcome: string | null;
-  is_transmuted: boolean;
-  created_at: string;
-  updated_at: string;
-}
+export type BecomingMode = "becoming" | "pattern-map" | "transmutation" | "lifetime";
 
-export type TimePeriod = 
-  | 'childhood' 
-  | 'teen' 
-  | 'early_20s' 
-  | 'mid_20s' 
-  | 'late_20s' 
-  | '30s' 
-  | 'current';
-
-export type EventType = 
-  | 'family' 
-  | 'love' 
-  | 'health' 
-  | 'money' 
-  | 'work' 
-  | 'friendship' 
-  | 'identity' 
-  | 'loss' 
-  | 'change';
-
-export function useLifetimeEvents() {
-  // Load events
-  // Create event (manual or auto from pattern)
-  // Update event
-  // Delete event
-  // Link event to pattern
-  // Sync gold outcome from transmutation
-  // Get events grouped by time period
+interface BecomingModeSelectorProps {
+  currentMode: BecomingMode;
+  onModeChange: (mode: BecomingMode) => void;
+  patternCount?: number;
+  hasInTransmutation?: boolean;
+  hasTransmuted?: boolean;
 }
 ```
 
-Key functions:
-- `loadEvents()` - Fetch all user's lifetime events
-- `createEvent(input)` - Create new event (manual mode)
-- `createFromPattern(pattern)` - Auto-create from pattern map
-- `linkPattern(eventId, patternId)` - Connect existing event to pattern
-- `syncGoldOutcome(eventId, goldText)` - Update when transmutation completes
-- `getEventsByPeriod()` - Group events for timeline display
+**Mode definitions:**
+| Mode | Label | Icon | Description |
+|------|-------|------|-------------|
+| `becoming` | Becoming | User | Your identity journey |
+| `pattern-map` | Pattern Map | Orbit | Map your inner patterns |
+| `transmutation` | Transmutation | Sparkles | Transform pain into gold |
+| `lifetime` | Lifetime | Clock | Your life timeline |
+
+**Visual indicators:**
+- Pattern Map tab shows pattern count badge
+- Transmutation tab shows sparkle if any transmuted patterns exist
+- Color theme: Indigo/Purple gradient (matching Inner Work Lab)
 
 ---
 
-### Step 3: Create Lifetime Map Timeline Component
+### Step 2: Create Pattern Selector Component
 
-**File:** `src/components/lifetime-map/LifetimeMapTimeline.tsx` (NEW)
+**File:** `src/components/creation-lab/PatternSelector.tsx` (NEW)
 
-A horizontal scrollable timeline with time period columns:
+When users have multiple patterns, they need to select which one to view:
 
 ```typescript
-interface LifetimeMapTimelineProps {
-  events: LifetimeEvent[];
-  onEventClick: (event: LifetimeEvent) => void;
-  onAddEvent: (timePeriod: TimePeriod) => void;
+interface PatternSelectorProps {
+  patterns: InnerPattern[];
+  selectedPatternId: string | null;
+  onPatternSelect: (patternId: string) => void;
 }
 ```
 
-**Visual layout:**
-```
-Childhood   Teen    Early 20s   Mid 20s   Late 20s   30s    Current
-   │         │         │          │          │        │        │
-   ●─────────●─────────●──────────●──────────●────────●────────●
-   │         │         │          │          │        │        │
- ┌───┐     ┌───┐     ┌───┐                          ┌───┐    ┌───┐
- │ E │     │ E │     │ E │                          │ E │    │ + │
- └───┘     └───┘     └───┘                          └───┘    └───┘
-```
-
-Features:
-- Horizontal scroll for mobile
-- Time period headers with subtle styling
-- Event cards stacked vertically within each period
-- "+" button to add new event in any period
-- Color coding: neutral → shadow (linked pattern) → gold (transmuted)
+**Features:**
+- Dropdown or horizontal scroll of pattern cards
+- Shows pattern name and status badge (Exploring/In Transmutation/Transmuted)
+- Auto-selects most recent pattern if none selected
+- "Start new pattern" button that navigates to Inner Self Council
 
 ---
 
-### Step 4: Create Lifetime Event Card Component
+### Step 3: Refactor BecomingPath Component
 
-**File:** `src/components/lifetime-map/LifetimeEventCard.tsx` (NEW)
+**File:** `src/components/creation-lab/BecomingPath.tsx` (MODIFY)
 
-Individual event card displayed in the timeline:
+Transform from a single grid layout to a tabbed interface:
 
 ```typescript
-interface LifetimeEventCardProps {
-  event: LifetimeEvent;
-  onClick: () => void;
+interface BecomingPathProps {
+  initialMode?: BecomingMode;
 }
-```
 
-**Card structure:**
-- Event label (primary text)
-- Event type badge (optional, soft color)
-- Pattern indicator (if linked)
-- Gold badge (if transmuted, shows gold_outcome)
-- Visual state changes based on status
-
-**Color language:**
-- **No pattern:** Neutral gray/soft background
-- **Pattern linked:** Indigo/purple tint (shadow phase)
-- **Transmuted:** Amber/gold highlight with sparkle
-
----
-
-### Step 5: Create Lifetime Event Edit Modal
-
-**File:** `src/components/lifetime-map/LifetimeEventEditModal.tsx` (NEW)
-
-Modal for creating/editing lifetime events:
-
-```typescript
-interface LifetimeEventEditModalProps {
-  open: boolean;
-  onClose: () => void;
-  event?: LifetimeEvent | null;  // null = creating new
-  defaultTimePeriod?: TimePeriod;
-  onSave: (data: LifetimeEventInput) => void;
-  onDelete?: () => void;
-}
-```
-
-**Form fields:**
-1. **Time Period** (required) - Select/buttons for time anchors
-2. **Life Event Label** (required) - Text input with placeholder examples
-3. **Event Type** (optional) - Select with soft category tags
-4. **Description** (optional) - Textarea for details
-5. **Pattern Activated** (optional, read-only if linked from pattern)
-
-**Placeholder examples from PDR:**
-- "My parents separated"
-- "I moved to a new country alone"
-- "I had an injury that changed my life"
-- "I lost someone I loved"
-- "My first business failed"
-- "A breakup that broke me"
-
----
-
-### Step 6: Create Event Detail View Component
-
-**File:** `src/components/lifetime-map/LifetimeEventDetailView.tsx` (NEW)
-
-Expanded view when user clicks an event:
-
-```typescript
-interface LifetimeEventDetailViewProps {
-  event: LifetimeEvent;
-  onGoToPatternMap: () => void;
-  onGoToTransmutation: () => void;
-  onTalkToMentor: () => void;
-  onEdit: () => void;
-  onClose: () => void;
-}
-```
-
-**Content:**
-- Life Event Label (large)
-- Time period badge
-- Pattern info (if present)
-- Gold outcome (if transmuted, displayed prominently)
-- Action buttons:
-  - "Go to Pattern Map" (if pattern linked)
-  - "Go to Transmutation Map" (if pattern linked)
-  - "Talk to Inner Self Mentor"
-  - "Edit Entry"
-  - "Delete Entry" (with confirmation)
-
----
-
-### Step 7: Create Pattern Link Suggestion Card
-
-**File:** `src/components/lifetime-map/PatternLinkSuggestion.tsx` (NEW)
-
-Notification/prompt when event has no pattern:
-
-```typescript
-interface PatternLinkSuggestionProps {
-  eventLabel: string;
-  onMapPattern: () => void;
-  onDismiss: () => void;
-}
-```
-
-**Copy from PDR:**
-> "This event shaped you deeply. Want to map the pattern it created?"
-> Buttons: [Map Pattern] [Not now]
-
----
-
-### Step 8: Create Transmutation Ready Card
-
-**File:** `src/components/lifetime-map/TransmutationReadyCard.tsx` (NEW)
-
-Prompt when pattern exists but no transmutation:
-
-```typescript
-interface TransmutationReadyCardProps {
-  patternName: string;
-  onStartTransmutation: () => void;
-  onDismiss: () => void;
-}
-```
-
-**Copy from PDR:**
-> "Ready to transform this into gold?"
-> Buttons: [Start Transmutation] [Not now]
-
----
-
-### Step 9: Enable Lifetime Tab in PatternMap.tsx
-
-**File:** `src/pages/PatternMap.tsx` (MODIFY)
-
-1. Remove the `disabled` attribute from the Lifetime tab
-2. Add state for lifetime events
-3. Load events using `useLifetimeEvents` hook
-4. Render `LifetimeMapTimeline` when tab is active
-5. Handle event CRUD operations
-
-**Tab content structure:**
-```typescript
-{activeTab === "lifetime" && (
-  <LifetimeMapTimeline
-    events={lifetimeEvents}
-    currentPatternId={pattern.id}
-    onEventClick={handleEventClick}
-    onAddEvent={handleAddEvent}
-  />
-)}
-```
-
----
-
-### Step 10: Auto-Population from Inner Work Flows
-
-**Automatic event creation triggers:**
-
-1. **Pattern Map created with life_event node:**
-   - When `life_events.life_event` is filled in Pattern Map
-   - Create corresponding lifetime_event linked to the pattern
-
-2. **Pattern with life_event_age_category:**
-   - Use the age category as time_period
-   - Auto-create lifetime event
-
-3. **Transmutation completed:**
-   - Update existing lifetime_event with `gold_outcome`
-   - Set `is_transmuted = true`
-
-**Implementation:** Add effects in `useInnerPatterns` or create a dedicated sync function.
-
----
-
-### Step 11: Update Transmutation Celebration
-
-**File:** `src/components/transmutation-map/TransmutationCelebration.tsx` (MODIFY)
-
-Change the "View in Lifetime Map" button to actually navigate:
-
-```typescript
-const handleCelebrationViewLifetime = () => {
-  setShowCelebration(false);
-  setActiveTab("lifetime");  // Switch to lifetime tab
-  // Sync gold outcome to lifetime event
-  syncLifetimeGoldOutcome(pattern.id, transmutationData.gold_insight);
+export const BecomingPath = ({ initialMode = "becoming" }: BecomingPathProps) => {
+  const [currentMode, setCurrentMode] = useState<BecomingMode>(initialMode);
+  const [selectedPatternId, setSelectedPatternId] = useState<string | null>(null);
+  
+  // Load patterns
+  const { patterns, loading, ... } = useInnerPatterns();
+  const { events, ... } = useLifetimeEvents();
+  
+  // Auto-select first pattern
+  useEffect(() => {
+    if (patterns.length > 0 && !selectedPatternId) {
+      setSelectedPatternId(patterns[0].id);
+    }
+  }, [patterns]);
+  
+  return (
+    <div className="space-y-6">
+      {/* Hero Section (same as before) */}
+      
+      {/* Mode Selector (new 4-tab navigation) */}
+      <BecomingModeSelector
+        currentMode={currentMode}
+        onModeChange={setCurrentMode}
+        patternCount={patterns.length}
+        hasInTransmutation={inTransmutationPatterns.length > 0}
+        hasTransmuted={transformedPatterns.length > 0}
+      />
+      
+      {/* Content based on mode */}
+      {currentMode === "becoming" && <BecomingHome />}
+      {currentMode === "pattern-map" && (
+        <BecomingPatternMap 
+          patterns={patterns} 
+          selectedPatternId={selectedPatternId}
+          onPatternSelect={setSelectedPatternId}
+        />
+      )}
+      {currentMode === "transmutation" && (
+        <BecomingTransmutation 
+          patterns={patterns}
+          selectedPatternId={selectedPatternId}
+          onPatternSelect={setSelectedPatternId}
+        />
+      )}
+      {currentMode === "lifetime" && (
+        <BecomingLifetime events={events} />
+      )}
+    </div>
+  );
 };
 ```
 
 ---
 
-### Step 12: Create Index Export
+### Step 4: Create BecomingHome Component
 
-**File:** `src/components/lifetime-map/index.ts` (NEW)
+**File:** `src/components/creation-lab/BecomingHome.tsx` (NEW)
+
+Extract the current BecomingPath grid into its own component:
 
 ```typescript
-export { LifetimeMapTimeline } from "./LifetimeMapTimeline";
-export { LifetimeEventCard } from "./LifetimeEventCard";
-export { LifetimeEventEditModal } from "./LifetimeEventEditModal";
-export { LifetimeEventDetailView } from "./LifetimeEventDetailView";
-export { PatternLinkSuggestion } from "./PatternLinkSuggestion";
-export { TransmutationReadyCard } from "./TransmutationReadyCard";
+export const BecomingHome = () => {
+  return (
+    <div className="grid gap-6 lg:grid-cols-2">
+      {/* Left Column */}
+      <div className="space-y-6">
+        <FutureSelfInbox />
+        <SelfDiscoveryQuests />
+        <DailyJournal />
+      </div>
+      
+      {/* Right Column */}
+      <div className="space-y-6">
+        <ActualSelfSummaryCard />
+        <IdealLifeSnapshot />
+        <CoreDiscoveries />
+        <LifeDomainsRadar />
+      </div>
+    </div>
+  );
+};
 ```
+
+**Note:** Remove `InnerWorkLabCard` from here since the Pattern/Transmutation/Lifetime tabs now serve that purpose directly.
+
+---
+
+### Step 5: Create BecomingPatternMap Component
+
+**File:** `src/components/creation-lab/BecomingPatternMap.tsx` (NEW)
+
+Embed Pattern Map functionality directly in the tab:
+
+```typescript
+interface BecomingPatternMapProps {
+  patterns: InnerPattern[];
+  selectedPatternId: string | null;
+  onPatternSelect: (id: string) => void;
+}
+
+export const BecomingPatternMap = ({ ... }) => {
+  const selectedPattern = patterns.find(p => p.id === selectedPatternId);
+  
+  return (
+    <div className="space-y-6">
+      {/* Pattern Selector */}
+      {patterns.length > 0 && (
+        <PatternSelector 
+          patterns={patterns}
+          selectedPatternId={selectedPatternId}
+          onPatternSelect={onPatternSelect}
+        />
+      )}
+      
+      {/* Empty state */}
+      {patterns.length === 0 && (
+        <EmptyPatternState onStartExploration={() => navigate('/inner-self-council')} />
+      )}
+      
+      {/* Pattern Map Canvas */}
+      {selectedPattern && (
+        <Card>
+          <CardHeader>
+            <div className="flex items-center gap-3">
+              <h2>{selectedPattern.pattern_name}</h2>
+              <Badge>{selectedPattern.status}</Badge>
+            </div>
+          </CardHeader>
+          <CardContent>
+            <PatternMapCanvas
+              patternName={selectedPattern.pattern_name}
+              nodeData={parseNodeData(selectedPattern.life_events)}
+              onNodeClick={handleNodeClick}
+            />
+          </CardContent>
+        </Card>
+      )}
+      
+      {/* Actions */}
+      <Button onClick={() => navigate('/inner-self-council')}>
+        Continue with Inner Self Mentor
+      </Button>
+    </div>
+  );
+};
+```
+
+---
+
+### Step 6: Create BecomingTransmutation Component
+
+**File:** `src/components/creation-lab/BecomingTransmutation.tsx` (NEW)
+
+Embed Transmutation Map functionality:
+
+```typescript
+interface BecomingTransmutationProps {
+  patterns: InnerPattern[];
+  selectedPatternId: string | null;
+  onPatternSelect: (id: string) => void;
+}
+
+export const BecomingTransmutation = ({ ... }) => {
+  const selectedPattern = patterns.find(p => p.id === selectedPatternId);
+  const transmutationData = parseTransmutationData(selectedPattern);
+  
+  return (
+    <div className="space-y-6">
+      {/* Pattern Selector */}
+      <PatternSelector ... />
+      
+      {/* Empty state if no patterns */}
+      {patterns.length === 0 && (
+        <Card className="text-center py-12">
+          <Sparkles className="w-12 h-12 mx-auto text-muted-foreground" />
+          <p>Discover a pattern first to begin transmutation</p>
+          <Button onClick={() => navigate('/inner-self-council')}>
+            Start Pattern Exploration
+          </Button>
+        </Card>
+      )}
+      
+      {/* Transmutation Map Canvas */}
+      {selectedPattern && (
+        <TransmutationMapCanvas
+          patternName={selectedPattern.pattern_name}
+          transmutationData={transmutationData}
+          onNodeClick={handleNodeClick}
+          isCompleted={selectedPattern.status === 'transformed'}
+        />
+      )}
+      
+      {/* Celebration overlay */}
+      {showCelebration && (
+        <TransmutationCelebration ... />
+      )}
+    </div>
+  );
+};
+```
+
+---
+
+### Step 7: Create BecomingLifetime Component
+
+**File:** `src/components/creation-lab/BecomingLifetime.tsx` (NEW)
+
+Embed Lifetime Map functionality:
+
+```typescript
+interface BecomingLifetimeProps {
+  events: LifetimeEvent[];
+  eventsByPeriod: Record<TimePeriod, LifetimeEvent[]>;
+}
+
+export const BecomingLifetime = ({ events, eventsByPeriod }) => {
+  return (
+    <div className="space-y-6">
+      <LifetimeMapTimeline
+        events={events}
+        eventsByPeriod={eventsByPeriod}
+        onEventClick={handleEventClick}
+        onAddEvent={handleAddEvent}
+      />
+      
+      {/* Edit/Detail modals */}
+      <LifetimeEventEditModal ... />
+      <LifetimeEventDetailView ... />
+    </div>
+  );
+};
+```
+
+---
+
+### Step 8: Update CreationLab.tsx
+
+**File:** `src/pages/CreationLab.tsx` (MODIFY)
+
+Pass mode through URL params for Becoming Path:
+
+```typescript
+// Get becoming mode from URL
+const becomingModeParam = searchParams.get("bmode") as BecomingMode | null;
+
+// When rendering Becoming Path
+{projectType === "becoming" && (
+  <BecomingPath 
+    initialMode={becomingModeParam || "becoming"}
+  />
+)}
+
+// Update URL when mode changes
+const handleBecomingModeChange = (mode: BecomingMode) => {
+  setSearchParams({ type: "becoming", bmode: mode });
+};
+```
+
+---
+
+### Step 9: Update Navigation from PatternMap.tsx
+
+**File:** `src/pages/PatternMap.tsx` (MODIFY)
+
+Update "Back" navigation to go to the correct tab:
+
+```typescript
+// Instead of navigating to /creation-lab?type=becoming
+// Navigate to the specific tab they came from
+navigate('/creation-lab?type=becoming&bmode=pattern-map');
+```
+
+Keep PatternMap.tsx as a standalone page for direct pattern links but update all "Back" buttons to return to the correct Becoming Path tab.
+
+---
+
+### Step 10: Update InnerWorkLabCard (Optional Removal)
+
+Since the Pattern Map, Transmutation, and Lifetime tabs now exist at the top level of Becoming Path, the `InnerWorkLabCard` can be simplified or removed from `BecomingHome`.
+
+**Option A:** Remove completely (tabs serve the purpose)
+**Option B:** Keep as a summary widget that shows quick stats and links to tabs
+
+Recommended: **Option A** - Remove to avoid duplication
 
 ---
 
@@ -385,121 +405,67 @@ export { TransmutationReadyCard } from "./TransmutationReadyCard";
 
 | File | Action | Purpose |
 |------|--------|---------|
-| Database migration | CREATE | `lifetime_events` table |
-| `src/hooks/useLifetimeEvents.tsx` | CREATE | Lifetime events data management |
-| `src/components/lifetime-map/LifetimeMapTimeline.tsx` | CREATE | Horizontal scrollable timeline |
-| `src/components/lifetime-map/LifetimeEventCard.tsx` | CREATE | Individual event card |
-| `src/components/lifetime-map/LifetimeEventEditModal.tsx` | CREATE | Create/edit event modal |
-| `src/components/lifetime-map/LifetimeEventDetailView.tsx` | CREATE | Expanded event view |
-| `src/components/lifetime-map/PatternLinkSuggestion.tsx` | CREATE | Pattern linking prompt |
-| `src/components/lifetime-map/TransmutationReadyCard.tsx` | CREATE | Transmutation prompt |
-| `src/components/lifetime-map/index.ts` | CREATE | Exports |
-| `src/pages/PatternMap.tsx` | MODIFY | Enable lifetime tab |
-| `src/components/transmutation-map/TransmutationCelebration.tsx` | MODIFY | Navigate to lifetime tab |
+| `src/components/creation-lab/BecomingModeSelector.tsx` | CREATE | 4-tab mode selector for Becoming Path |
+| `src/components/creation-lab/PatternSelector.tsx` | CREATE | Pattern dropdown/selector component |
+| `src/components/creation-lab/BecomingHome.tsx` | CREATE | Tab 1 content (current grid layout) |
+| `src/components/creation-lab/BecomingPatternMap.tsx` | CREATE | Tab 2 content (pattern map embedded) |
+| `src/components/creation-lab/BecomingTransmutation.tsx` | CREATE | Tab 3 content (transmutation embedded) |
+| `src/components/creation-lab/BecomingLifetime.tsx` | CREATE | Tab 4 content (lifetime embedded) |
+| `src/components/creation-lab/BecomingPath.tsx` | MODIFY | Add mode selector and tab switching |
+| `src/pages/CreationLab.tsx` | MODIFY | Pass becoming mode via URL |
+| `src/pages/PatternMap.tsx` | MODIFY | Update back navigation |
 
 ---
 
-## Visual Representation (Lifetime Map Layout)
+## Visual Layout
 
 ```
-┌──────────────────────────────────────────────────────────────────────────┐
-│                         YOUR LIFE JOURNEY                                 │
-│                  "Every moment shaped who you're becoming"                │
-└──────────────────────────────────────────────────────────────────────────┘
+┌────────────────────────────────────────────────────────────┐
+│  Becoming Path    [Edit Purpose]                           │
+│  Discover who you are becoming                             │
+└────────────────────────────────────────────────────────────┘
 
-←───────────────────────── Scroll ─────────────────────────→
+┌─────────────────┐  ┌─────────────────┐
+│  Becoming Path  │  │ Creating Project│
+└─────────────────┘  └─────────────────┘
+       ↓ (active)
 
-Childhood      Teen       Early 20s     Mid 20s     Current
-    ·────────────·────────────·────────────·────────────·
+┌──────────┬──────────────┬───────────────┬───────────┐
+│ Becoming │  Pattern Map │ Transmutation │ Lifetime  │
+│  (Home)  │      (3)     │      ✨       │           │
+└──────────┴──────────────┴───────────────┴───────────┘
+     ↓ (active tab)
 
-  ┌─────────┐  ┌─────────┐                           ┌─────────┐
-  │ Parents │  │ First   │                           │ Career  │
-  │separated│  │ love    │                           │ change  │
-  │   💔    │  │ 💔→✨   │                           │   🌱    │
-  └─────────┘  └─────────┘                           └─────────┘
-                                                         
-  ┌─────────┐                                        ┌─────────┐
-  │ Moving  │                                        │   +     │
-  │ cities  │                                        │  Add    │
-  │   🌍    │                                        │ Event   │
-  └─────────┘                                        └─────────┘
-
-  Card States:
-  ├── 💔 = Has linked pattern (shadow phase)
-  ├── ✨ = Pattern transmuted to gold
-  └── 🌱 = Standalone event (no pattern)
+┌────────────────────────┬────────────────────────┐
+│  Future Self Inbox     │  Your Pattern Profile  │
+│  Self-Discovery Quests │  Ideal Life Snapshot   │
+│  Daily Journal         │  Core Discoveries      │
+│                        │  Life Domains Radar    │
+└────────────────────────┴────────────────────────┘
 ```
 
 ---
 
-## Time Period Labels
+## URL Structure
 
-| Value | Display Label |
-|-------|---------------|
-| `childhood` | Childhood |
-| `teen` | Teen Years |
-| `early_20s` | Early 20s |
-| `mid_20s` | Mid 20s |
-| `late_20s` | Late 20s |
-| `30s` | 30s |
-| `current` | Current Life |
-
----
-
-## Event Type Tags (Optional)
-
-| Value | Display | Color |
-|-------|---------|-------|
-| `family` | Family | Blue |
-| `love` | Love/Relationship | Pink |
-| `health` | Health/Body | Green |
-| `money` | Money/Survival | Amber |
-| `work` | School/Work | Indigo |
-| `friendship` | Friendship | Cyan |
-| `identity` | Identity | Purple |
-| `loss` | Loss/Grief | Slate |
-| `change` | Big Change | Orange |
+| Tab | URL |
+|-----|-----|
+| Becoming (Home) | `/creation-lab?type=becoming&bmode=becoming` |
+| Pattern Map | `/creation-lab?type=becoming&bmode=pattern-map` |
+| Transmutation | `/creation-lab?type=becoming&bmode=transmutation` |
+| Lifetime | `/creation-lab?type=becoming&bmode=lifetime` |
 
 ---
 
 ## Success Criteria
 
-1. Lifetime tab is enabled and clickable in Pattern Map page
-2. Horizontal timeline displays with time period columns
-3. Events can be created manually via "+" button
-4. Events display with appropriate visual states
-5. Clicking an event opens detail view
-6. Actions work: Go to Pattern Map, Go to Transmutation, Talk to Mentor
-7. Edit and delete events work correctly
-8. Auto-population from Pattern Map works
-9. Gold outcome syncs when transmutation completes
-10. "View in Lifetime Map" from celebration navigates correctly
-11. Pattern link suggestions appear for standalone events
-12. Transmutation prompts appear for pattern-linked events
-
----
-
-## Safety and UX Notes
-
-Following PDR guidelines:
-
-1. **Gentle language:** All prompts use supportive, non-clinical tone
-2. **Optional fields:** Only time period and event label are required
-3. **User control:** Events can be deleted anytime
-4. **Privacy:** All data stays private (RLS enforced)
-5. **No pressure:** "Not now" option on all suggestions
-6. **Pattern is optional:** Life events can exist without pattern linking
-7. **Progressive disclosure:** Details revealed on click, not overwhelming
-
----
-
-## What This Does NOT Include (Future Expansion)
-
-- Identity Constellation view
-- Theme clustering (trust, belonging, confidence)
-- "Your top 3 life lessons" summary
-- Personalized mentor guidance based on timeline patterns
-- Export/share functionality
-
-These can be added in future iterations once the core timeline is validated.
+1. Becoming Path shows 4-tab navigation (Becoming, Pattern Map, Transmutation, Lifetime)
+2. Tab navigation persists in URL
+3. Pattern Map tab shows pattern selector and canvas
+4. Transmutation tab shows transmutation canvas with Black/White/Gold phases
+5. Lifetime tab shows horizontal timeline
+6. All existing functionality works within tabs
+7. Navigation between tabs is smooth with animations
+8. "Back" buttons from standalone PatternMap page return to correct tab
+9. Empty states guide users to Inner Self Council
 
