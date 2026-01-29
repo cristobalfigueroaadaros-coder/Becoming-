@@ -1846,6 +1846,59 @@ export type Database = {
         }
         Relationships: []
       }
+      lifetime_events: {
+        Row: {
+          created_at: string
+          event_description: string | null
+          event_label: string
+          event_type: string | null
+          gold_outcome: string | null
+          id: string
+          is_transmuted: boolean | null
+          pattern_id: string | null
+          pattern_name: string | null
+          time_period: string
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          created_at?: string
+          event_description?: string | null
+          event_label: string
+          event_type?: string | null
+          gold_outcome?: string | null
+          id?: string
+          is_transmuted?: boolean | null
+          pattern_id?: string | null
+          pattern_name?: string | null
+          time_period: string
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          created_at?: string
+          event_description?: string | null
+          event_label?: string
+          event_type?: string | null
+          gold_outcome?: string | null
+          id?: string
+          is_transmuted?: boolean | null
+          pattern_id?: string | null
+          pattern_name?: string | null
+          time_period?: string
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "lifetime_events_pattern_id_fkey"
+            columns: ["pattern_id"]
+            isOneToOne: false
+            referencedRelation: "inner_patterns"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       mentor_daily_outreach: {
         Row: {
           context_data: Json | null

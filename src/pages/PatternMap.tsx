@@ -5,8 +5,9 @@ import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { ArrowLeft, Orbit, MessageCircle, Sparkles, Lock, Loader2 } from "lucide-react";
+import { ArrowLeft, Orbit, MessageCircle, Sparkles, Clock, Loader2 } from "lucide-react";
 import { useInnerPatterns, type InnerPattern } from "@/hooks/useInnerPatterns";
+import { useLifetimeEvents, type LifetimeEvent, type TimePeriod, type LifetimeEventInput } from "@/hooks/useLifetimeEvents";
 import { PatternMapCanvas, PatternNodeEditModal } from "@/components/pattern-map";
 import { 
   TransmutationMapCanvas, 
@@ -14,6 +15,11 @@ import {
   TransmutationCelebration,
   type TransmutationData 
 } from "@/components/transmutation-map";
+import {
+  LifetimeMapTimeline,
+  LifetimeEventEditModal,
+  LifetimeEventDetailView,
+} from "@/components/lifetime-map";
 import { toast } from "sonner";
 import type { Json } from "@/integrations/supabase/types";
 
@@ -51,6 +57,15 @@ const PatternMap = () => {
   const { patternId } = useParams<{ patternId: string }>();
   const navigate = useNavigate();
   const { patterns, loading, updatePattern, updateTransmutationData } = useInnerPatterns();
+  const { 
+    events: lifetimeEvents, 
+    loading: lifetimeLoading, 
+    createEvent, 
+    updateEvent, 
+    deleteEvent,
+    getEventsByPeriod,
+    syncGoldOutcome,
+  } = useLifetimeEvents();
   
   const [pattern, setPattern] = useState<InnerPattern | null>(null);
   const [nodeData, setNodeData] = useState<PatternNodeData>({});
@@ -59,6 +74,13 @@ const PatternMap = () => {
   const [editingTransmutationNode, setEditingTransmutationNode] = useState<string | null>(null);
   const [showCelebration, setShowCelebration] = useState(false);
   const [activeTab, setActiveTab] = useState("pattern-map");
+
+  // Lifetime map state
+  const [editingLifetimeEvent, setEditingLifetimeEvent] = useState<LifetimeEvent | null>(null);
+  const [showLifetimeEditModal, setShowLifetimeEditModal] = useState(false);
+  const [defaultTimePeriod, setDefaultTimePeriod] = useState<TimePeriod>('current');
+  const [selectedLifetimeEvent, setSelectedLifetimeEvent] = useState<LifetimeEvent | null>(null);
+  const [showLifetimeDetailView, setShowLifetimeDetailView] = useState(false);
 
   // Find the pattern
   useEffect(() => {
@@ -148,13 +170,74 @@ const PatternMap = () => {
     toast.success("Gold insight saved to your journey");
   };
 
-  const handleCelebrationViewLifetime = () => {
+  const handleCelebrationViewLifetime = async () => {
     setShowCelebration(false);
-    toast.info("Lifetime Map coming soon");
+    // Sync gold outcome to lifetime events
+    if (pattern && transmutationData.gold_insight) {
+      await syncGoldOutcome(pattern.id, transmutationData.gold_insight);
+    }
+    setActiveTab("lifetime");
+    toast.success("View your gold insight in the Lifetime Map");
   };
 
   const handleKeepTalking = () => {
     navigate('/council?view=inner_clarity_mentor');
+  };
+
+  // Lifetime map handlers
+  const handleLifetimeEventClick = (event: LifetimeEvent) => {
+    setSelectedLifetimeEvent(event);
+    setShowLifetimeDetailView(true);
+  };
+
+  const handleAddLifetimeEvent = (timePeriod: TimePeriod) => {
+    setDefaultTimePeriod(timePeriod);
+    setEditingLifetimeEvent(null);
+    setShowLifetimeEditModal(true);
+  };
+
+  const handleLifetimeEventSave = async (data: LifetimeEventInput) => {
+    if (editingLifetimeEvent) {
+      await updateEvent(editingLifetimeEvent.id, data);
+      toast.success("Event updated");
+    } else {
+      // Link to current pattern if we're viewing one
+      const eventData = pattern 
+        ? { ...data, pattern_id: pattern.id, pattern_name: pattern.pattern_name }
+        : data;
+      await createEvent(eventData);
+      toast.success("Event added to your timeline");
+    }
+  };
+
+  const handleLifetimeEventDelete = async () => {
+    if (editingLifetimeEvent) {
+      await deleteEvent(editingLifetimeEvent.id);
+      toast.success("Event removed");
+    }
+  };
+
+  const handleGoToPatternMap = () => {
+    setShowLifetimeDetailView(false);
+    setActiveTab("pattern-map");
+  };
+
+  const handleGoToTransmutation = () => {
+    setShowLifetimeDetailView(false);
+    setActiveTab("transmutation");
+  };
+
+  const handleTalkToMentor = () => {
+    setShowLifetimeDetailView(false);
+    navigate('/council?view=inner_clarity_mentor');
+  };
+
+  const handleEditLifetimeEvent = () => {
+    if (selectedLifetimeEvent) {
+      setEditingLifetimeEvent(selectedLifetimeEvent);
+      setShowLifetimeDetailView(false);
+      setShowLifetimeEditModal(true);
+    }
   };
 
   if (loading) {
@@ -227,9 +310,9 @@ const PatternMap = () => {
                 <span className="ml-1 text-amber-500">✨</span>
               )}
             </TabsTrigger>
-            <TabsTrigger value="lifetime" className="gap-1" disabled>
+            <TabsTrigger value="lifetime" className="gap-1">
+              <Clock className="w-3 h-3" />
               Lifetime
-              <Lock className="w-3 h-3 ml-1" />
             </TabsTrigger>
           </TabsList>
         </Tabs>
@@ -292,6 +375,27 @@ const PatternMap = () => {
           </motion.div>
         )}
 
+        {/* Lifetime Map */}
+        {activeTab === "lifetime" && (
+          <motion.div
+            initial={{ opacity: 0, y: 20 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ delay: 0.1 }}
+          >
+            <Card className="border-slate-500/20 bg-gradient-to-br from-slate-500/5 to-transparent overflow-hidden">
+              <CardContent className="pt-6">
+                <LifetimeMapTimeline
+                  events={lifetimeEvents}
+                  eventsByPeriod={getEventsByPeriod()}
+                  onEventClick={handleLifetimeEventClick}
+                  onAddEvent={handleAddLifetimeEvent}
+                  currentPatternId={pattern.id}
+                />
+              </CardContent>
+            </Card>
+          </motion.div>
+        )}
+
         {/* Pattern description (only on pattern-map tab) */}
         {activeTab === "pattern-map" && pattern.pattern_description && (
           <motion.div
@@ -325,16 +429,17 @@ const PatternMap = () => {
             Keep talking with Inner Self Mentor
           </Button>
           
-          <Button
-            variant="outline"
-            className="w-full border-amber-500/30 text-amber-600 hover:bg-amber-500/10"
-            size="lg"
-            disabled
-          >
-            <Sparkles className="w-4 h-4 mr-2" />
-            Start Transmutation Journey
-            <Badge variant="secondary" className="ml-2 text-xs">Coming Soon</Badge>
-          </Button>
+          {activeTab !== "transmutation" && pattern.status !== 'transformed' && (
+            <Button
+              variant="outline"
+              className="w-full border-amber-500/30 text-amber-600 hover:bg-amber-500/10"
+              size="lg"
+              onClick={() => setActiveTab("transmutation")}
+            >
+              <Sparkles className="w-4 h-4 mr-2" />
+              Start Transmutation Journey
+            </Button>
+          )}
           
           <Button
             variant="ghost"
@@ -370,6 +475,33 @@ const PatternMap = () => {
           onSave={handleTransmutationNodeSave}
         />
       )}
+
+      {/* Lifetime Event Edit Modal */}
+      <LifetimeEventEditModal
+        open={showLifetimeEditModal}
+        onClose={() => {
+          setShowLifetimeEditModal(false);
+          setEditingLifetimeEvent(null);
+        }}
+        event={editingLifetimeEvent}
+        defaultTimePeriod={defaultTimePeriod}
+        onSave={handleLifetimeEventSave}
+        onDelete={editingLifetimeEvent ? handleLifetimeEventDelete : undefined}
+      />
+
+      {/* Lifetime Event Detail View */}
+      <LifetimeEventDetailView
+        event={selectedLifetimeEvent}
+        open={showLifetimeDetailView}
+        onClose={() => {
+          setShowLifetimeDetailView(false);
+          setSelectedLifetimeEvent(null);
+        }}
+        onGoToPatternMap={handleGoToPatternMap}
+        onGoToTransmutation={handleGoToTransmutation}
+        onTalkToMentor={handleTalkToMentor}
+        onEdit={handleEditLifetimeEvent}
+      />
 
       {/* Transmutation Celebration */}
       <TransmutationCelebration
