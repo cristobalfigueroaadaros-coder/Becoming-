@@ -1,57 +1,69 @@
 
 
-# Transmutation Map Implementation Plan
+# Lifetime Map Implementation Plan
 
 ## Overview
 
-The Transmutation Map is the second tab of the Inner Work Lab, providing a **Black → White → Gold** alchemy journey that transforms painful patterns into wisdom and personal growth. This plan implements the visual map, node editing, celebration flow, and placeholder for the Transmutation Team council.
+The Lifetime Map is the third tab of the Inner Work Lab, providing a horizontal timeline view of the user's life events connected to patterns and transmutations. The key design principle is **"Life Event Label first"** - users describe what happened before naming any psychological patterns.
 
 ---
 
 ## Architecture Summary
 
-| Existing Component | Transmutation Map Equivalent |
-|-------------------|------------------------------|
-| `PatternMapCanvas.tsx` | `TransmutationMapCanvas.tsx` (NEW) |
-| `PatternMapNode.tsx` | `TransmutationNode.tsx` (NEW) - with phase-aware coloring |
-| `PatternNodeEditModal.tsx` | `TransmutationNodeEditModal.tsx` (NEW) - with different prompts |
-| `PatternCelebration.tsx` | `TransmutationCelebration.tsx` (NEW) - gold-themed |
-| Pattern Map tab in `PatternMap.tsx` | Transmutation tab enabled in same page |
+| Existing Component | Lifetime Map Equivalent |
+|-------------------|------------------------|
+| `PatternMapCanvas.tsx` | `LifetimeMapTimeline.tsx` (NEW) |
+| `PatternMapNode.tsx` | `LifetimeEventCard.tsx` (NEW) |
+| `PatternNodeEditModal.tsx` | `LifetimeEventEditModal.tsx` (NEW) |
+| Pattern tab in `PatternMap.tsx` | Lifetime tab enabled in same page |
 
 ---
 
 ## Database Changes
 
-### Extend the `inner_patterns` table
+### Create new `lifetime_events` table
 
-Add a new JSONB column to store transmutation-specific data separately from pattern map nodes:
+This table stores life events separately from patterns, allowing standalone event creation:
 
 ```sql
-ALTER TABLE inner_patterns 
-ADD COLUMN IF NOT EXISTS transmutation_data JSONB DEFAULT '{}';
-```
+CREATE TABLE public.lifetime_events (
+  id UUID NOT NULL DEFAULT gen_random_uuid() PRIMARY KEY,
+  user_id UUID NOT NULL,
+  
+  -- Time Anchor (required)
+  time_period TEXT NOT NULL,  -- 'childhood', 'teen', 'early_20s', 'mid_20s', 'late_20s', '30s', 'current'
+  
+  -- Life Event (required entry point)
+  event_label TEXT NOT NULL,  -- "My parents separated"
+  event_description TEXT,      -- Optional longer description
+  
+  -- Event Type (optional helper tag)
+  event_type TEXT,  -- 'family', 'love', 'health', 'money', 'work', 'friendship', 'identity', 'loss', 'change'
+  
+  -- Pattern Connection (optional, can be linked later)
+  pattern_id UUID REFERENCES public.inner_patterns(id) ON DELETE SET NULL,
+  pattern_name TEXT,  -- Cached for display when no pattern_id
+  
+  -- Transmutation Connection (synced from pattern)
+  gold_outcome TEXT,  -- "I became resilient" - from transmutation gold_insight
+  is_transmuted BOOLEAN DEFAULT false,
+  
+  -- Metadata
+  created_at TIMESTAMP WITH TIME ZONE NOT NULL DEFAULT now(),
+  updated_at TIMESTAMP WITH TIME ZONE NOT NULL DEFAULT now()
+);
 
-**Transmutation data structure:**
-```typescript
-interface TransmutationData {
-  // BLACK PHASE
-  shadow?: string;           // "What happened, what feels heavy?"
-  dark_night?: string;       // Optional deeper layer
-  
-  // WHITE PHASE  
-  shift_moment?: string;     // "What made you change perspective?"
-  protective_purpose?: string; // "What was this pattern protecting you from?"
-  lesson_learned?: string;   // "What did you learn?"
-  
-  // GOLD PHASE
-  gold_insight?: string;     // "What did you gain?" (also saved to gold_shift_text)
-  letter_to_self?: string;   // "What would you tell your younger self?"
-  brave_step?: string;       // Optional action step
-  
-  // Meta
-  phase_completed?: 'black' | 'white' | 'gold';
-  completed_at?: string;
-}
+-- RLS Policies
+ALTER TABLE public.lifetime_events ENABLE ROW LEVEL SECURITY;
+
+CREATE POLICY "Users can CRUD own lifetime events" 
+ON public.lifetime_events FOR ALL 
+USING (auth.uid() = user_id);
+
+-- Indexes
+CREATE INDEX idx_lifetime_events_user ON public.lifetime_events(user_id);
+CREATE INDEX idx_lifetime_events_pattern ON public.lifetime_events(pattern_id);
+CREATE INDEX idx_lifetime_events_time ON public.lifetime_events(time_period);
 ```
 
 ---
@@ -60,270 +72,311 @@ interface TransmutationData {
 
 ### Step 1: Create Database Migration
 
-**Action:** Add `transmutation_data` JSONB column to `inner_patterns` table.
-
-```sql
-ALTER TABLE public.inner_patterns 
-ADD COLUMN IF NOT EXISTS transmutation_data JSONB DEFAULT '{}';
-```
+Add the `lifetime_events` table with the schema defined above.
 
 ---
 
-### Step 2: Create Transmutation Node Component
+### Step 2: Create Lifetime Events Hook
 
-**File:** `src/components/transmutation-map/TransmutationNode.tsx` (NEW)
+**File:** `src/hooks/useLifetimeEvents.tsx` (NEW)
 
-A phase-aware node component that changes appearance based on phase (Black/White/Gold):
+A dedicated hook for managing lifetime events:
 
 ```typescript
-interface TransmutationNodeProps {
+export interface LifetimeEvent {
   id: string;
-  label: string;
-  content: string | null;
-  phase: 'black' | 'white' | 'gold';
-  x: number;
-  y: number;
-  size: number;
-  isCenter?: boolean;
-  isCompleted?: boolean;
-  onClick: () => void;
-  delay?: number;
+  user_id: string;
+  time_period: TimePeriod;
+  event_label: string;
+  event_description: string | null;
+  event_type: EventType | null;
+  pattern_id: string | null;
+  pattern_name: string | null;
+  gold_outcome: string | null;
+  is_transmuted: boolean;
+  created_at: string;
+  updated_at: string;
+}
+
+export type TimePeriod = 
+  | 'childhood' 
+  | 'teen' 
+  | 'early_20s' 
+  | 'mid_20s' 
+  | 'late_20s' 
+  | '30s' 
+  | 'current';
+
+export type EventType = 
+  | 'family' 
+  | 'love' 
+  | 'health' 
+  | 'money' 
+  | 'work' 
+  | 'friendship' 
+  | 'identity' 
+  | 'loss' 
+  | 'change';
+
+export function useLifetimeEvents() {
+  // Load events
+  // Create event (manual or auto from pattern)
+  // Update event
+  // Delete event
+  // Link event to pattern
+  // Sync gold outcome from transmutation
+  // Get events grouped by time period
 }
 ```
 
-**Visual styling by phase:**
-- **Black phase nodes:** Dark gray/slate fill, subtle glow when filled
-- **White phase nodes:** Light/clear fill, soft white glow
-- **Gold phase nodes:** Amber/gold gradient, prominent glow when activated
-- **Completed nodes:** Solid fill with checkmark indicator
+Key functions:
+- `loadEvents()` - Fetch all user's lifetime events
+- `createEvent(input)` - Create new event (manual mode)
+- `createFromPattern(pattern)` - Auto-create from pattern map
+- `linkPattern(eventId, patternId)` - Connect existing event to pattern
+- `syncGoldOutcome(eventId, goldText)` - Update when transmutation completes
+- `getEventsByPeriod()` - Group events for timeline display
 
 ---
 
-### Step 3: Create Transmutation Map Canvas
+### Step 3: Create Lifetime Map Timeline Component
 
-**File:** `src/components/transmutation-map/TransmutationMapCanvas.tsx` (NEW)
+**File:** `src/components/lifetime-map/LifetimeMapTimeline.tsx` (NEW)
 
-SVG-based canvas with three distinct phases arranged in a flow structure:
+A horizontal scrollable timeline with time period columns:
 
-**Layout (left-to-right or top-to-bottom flow):**
-
-```text
-BLACK PHASE                WHITE PHASE                 GOLD PHASE
-    │                          │                           │
-┌─────────┐              ┌─────────────┐             ┌───────────┐
-│ Shadow  │──────────────│Shift Moment │─────────────│Gold Insight│
-└─────────┘              └─────────────┘             └───────────┘
-    │                          │                           │
-┌─────────┐              ┌─────────────┐             ┌───────────┐
-│Dark Night│             │ Protective  │             │Letter to  │
-│(optional)│             │  Purpose    │             │  Self     │
-└─────────┘              └─────────────┘             └───────────┘
-                               │                           │
-                         ┌─────────────┐             ┌───────────┐
-                         │   Lesson    │             │Brave Step │
-                         │  Learned    │             │(optional) │
-                         └─────────────┘             └───────────┘
-```
-
-**Center element:** Pattern Summary node (always visible, links back to Pattern Map)
-
-**Node definitions:**
 ```typescript
-const TRANSMUTATION_NODES = [
-  // Black Phase
-  { id: 'shadow', label: 'The Shadow', phase: 'black', required: true },
-  { id: 'dark_night', label: 'Dark Night', phase: 'black', required: false },
-  
-  // White Phase
-  { id: 'shift_moment', label: 'The Shift', phase: 'white', required: true },
-  { id: 'protective_purpose', label: 'Protective Role', phase: 'white', required: true },
-  { id: 'lesson_learned', label: 'The Lesson', phase: 'white', required: true },
-  
-  // Gold Phase
-  { id: 'gold_insight', label: 'The Gold', phase: 'gold', required: true },
-  { id: 'letter_to_self', label: 'To Younger Me', phase: 'gold', required: true },
-  { id: 'brave_step', label: 'Brave Step', phase: 'gold', required: false },
-];
+interface LifetimeMapTimelineProps {
+  events: LifetimeEvent[];
+  onEventClick: (event: LifetimeEvent) => void;
+  onAddEvent: (timePeriod: TimePeriod) => void;
+}
 ```
 
----
+**Visual layout:**
+```
+Childhood   Teen    Early 20s   Mid 20s   Late 20s   30s    Current
+   │         │         │          │          │        │        │
+   ●─────────●─────────●──────────●──────────●────────●────────●
+   │         │         │          │          │        │        │
+ ┌───┐     ┌───┐     ┌───┐                          ┌───┐    ┌───┐
+ │ E │     │ E │     │ E │                          │ E │    │ + │
+ └───┘     └───┘     └───┘                          └───┘    └───┘
+```
 
-### Step 4: Create Transmutation Node Edit Modal
-
-**File:** `src/components/transmutation-map/TransmutationNodeEditModal.tsx` (NEW)
-
-Enhanced modal with phase-specific prompts and placeholder guidance:
-
-**Node prompts (from PDR):**
-
-| Node | Prompt | Placeholder Examples |
-|------|--------|---------------------|
-| shadow | "What happened, or what part feels heavy right now?" | "A relationship breakup...", "A moment I felt rejected...", "A memory from childhood..." |
-| dark_night | "That moment when it felt like everything was lost. How was it?" | "What did you feel?", "Where were you physically?", "What would you name this moment?" |
-| shift_moment | "What made you change your perspective?" | "A conversation...", "A person...", "A realization...", "A decision I finally made..." |
-| protective_purpose | "What was this pattern trying to protect you from?" | "Being rejected...", "Feeling shame again...", "Getting hurt...", "Being alone..." |
-| lesson_learned | "What did you learn because you lived this?" | "I realized I need boundaries...", "I realized I'm stronger than I thought..." |
-| gold_insight | "What did you gain from this experience?" | "A new belief I chose...", "A new strength I discovered...", "A new truth I'm living by..." |
-| letter_to_self | "What would you tell your younger self?" | "What do they need to hear?", "What truth would change everything?" |
-| brave_step | "What is one small brave action you can take this week?" | "Say no to something...", "Have one honest conversation...", "Choose myself once..." |
-
-**Additional feature:** "Talk to the Transmutation Team" button in every modal (routes to placeholder for now).
+Features:
+- Horizontal scroll for mobile
+- Time period headers with subtle styling
+- Event cards stacked vertically within each period
+- "+" button to add new event in any period
+- Color coding: neutral → shadow (linked pattern) → gold (transmuted)
 
 ---
 
-### Step 5: Enable Transmutation Tab in PatternMap.tsx
+### Step 4: Create Lifetime Event Card Component
+
+**File:** `src/components/lifetime-map/LifetimeEventCard.tsx` (NEW)
+
+Individual event card displayed in the timeline:
+
+```typescript
+interface LifetimeEventCardProps {
+  event: LifetimeEvent;
+  onClick: () => void;
+}
+```
+
+**Card structure:**
+- Event label (primary text)
+- Event type badge (optional, soft color)
+- Pattern indicator (if linked)
+- Gold badge (if transmuted, shows gold_outcome)
+- Visual state changes based on status
+
+**Color language:**
+- **No pattern:** Neutral gray/soft background
+- **Pattern linked:** Indigo/purple tint (shadow phase)
+- **Transmuted:** Amber/gold highlight with sparkle
+
+---
+
+### Step 5: Create Lifetime Event Edit Modal
+
+**File:** `src/components/lifetime-map/LifetimeEventEditModal.tsx` (NEW)
+
+Modal for creating/editing lifetime events:
+
+```typescript
+interface LifetimeEventEditModalProps {
+  open: boolean;
+  onClose: () => void;
+  event?: LifetimeEvent | null;  // null = creating new
+  defaultTimePeriod?: TimePeriod;
+  onSave: (data: LifetimeEventInput) => void;
+  onDelete?: () => void;
+}
+```
+
+**Form fields:**
+1. **Time Period** (required) - Select/buttons for time anchors
+2. **Life Event Label** (required) - Text input with placeholder examples
+3. **Event Type** (optional) - Select with soft category tags
+4. **Description** (optional) - Textarea for details
+5. **Pattern Activated** (optional, read-only if linked from pattern)
+
+**Placeholder examples from PDR:**
+- "My parents separated"
+- "I moved to a new country alone"
+- "I had an injury that changed my life"
+- "I lost someone I loved"
+- "My first business failed"
+- "A breakup that broke me"
+
+---
+
+### Step 6: Create Event Detail View Component
+
+**File:** `src/components/lifetime-map/LifetimeEventDetailView.tsx` (NEW)
+
+Expanded view when user clicks an event:
+
+```typescript
+interface LifetimeEventDetailViewProps {
+  event: LifetimeEvent;
+  onGoToPatternMap: () => void;
+  onGoToTransmutation: () => void;
+  onTalkToMentor: () => void;
+  onEdit: () => void;
+  onClose: () => void;
+}
+```
+
+**Content:**
+- Life Event Label (large)
+- Time period badge
+- Pattern info (if present)
+- Gold outcome (if transmuted, displayed prominently)
+- Action buttons:
+  - "Go to Pattern Map" (if pattern linked)
+  - "Go to Transmutation Map" (if pattern linked)
+  - "Talk to Inner Self Mentor"
+  - "Edit Entry"
+  - "Delete Entry" (with confirmation)
+
+---
+
+### Step 7: Create Pattern Link Suggestion Card
+
+**File:** `src/components/lifetime-map/PatternLinkSuggestion.tsx` (NEW)
+
+Notification/prompt when event has no pattern:
+
+```typescript
+interface PatternLinkSuggestionProps {
+  eventLabel: string;
+  onMapPattern: () => void;
+  onDismiss: () => void;
+}
+```
+
+**Copy from PDR:**
+> "This event shaped you deeply. Want to map the pattern it created?"
+> Buttons: [Map Pattern] [Not now]
+
+---
+
+### Step 8: Create Transmutation Ready Card
+
+**File:** `src/components/lifetime-map/TransmutationReadyCard.tsx` (NEW)
+
+Prompt when pattern exists but no transmutation:
+
+```typescript
+interface TransmutationReadyCardProps {
+  patternName: string;
+  onStartTransmutation: () => void;
+  onDismiss: () => void;
+}
+```
+
+**Copy from PDR:**
+> "Ready to transform this into gold?"
+> Buttons: [Start Transmutation] [Not now]
+
+---
+
+### Step 9: Enable Lifetime Tab in PatternMap.tsx
 
 **File:** `src/pages/PatternMap.tsx` (MODIFY)
 
-1. Remove the `disabled` attribute from the Transmutation tab
-2. Add tab content switching logic
-3. Load and display `transmutation_data` from the pattern
-4. Handle node editing for transmutation nodes
+1. Remove the `disabled` attribute from the Lifetime tab
+2. Add state for lifetime events
+3. Load events using `useLifetimeEvents` hook
+4. Render `LifetimeMapTimeline` when tab is active
+5. Handle event CRUD operations
 
 **Tab content structure:**
 ```typescript
-{activeTab === "pattern-map" && (
-  <PatternMapCanvas ... />
-)}
-
-{activeTab === "transmutation" && (
-  <TransmutationMapCanvas 
-    patternName={pattern.pattern_name}
-    transmutationData={transmutationData}
-    onNodeClick={handleTransmutationNodeClick}
-    isCompleted={pattern.status === 'transformed'}
+{activeTab === "lifetime" && (
+  <LifetimeMapTimeline
+    events={lifetimeEvents}
+    currentPatternId={pattern.id}
+    onEventClick={handleEventClick}
+    onAddEvent={handleAddEvent}
   />
 )}
 ```
 
 ---
 
-### Step 6: Create Transmutation Celebration Component
+### Step 10: Auto-Population from Inner Work Flows
 
-**File:** `src/components/transmutation-map/TransmutationCelebration.tsx` (NEW)
+**Automatic event creation triggers:**
 
-Gold-themed celebration overlay that appears when Gold phase is completed:
+1. **Pattern Map created with life_event node:**
+   - When `life_events.life_event` is filled in Pattern Map
+   - Create corresponding lifetime_event linked to the pattern
 
-**Copy (from PDR):**
-- Title: "Transmutation Completed"
-- Text: "You turned a difficult moment into wisdom. This is now part of who you are becoming."
-- Buttons: "Save Gold Insight" / "View in Lifetime Map"
+2. **Pattern with life_event_age_category:**
+   - Use the age category as time_period
+   - Auto-create lifetime event
 
-**Visual style:**
-- Amber/gold gradient background
-- Sparkle animations
-- Confetti effect (reuse existing pattern)
+3. **Transmutation completed:**
+   - Update existing lifetime_event with `gold_outcome`
+   - Set `is_transmuted = true`
+
+**Implementation:** Add effects in `useInnerPatterns` or create a dedicated sync function.
 
 ---
 
-### Step 7: Update useInnerPatterns Hook
+### Step 11: Update Transmutation Celebration
 
-**File:** `src/hooks/useInnerPatterns.tsx` (MODIFY)
+**File:** `src/components/transmutation-map/TransmutationCelebration.tsx` (MODIFY)
 
-Add functions for transmutation data management:
+Change the "View in Lifetime Map" button to actually navigate:
 
 ```typescript
-// Add to InnerPattern interface
-transmutation_data?: TransmutationData;
-
-// New function
-const updateTransmutationData = async (id: string, data: Partial<TransmutationData>) => {
-  const pattern = patterns.find(p => p.id === id);
-  const currentData = (pattern?.transmutation_data as TransmutationData) || {};
-  const updatedData = { ...currentData, ...data };
-  
-  // If gold phase complete, also update gold_shift_text and status
-  if (data.gold_insight && data.letter_to_self) {
-    updatedData.phase_completed = 'gold';
-    updatedData.completed_at = new Date().toISOString();
-    
-    await supabase.from("inner_patterns").update({
-      transmutation_data: updatedData,
-      gold_shift_text: data.gold_insight,
-      status: 'transformed',
-      transformed_at: new Date().toISOString(),
-    }).eq("id", id);
-  } else {
-    await supabase.from("inner_patterns").update({
-      transmutation_data: updatedData
-    }).eq("id", id);
-  }
-  // ... update local state
+const handleCelebrationViewLifetime = () => {
+  setShowCelebration(false);
+  setActiveTab("lifetime");  // Switch to lifetime tab
+  // Sync gold outcome to lifetime event
+  syncLifetimeGoldOutcome(pattern.id, transmutationData.gold_insight);
 };
-
-// Helper to check phase completion
-const getPhaseStatus = (data: TransmutationData) => ({
-  blackComplete: !!data.shadow,
-  whiteComplete: !!(data.shift_moment && data.protective_purpose && data.lesson_learned),
-  goldComplete: !!(data.gold_insight && data.letter_to_self),
-});
 ```
-
----
-
-### Step 8: Add "Talk to Transmutation Team" Button
-
-**Implementation:** Add a button in each node edit modal and at the bottom of the Transmutation Map canvas.
-
-**Current behavior (placeholder):**
-- Show toast: "Transmutation Team coming soon"
-- Button is styled but not fully functional until Day 5 PDR
-
-**Future behavior (after Day 5):**
-- Navigate to `/transmutation-council` or open a dedicated council view
-
----
-
-### Step 9: Color State Logic
-
-**Before transmutation:**
-- Black nodes: dark/neutral styling
-- White nodes: light/clear styling  
-- Gold nodes: "potential gold" (muted amber, dashed border)
-
-**After transmutation completed:**
-- All nodes shift to warmer tones
-- Gold nodes fully activated with glow
-- Pattern status badge changes to "Transmuted"
-- Subtle golden border/glow on entire canvas
-
-**Implementation:** Pass `isCompleted` prop to canvas and nodes, apply conditional styling.
-
----
-
-### Step 10: Auto-Population Logic
-
-The Transmutation Map should pre-fill nodes based on existing Pattern Map data:
-
-| Pattern Map Node | Pre-fills Transmutation Node |
-|-----------------|------------------------------|
-| `trigger_context` | Suggests content for `shadow` |
-| `protective_role` | Pre-fills `protective_purpose` |
-| `pattern_description` | Shown in center summary |
-
-**Behavior:** Auto-populated content appears as suggested text, user can edit or confirm.
-
----
-
-### Step 11: Update Inner Work Lab Card
-
-**File:** `src/components/becoming/InnerWorkLabCard.tsx` (MODIFY)
-
-Add visual indicator for transmutation progress:
-- Show "In Transmutation" status for patterns with partial transmutation data
-- Show "" or "Transmuted" badge for completed patterns
 
 ---
 
 ### Step 12: Create Index Export
 
-**File:** `src/components/transmutation-map/index.ts` (NEW)
+**File:** `src/components/lifetime-map/index.ts` (NEW)
 
 ```typescript
-export { TransmutationMapCanvas } from "./TransmutationMapCanvas";
-export { TransmutationNode } from "./TransmutationNode";
-export { TransmutationNodeEditModal } from "./TransmutationNodeEditModal";
-export { TransmutationCelebration } from "./TransmutationCelebration";
+export { LifetimeMapTimeline } from "./LifetimeMapTimeline";
+export { LifetimeEventCard } from "./LifetimeEventCard";
+export { LifetimeEventEditModal } from "./LifetimeEventEditModal";
+export { LifetimeEventDetailView } from "./LifetimeEventDetailView";
+export { PatternLinkSuggestion } from "./PatternLinkSuggestion";
+export { TransmutationReadyCard } from "./TransmutationReadyCard";
 ```
 
 ---
@@ -332,85 +385,121 @@ export { TransmutationCelebration } from "./TransmutationCelebration";
 
 | File | Action | Purpose |
 |------|--------|---------|
-| Database migration | CREATE | Add `transmutation_data` column |
-| `src/components/transmutation-map/TransmutationNode.tsx` | CREATE | Phase-aware visual node |
-| `src/components/transmutation-map/TransmutationMapCanvas.tsx` | CREATE | SVG canvas with 3-phase layout |
-| `src/components/transmutation-map/TransmutationNodeEditModal.tsx` | CREATE | Node editing with prompts |
-| `src/components/transmutation-map/TransmutationCelebration.tsx` | CREATE | Gold-themed completion overlay |
-| `src/components/transmutation-map/index.ts` | CREATE | Exports |
-| `src/pages/PatternMap.tsx` | MODIFY | Enable transmutation tab, add content |
-| `src/hooks/useInnerPatterns.tsx` | MODIFY | Add transmutation data functions |
-| `src/components/becoming/InnerWorkLabCard.tsx` | MODIFY | Show transmutation status |
+| Database migration | CREATE | `lifetime_events` table |
+| `src/hooks/useLifetimeEvents.tsx` | CREATE | Lifetime events data management |
+| `src/components/lifetime-map/LifetimeMapTimeline.tsx` | CREATE | Horizontal scrollable timeline |
+| `src/components/lifetime-map/LifetimeEventCard.tsx` | CREATE | Individual event card |
+| `src/components/lifetime-map/LifetimeEventEditModal.tsx` | CREATE | Create/edit event modal |
+| `src/components/lifetime-map/LifetimeEventDetailView.tsx` | CREATE | Expanded event view |
+| `src/components/lifetime-map/PatternLinkSuggestion.tsx` | CREATE | Pattern linking prompt |
+| `src/components/lifetime-map/TransmutationReadyCard.tsx` | CREATE | Transmutation prompt |
+| `src/components/lifetime-map/index.ts` | CREATE | Exports |
+| `src/pages/PatternMap.tsx` | MODIFY | Enable lifetime tab |
+| `src/components/transmutation-map/TransmutationCelebration.tsx` | MODIFY | Navigate to lifetime tab |
 
 ---
 
-## Visual Representation (Transmutation Map Layout)
+## Visual Representation (Lifetime Map Layout)
 
-```text
-          ┌─────────────────────────────────────────────────────────┐
-          │                   PATTERN SUMMARY                        │
-          │               "I'm not enough"                           │
-          │          (Connected from Pattern Map)                    │
-          └─────────────────────────┬───────────────────────────────┘
-                                    │
-    ╔═══════════════════════════════╧═══════════════════════════════╗
-    ║                                                                 ║
-    ║   BLACK PHASE          WHITE PHASE           GOLD PHASE        ║
-    ║   ───────────          ───────────           ──────────        ║
-    ║                                                                 ║
-    ║   ┌─────────┐         ┌─────────────┐       ┌───────────┐      ║
-    ║   │ Shadow  │────────▶│Shift Moment │──────▶│Gold Insight│     ║
-    ║   └─────────┘         └─────────────┘       └───────────┘      ║
-    ║        │                    │                     │            ║
-    ║   ┌─────────┐         ┌─────────────┐       ┌───────────┐      ║
-    ║   │Dark Night│        │ Protective  │       │Letter to  │      ║
-    ║   │(optional)│        │  Purpose    │       │  Self     │      ║
-    ║   └─────────┘         └─────────────┘       └───────────┘      ║
-    ║                             │                     │            ║
-    ║                       ┌─────────────┐       ┌───────────┐      ║
-    ║                       │   Lesson    │       │Brave Step │      ║
-    ║                       │  Learned    │       │(optional) │      ║
-    ║                       └─────────────┘       └───────────┘      ║
-    ║                                                                 ║
-    ╚════════════════════════════════════════════════════════════════╝
-                                    │
-                  ┌─────────────────┴──────────────────┐
-                  │   Talk to the Transmutation Team   │
-                  └────────────────────────────────────┘
 ```
+┌──────────────────────────────────────────────────────────────────────────┐
+│                         YOUR LIFE JOURNEY                                 │
+│                  "Every moment shaped who you're becoming"                │
+└──────────────────────────────────────────────────────────────────────────┘
+
+←───────────────────────── Scroll ─────────────────────────→
+
+Childhood      Teen       Early 20s     Mid 20s     Current
+    ·────────────·────────────·────────────·────────────·
+
+  ┌─────────┐  ┌─────────┐                           ┌─────────┐
+  │ Parents │  │ First   │                           │ Career  │
+  │separated│  │ love    │                           │ change  │
+  │   💔    │  │ 💔→✨   │                           │   🌱    │
+  └─────────┘  └─────────┘                           └─────────┘
+                                                         
+  ┌─────────┐                                        ┌─────────┐
+  │ Moving  │                                        │   +     │
+  │ cities  │                                        │  Add    │
+  │   🌍    │                                        │ Event   │
+  └─────────┘                                        └─────────┘
+
+  Card States:
+  ├── 💔 = Has linked pattern (shadow phase)
+  ├── ✨ = Pattern transmuted to gold
+  └── 🌱 = Standalone event (no pattern)
+```
+
+---
+
+## Time Period Labels
+
+| Value | Display Label |
+|-------|---------------|
+| `childhood` | Childhood |
+| `teen` | Teen Years |
+| `early_20s` | Early 20s |
+| `mid_20s` | Mid 20s |
+| `late_20s` | Late 20s |
+| `30s` | 30s |
+| `current` | Current Life |
+
+---
+
+## Event Type Tags (Optional)
+
+| Value | Display | Color |
+|-------|---------|-------|
+| `family` | Family | Blue |
+| `love` | Love/Relationship | Pink |
+| `health` | Health/Body | Green |
+| `money` | Money/Survival | Amber |
+| `work` | School/Work | Indigo |
+| `friendship` | Friendship | Cyan |
+| `identity` | Identity | Purple |
+| `loss` | Loss/Grief | Slate |
+| `change` | Big Change | Orange |
 
 ---
 
 ## Success Criteria
 
-1. Transmutation tab is enabled and clickable in Pattern Map page
-2. Transmutation Map displays 3-phase node structure (Black/White/Gold)
-3. Each node opens modal with correct prompt and placeholder examples
-4. "Talk to Transmutation Team" button appears in all modals (placeholder for now)
-5. Completing Gold phase triggers celebration overlay
-6. Pattern status updates to "transformed" when complete
-7. Visual styling changes from dark → light → gold as phases complete
-8. Auto-population works from Pattern Map data
-9. Inner Work Lab Card shows transmutation progress
-10. Data persists correctly in database
+1. Lifetime tab is enabled and clickable in Pattern Map page
+2. Horizontal timeline displays with time period columns
+3. Events can be created manually via "+" button
+4. Events display with appropriate visual states
+5. Clicking an event opens detail view
+6. Actions work: Go to Pattern Map, Go to Transmutation, Talk to Mentor
+7. Edit and delete events work correctly
+8. Auto-population from Pattern Map works
+9. Gold outcome syncs when transmutation completes
+10. "View in Lifetime Map" from celebration navigates correctly
+11. Pattern link suggestions appear for standalone events
+12. Transmutation prompts appear for pattern-linked events
 
 ---
 
-## What This Does NOT Include (Future PDRs)
+## Safety and UX Notes
 
-- **Transmutation Team Council** (Day 5) - only button/placeholder now
-- **Lifetime Map integration** (Day 3) - mentioned in PDR but separate
-- **New mentors** (Phoenix, Stoic, Story Breaker) - Day 4
-- **Daily journal pattern detection** - separate feature
+Following PDR guidelines:
+
+1. **Gentle language:** All prompts use supportive, non-clinical tone
+2. **Optional fields:** Only time period and event label are required
+3. **User control:** Events can be deleted anytime
+4. **Privacy:** All data stays private (RLS enforced)
+5. **No pressure:** "Not now" option on all suggestions
+6. **Pattern is optional:** Life events can exist without pattern linking
+7. **Progressive disclosure:** Details revealed on click, not overwhelming
 
 ---
 
-## Safety Notes (From PDR)
+## What This Does NOT Include (Future Expansion)
 
-The Transmutation Map maintains the same gentle, compassionate tone:
-- No interrogation or forced exploration
-- "Share as little as you want" messaging
-- Pattern framed as protection, not problem
-- User always in control of what they share
-- Progress feels earned, not pressured
+- Identity Constellation view
+- Theme clustering (trust, belonging, confidence)
+- "Your top 3 life lessons" summary
+- Personalized mentor guidance based on timeline patterns
+- Export/share functionality
+
+These can be added in future iterations once the core timeline is validated.
 
