@@ -2,7 +2,7 @@ import { useState, useEffect, useMemo, useCallback } from "react";
 import { useSearchParams, useNavigate, useLocation } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
 import { cn } from "@/lib/utils";
-import { Users, ArrowLeft, Lock, Hammer, Heart } from "lucide-react";
+import { Users, ArrowLeft, Lock, Hammer, Heart, Sparkles } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { Button } from "@/components/ui/button";
@@ -38,7 +38,9 @@ const allMentorTypes = [
   "perspective_mentor", "challenger_mentor", "design_thinking_mentor",
   "ux_mentor", "gamification_mentor",
   // Clarity & Understanding mentors
-  "problem_mentor", "inner_clarity_mentor", "release_mentor"
+  "problem_mentor", "inner_clarity_mentor", "release_mentor",
+  // Transmutation Council mentors
+  "storybreaker_mentor", "phoenix_mentor", "stoic_mentor"
 ];
 
 // Mentor configuration with colors
@@ -66,6 +68,10 @@ const mentorConfig: Record<string, { name: string; color: string; icon: string }
   problem_mentor: { name: "Problem Mentor", color: "bg-slate-600", icon: "🔍" },
   inner_clarity_mentor: { name: "Inner Clarity Mentor", color: "bg-indigo-600", icon: "🪞" },
   release_mentor: { name: "Release Mentor", color: "bg-teal-600", icon: "🌊" },
+  // Transmutation Council mentors
+  storybreaker_mentor: { name: "Storybreaker Mentor", color: "bg-rose-600", icon: "📖" },
+  phoenix_mentor: { name: "Phoenix Mentor", color: "bg-orange-500", icon: "🔥" },
+  stoic_mentor: { name: "Stoic Mentor", color: "bg-stone-600", icon: "⚖️" },
 };
 
 const Council = () => {
@@ -344,6 +350,23 @@ const Council = () => {
             <div className="flex-1 min-w-0">
               <p className="font-medium truncate">Inner Self Council</p>
               <p className="text-xs text-muted-foreground truncate">Clarity & Emotional Understanding</p>
+            </div>
+          </button>
+
+          {/* Transmutation Council (Group Chat) */}
+          <button
+            onClick={() => navigate('/transmutation-council')}
+            className={cn(
+              "w-full flex items-center gap-3 p-3 rounded-lg transition-colors text-left",
+              "hover:bg-muted"
+            )}
+          >
+            <div className="w-10 h-10 rounded-full bg-amber-500/20 flex items-center justify-center">
+              <Sparkles className="w-5 h-5 text-amber-500" />
+            </div>
+            <div className="flex-1 min-w-0">
+              <p className="font-medium truncate">Transmutation Council</p>
+              <p className="text-xs text-muted-foreground truncate">Transform pain into gold</p>
             </div>
           </button>
 
