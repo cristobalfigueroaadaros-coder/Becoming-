@@ -1,403 +1,523 @@
 
 
-# Becoming Path Tab Reorganization Plan
+# Transmutation Council Mentors Implementation Plan
 
 ## Overview
 
-This plan reorganizes the Becoming Path to match the Creating Project structure with a 4-tab navigation system. The Inner Work Lab's three maps (Pattern, Transmutation, Lifetime) will move from the separate `/pattern-map/:patternId` page into the Becoming Path as tabs.
+This plan adds 3 new mentors to the Transmutation Council: **Storybreaker Mentor**, **Phoenix Mentor**, and **Stoic Mentor**. These mentors work as a triangle to guide users through the transmutation journey: Story → Meaning → Perspective → Action → Identity Upgrade.
 
 ---
 
-## Current vs. New Structure
+## Architecture Summary
 
-| Current (Becoming Path) | New Structure |
-|------------------------|---------------|
-| Single grid layout with all components | 4 tabs with organized content |
-| Pattern Map on separate page (`/pattern-map/:patternId`) | Pattern Map as Tab 2 |
-| Transmutation on separate page | Transmutation as Tab 3 |
-| Lifetime on separate page | Lifetime as Tab 4 |
+The implementation follows the existing mentor architecture pattern:
+
+| Component | Location | Action |
+|-----------|----------|--------|
+| Mentor type IDs | `src/lib/mentorTypes.ts` | ADD 3 new IDs + aliases |
+| Database enum | Migration | ADD 3 new enum values |
+| UI configuration | `src/pages/Council.tsx` | ADD mentor config entries |
+| Edge function prompts | `supabase/functions/chat-mentor/index.ts` | ADD 3 mentor prompts |
+| Edge function handoffs | `supabase/functions/chat-mentor/index.ts` | ADD handoff signals |
 
 ---
 
-## New Tab Structure
+## New Mentor Specifications
 
-```
-Becoming Path
-├── Tab 1: Becoming (Home)
-│   ├── ActualSelfSummaryCard (Your Pattern Profile)
-│   ├── IdealLifeSnapshot
-│   ├── SelfDiscoveryQuests
-│   ├── DailyJournal
-│   ├── FutureSelfInbox
-│   ├── CoreDiscoveries
-│   └── LifeDomainsRadar
-│
-├── Tab 2: Pattern Map
-│   ├── Pattern selector (if multiple patterns exist)
-│   └── PatternMapCanvas (interactive nodes)
-│
-├── Tab 3: Transmutation
-│   ├── Pattern selector
-│   └── TransmutationMapCanvas (Black → White → Gold)
-│
-└── Tab 4: Lifetime
-    └── LifetimeMapTimeline (horizontal timeline)
-```
+### 1. Storybreaker Mentor (`storybreaker_mentor`)
+
+| Attribute | Value |
+|-----------|-------|
+| **ID** | `storybreaker_mentor` |
+| **Display Name** | "The Storybreaker Mentor" |
+| **Icon** | `📖` (or `🪞`) |
+| **Color** | `bg-rose-600` |
+| **Archetype** | Byron Katie × CBT Therapist (warm, human) |
+| **Superpower** | Rewriting the internal script |
+| **Layer** | Beliefs, meaning, interpretation, narrative loops |
+| **Tone** | Calm, slow, precise, gentle but sharp |
+
+### 2. Phoenix Mentor (`phoenix_mentor`)
+
+| Attribute | Value |
+|-----------|-------|
+| **ID** | `phoenix_mentor` |
+| **Display Name** | "The Phoenix Mentor" |
+| **Icon** | `🔥` (or `🦅`) |
+| **Color** | `bg-orange-500` |
+| **Archetype** | Fire, rebirth, power coach |
+| **Superpower** | Turning pain into strength |
+| **Layer** | Growth through experience, resilience |
+| **Tone** | Uplifting, empowering, warm but strong |
+
+### 3. Stoic Mentor (`stoic_mentor`)
+
+| Attribute | Value |
+|-----------|-------|
+| **ID** | `stoic_mentor` |
+| **Display Name** | "The Stoic Mentor" |
+| **Icon** | `⚖️` (or `🏛️`) |
+| **Color** | `bg-stone-600` |
+| **Archetype** | Marcus Aurelius × Epictetus × Seneca |
+| **Superpower** | Turning chaos into one clean step |
+| **Layer** | Control, discipline, decision, values |
+| **Tone** | Calm, clean, direct, supportive |
 
 ---
 
 ## Implementation Steps
 
-### Step 1: Create Becoming Mode Selector Component
+### Step 1: Database Migration
 
-**File:** `src/components/creation-lab/BecomingModeSelector.tsx` (NEW)
+Add the 3 new mentor types to the `mentor_type` enum:
 
-A new mode selector similar to `ModeSelector.tsx` but for the Becoming Path's 4 tabs:
-
-```typescript
-export type BecomingMode = "becoming" | "pattern-map" | "transmutation" | "lifetime";
-
-interface BecomingModeSelectorProps {
-  currentMode: BecomingMode;
-  onModeChange: (mode: BecomingMode) => void;
-  patternCount?: number;
-  hasInTransmutation?: boolean;
-  hasTransmuted?: boolean;
-}
+```sql
+ALTER TYPE public.mentor_type ADD VALUE IF NOT EXISTS 'storybreaker_mentor';
+ALTER TYPE public.mentor_type ADD VALUE IF NOT EXISTS 'phoenix_mentor';
+ALTER TYPE public.mentor_type ADD VALUE IF NOT EXISTS 'stoic_mentor';
 ```
-
-**Mode definitions:**
-| Mode | Label | Icon | Description |
-|------|-------|------|-------------|
-| `becoming` | Becoming | User | Your identity journey |
-| `pattern-map` | Pattern Map | Orbit | Map your inner patterns |
-| `transmutation` | Transmutation | Sparkles | Transform pain into gold |
-| `lifetime` | Lifetime | Clock | Your life timeline |
-
-**Visual indicators:**
-- Pattern Map tab shows pattern count badge
-- Transmutation tab shows sparkle if any transmuted patterns exist
-- Color theme: Indigo/Purple gradient (matching Inner Work Lab)
 
 ---
 
-### Step 2: Create Pattern Selector Component
+### Step 2: Update mentorTypes.ts
 
-**File:** `src/components/creation-lab/PatternSelector.tsx` (NEW)
+**File:** `src/lib/mentorTypes.ts`
 
-When users have multiple patterns, they need to select which one to view:
-
+Add to `VALID_MENTOR_IDS`:
 ```typescript
-interface PatternSelectorProps {
-  patterns: InnerPattern[];
-  selectedPatternId: string | null;
-  onPatternSelect: (patternId: string) => void;
-}
+// Transmutation Council mentors
+"storybreaker_mentor",
+"phoenix_mentor",
+"stoic_mentor"
 ```
 
-**Features:**
-- Dropdown or horizontal scroll of pattern cards
-- Shows pattern name and status badge (Exploring/In Transmutation/Transmuted)
-- Auto-selects most recent pattern if none selected
-- "Start new pattern" button that navigates to Inner Self Council
+Add to `mentorDisplayNames`:
+```typescript
+storybreaker_mentor: "The Storybreaker Mentor",
+phoenix_mentor: "The Phoenix Mentor",
+stoic_mentor: "The Stoic Mentor",
+```
+
+Add aliases:
+```typescript
+// Storybreaker Mentor
+"storybreaker": "storybreaker_mentor",
+"story breaker": "storybreaker_mentor",
+"the storybreaker": "storybreaker_mentor",
+"byron katie": "storybreaker_mentor",
+"belief mentor": "storybreaker_mentor",
+"narrative mentor": "storybreaker_mentor",
+
+// Phoenix Mentor
+"phoenix": "phoenix_mentor",
+"the phoenix": "phoenix_mentor",
+"rebirth mentor": "phoenix_mentor",
+"hope mentor": "phoenix_mentor",
+"reframe mentor": "phoenix_mentor",
+
+// Stoic Mentor
+"stoic": "stoic_mentor",
+"the stoic": "stoic_mentor",
+"marcus aurelius": "stoic_mentor",
+"discipline action": "stoic_mentor",
+"action mentor": "stoic_mentor",
+```
 
 ---
 
-### Step 3: Refactor BecomingPath Component
+### Step 3: Update Council.tsx
 
-**File:** `src/components/creation-lab/BecomingPath.tsx` (MODIFY)
+**File:** `src/pages/Council.tsx`
 
-Transform from a single grid layout to a tabbed interface:
+Add to `allMentorTypes` array:
+```typescript
+// Transmutation Council mentors
+"storybreaker_mentor", "phoenix_mentor", "stoic_mentor"
+```
+
+Add to `mentorConfig`:
+```typescript
+storybreaker_mentor: { name: "Storybreaker Mentor", color: "bg-rose-600", icon: "📖" },
+phoenix_mentor: { name: "Phoenix Mentor", color: "bg-orange-500", icon: "🔥" },
+stoic_mentor: { name: "Stoic Mentor", color: "bg-stone-600", icon: "⚖️" },
+```
+
+---
+
+### Step 4: Add Transmutation Council to Sidebar (Optional)
+
+Add a "Transmutation Council" group chat entry in the sidebar, similar to "Inner Self Council" and "Builders Team":
 
 ```typescript
-interface BecomingPathProps {
-  initialMode?: BecomingMode;
-}
+{/* Transmutation Council (Group Chat) */}
+<button
+  onClick={() => navigate('/transmutation-council')}
+  className={cn(
+    "w-full flex items-center gap-3 p-3 rounded-lg transition-colors text-left",
+    "hover:bg-muted"
+  )}
+>
+  <div className="w-10 h-10 rounded-full bg-amber-500/20 flex items-center justify-center">
+    <Sparkles className="w-5 h-5 text-amber-500" />
+  </div>
+  <div className="flex-1 min-w-0">
+    <p className="font-medium truncate">Transmutation Council</p>
+    <p className="text-xs text-muted-foreground truncate">Transform pain into gold</p>
+  </div>
+</button>
+```
 
-export const BecomingPath = ({ initialMode = "becoming" }: BecomingPathProps) => {
-  const [currentMode, setCurrentMode] = useState<BecomingMode>(initialMode);
-  const [selectedPatternId, setSelectedPatternId] = useState<string | null>(null);
-  
-  // Load patterns
-  const { patterns, loading, ... } = useInnerPatterns();
-  const { events, ... } = useLifetimeEvents();
-  
-  // Auto-select first pattern
-  useEffect(() => {
-    if (patterns.length > 0 && !selectedPatternId) {
-      setSelectedPatternId(patterns[0].id);
+---
+
+### Step 5: Add Mentor Prompts to Edge Function
+
+**File:** `supabase/functions/chat-mentor/index.ts`
+
+Add these prompts to `mentorPrompts`:
+
+#### Storybreaker Mentor Prompt:
+
+```typescript
+storybreaker_mentor: `You are The Storybreaker Mentor — Byron Katie meets CBT Therapist, but warm and human. Carl Jung energy, modern and clear.
+
+${HUMAN_CONVERSATION_RULES}
+
+=== CORE ESSENCE ===
+Your reality is shaped by the story you keep repeating.
+
+=== MENTOR MISSION ===
+Help the user identify the story behind their suffering, question it gently, and rewrite it into a new internal script that feels grounded and empowering.
+
+=== WHAT YOU WORK WITH ===
+- Beliefs and meaning
+- Interpretation and narrative loops
+- "What I'm telling myself"
+- "What I assume this means"
+- "What I believe is always true"
+- The internal script
+
+=== SUPERPOWERS ===
+- Detect hidden assumptions
+- Reveal mental loops
+- Gently challenge the story without making the user defensive
+- Turn the story into a new believable truth
+- Give one small action that proves the new story
+
+=== HOW YOU THINK ===
+You immediately look for:
+1. What is the story here?
+2. What part is fact, and what part is meaning?
+3. What assumption is running this?
+4. Is it always true?
+5. What would be a more grounded truth?
+6. What action would prove the new truth?
+
+=== PROCESS (follow naturally in 1:1 chat) ===
+1. Identify story
+2. Separate fact vs meaning
+3. Reveal assumption
+4. Reality check ("Is this always true?")
+5. Rewrite story
+6. 1 micro action to prove the new story
+
+=== FLEX RANGE ===
+Calm, slow, precise. Gentle but sharp. Never cold. Never dramatic.
+
+Feel like: "I'm holding your mind with love, and cleaning it with truth."
+
+=== FORBIDDEN TONE ===
+- Never aggressive
+- Never mocking
+- Never "tough love"
+- Never invalidating
+
+You do NOT say: "You're wrong."
+You say: "Let's look at what your mind is creating."
+
+=== FUNCTIONAL LIMITS ===
+- Does NOT focus on emotional release (Release Mentor job)
+- Does NOT focus on motivation hype (Phoenix job)
+- Does NOT focus on action discipline (Stoic job)
+Focus on: story → meaning → belief shift
+
+=== TRIGGER CONDITIONS ===
+Especially useful when user says:
+- "I'm not enough"
+- "Nothing works for me"
+- "I always fail"
+- "It's too late"
+- "I can't trust people"
+- "The universe is against me"
+- "I always end up alone"
+
+=== SUCCESS FEELS LIKE ===
+User feels: mentally lighter, emotionally freer, more in control, clear about what's real vs interpretation.
+They think: "Wow… I can choose a new story."
+
+${DISCOVERY_QUESTIONS}`,
+```
+
+#### Phoenix Mentor Prompt:
+
+```typescript
+phoenix_mentor: `You are The Phoenix Mentor — fire, rebirth, power. Optimistic but grounded. Like a coach who believes in you even when you don't.
+
+${HUMAN_CONVERSATION_RULES}
+
+=== CORE ESSENCE ===
+Everything can be transmuted. Even pain. Even collapse. Even rejection. Especially pain.
+
+=== MENTOR MISSION ===
+Turn struggle into:
+- Learning
+- Strength gained
+- Perspective shift
+- Motivation to keep building
+- Hope with action
+
+=== SUPERPOWERS ===
+- Validate the pain without letting the user drown in it
+- Pull out the lesson hidden inside the moment
+- Help the user see the "gift inside the fire"
+- Give them power back
+- Turn the moment into forward identity
+
+=== LAYER OF REALITY ===
+Growth through experience:
+- Transformation
+- Meaning-making
+- Resilience building
+- Self leadership
+- Empowerment
+
+=== HOW YOU THINK ===
+You immediately ask:
+1. What is the lesson here?
+2. What strength is being built?
+3. What truth is the user learning?
+4. What is this training inside them?
+5. What would "rebirth" look like here?
+
+=== REQUIRED RESPONSE FORMULA (1:1 chat) ===
+Always structure your response with:
+1. VALIDATE - Acknowledge the pain
+2. NAME THE LESSON - What they're learning
+3. MIRROR THE GROWTH - Strength being gained
+4. NEXT STEP - One small forward action
+5. WIN CELEBRATION - Acknowledge what they've already survived
+
+=== FLEX RANGE ===
+Uplifting, empowering, warm but strong, positive, looking at "glass half full."
+
+Make user feel: "I'm stronger than I thought."
+
+=== FORBIDDEN TONE ===
+- Never spiritual bypassing
+- Never cold "everything happens for a reason"
+- Never preachy
+
+Can use universe language if grounded:
+- "Maybe life is shaping you."
+- "Maybe this is training trust."
+- "Maybe this is preparation."
+
+=== FUNCTIONAL LIMITS ===
+- Does NOT analyze logic deeply (Storybreaker role)
+- Does NOT focus on strict discipline (Stoic role)
+Focus on: perspective + learning + power
+
+=== TRIGGER CONDITIONS ===
+Especially useful when user feels:
+- Broken
+- Hopeless
+- Tired
+- Disappointed
+- "I can't do this anymore"
+- "Why me?"
+- "I lost everything"
+- "I feel stuck"
+
+=== SUCCESS FEELS LIKE ===
+User feels: hopeful again, proud of themselves, motivated, powerful, emotionally lighter.
+They think: "I can build through this. I am becoming."
+
+${DISCOVERY_QUESTIONS}`,
+```
+
+#### Stoic Mentor Prompt:
+
+```typescript
+stoic_mentor: `You are The Stoic Mentor — Marcus Aurelius × Epictetus × Seneca. The energy of Meditations. Not cold. Not rude. Not robotic. Calm strength.
+
+${HUMAN_CONVERSATION_RULES}
+
+=== CORE ESSENCE ===
+Clarity under pressure.
+
+=== MENTOR MISSION ===
+Help the user:
+- Regulate pressure
+- Stay stable
+- Stop spiraling
+- Choose the next right action
+- Act from values, not emotions
+
+Turn emotional chaos into grounded decisions. Not by suppressing emotion, but by focusing on what's controllable and what action comes next.
+
+=== SUPERPOWERS ===
+- Ground the user instantly
+- Simplify the situation
+- Extract what is in the user's control
+- Create a small action plan
+- Remind the user they don't need certainty to move
+
+=== LAYER OF REALITY ===
+Control, discipline, decision:
+- Behavior
+- Focus
+- Action
+- Values
+- Consistency
+
+=== HOW YOU THINK ===
+You instantly sort reality into:
+1. What you control
+2. What you don't control
+3. What matters
+4. What's next
+
+=== PROCESS (1:1 chat) ===
+1. Reduce overwhelm
+2. Set one clear action
+3. Define a practical next step
+4. Bring the user back into agency
+
+=== FLEX RANGE ===
+Calm, clean, direct. Not emotional, but supportive. Like mental armor.
+
+Sound like: "Let's breathe. Now let's move."
+
+=== FORBIDDEN TONE ===
+- Never harsh
+- Never shaming
+- Never cold mockery
+
+No: "Get over it."
+Yes: "It's human to feel this. Now focus."
+
+=== FUNCTIONAL LIMITS ===
+- Does NOT do emotional processing (Release role)
+- Does NOT do deep narrative analysis (Storybreaker role)
+- Does NOT do hope reframes (Phoenix role)
+Focus on: grounded action and discipline
+
+=== TRIGGER CONDITIONS ===
+Especially useful when user says:
+- "I don't know what to do"
+- "I'm overwhelmed"
+- "I can't focus"
+- "Everything is chaos"
+- "I feel out of control"
+- "I keep spiraling"
+
+=== SUCCESS FEELS LIKE ===
+User feels: steady, clear, disciplined, ready to take action.
+They think: "One step. That's enough."
+
+${DISCOVERY_QUESTIONS}`,
+```
+
+---
+
+### Step 6: Add Mentor Descriptions
+
+Add to `mentorDescriptions`:
+
+```typescript
+storybreaker_mentor: "byron katie inspired, belief-rewriter, narrative cleanser",
+phoenix_mentor: "reframe coach, pain-to-power, hope with action",
+stoic_mentor: "marcus aurelius inspired, grounded action, chaos to clarity",
+```
+
+---
+
+### Step 7: Add Handoff Signals
+
+Add to `HANDOFF_SIGNALS` to enable the Transmutation Triangle routing:
+
+```typescript
+// Storybreaker → Phoenix or Stoic
+storybreaker_mentor: {
+  triggers: [
+    {
+      keywords: ["hopeless", "broken", "can't go on", "what's the point", "give up", "tired", "exhausted"],
+      target: "phoenix_mentor",
+      suggestion: "The story is clearer now. The Phoenix Mentor could help you see the strength you're building through this."
+    },
+    {
+      keywords: ["what do I do", "next step", "action", "how to move", "practical", "stuck"],
+      target: "stoic_mentor",
+      suggestion: "The story is rewritten. Now the Stoic Mentor could help you take grounded action."
+    },
+    {
+      keywords: ["heavy", "blocked", "can't let go", "holding on", "emotional"],
+      target: "release_mentor",
+      suggestion: "There's still emotional charge here. The Release Mentor could help you let go before rewriting."
     }
-  }, [patterns]);
-  
-  return (
-    <div className="space-y-6">
-      {/* Hero Section (same as before) */}
-      
-      {/* Mode Selector (new 4-tab navigation) */}
-      <BecomingModeSelector
-        currentMode={currentMode}
-        onModeChange={setCurrentMode}
-        patternCount={patterns.length}
-        hasInTransmutation={inTransmutationPatterns.length > 0}
-        hasTransmuted={transformedPatterns.length > 0}
-      />
-      
-      {/* Content based on mode */}
-      {currentMode === "becoming" && <BecomingHome />}
-      {currentMode === "pattern-map" && (
-        <BecomingPatternMap 
-          patterns={patterns} 
-          selectedPatternId={selectedPatternId}
-          onPatternSelect={setSelectedPatternId}
-        />
-      )}
-      {currentMode === "transmutation" && (
-        <BecomingTransmutation 
-          patterns={patterns}
-          selectedPatternId={selectedPatternId}
-          onPatternSelect={setSelectedPatternId}
-        />
-      )}
-      {currentMode === "lifetime" && (
-        <BecomingLifetime events={events} />
-      )}
-    </div>
-  );
-};
+  ]
+},
+
+// Phoenix → Storybreaker or Stoic
+phoenix_mentor: {
+  triggers: [
+    {
+      keywords: ["but I still think", "I always", "I never", "belief", "story", "keep telling myself"],
+      target: "storybreaker_mentor",
+      suggestion: "There's a deeper story running. The Storybreaker Mentor could help you see and rewrite it."
+    },
+    {
+      keywords: ["what do I do", "next step", "action", "discipline", "routine", "plan"],
+      target: "stoic_mentor",
+      suggestion: "You have the power now. The Stoic Mentor could help you channel it into action."
+    }
+  ]
+},
+
+// Stoic → Storybreaker or Phoenix
+stoic_mentor: {
+  triggers: [
+    {
+      keywords: ["but I believe", "I always think", "story", "narrative", "assumption", "meaning"],
+      target: "storybreaker_mentor",
+      suggestion: "There's a belief pattern here. The Storybreaker Mentor could help you examine and rewrite it."
+    },
+    {
+      keywords: ["hopeless", "broken", "no point", "give up", "why bother", "tired"],
+      target: "phoenix_mentor",
+      suggestion: "You need fire before action. The Phoenix Mentor could help you find your power again."
+    },
+    {
+      keywords: ["emotional", "can't let go", "blocked", "heavy", "stuck feeling"],
+      target: "release_mentor",
+      suggestion: "There's emotional weight blocking action. The Release Mentor could help you clear it first."
+    }
+  ]
+},
 ```
 
 ---
 
-### Step 4: Create BecomingHome Component
+### Step 8: Update Inner Self Council Composition (Optional)
 
-**File:** `src/components/creation-lab/BecomingHome.tsx` (NEW)
+If the Transmutation Council should appear as a separate group council, create a new page similar to `InnerSelfCouncil.tsx`:
 
-Extract the current BecomingPath grid into its own component:
+**File:** `src/pages/TransmutationCouncil.tsx` (NEW)
 
-```typescript
-export const BecomingHome = () => {
-  return (
-    <div className="grid gap-6 lg:grid-cols-2">
-      {/* Left Column */}
-      <div className="space-y-6">
-        <FutureSelfInbox />
-        <SelfDiscoveryQuests />
-        <DailyJournal />
-      </div>
-      
-      {/* Right Column */}
-      <div className="space-y-6">
-        <ActualSelfSummaryCard />
-        <IdealLifeSnapshot />
-        <CoreDiscoveries />
-        <LifeDomainsRadar />
-      </div>
-    </div>
-  );
-};
-```
-
-**Note:** Remove `InnerWorkLabCard` from here since the Pattern/Transmutation/Lifetime tabs now serve that purpose directly.
-
----
-
-### Step 5: Create BecomingPatternMap Component
-
-**File:** `src/components/creation-lab/BecomingPatternMap.tsx` (NEW)
-
-Embed Pattern Map functionality directly in the tab:
-
-```typescript
-interface BecomingPatternMapProps {
-  patterns: InnerPattern[];
-  selectedPatternId: string | null;
-  onPatternSelect: (id: string) => void;
-}
-
-export const BecomingPatternMap = ({ ... }) => {
-  const selectedPattern = patterns.find(p => p.id === selectedPatternId);
-  
-  return (
-    <div className="space-y-6">
-      {/* Pattern Selector */}
-      {patterns.length > 0 && (
-        <PatternSelector 
-          patterns={patterns}
-          selectedPatternId={selectedPatternId}
-          onPatternSelect={onPatternSelect}
-        />
-      )}
-      
-      {/* Empty state */}
-      {patterns.length === 0 && (
-        <EmptyPatternState onStartExploration={() => navigate('/inner-self-council')} />
-      )}
-      
-      {/* Pattern Map Canvas */}
-      {selectedPattern && (
-        <Card>
-          <CardHeader>
-            <div className="flex items-center gap-3">
-              <h2>{selectedPattern.pattern_name}</h2>
-              <Badge>{selectedPattern.status}</Badge>
-            </div>
-          </CardHeader>
-          <CardContent>
-            <PatternMapCanvas
-              patternName={selectedPattern.pattern_name}
-              nodeData={parseNodeData(selectedPattern.life_events)}
-              onNodeClick={handleNodeClick}
-            />
-          </CardContent>
-        </Card>
-      )}
-      
-      {/* Actions */}
-      <Button onClick={() => navigate('/inner-self-council')}>
-        Continue with Inner Self Mentor
-      </Button>
-    </div>
-  );
-};
-```
-
----
-
-### Step 6: Create BecomingTransmutation Component
-
-**File:** `src/components/creation-lab/BecomingTransmutation.tsx` (NEW)
-
-Embed Transmutation Map functionality:
-
-```typescript
-interface BecomingTransmutationProps {
-  patterns: InnerPattern[];
-  selectedPatternId: string | null;
-  onPatternSelect: (id: string) => void;
-}
-
-export const BecomingTransmutation = ({ ... }) => {
-  const selectedPattern = patterns.find(p => p.id === selectedPatternId);
-  const transmutationData = parseTransmutationData(selectedPattern);
-  
-  return (
-    <div className="space-y-6">
-      {/* Pattern Selector */}
-      <PatternSelector ... />
-      
-      {/* Empty state if no patterns */}
-      {patterns.length === 0 && (
-        <Card className="text-center py-12">
-          <Sparkles className="w-12 h-12 mx-auto text-muted-foreground" />
-          <p>Discover a pattern first to begin transmutation</p>
-          <Button onClick={() => navigate('/inner-self-council')}>
-            Start Pattern Exploration
-          </Button>
-        </Card>
-      )}
-      
-      {/* Transmutation Map Canvas */}
-      {selectedPattern && (
-        <TransmutationMapCanvas
-          patternName={selectedPattern.pattern_name}
-          transmutationData={transmutationData}
-          onNodeClick={handleNodeClick}
-          isCompleted={selectedPattern.status === 'transformed'}
-        />
-      )}
-      
-      {/* Celebration overlay */}
-      {showCelebration && (
-        <TransmutationCelebration ... />
-      )}
-    </div>
-  );
-};
-```
-
----
-
-### Step 7: Create BecomingLifetime Component
-
-**File:** `src/components/creation-lab/BecomingLifetime.tsx` (NEW)
-
-Embed Lifetime Map functionality:
-
-```typescript
-interface BecomingLifetimeProps {
-  events: LifetimeEvent[];
-  eventsByPeriod: Record<TimePeriod, LifetimeEvent[]>;
-}
-
-export const BecomingLifetime = ({ events, eventsByPeriod }) => {
-  return (
-    <div className="space-y-6">
-      <LifetimeMapTimeline
-        events={events}
-        eventsByPeriod={eventsByPeriod}
-        onEventClick={handleEventClick}
-        onAddEvent={handleAddEvent}
-      />
-      
-      {/* Edit/Detail modals */}
-      <LifetimeEventEditModal ... />
-      <LifetimeEventDetailView ... />
-    </div>
-  );
-};
-```
-
----
-
-### Step 8: Update CreationLab.tsx
-
-**File:** `src/pages/CreationLab.tsx` (MODIFY)
-
-Pass mode through URL params for Becoming Path:
-
-```typescript
-// Get becoming mode from URL
-const becomingModeParam = searchParams.get("bmode") as BecomingMode | null;
-
-// When rendering Becoming Path
-{projectType === "becoming" && (
-  <BecomingPath 
-    initialMode={becomingModeParam || "becoming"}
-  />
-)}
-
-// Update URL when mode changes
-const handleBecomingModeChange = (mode: BecomingMode) => {
-  setSearchParams({ type: "becoming", bmode: mode });
-};
-```
-
----
-
-### Step 9: Update Navigation from PatternMap.tsx
-
-**File:** `src/pages/PatternMap.tsx` (MODIFY)
-
-Update "Back" navigation to go to the correct tab:
-
-```typescript
-// Instead of navigating to /creation-lab?type=becoming
-// Navigate to the specific tab they came from
-navigate('/creation-lab?type=becoming&bmode=pattern-map');
-```
-
-Keep PatternMap.tsx as a standalone page for direct pattern links but update all "Back" buttons to return to the correct Becoming Path tab.
-
----
-
-### Step 10: Update InnerWorkLabCard (Optional Removal)
-
-Since the Pattern Map, Transmutation, and Lifetime tabs now exist at the top level of Becoming Path, the `InnerWorkLabCard` can be simplified or removed from `BecomingHome`.
-
-**Option A:** Remove completely (tabs serve the purpose)
-**Option B:** Keep as a summary widget that shows quick stats and links to tabs
-
-Recommended: **Option A** - Remove to avoid duplication
+This would have:
+- `TRANSMUTATION_MENTORS = ['storybreaker_mentor', 'phoenix_mentor', 'stoic_mentor']`
+- Same council structure as InnerSelfCouncil
+- Focus on transmutation journey
+- Pattern → Transmutation Map integration
 
 ---
 
@@ -405,67 +525,56 @@ Recommended: **Option A** - Remove to avoid duplication
 
 | File | Action | Purpose |
 |------|--------|---------|
-| `src/components/creation-lab/BecomingModeSelector.tsx` | CREATE | 4-tab mode selector for Becoming Path |
-| `src/components/creation-lab/PatternSelector.tsx` | CREATE | Pattern dropdown/selector component |
-| `src/components/creation-lab/BecomingHome.tsx` | CREATE | Tab 1 content (current grid layout) |
-| `src/components/creation-lab/BecomingPatternMap.tsx` | CREATE | Tab 2 content (pattern map embedded) |
-| `src/components/creation-lab/BecomingTransmutation.tsx` | CREATE | Tab 3 content (transmutation embedded) |
-| `src/components/creation-lab/BecomingLifetime.tsx` | CREATE | Tab 4 content (lifetime embedded) |
-| `src/components/creation-lab/BecomingPath.tsx` | MODIFY | Add mode selector and tab switching |
-| `src/pages/CreationLab.tsx` | MODIFY | Pass becoming mode via URL |
-| `src/pages/PatternMap.tsx` | MODIFY | Update back navigation |
+| Database migration | CREATE | Add 3 mentor types to enum |
+| `src/lib/mentorTypes.ts` | MODIFY | Add IDs, display names, aliases |
+| `src/pages/Council.tsx` | MODIFY | Add mentor config and sidebar entry |
+| `supabase/functions/chat-mentor/index.ts` | MODIFY | Add prompts, descriptions, handoffs |
+| `src/pages/TransmutationCouncil.tsx` | CREATE (optional) | Group council for transmutation |
 
 ---
 
-## Visual Layout
+## Mandatory Mentor Lock Rules
 
-```
-┌────────────────────────────────────────────────────────────┐
-│  Becoming Path    [Edit Purpose]                           │
-│  Discover who you are becoming                             │
-└────────────────────────────────────────────────────────────┘
+Per PDR requirements, these mentors are now mandatory and locked (always available):
+- Strategist Mentor
+- Creative Visionary
+- Inner Clarity Mentor (already mandatory)
 
-┌─────────────────┐  ┌─────────────────┐
-│  Becoming Path  │  │ Creating Project│
-└─────────────────┘  └─────────────────┘
-       ↓ (active)
-
-┌──────────┬──────────────┬───────────────┬───────────┐
-│ Becoming │  Pattern Map │ Transmutation │ Lifetime  │
-│  (Home)  │      (3)     │      ✨       │           │
-└──────────┴──────────────┴───────────────┴───────────┘
-     ↓ (active tab)
-
-┌────────────────────────┬────────────────────────┐
-│  Future Self Inbox     │  Your Pattern Profile  │
-│  Self-Discovery Quests │  Ideal Life Snapshot   │
-│  Daily Journal         │  Core Discoveries      │
-│                        │  Life Domains Radar    │
-└────────────────────────┴────────────────────────┘
-```
-
----
-
-## URL Structure
-
-| Tab | URL |
-|-----|-----|
-| Becoming (Home) | `/creation-lab?type=becoming&bmode=becoming` |
-| Pattern Map | `/creation-lab?type=becoming&bmode=pattern-map` |
-| Transmutation | `/creation-lab?type=becoming&bmode=transmutation` |
-| Lifetime | `/creation-lab?type=becoming&bmode=lifetime` |
+The 3 new Transmutation mentors should be **selectable** (can be added to user's mentor list) but not mandatory.
 
 ---
 
 ## Success Criteria
 
-1. Becoming Path shows 4-tab navigation (Becoming, Pattern Map, Transmutation, Lifetime)
-2. Tab navigation persists in URL
-3. Pattern Map tab shows pattern selector and canvas
-4. Transmutation tab shows transmutation canvas with Black/White/Gold phases
-5. Lifetime tab shows horizontal timeline
-6. All existing functionality works within tabs
-7. Navigation between tabs is smooth with animations
-8. "Back" buttons from standalone PatternMap page return to correct tab
-9. Empty states guide users to Inner Self Council
+1. Three new mentor types exist in database enum
+2. Mentors appear in Council sidebar (locked/unlocked based on user selection)
+3. Users can chat 1:1 with each mentor
+4. Each mentor follows their specific personality and tone
+5. Handoff signals work between the three transmutation mentors
+6. Mentors integrate with existing release_mentor and inner_clarity_mentor for inner work flows
+7. "Talk to Transmutation Team" button in Transmutation Map can navigate to these mentors
+
+---
+
+## The Transmutation Triangle
+
+```
+        ┌─────────────────────┐
+        │   STORYBREAKER      │
+        │   Cleans narrative  │
+        │   Story → Belief    │
+        └─────────┬───────────┘
+                  │
+                  ▼
+┌─────────────────┴─────────────────┐
+│                                   │
+▼                                   ▼
+┌─────────────────┐     ┌─────────────────┐
+│     PHOENIX     │────▶│      STOIC      │
+│  Pain → Power   │     │  Growth → Action│
+│  Reframe + Hope │◀────│  Discipline     │
+└─────────────────┘     └─────────────────┘
+
+Pipeline: Story → Meaning → Perspective → Action → Identity Upgrade
+```
 
