@@ -23,7 +23,11 @@ export const VALID_MENTOR_IDS = [
   // Clarity & Understanding mentors
   "problem_mentor",
   "inner_clarity_mentor",
-  "release_mentor"
+  "release_mentor",
+  // Transmutation Council mentors
+  "storybreaker_mentor",
+  "phoenix_mentor",
+  "stoic_mentor"
 ] as const;
 
 export type ValidMentorId = typeof VALID_MENTOR_IDS[number];
@@ -52,6 +56,10 @@ export const mentorDisplayNames: Record<ValidMentorId, string> = {
   problem_mentor: "The Problem Mentor",
   inner_clarity_mentor: "The Inner Clarity Mentor",
   release_mentor: "The Release Mentor",
+  // Transmutation Council mentors
+  storybreaker_mentor: "The Storybreaker Mentor",
+  phoenix_mentor: "The Phoenix Mentor",
+  stoic_mentor: "The Stoic Mentor",
 };
 
 // Map of common aliases to canonical mentor IDs
@@ -170,6 +178,32 @@ const mentorAliases: Record<string, ValidMentorId> = {
   "surrender": "release_mentor",
   "hawkins": "release_mentor",
   "emotional release": "release_mentor",
+  
+  // Storybreaker Mentor
+  "storybreaker": "storybreaker_mentor",
+  "story breaker": "storybreaker_mentor",
+  "the storybreaker": "storybreaker_mentor",
+  "byron katie": "storybreaker_mentor",
+  "belief mentor": "storybreaker_mentor",
+  "narrative mentor": "storybreaker_mentor",
+  "mindset mentor": "storybreaker_mentor",
+  
+  // Phoenix Mentor
+  "phoenix": "phoenix_mentor",
+  "the phoenix": "phoenix_mentor",
+  "rebirth mentor": "phoenix_mentor",
+  "hope mentor": "phoenix_mentor",
+  "reframe mentor": "phoenix_mentor",
+  "fire mentor": "phoenix_mentor",
+  
+  // Stoic Mentor
+  "stoic": "stoic_mentor",
+  "the stoic": "stoic_mentor",
+  "marcus aurelius": "stoic_mentor",
+  "discipline action": "stoic_mentor",
+  "action mentor": "stoic_mentor",
+  "epictetus": "stoic_mentor",
+  "seneca": "stoic_mentor",
 };
 
 /**
