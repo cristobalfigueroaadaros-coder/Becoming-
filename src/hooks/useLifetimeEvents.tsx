@@ -287,10 +287,25 @@ export function useLifetimeEvents() {
     return events.filter(e => e.pattern_id === patternId);
   }, [events]);
 
+  // Helper to create a lifetime event from a pattern
+  const createEventFromPattern = async (
+    patternId: string,
+    patternName: string,
+    timePeriod: TimePeriod = 'current'
+  ): Promise<LifetimeEvent | null> => {
+    return createEvent({
+      time_period: timePeriod,
+      event_label: patternName,
+      pattern_id: patternId,
+      pattern_name: patternName,
+    });
+  };
+
   return {
     events,
     loading,
     createEvent,
+    createEventFromPattern,
     updateEvent,
     deleteEvent,
     linkPattern,

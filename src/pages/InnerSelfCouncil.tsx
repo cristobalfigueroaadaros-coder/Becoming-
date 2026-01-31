@@ -305,16 +305,16 @@ const InnerSelfCouncil = ({ embedded = false }: InnerSelfCouncilProps) => {
                 
                 <div className="space-y-3 pt-2">
                   <p className="text-sm text-muted-foreground">
-                    Now that we know what you are building...
-                    <br />
-                    let's work on what is happening <strong>inside you</strong>.
+                    Now that we know what you're building, let's look at what's happening <strong>inside you</strong>.
                   </p>
                   <p className="text-sm text-muted-foreground">
                     This is a safe space. You can share as much or as little as you want.
                   </p>
+                  <p className="text-sm text-muted-foreground">
+                    Let's start with something real. Not dramatic. Just meaningful.
+                  </p>
                   <p className="text-sm font-medium text-foreground">
-                    Tell us one thing that feels heavy right now,
-                    or one pattern you keep repeating.
+                    Tell us about a life event that challenged you or changed you.
                   </p>
                 </div>
               </CardContent>
@@ -363,11 +363,12 @@ const InnerSelfCouncil = ({ embedded = false }: InnerSelfCouncilProps) => {
               placeholder={hasActiveThread 
                 ? "Continue exploring what you're feeling..." 
                 : `Examples:
-• "I feel like I'm not enough"
-• "I'm scared of being rejected"
-• "I freeze when it matters"
-• "My father left home when I was young"
-• "I always sabotage when it's going well"`}
+• "I moved to another country and felt lost"
+• "I broke my leg and had to stop everything"
+• "I ended a long relationship"
+• "I failed a business"
+• "I lost someone important"
+• "I left my comfort zone for the first time"`}
               value={question}
               onChange={(e) => setQuestion(e.target.value)}
               rows={5}
