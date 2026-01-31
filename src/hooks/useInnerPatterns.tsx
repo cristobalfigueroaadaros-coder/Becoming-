@@ -13,6 +13,9 @@ export interface TransmutationData {
   letter_to_self?: string;
   brave_step?: string;
   phase_completed?: 'black' | 'white' | 'gold';
+  white_completed_at?: string;
+  gold_completed_at?: string;
+  golden_summary?: string;
   completed_at?: string;
 }
 

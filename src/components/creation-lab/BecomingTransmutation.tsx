@@ -1,33 +1,24 @@
 import { useState, useEffect } from "react";
 import { motion } from "framer-motion";
 import { useNavigate } from "react-router-dom";
-import { Sparkles, MessageCircle } from "lucide-react";
+import { Sparkles, Flame, Shield, MessageCircle, Plus } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { PatternSelector } from "./PatternSelector";
 import {
   TransmutationMapCanvas,
-  TransmutationNodeEditModal,
   TransmutationCelebration,
   type TransmutationData,
 } from "@/components/transmutation-map";
+import { TransmutationPhaseModal } from "@/components/transmutation-map/TransmutationPhaseModal";
+import { WhitePhaseWinCard } from "@/components/transmutation-map/WhitePhaseWinCard";
+import { TransmutationQueue } from "@/components/transmutation-map/TransmutationQueue";
+import { isWhitePhaseComplete, isGoldPhaseComplete, generateGoldenSummary } from "@/lib/goldenSummaryGenerator";
+import { triggerGoldCompleteNotification } from "@/hooks/useTransmutationNotifications";
 import type { InnerPattern } from "@/hooks/useInnerPatterns";
+import type { LifetimeEvent } from "@/hooks/useLifetimeEvents";
 import { toast } from "sonner";
-
-const transmutationNodeLabels: Record<
-  string,
-  { label: string; phase: "black" | "white" | "gold" }
-> = {
-  shadow: { label: "The Shadow", phase: "black" },
-  dark_night: { label: "Dark Night", phase: "black" },
-  shift_moment: { label: "The Shift", phase: "white" },
-  protective_purpose: { label: "Protective Role", phase: "white" },
-  lesson_learned: { label: "The Lesson", phase: "white" },
-  gold_insight: { label: "The Gold", phase: "gold" },
-  letter_to_self: { label: "To Younger Me", phase: "gold" },
-  brave_step: { label: "Brave Step", phase: "gold" },
-};
 
 interface BecomingTransmutationProps {
   patterns: InnerPattern[];
@@ -36,6 +27,7 @@ interface BecomingTransmutationProps {
   onUpdateTransmutation: (id: string, data: TransmutationData) => Promise<boolean>;
   onSyncGoldOutcome?: (patternId: string, goldText: string) => Promise<boolean>;
   onModeChange: (mode: "lifetime") => void;
+  lifetimeEvents?: LifetimeEvent[];
 }
 
 export const BecomingTransmutation = ({
@@ -45,13 +37,25 @@ export const BecomingTransmutation = ({
   onUpdateTransmutation,
   onSyncGoldOutcome,
   onModeChange,
+  lifetimeEvents = [],
 }: BecomingTransmutationProps) => {
   const navigate = useNavigate();
-  const [editingNode, setEditingNode] = useState<string | null>(null);
   const [showCelebration, setShowCelebration] = useState(false);
   const [transmutationData, setTransmutationData] = useState<TransmutationData>({});
+  
+  // Phase modal states
+  const [showPhaseModal, setShowPhaseModal] = useState(false);
+  const [activePhase, setActivePhase] = useState<'white' | 'gold'>('white');
+  
+  // White win card state
+  const [showWhiteWinCard, setShowWhiteWinCard] = useState(false);
+  const [pendingWhiteData, setPendingWhiteData] = useState<Partial<TransmutationData>>({});
 
   const selectedPattern = patterns.find((p) => p.id === selectedPatternId);
+
+  // Derived states for phase completion
+  const whiteComplete = isWhitePhaseComplete(transmutationData);
+  const goldComplete = isGoldPhaseComplete(transmutationData);
 
   // Load transmutation data from pattern
   useEffect(() => {
@@ -75,40 +79,83 @@ export const BecomingTransmutation = ({
           }));
         }
       } else {
-        setTransmutationData({});
+        // Initialize with shadow from pattern
+        setTransmutationData({
+          shadow: selectedPattern.pattern_description || selectedPattern.pattern_name,
+        });
       }
     }
   }, [selectedPattern]);
 
-  const handleNodeClick = (nodeId: string) => {
-    setEditingNode(nodeId);
+  // Handle node click - open phase modal
+  const handleNodeClick = (nodeId: string, phase: 'black' | 'white' | 'gold') => {
+    if (phase === 'white') {
+      setActivePhase('white');
+      setShowPhaseModal(true);
+    } else if (phase === 'gold') {
+      setActivePhase('gold');
+      setShowPhaseModal(true);
+    }
   };
 
-  const handleNodeSave = async (content: string) => {
-    if (!selectedPattern || !editingNode) return;
+  // Handle White phase completion from modal
+  const handleWhitePhaseComplete = (extractedData: Partial<TransmutationData>) => {
+    setPendingWhiteData(extractedData);
+    setShowPhaseModal(false);
+    setShowWhiteWinCard(true);
+  };
 
-    const updatedData = { ...transmutationData, [editingNode]: content };
+  // Confirm White phase
+  const handleConfirmWhite = async () => {
+    if (!selectedPattern) return;
+
+    const updatedData: TransmutationData = {
+      ...transmutationData,
+      ...pendingWhiteData,
+      phase_completed: 'white',
+      white_completed_at: new Date().toISOString(),
+    };
+
     setTransmutationData(updatedData);
+    await onUpdateTransmutation(selectedPattern.id, updatedData);
+    
+    setShowWhiteWinCard(false);
+    setPendingWhiteData({});
+    toast.success("White phase complete! Gold phase is now unlocked.");
+  };
 
-    // Check if gold phase is complete
-    const isGoldComplete = !!(updatedData.gold_insight && updatedData.letter_to_self);
+  // Handle Gold phase completion from modal
+  const handleGoldPhaseComplete = async (extractedData: Partial<TransmutationData>) => {
+    if (!selectedPattern) return;
+    setShowPhaseModal(false);
 
-    if (isGoldComplete && !transmutationData.phase_completed) {
-      updatedData.phase_completed = "gold";
-      updatedData.completed_at = new Date().toISOString();
-    }
+    // Generate golden summary
+    const fullData: TransmutationData = {
+      ...transmutationData,
+      ...extractedData,
+    };
+    const goldenSummary = generateGoldenSummary(fullData, selectedPattern.pattern_name);
 
-    const success = await onUpdateTransmutation(selectedPattern.id, updatedData);
+    const updatedData: TransmutationData = {
+      ...fullData,
+      golden_summary: goldenSummary,
+      phase_completed: 'gold',
+      gold_completed_at: new Date().toISOString(),
+      completed_at: new Date().toISOString(),
+    };
 
-    if (success) {
-      toast.success("Transmutation map updated");
-      // Show celebration if gold phase just completed
-      if (isGoldComplete && !transmutationData.phase_completed) {
-        setShowCelebration(true);
-      }
-    }
-
-    setEditingNode(null);
+    setTransmutationData(updatedData);
+    await onUpdateTransmutation(selectedPattern.id, updatedData);
+    
+    // Trigger notification
+    await triggerGoldCompleteNotification(
+      selectedPattern.id,
+      selectedPattern.pattern_name,
+      goldenSummary
+    );
+    
+    // Show celebration
+    setShowCelebration(true);
   };
 
   const handleCelebrationSaveGold = () => {
@@ -119,15 +166,15 @@ export const BecomingTransmutation = ({
   const handleCelebrationViewLifetime = async () => {
     setShowCelebration(false);
     // Sync gold outcome to lifetime events
-    if (selectedPattern && transmutationData.gold_insight && onSyncGoldOutcome) {
-      await onSyncGoldOutcome(selectedPattern.id, transmutationData.gold_insight);
+    if (selectedPattern && transmutationData.golden_summary && onSyncGoldOutcome) {
+      await onSyncGoldOutcome(selectedPattern.id, transmutationData.golden_summary);
     }
     onModeChange("lifetime");
     toast.success("View your gold insight in the Lifetime Map");
   };
 
-  const handleKeepTalking = () => {
-    navigate("/council?view=inner_clarity_mentor");
+  const handleAddNewPattern = () => {
+    navigate("/inner-self-council");
   };
 
   // Empty state
@@ -209,12 +256,16 @@ export const BecomingTransmutation = ({
                     className={
                       selectedPattern.status === "transformed"
                         ? "bg-amber-500/20 text-amber-400 mt-1"
-                        : "bg-slate-500/20 text-slate-400 mt-1"
+                        : whiteComplete
+                          ? "bg-slate-300/20 text-slate-500 mt-1"
+                          : "bg-slate-500/20 text-slate-400 mt-1"
                     }
                   >
                     {selectedPattern.status === "transformed"
                       ? "Transmutation Complete ✨"
-                      : "In Progress"}
+                      : whiteComplete
+                        ? "Gold Phase Ready"
+                        : "White Phase"}
                   </Badge>
                 </div>
               </div>
@@ -222,7 +273,9 @@ export const BecomingTransmutation = ({
             <p className="text-sm text-muted-foreground mt-3">
               {selectedPattern.status === "transformed"
                 ? "Your wisdom is now gold"
-                : "Black → White → Gold — Tap nodes to begin your transmutation"}
+                : whiteComplete
+                  ? "Click any Gold node to complete your transmutation"
+                  : "Click any White node to begin the shift with Phoenix"}
             </p>
           </CardHeader>
           <CardContent className="pt-0">
@@ -236,28 +289,80 @@ export const BecomingTransmutation = ({
         </Card>
       )}
 
-      {/* Actions */}
-      <Button
-        onClick={handleKeepTalking}
-        className="w-full bg-gradient-to-r from-indigo-600 to-purple-600 hover:from-indigo-500 hover:to-purple-500"
-        size="lg"
-      >
-        <MessageCircle className="w-4 h-4 mr-2" />
-        Talk to the Transmutation Team
-      </Button>
+      {/* Mentor-Specific CTAs */}
+      <div className="space-y-3">
+        {!whiteComplete && selectedPattern && (
+          <Button
+            onClick={() => {
+              setActivePhase('white');
+              setShowPhaseModal(true);
+            }}
+            className="w-full bg-gradient-to-r from-slate-600 to-slate-700 hover:from-slate-500 hover:to-slate-600"
+            size="lg"
+          >
+            <Flame className="w-4 h-4 mr-2" />
+            Begin White Phase with Phoenix
+          </Button>
+        )}
 
-      {/* Transmutation Node Edit Modal */}
-      {editingNode && (
-        <TransmutationNodeEditModal
-          open={!!editingNode}
-          onClose={() => setEditingNode(null)}
-          nodeId={editingNode}
-          nodeLabel={transmutationNodeLabels[editingNode]?.label || editingNode}
-          phase={transmutationNodeLabels[editingNode]?.phase || "white"}
-          currentContent={transmutationData[editingNode as keyof TransmutationData] as string}
-          onSave={handleNodeSave}
+        {whiteComplete && !goldComplete && selectedPattern && (
+          <Button
+            onClick={() => {
+              setActivePhase('gold');
+              setShowPhaseModal(true);
+            }}
+            className="w-full bg-gradient-to-r from-amber-500 to-amber-600 hover:from-amber-400 hover:to-amber-500"
+            size="lg"
+          >
+            <Shield className="w-4 h-4 mr-2" />
+            Begin Gold Phase with Stoic
+          </Button>
+        )}
+
+        {goldComplete && (
+          <Button
+            onClick={handleAddNewPattern}
+            className="w-full bg-gradient-to-r from-indigo-600 to-purple-600 hover:from-indigo-500 hover:to-purple-500"
+            size="lg"
+          >
+            <Plus className="w-4 h-4 mr-2" />
+            Add New Pattern
+          </Button>
+        )}
+      </div>
+
+      {/* Transmutation Queue */}
+      <TransmutationQueue
+        activePatternId={selectedPatternId}
+        patterns={patterns}
+        lifetimeEvents={lifetimeEvents}
+        onSelectPattern={onPatternSelect}
+        onAddNew={handleAddNewPattern}
+      />
+
+      {/* Phase Conversation Modal */}
+      {selectedPattern && (
+        <TransmutationPhaseModal
+          open={showPhaseModal}
+          onClose={() => setShowPhaseModal(false)}
+          phase={activePhase}
+          patternName={selectedPattern.pattern_name}
+          patternContext={transmutationData.shadow || selectedPattern.pattern_name}
+          existingData={transmutationData}
+          onPhaseComplete={activePhase === 'white' ? handleWhitePhaseComplete : handleGoldPhaseComplete}
         />
       )}
+
+      {/* White Phase Win Card */}
+      <WhitePhaseWinCard
+        open={showWhiteWinCard}
+        patternName={selectedPattern?.pattern_name || ""}
+        shiftMoment={pendingWhiteData.shift_moment || ""}
+        lesson={pendingWhiteData.lesson_learned || ""}
+        protectivePurpose={pendingWhiteData.protective_purpose}
+        onConfirm={handleConfirmWhite}
+        onNotNow={() => setShowWhiteWinCard(false)}
+      />
 
       {/* Transmutation Celebration */}
       {showCelebration && selectedPattern && (
@@ -265,6 +370,7 @@ export const BecomingTransmutation = ({
           open={showCelebration}
           patternName={selectedPattern.pattern_name}
           goldInsight={transmutationData.gold_insight || ""}
+          goldenSummary={transmutationData.golden_summary || ""}
           onSaveGold={handleCelebrationSaveGold}
           onViewLifetime={handleCelebrationViewLifetime}
           onClose={() => setShowCelebration(false)}
