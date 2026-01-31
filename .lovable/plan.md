@@ -1,323 +1,524 @@
 
 
-# Becoming Path: Inner Self Console + Pattern Discovery System
+# Transmutation Map Execution + Lifetime Loop System
 
 ## Overview
 
-This plan implements a complete pattern discovery system for the Becoming Path that mirrors the "project creation" first-win flow in the Creating Path. The key difference: instead of discovering a project, users discover a **life event or inner pattern**, making their internal experience visible and transformable.
+This plan implements the complete Transmutation Map flow with mentor-guided phases (White → Gold), Golden Nugget generation, Lifetime Map reflection, and a repeatable loop system. The goal: "I can transform what happened to me into meaning, and meaning becomes my unique power."
 
 ---
 
 ## Current State Analysis
 
-The codebase already has:
-
-| Existing Component | Status |
-|-------------------|--------|
-| `InnerSelfCouncil.tsx` | Has pattern detection, but needs PDR-specific entry flow |
-| `inner-self-council` edge function | Has pattern detection logic |
-| `useInnerPatterns.tsx` hook | Supports pattern CRUD |
-| `PatternDiscoveryCard.tsx` | Shows pattern confirmation modal |
-| `PatternCelebration.tsx` | Shows celebration on pattern creation |
-| `BecomingPath.tsx` | 4-tab navigation (Becoming, Pattern Map, Transmutation, Lifetime) |
-| `useLifetimeEvents.tsx` | Supports lifetime event CRUD |
+| Component | Status |
+|-----------|--------|
+| `BecomingTransmutation.tsx` | Has basic node-clicking, manual save only |
+| `TransmutationMapCanvas.tsx` | 3-phase visual structure exists |
+| `TransmutationNodeEditModal.tsx` | Manual text entry, no mentor integration |
+| Phoenix/Stoic mentors | Prompts exist but not connected to transmutation flow |
+| `TransmutationCelebration.tsx` | Gold celebration exists, needs enhancement |
+| Lifetime events | `syncGoldOutcome()` exists but no Golden Summary |
+| Pattern queue | Does not exist |
 
 **Gap Analysis:**
-1. No WhatsApp-style notification to trigger Inner Self Console after project creation
-2. Inner Self Council opening message not PDR-compliant (Life Event First principle)
-3. No mandatory redirect to Inner Clarity Mentor after Council
-4. No auto-population of Pattern Map, Transmutation Map, and Lifetime Map after pattern creation
-5. No age/time-period question after pattern confirmation
+1. White/Gold phases unlock manually (no phase gating)
+2. Clicking nodes opens text input, not mentor conversations
+3. No unified conversation per phase (user clicks each node separately)
+4. No Phoenix mentor for White phase, no Stoic for Gold
+5. No win card confirmation flow for White phase completion
+6. No Golden Nugget Summary generation
+7. No queue system showing waiting patterns/events
+8. No mentor-specific CTAs (generic "Talk to Transmutation Team")
 
 ---
 
 ## Implementation Plan
 
-### Step 1: Create "Inner Self Console Ready" Notification
+### Step 1: Update TransmutationMapCanvas with Phase Locking
 
-When a user creates their first project in the Creating Path, trigger a notification that invites them to the Inner Self Console.
+**File:** `src/components/transmutation-map/TransmutationMapCanvas.tsx`
 
-**File:** `src/hooks/useInnerSelfNotification.tsx` (NEW)
+Add phase locking logic:
+- **Black Phase**: Always visible and filled (from pattern creation)
+- **White Phase**: Visible and clickable
+- **Gold Phase**: Locked (grayed + lock icon) until White is completed
 
 ```typescript
-// Hook to detect first project creation and create notification
-export function useInnerSelfNotification() {
-  // When first project is created:
-  // 1. Insert into mentor_whispers with type 'inner_self_console_unlock'
-  // 2. Message: "Now that we know what you're building, let's look at what's happening inside you."
+interface TransmutationMapCanvasProps {
+  // ... existing
+  isWhiteComplete: boolean; // New: derived from data
+}
+
+// In NODE_DEFINITIONS, add isLocked logic:
+const getNodeStatus = (nodeId: string, phase: string, isWhiteComplete: boolean) => {
+  if (phase === 'gold' && !isWhiteComplete) {
+    return 'locked';
+  }
+  // ... etc
+};
+```
+
+**Visual updates:**
+- Locked nodes: Gray fill, opacity 0.5, lock icon overlay
+- Clickable locked node shows toast: "Complete the White phase first"
+
+---
+
+### Step 2: Create Phase Conversation Modal
+
+**File:** `src/components/transmutation-map/TransmutationPhaseModal.tsx` (NEW)
+
+A modal that opens when user clicks any node in a phase. Instead of individual node editing, this starts a **unified conversation** with the phase mentor.
+
+```typescript
+interface TransmutationPhaseModalProps {
+  open: boolean;
+  onClose: () => void;
+  phase: 'white' | 'gold';
+  patternName: string;
+  patternContext: string; // From Black phase shadow
+  existingData: TransmutationData;
+  onPhaseComplete: (extractedData: Partial<TransmutationData>) => void;
 }
 ```
 
-**Trigger Location:** `src/pages/Chat.tsx` - After `completeFirstWin()` is called
-
-**Notification Display:** Modify `FutureSelfDashboardCard.tsx` or create dedicated `InnerSelfConsoleNotification.tsx` component that shows the invite message.
-
----
-
-### Step 2: Update Inner Self Council Introduction Message
-
-**File:** `src/pages/InnerSelfCouncil.tsx`
-
-Modify the introduction card (lines 289-323) to use PDR-compliant copy:
-
-**Current:**
-> "Now that we know what you are building... let's work on what is happening inside you."
-
-**New (from PDR):**
-> "Now that we know what you're building, let's look at what's happening inside you.
-> 
-> This is a safe space. You can share as much or as little as you want.
-> 
-> Let's start with something real. Not dramatic. Just meaningful.
-> 
-> **Tell us about a life event that challenged you or changed you.**"
-
-**Update placeholder examples** to match PDR:
-- "I moved to another country and felt lost"
-- "I broke my leg and had to stop everything"
-- "I ended a long relationship"
-- "I failed a business"
-- "I lost someone important"
-- "I left my comfort zone for the first time"
+**UI Structure:**
+- Header: Phase name + pattern name
+- Chat interface (similar to Council meeting)
+- Mentor avatar + messages
+- User input field
+- Bottom: "I'm ready to lock this in" button (appears after mentor signals readiness)
 
 ---
 
-### Step 3: Update Inner Self Council Edge Function for PDR Flow
-
-**File:** `supabase/functions/inner-self-council/index.ts`
-
-**Key changes:**
-
-1. **Update system prompt** to prioritize Life Event discovery:
-   - First ask about the life event itself (what happened)
-   - Then explore emotional impact
-   - Then look for mental loops or protective behaviors
-   - Only then suggest pattern naming
-
-2. **Add 1:1 Mentor Redirect Logic:**
-   After 2-3 gentle clarifying questions, suggest redirect to Inner Clarity Mentor:
-   ```
-   "This feels like something we can understand more clearly together.
-   Would you like to explore this one-on-one?"
-   ```
-
-3. **Pattern Detection Enhancement:**
-   - Detect when 2-3 of these are present: life event context, emotional impact, mental loop, protective behavior, consequence
-   - If no clear pattern emerges after 4-5 exchanges, use the life event itself as the pattern name (fallback rule)
-
-4. **Return structured data for mentor handoff:**
-   ```json
-   {
-     "suggestMentorRedirect": true,
-     "redirectMentor": "inner_clarity_mentor",
-     "redirectContext": "life_event_exploration"
-   }
-   ```
-
----
-
-### Step 4: Create Mentor Redirect Card Component
-
-**File:** `src/components/MentorRedirectCard.tsx` (NEW)
-
-A styled card that appears when the Council suggests 1:1 exploration:
-
-```typescript
-interface MentorRedirectCardProps {
-  mentorType: string; // Always "inner_clarity_mentor" for this flow
-  context: string;
-  onContinue: () => void;
-  onNotNow: () => void;
-}
-```
-
-**UI:**
-- Message: "This feels like something we can understand more clearly together. Would you like to explore this one-on-one?"
-- Buttons: [✅ Continue] [Not now]
-
----
-
-### Step 5: Update Inner Clarity Mentor Prompt for PDR Flow
+### Step 3: Create Phoenix Mentor Transmutation Mode
 
 **File:** `supabase/functions/chat-mentor/index.ts`
 
-Add a special mode when Inner Clarity Mentor receives a handoff from Inner Self Council:
+Add a **Transmutation Mode** to Phoenix mentor prompt that activates when context includes `transmutationPhase: 'white'`:
 
-**Opening message (when handoff context is `life_event_exploration`):**
-> "I've read what you shared with the Council. You trusted us with something meaningful.
->
-> Let's understand this together."
-
-**Pattern Naming Rules:**
-1. Continue conversation until 2-3 of these are clearly present:
-   - Life event context
-   - Emotional impact
-   - Mental loop or repeated thought
-   - Protective behavior
-   - Consequence in life or relationships
-
-2. When ready, propose pattern name:
-   > "Based on what you shared, this feels like it could be called:
-   >
-   > '[Pattern or Life Event Name]'
-   >
-   > Does this feel right?"
-
-3. **Fallback rule:** If no clear inner pattern emerges after several interactions, use the life event itself as the pattern name.
-
-**Add to mentorPrompts for `inner_clarity_mentor`:**
 ```typescript
-=== PATTERN NAMING MODE (when redirected from Inner Self Council) ===
-When you receive context about a life event exploration:
-1. Acknowledge what was shared with the Council
-2. Ask focused questions one at a time
-3. Look for: life event context, emotional impact, mental loop, protective behavior, consequences
-4. When 2-3 are present, propose a pattern name
-5. FALLBACK: If no clear pattern after 4-5 exchanges, use the life event as the name
-6. Include [PATTERN_READY] marker when proposing a name
+=== WHITE PHASE TRANSMUTATION MODE ===
+When you receive transmutation context with phase 'white':
+1. You are guiding the user through the White Phase (Shift → Rebirth)
+2. The Black phase (shadow/pain) has already been captured
+3. Your job: Extract Shift Moment, Protective Purpose, and Lesson Learned
+
+CONVERSATION APPROACH:
+- Start by acknowledging the shadow they've already named
+- Lead them through perspective shift naturally
+- Cover all 3 topics in ONE conversation (don't force 3 separate answers)
+- Minimum required: 2 out of 3 (Shift + Lesson is enough)
+
+OPENING MESSAGE:
+"You've named what hurt. That takes courage.
+
+Now let's find what this experience gave you.
+
+Tell me — looking back now, what shifted? Was there a moment, a conversation, a realization that changed how you saw this?"
+
+DETECTION LOGIC:
+When you detect 2+ of these are clearly expressed:
+- A shift moment (perspective change, turning point)
+- A protective purpose (what this pattern was trying to protect)
+- A lesson learned (what they now understand)
+
+Propose completion:
+"I think we have your shift and your lesson clearly now.
+
+**The Shift:** [summarize]
+**The Lesson:** [summarize]
+
+Do you want me to lock this in?"
+
+Include marker: [WHITE_PHASE_READY]
+
+EXTRACTION (include in response when ready):
+{
+  "shift_moment": "...",
+  "protective_purpose": "...",
+  "lesson_learned": "..."
+}
 ===
 ```
 
 ---
 
-### Step 6: Add Age/Time Period Question After Pattern Confirmation
+### Step 4: Create Stoic Mentor Transmutation Mode
 
-**File:** `src/pages/InnerSelfCouncil.tsx` and `src/pages/Chat.tsx`
+**File:** `supabase/functions/chat-mentor/index.ts`
 
-After pattern is confirmed, show a light question to seed the Lifetime Map:
+Add **Gold Phase Transmutation Mode** to Stoic mentor:
 
 ```typescript
-// New component
-<PatternTimeQuestion
-  patternName={patternName}
-  onSelect={(timePeriod) => createLifetimeEvent(patternName, timePeriod)}
-  onSkip={() => createLifetimeEvent(patternName, 'current')} // Default fallback
-/>
+=== GOLD PHASE TRANSMUTATION MODE ===
+When you receive transmutation context with phase 'gold':
+1. You are guiding the user through the Gold Phase (Integration → Power)
+2. White phase (shift, lesson) has been captured
+3. Your job: Extract Gain, New Belief, and Strength/Creation
+
+GOLD PHASE QUESTIONS (cover in one conversation):
+- What did you gain from this experience?
+- What new belief did you choose?
+- What strength did you discover, or what did you create because of this?
+
+IMPORTANT: "Creation" matters. This is not just learning — it's turning meaning into power, identity, and results.
+
+CONVERSATION APPROACH:
+- Start grounded: acknowledge the shift they've already had
+- Lead them to name their gains clearly
+- Keep it clean, not emotional
+- End with action
+
+OPENING MESSAGE:
+"The shift happened. The lesson is clear.
+
+Now let's turn this into something you carry forward.
+
+What did you actually gain from going through this? What's different about you now?"
+
+DETECTION LOGIC:
+When you detect clarity on at least 2 of these:
+- What they gained
+- New belief they chose
+- Strength discovered or something they created
+
+Propose completion:
+"This is your gold.
+
+**What you gained:** [summarize]
+**Your new belief:** [summarize]
+**What you built from this:** [summarize]
+
+Do you want me to finalize the transmutation?"
+
+Include marker: [GOLD_PHASE_READY]
+
+EXTRACTION:
+{
+  "gold_insight": "What you gained + new belief",
+  "letter_to_self": "Auto-generated from conversation or ask: What would you tell your younger self?",
+  "brave_step": "One action they can take this week"
+}
+===
 ```
-
-**Question UI:**
-> "When did this pattern first show up in your life?"
-> - Childhood
-> - Teen years
-> - Early adulthood (20s)
-> - Adulthood (30s+)
-> - Current life
-
-This is optional - user can skip, and system defaults to a broad category.
 
 ---
 
-### Step 7: Enhance Pattern Creation to Auto-Populate Maps
+### Step 5: Update Transmutation Node Fields for PDR Alignment
 
-**File:** `src/hooks/useInnerPatterns.tsx`
+**File:** `src/hooks/useInnerPatterns.tsx` and related
 
-Modify `createPattern` function to also:
+Update `TransmutationData` interface to match PDR fields:
 
-1. **Auto-populate Pattern Map nodes** from conversation data:
-   ```typescript
-   life_events: {
-     trigger_event: extractedTrigger,
-     old_story: extractedStory,
-     mental_loop: extractedLoop,
-     cost: extractedCost,
-     protective_role: extractedProtection,
-     life_event: patternName, // The life event that started it
-   }
-   ```
+```typescript
+export interface TransmutationData {
+  // Black Phase
+  shadow?: string;
+  dark_night?: string; // Optional
+  
+  // White Phase (PDR alignment)
+  shift_moment?: string;      // Was shift, now "The Shift"
+  protective_purpose?: string; // "Protective Role" 
+  lesson_learned?: string;    // "The Lesson"
+  
+  // Gold Phase (PDR alignment)
+  gold_insight?: string;      // "What I Gained" + "New Belief Chosen"
+  letter_to_self?: string;    // "To Younger Me"
+  brave_step?: string;        // "Strength/Creation" + action
+  
+  // Metadata
+  phase_completed?: 'black' | 'white' | 'gold';
+  white_completed_at?: string;
+  gold_completed_at?: string;
+  golden_summary?: string; // NEW: The full journey summary
+}
+```
 
-2. **Auto-populate Transmutation Map** Black Phase:
-   ```typescript
-   transmutation_data: {
-     shadow: patternDescription || patternName,
-     // White and Gold phases remain empty
-   }
-   ```
+---
+
+### Step 6: Create White Phase Completion Win Card
+
+**File:** `src/components/transmutation-map/WhitePhaseWinCard.tsx` (NEW)
+
+When Phoenix confirms White phase, show a win celebration:
+
+```typescript
+interface WhitePhaseWinCardProps {
+  open: boolean;
+  patternName: string;
+  shiftMoment: string;
+  lesson: string;
+  onConfirm: () => void;
+  onNotNow: () => void;
+}
+```
+
+**UI:**
+- Soft celebration (not confetti yet — that's for Gold)
+- "The Shift Happened" title
+- Display shift + lesson
+- "Confirm White Transmutation" button
+- "Not now" option
+
+On confirm:
+- Save White phase data
+- Unlock Gold phase
+- Show toast: "Gold phase is now available"
+
+---
+
+### Step 7: Create Golden Nugget Summary Generator
+
+**File:** `src/lib/goldenSummaryGenerator.ts` (NEW)
+
+When Gold phase completes, generate a summary connecting the full arc:
+
+```typescript
+export function generateGoldenSummary(data: TransmutationData): string {
+  const template = `I went through ${data.shadow}.
+It challenged me because ${data.lesson_learned || 'it pushed me beyond my comfort zone'}.
+Then something shifted: ${data.shift_moment}.
+I learned ${data.lesson_learned}.
+I became ${data.gold_insight?.split('.')[0] || 'someone stronger'}.
+${data.brave_step ? `I'm now taking action: ${data.brave_step}.` : ''}`;
+
+  return template.trim();
+}
+```
+
+This summary:
+- Gets saved to `transmutation_data.golden_summary`
+- Shows in Gold celebration
+- Gets synced to Lifetime Map as `gold_outcome`
+
+---
+
+### Step 8: Update Gold Phase Celebration
+
+**File:** `src/components/transmutation-map/TransmutationCelebration.tsx`
+
+Enhance to show the full Golden Summary:
+
+```typescript
+interface TransmutationCelebrationProps {
+  open: boolean;
+  patternName: string;
+  goldenSummary: string; // NEW: Full journey summary
+  goldInsight: string;
+  onSaveGold: () => void;
+  onViewLifetime: () => void;
+  onClose: () => void;
+}
+```
+
+**New UI section:**
+```
+Your Journey Summary:
+"I went through [shadow]... I became [gold]... I created [result]."
+```
+
+Big confetti celebration as before.
+
+---
+
+### Step 9: Create Pattern/Event Queue System
+
+**File:** `src/components/transmutation-map/TransmutationQueue.tsx` (NEW)
+
+Shows patterns/events waiting to be transmuted:
+
+```typescript
+interface TransmutationQueueProps {
+  activePatternId: string | null;
+  patterns: InnerPattern[];
+  lifetimeEvents: LifetimeEvent[];
+  onSelectPattern: (id: string) => void;
+  onSelectEvent: (event: LifetimeEvent) => void;
+}
+```
+
+**Logic:**
+- Show current active transmutation prominently
+- Below: "Waiting to transmute" section with:
+  - Patterns with status !== 'transformed'
+  - Lifetime events with `is_transmuted === false`
+- User can click to switch active item
+
+**Display in BecomingTransmutation.tsx** below the canvas.
+
+---
+
+### Step 10: Update Lifetime Map with Neutral → Gold Transition
+
+**File:** `src/components/lifetime-map/LifetimeEventCard.tsx`
+
+Already has visual states:
+- Neutral (no pattern link)
+- Pattern-linked (indigo)
+- Transmuted/Gold (amber)
+
+**Add:**
+- Queue indicator for events waiting in transmutation queue
+- "Ready to transmute" badge for neutral events
 
 **File:** `src/hooks/useLifetimeEvents.tsx`
 
-After pattern creation, automatically create a Lifetime Event:
+Add function to queue event for transmutation:
 
 ```typescript
-export const createEventFromPattern = async (
-  patternId: string,
-  patternName: string,
-  timePeriod: TimePeriod = 'current'
-) => {
-  return createEvent({
-    time_period: timePeriod,
-    event_label: patternName,
-    pattern_id: patternId,
-    pattern_name: patternName,
-  });
+const queueForTransmutation = async (eventId: string): Promise<boolean> => {
+  // Creates a pattern from this event if one doesn't exist
+  // Returns true if ready for transmutation
 };
 ```
 
 ---
 
-### Step 8: Update Pattern Celebration to Show Unlock Message
+### Step 11: Update CTAs to Mentor-Specific Actions
 
-**File:** `src/components/pattern-map/PatternCelebration.tsx`
+**File:** `src/components/creation-lab/BecomingTransmutation.tsx`
 
-Enhance to communicate that maps are now unlocked:
+Replace generic "Talk to Transmutation Team" with:
 
-**Current:** "Your Pattern Map is now created."
-
-**New:**
-> "This is powerful.
->
-> Awareness is the first shift.
->
-> Your Pattern Map is now created.
-> Your Transmutation Map is unlocked.
-> Your Lifetime Map has its first entry.
->
-> [Open Pattern Map]"
-
----
-
-### Step 9: Ensure Inner Clarity Mentor is Mandatory/Locked
-
-**File:** `src/pages/OnboardingStep4.tsx`
-
-Verify that `inner_clarity_mentor` is in `MANDATORY_MENTORS` array (already done - line 12).
-
-**File:** `src/pages/Council.tsx`
-
-Ensure Inner Clarity Mentor cannot be deselected:
 ```typescript
-const LOCKED_MENTORS = ["strategist_mentor", "creative_visionary", "inner_clarity_mentor"];
+// For White Phase
+<Button onClick={() => openPhaseConversation('white')}>
+  <Flame className="w-4 h-4 mr-2" />
+  Begin White Phase with Phoenix
+</Button>
+
+// For Gold Phase (only when White complete)
+<Button onClick={() => openPhaseConversation('gold')}>
+  <Shield className="w-4 h-4 mr-2" />
+  Begin Gold Phase with Stoic
+</Button>
+
+// After Gold complete
+<Button onClick={() => navigate('/inner-self-council')}>
+  Add New Pattern
+</Button>
 ```
 
 ---
 
-### Step 10: Create Pattern Extraction Interface
+### Step 12: Add Transmutation Notification System
 
-**File:** `src/types/pattern.ts` (NEW)
+**File:** `src/hooks/useTransmutationNotifications.ts` (NEW)
 
 ```typescript
-export interface ExtractedPatternData {
-  patternName: string;
-  patternType: PatternType;
-  lifeEvent: string;
-  triggerContext?: string;
-  emotionalImpact?: string;
-  mentalLoop?: string;
-  protectiveBehavior?: string;
-  consequence?: string;
-  primaryEmotion?: string;
-  relatedEmotions?: string[];
-  bodySensation?: string;
-  timePeriod?: TimePeriod;
+// After pattern creation:
+export async function triggerTransmutationReadyNotification(patternId: string) {
+  // Create notification: "Transmutation is ready. Transform pain into gold."
+  // Click opens Transmutation Map with this pattern
 }
 
-export type PatternType = 
-  | 'limiting_belief'
-  | 'protection_mechanism'
-  | 'relational_pattern'
-  | 'self_sabotage'
-  | 'emotional_block'
-  | 'core_wound'
-  | 'life_event'; // New type for when no clear pattern emerges
+// After Gold completion:
+export async function triggerGoldCompleteNotification(patternId: string) {
+  // Create notification: "Your gold is now part of your story."
+  // Click opens Lifetime Map on the Golden Nugget
+}
+```
+
+Use existing `council_notifications` table with new types:
+- `transmutation_ready`
+- `gold_complete`
+
+---
+
+### Step 13: Update BecomingTransmutation Main Component
+
+**File:** `src/components/creation-lab/BecomingTransmutation.tsx`
+
+Major refactor to support:
+1. Phase gating (Gold locked until White done)
+2. Phase conversation modal
+3. Win card flow
+4. Queue display
+5. Mentor-specific CTAs
+
+```typescript
+const BecomingTransmutation = ({...}) => {
+  const [activePhase, setActivePhase] = useState<'white' | 'gold' | null>(null);
+  const [showWhiteWinCard, setShowWhiteWinCard] = useState(false);
+  const [showPhaseModal, setShowPhaseModal] = useState(false);
+  
+  // Derived state
+  const isWhiteComplete = !!(
+    transmutationData.shift_moment && 
+    transmutationData.lesson_learned
+  ); // 2 of 3 minimum
+  
+  const isGoldComplete = !!(
+    transmutationData.gold_insight && 
+    transmutationData.letter_to_self
+  );
+  
+  const handleNodeClick = (nodeId: string) => {
+    const nodeDef = NODE_DEFINITIONS.find(n => n.id === nodeId);
+    
+    if (nodeDef?.phase === 'gold' && !isWhiteComplete) {
+      toast.info("Complete the White phase first");
+      return;
+    }
+    
+    // Open unified phase conversation
+    if (nodeDef?.phase === 'white') {
+      setActivePhase('white');
+      setShowPhaseModal(true);
+    } else if (nodeDef?.phase === 'gold') {
+      setActivePhase('gold');
+      setShowPhaseModal(true);
+    }
+  };
+  
+  // ... rest of component
+};
+```
+
+---
+
+### Step 14: Create Backend Edge Function for Phase Conversations
+
+**File:** `supabase/functions/transmutation-conversation/index.ts` (NEW)
+
+Specialized edge function for transmutation phase conversations:
+
+```typescript
+// Receives:
+// - phase: 'white' | 'gold'
+// - patternContext: shadow, pattern name, etc.
+// - existingData: current transmutation_data
+// - messages: conversation history
+
+// Returns:
+// - response: mentor message
+// - isPhaseReady: boolean
+// - extractedData: Partial<TransmutationData>
+
+// Uses Phoenix prompt for white, Stoic for gold
+// Includes phase-specific system prompts
+```
+
+---
+
+### Step 15: Add "Add New Event" Button to Lifetime Map
+
+**File:** `src/components/creation-lab/BecomingLifetime.tsx`
+
+Add bottom CTA:
+
+```typescript
+<div className="flex gap-3">
+  <Button onClick={() => setShowEditModal(true)}>
+    <Plus className="w-4 h-4 mr-2" />
+    Add New Event
+  </Button>
+  <Button variant="outline" onClick={() => navigate('/inner-self-council')}>
+    <MessageCircle className="w-4 h-4 mr-2" />
+    Explore with Inner Self Console
+  </Button>
+</div>
 ```
 
 ---
@@ -326,98 +527,119 @@ export type PatternType =
 
 | File | Action | Purpose |
 |------|--------|---------|
-| `src/hooks/useInnerSelfNotification.tsx` | CREATE | Trigger notification after first project creation |
-| `src/components/InnerSelfConsoleNotification.tsx` | CREATE | WhatsApp-style notification component |
-| `src/pages/InnerSelfCouncil.tsx` | MODIFY | Update intro copy, add time period question |
-| `supabase/functions/inner-self-council/index.ts` | MODIFY | Add Life Event First logic, mentor redirect suggestion |
-| `src/components/MentorRedirectCard.tsx` | CREATE | "Continue 1:1?" card |
-| `supabase/functions/chat-mentor/index.ts` | MODIFY | Add pattern naming mode for Inner Clarity Mentor |
-| `src/hooks/useInnerPatterns.tsx` | MODIFY | Auto-populate maps on pattern creation |
-| `src/hooks/useLifetimeEvents.tsx` | MODIFY | Add `createEventFromPattern` function |
-| `src/components/pattern-map/PatternCelebration.tsx` | MODIFY | Show all unlocks message |
-| `src/pages/OnboardingStep4.tsx` | VERIFY | Ensure inner_clarity_mentor is mandatory |
-| `src/pages/Council.tsx` | MODIFY | Add inner_clarity_mentor to locked mentors |
-| `src/components/PatternTimeQuestion.tsx` | CREATE | Age/time period question component |
-| `src/types/pattern.ts` | CREATE | Pattern extraction interface |
+| `TransmutationMapCanvas.tsx` | MODIFY | Add phase locking, lock icons |
+| `TransmutationPhaseModal.tsx` | CREATE | Unified conversation modal |
+| `WhitePhaseWinCard.tsx` | CREATE | White phase completion card |
+| `TransmutationQueue.tsx` | CREATE | Queue of patterns/events to transmute |
+| `TransmutationCelebration.tsx` | MODIFY | Add Golden Summary display |
+| `chat-mentor/index.ts` | MODIFY | Add Phoenix/Stoic transmutation modes |
+| `transmutation-conversation/index.ts` | CREATE | Phase conversation edge function |
+| `goldenSummaryGenerator.ts` | CREATE | Generate journey summary |
+| `useTransmutationNotifications.ts` | CREATE | Notification triggers |
+| `BecomingTransmutation.tsx` | MODIFY | Phase gating, modal, queue, CTAs |
+| `BecomingLifetime.tsx` | MODIFY | Add new event CTA |
+| `useInnerPatterns.tsx` | MODIFY | Update TransmutationData interface |
 
 ---
 
 ## User Flow Diagram
 
 ```
-User creates first project in Creating Path
+User has pattern with Black phase filled
               ↓
-    [Notification appears in Becoming Path]
-    "Now that we know what you're building..."
+Opens Transmutation Map
               ↓
-    User opens Inner Self Console
+    [Black Phase visible and filled]
+    [White Phase clickable]
+    [Gold Phase locked 🔒]
               ↓
-    [Life Event First Introduction]
-    "Tell us about a life event that challenged you"
+User clicks any White node (Shift/Protective/Lesson)
               ↓
-    Inner Self Council asks 1-3 clarifying questions
-    (gentle, not interrogation)
+    [Phase Conversation Modal opens]
+    Phoenix Mentor begins unified conversation
               ↓
-    Council suggests 1:1 exploration
-    "Would you like to explore this one-on-one?"
+Phoenix covers all 3 topics naturally in ONE chat
+    (Shift, Protective Purpose, Lesson)
               ↓
-    [Redirect to Inner Clarity Mentor]
-    Mentor acknowledges Council conversation
+When 2/3 detected, Phoenix proposes:
+    "Do you want me to lock this in?"
               ↓
-    Mentor continues until 2-3 elements present:
-    - Life event context
-    - Emotional impact
-    - Mental loop
-    - Protective behavior
-    - Consequence
+User confirms → [WHITE_PHASE_READY]
               ↓
-    Mentor proposes pattern name
-    (or life event name as fallback)
+    [White Win Card appears]
+    Shows Shift + Lesson extracted
+    [Confirm White Transmutation] [Not now]
               ↓
-    [Pattern Confirmation Card]
-    "Does this feel right?"
-    [✅ Yes, create it] [Rename] [Not now]
+User confirms → White saved, Gold unlocks
               ↓
-    User confirms → [First Win Celebration]
+    [Gold Phase now clickable]
               ↓
-    [Time Period Question]
-    "When did this first show up?"
-    - Childhood / Teen / 20s / 30s+ / Current
+User clicks any Gold node
               ↓
-    System auto-creates:
-    ├── Pattern Map (center + 2-3 nodes populated)
-    ├── Transmutation Map (Black phase populated)
-    └── Lifetime Map (first entry created)
+    [Phase Conversation Modal opens]
+    Stoic Mentor begins conversation
               ↓
-    [Celebration Complete]
-    User can explore any of the 3 maps
+Stoic covers: Gain, New Belief, Strength/Creation
+              ↓
+When ready, Stoic proposes:
+    "Do you want me to finalize the transmutation?"
+              ↓
+User confirms → [GOLD_PHASE_READY]
+              ↓
+    [Golden Summary generated]
+    [Big Celebration with confetti]
+    Shows full journey summary
+              ↓
+    [Save Gold Insight] [View in Lifetime Map]
+              ↓
+Lifetime Event synced with gold_outcome
+Pattern status → 'transformed'
+Notification sent: "Your gold is now part of your story."
+              ↓
+User can add more events/patterns and repeat
+```
+
+---
+
+## Transmutation Queue Flow
+
+```
+Transmutation Map View
+┌─────────────────────────────────────┐
+│  Active: "Fear of Abandonment"      │
+│  [Transmutation Canvas]             │
+│                                     │
+│  ─────────────────────────────────  │
+│                                     │
+│  Waiting to Transmute:              │
+│  ├── "Failure at first startup" ○   │
+│  ├── "Parents divorced" ○           │
+│  └── "Moved abroad alone" ○         │
+│                                     │
+│  [+ Add New Pattern]                │
+└─────────────────────────────────────┘
+
+○ = neutral (not yet transmuted)
+✨ = gold (transmuted)
 ```
 
 ---
 
 ## Success Criteria
 
-1. Notification appears after first project creation
-2. Inner Self Council uses "Life Event First" introduction
-3. Council asks 1-3 gentle clarifying questions (no interrogation)
-4. Council suggests 1:1 redirect to Inner Clarity Mentor
-5. Inner Clarity Mentor acknowledges Council conversation
-6. Mentor continues until pattern elements are present
-7. Pattern name is proposed (or life event as fallback)
-8. Confirmation creates Pattern Map, Transmutation Map, and Lifetime Map entries
-9. Celebration communicates all three maps are unlocked
-10. Time period question seeds Lifetime Map correctly
-11. Inner Clarity Mentor is mandatory and cannot be deselected
-
----
-
-## PDR Philosophy Implementation
-
-The system ensures users feel:
-- **Safe** - No pressure, "as much or as little as you want"
-- **Human** - Gentle questions, not interrogation
-- **Non-invasive** - No trauma mining, clarity not therapy
-- **Guided but not forced** - "Not now" is always an option
-
-The core message: **Nothing you lived was meaningless. Your struggles contain learning, strength, and value.**
+1. Black phase shows pre-filled from pattern creation
+2. Gold phase is locked until White phase has 2/3 fields
+3. Clicking any White node opens unified Phoenix conversation
+4. Phoenix naturally covers Shift, Protective Role, Lesson in ONE chat
+5. White completion shows win card → user confirms → Gold unlocks
+6. Clicking any Gold node opens unified Stoic conversation
+7. Stoic covers Gain, New Belief, Strength/Creation in ONE chat
+8. Gold completion generates Golden Summary
+9. Big celebration shows full journey summary
+10. Golden Nugget syncs to Lifetime Map
+11. Lifetime shows neutral → gold visual transition
+12. Queue shows other patterns/events waiting to transmute
+13. Mentor-specific CTAs replace generic "Talk to team"
+14. Notifications fire after pattern creation and gold completion
+15. System prioritizes momentum over perfection
 
