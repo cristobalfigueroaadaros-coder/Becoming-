@@ -1,5 +1,8 @@
 import { motion } from "framer-motion";
+import { Lock } from "lucide-react";
 import { TransmutationNode } from "./TransmutationNode";
+import { isWhitePhaseComplete } from "@/lib/goldenSummaryGenerator";
+import { toast } from "sonner";
 
 export interface TransmutationData {
   shadow?: string;
@@ -11,13 +14,16 @@ export interface TransmutationData {
   letter_to_self?: string;
   brave_step?: string;
   phase_completed?: 'black' | 'white' | 'gold';
+  white_completed_at?: string;
+  gold_completed_at?: string;
+  golden_summary?: string;
   completed_at?: string;
 }
 
 interface TransmutationMapCanvasProps {
   patternName: string;
   transmutationData: TransmutationData;
-  onNodeClick: (nodeId: string) => void;
+  onNodeClick: (nodeId: string, phase: 'black' | 'white' | 'gold') => void;
   isCompleted?: boolean;
 }
 
@@ -28,12 +34,12 @@ const NODE_DEFINITIONS = [
   
   // White Phase
   { id: 'shift_moment', label: 'The Shift', phase: 'white' as const, required: true, row: 0, col: 1 },
-  { id: 'protective_purpose', label: 'Protective Role', phase: 'white' as const, required: true, row: 1, col: 1 },
+  { id: 'protective_purpose', label: 'Protective Role', phase: 'white' as const, required: false, row: 1, col: 1 },
   { id: 'lesson_learned', label: 'The Lesson', phase: 'white' as const, required: true, row: 2, col: 1 },
   
   // Gold Phase
   { id: 'gold_insight', label: 'The Gold', phase: 'gold' as const, required: true, row: 0, col: 2 },
-  { id: 'letter_to_self', label: 'To Younger Me', phase: 'gold' as const, required: true, row: 1, col: 2 },
+  { id: 'letter_to_self', label: 'To Younger Me', phase: 'gold' as const, required: false, row: 1, col: 2 },
   { id: 'brave_step', label: 'Brave Step', phase: 'gold' as const, required: false, row: 2, col: 2 },
 ];
 
@@ -49,6 +55,24 @@ export const TransmutationMapCanvas = ({
   onNodeClick,
   isCompleted = false,
 }: TransmutationMapCanvasProps) => {
+  // Phase locking: Gold is locked until White is complete
+  const whiteComplete = isWhitePhaseComplete(transmutationData);
+
+  const handleNodeClick = (nodeId: string, phase: 'black' | 'white' | 'gold') => {
+    // Black phase nodes are view-only (auto-populated)
+    if (phase === 'black') {
+      toast.info("The shadow is already captured from your pattern");
+      return;
+    }
+    
+    // Gold phase is locked until White is complete
+    if (phase === 'gold' && !whiteComplete) {
+      toast.info("Complete the White phase first to unlock Gold");
+      return;
+    }
+    
+    onNodeClick(nodeId, phase);
+  };
   const width = 340;
   const height = 380;
   const nodeSize = 55;
@@ -246,21 +270,44 @@ export const TransmutationMapCanvas = ({
         {/* Nodes */}
         {NODE_DEFINITIONS.map((node, index) => {
           const pos = getNodePosition(node.row, node.col);
+          const isLocked = node.phase === 'gold' && !whiteComplete;
+          
           return (
-            <TransmutationNode
-              key={node.id}
-              id={node.id}
-              label={node.label}
-              content={getNodeContent(node.id)}
-              phase={node.phase}
-              x={pos.x}
-              y={pos.y}
-              size={nodeSize}
-              isCompleted={isCompleted}
-              isOptional={!node.required}
-              onClick={() => onNodeClick(node.id)}
-              delay={0.1 + index * 0.05}
-            />
+            <g key={node.id}>
+              <TransmutationNode
+                id={node.id}
+                label={node.label}
+                content={getNodeContent(node.id)}
+                phase={node.phase}
+                x={pos.x}
+                y={pos.y}
+                size={nodeSize}
+                isCompleted={isCompleted}
+                isOptional={!node.required}
+                isLocked={isLocked}
+                onClick={() => handleNodeClick(node.id, node.phase)}
+                delay={0.1 + index * 0.05}
+              />
+              {/* Lock overlay for Gold phase when locked */}
+              {isLocked && (
+                <g opacity={0.7}>
+                  <circle
+                    cx={pos.x}
+                    cy={pos.y}
+                    r={nodeSize / 2}
+                    fill="rgba(0,0,0,0.3)"
+                  />
+                  <foreignObject
+                    x={pos.x - 8}
+                    y={pos.y - 8}
+                    width={16}
+                    height={16}
+                  >
+                    <Lock className="w-4 h-4 text-amber-400" />
+                  </foreignObject>
+                </g>
+              )}
+            </g>
           );
         })}
       </svg>

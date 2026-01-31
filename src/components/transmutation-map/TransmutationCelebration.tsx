@@ -9,6 +9,7 @@ interface TransmutationCelebrationProps {
   open: boolean;
   patternName: string;
   goldInsight: string;
+  goldenSummary?: string;
   onSaveGold: () => void;
   onViewLifetime: () => void;
   onClose: () => void;
@@ -18,6 +19,7 @@ export const TransmutationCelebration = ({
   open,
   patternName,
   goldInsight,
+  goldenSummary,
   onSaveGold,
   onViewLifetime,
   onClose,
@@ -115,10 +117,19 @@ export const TransmutationCelebration = ({
                   initial={{ opacity: 0 }}
                   animate={{ opacity: 1 }}
                   transition={{ delay: 0.5 }}
-                  className="bg-gradient-to-r from-amber-500/5 to-amber-600/5 border border-amber-500/20 rounded-lg p-4"
+                  className="bg-gradient-to-r from-amber-500/5 to-amber-600/5 border border-amber-500/20 rounded-lg p-4 space-y-3"
                 >
-                  <p className="text-xs text-muted-foreground mb-2">Your Gold Insight</p>
-                  <p className="text-sm italic">"{goldInsight}"</p>
+                  <div>
+                    <p className="text-xs text-muted-foreground mb-1">Your Gold Insight</p>
+                    <p className="text-sm italic">"{goldInsight}"</p>
+                  </div>
+                  
+                  {goldenSummary && (
+                    <div className="pt-2 border-t border-amber-500/20">
+                      <p className="text-xs text-muted-foreground mb-1">Your Journey Summary</p>
+                      <p className="text-sm text-amber-100/90">{goldenSummary}</p>
+                    </div>
+                  )}
                 </motion.div>
 
                 {/* Message */}

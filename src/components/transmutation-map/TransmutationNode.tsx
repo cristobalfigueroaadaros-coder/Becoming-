@@ -12,6 +12,7 @@ interface TransmutationNodeProps {
   isCenter?: boolean;
   isCompleted?: boolean;
   isOptional?: boolean;
+  isLocked?: boolean;
   onClick: () => void;
   delay?: number;
 }
@@ -62,6 +63,7 @@ export const TransmutationNode = ({
   isCenter = false,
   isCompleted = false,
   isOptional = false,
+  isLocked = false,
   onClick,
   delay = 0,
 }: TransmutationNodeProps) => {
