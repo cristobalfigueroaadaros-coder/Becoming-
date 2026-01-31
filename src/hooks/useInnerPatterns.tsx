@@ -48,6 +48,19 @@ export interface PatternInput {
   primary_emotion?: string;
   related_emotions?: string[];
   body_sensation?: string;
+  // Auto-populate data from conversation
+  life_events?: {
+    trigger_event?: string;
+    old_story?: string;
+    mental_loop?: string;
+    cost?: string;
+    protective_role?: string;
+    life_event?: string;
+    life_event_age_category?: string;
+  };
+  transmutation_data?: {
+    shadow?: string;
+  };
 }
 
 export function useInnerPatterns() {
@@ -93,20 +106,33 @@ export function useInnerPatterns() {
         return null;
       }
 
+      // Build the insert data with optional life_events and transmutation_data
+      const insertData: Record<string, any> = {
+        user_id: user.id,
+        pattern_name: input.pattern_name,
+        pattern_description: input.pattern_description || null,
+        pattern_type: input.pattern_type || "limiting_belief",
+        source_council_meeting_id: input.source_council_meeting_id || null,
+        source_mentor: input.source_mentor || null,
+        trigger_context: input.trigger_context || null,
+        primary_emotion: input.primary_emotion || null,
+        related_emotions: input.related_emotions || null,
+        body_sensation: input.body_sensation || null,
+      };
+
+      // Auto-populate Pattern Map nodes if provided
+      if (input.life_events) {
+        insertData.life_events = input.life_events;
+      }
+
+      // Auto-populate Transmutation Map Black Phase if provided
+      if (input.transmutation_data) {
+        insertData.transmutation_data = input.transmutation_data;
+      }
+
       const { data, error: insertError } = await supabase
         .from("inner_patterns")
-        .insert({
-          user_id: user.id,
-          pattern_name: input.pattern_name,
-          pattern_description: input.pattern_description || null,
-          pattern_type: input.pattern_type || "limiting_belief",
-          source_council_meeting_id: input.source_council_meeting_id || null,
-          source_mentor: input.source_mentor || null,
-          trigger_context: input.trigger_context || null,
-          primary_emotion: input.primary_emotion || null,
-          related_emotions: input.related_emotions || null,
-          body_sensation: input.body_sensation || null,
-        })
+        .insert(insertData as any)
         .select()
         .single();
 

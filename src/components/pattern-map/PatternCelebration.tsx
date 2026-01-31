@@ -72,9 +72,13 @@ export const PatternCelebration = ({
                   This is powerful.
                 </p>
                 <p className="text-sm text-muted-foreground">
-                  Awareness is the first shift.<br />
-                  Your Pattern Map is now created.
+                  Awareness is the first shift.
                 </p>
+                <div className="text-sm text-muted-foreground space-y-1">
+                  <p>✨ Your Pattern Map is now created.</p>
+                  <p>🔥 Your Transmutation Map is unlocked.</p>
+                  <p>📍 Your Lifetime Map has its first entry.</p>
+                </div>
               </motion.div>
 
               {/* Visual element */}
