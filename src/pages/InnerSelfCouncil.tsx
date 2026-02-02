@@ -150,11 +150,9 @@ const InnerSelfCouncil = ({ embedded = false }: InnerSelfCouncilProps) => {
         setSuggestedNextQuestion(data.suggestedNextQuestion || null);
         setSuggestedMentor(data.suggestedMentor || null);
         
-        // Check for detected pattern
-        if (data.detectedPattern) {
-          setDetectedPattern(data.detectedPattern);
-          setShowPatternCard(true);
-        }
+        // Pattern detection is now delayed until after mentor redirect
+        // The inner_clarity_mentor will detect patterns during 1:1 exploration
+        // Pattern card will only show when user returns from mentor with extracted data
 
         toast.success("The Inner Self Council has responded.");
       }

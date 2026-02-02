@@ -279,22 +279,9 @@ Respond as the Inner Self Council with deep emotional intelligence. Provide:
 
 5. **suggestedNextQuestion**: One gentle question to continue deepening (focus on understanding/feeling, not fixing).
 
-6. **suggestMentorRedirect**: Boolean - if enough context has been gathered (after 2-3 exchanges) and the user would benefit from 1-on-1 exploration with Inner Clarity Mentor, set to true. Otherwise false.
+6. **suggestMentorRedirect**: Boolean - if enough context has been gathered (after 2-3 exchanges) and the user would benefit from 1-on-1 exploration with Inner Clarity Mentor, set to true. Otherwise false. This is the PRIMARY signal - pattern discovery happens during 1:1 mentor chat, NOT in the council.
 
 7. **suggestedMentor**: If the user should continue 1-on-1 with one mentor for deeper work, suggest which one and why. For pattern discovery, always suggest inner_clarity_mentor. Otherwise set to null.
-
-8. **detectedPattern**: If a clear inner pattern has emerged from what the user shared (like "I'm not enough", "I always sabotage when it's going well"), OR if enough life event context has been gathered, extract it:
-   {
-     "patternName": "The core belief or pattern in 2-7 words. If no clear pattern, use the life event as the name (e.g., 'Moving abroad alone', 'Losing my father')",
-     "patternType": "limiting_belief" | "protection_mechanism" | "relational_pattern" | "self_sabotage" | "emotional_block" | "core_wound" | "life_event",
-     "triggerContext": "What situations trigger this or what happened",
-     "primaryEmotion": "The main emotion connected to this",
-     "relatedEmotions": ["other", "emotions", "involved"],
-     "bodySensation": "Where they might feel this in their body (if mentioned or likely)",
-     "lifeEvent": "The specific life event shared (if any)"
-   }
-   IMPORTANT: If no clear inner pattern emerges but the user shared a meaningful life event, use the life event as the patternName with patternType: "life_event".
-   Only include if the user has shared something substantial. Otherwise set to null.
 
 Return as JSON:
 {
@@ -315,8 +302,7 @@ Return as JSON:
   "emotionalReflection": "...",
   "suggestedNextQuestion": "...",
   "suggestMentorRedirect": true/false,
-  "suggestedMentor": { "targetMentor": "inner_clarity_mentor", "reason": "..." } or null,
-  "detectedPattern": { "patternName": "...", "patternType": "...", "triggerContext": "...", "primaryEmotion": "...", "relatedEmotions": [...], "bodySensation": "...", "lifeEvent": "..." } or null
+  "suggestedMentor": { "targetMentor": "inner_clarity_mentor", "reason": "..." } or null
 }` }
         ],
         temperature: 0.8,
@@ -372,8 +358,8 @@ Return as JSON:
       emotionalReflection: response.emotionalReflection,
       suggestedNextQuestion: response.suggestedNextQuestion,
       suggestMentorRedirect: response.suggestMentorRedirect || false,
-      suggestedMentor: response.suggestedMentor || null,
-      detectedPattern: response.detectedPattern || null
+      suggestedMentor: response.suggestedMentor || null
+      // Note: detectedPattern is now handled by inner_clarity_mentor during 1:1 chat
     }), {
       headers: { ...corsHeaders, "Content-Type": "application/json" }
     });

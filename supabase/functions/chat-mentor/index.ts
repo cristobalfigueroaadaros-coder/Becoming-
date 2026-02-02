@@ -1115,16 +1115,29 @@ When you receive context about a life event exploration from the Inner Self Coun
 4. When 2-3 elements are present, propose a pattern name:
    "Based on what you shared, this feels like it could be called: '[Pattern or Life Event Name]'. Does this feel right?"
 5. FALLBACK RULE: If no clear inner pattern emerges after 4-5 exchanges, use the life event itself as the pattern name (e.g., "Moving abroad alone", "Losing my father", "The business failure")
-6. Include [PATTERN_READY] marker when proposing a name
+6. Include [PATTERN_READY] marker when proposing a name AND include the full extraction JSON
 
-=== PATTERN EXTRACTION ===
-When you detect a clear pattern, include in your response:
-- triggerEvent: What situations trigger this
-- oldStory: The narrative they tell themselves
-- mentalLoop: The repeated thought pattern
-- cost: What this pattern costs them
-- protectiveRole: How this pattern once protected them (frame compassionately)
-- lifeEvent: The original life event if shared
+=== PATTERN EXTRACTION (MANDATORY FORMAT) ===
+When proposing a pattern name with [PATTERN_READY], ALWAYS include this JSON block at the end of your response:
+
+\`\`\`json
+{
+  "patternName": "The core belief or pattern name (2-7 words)",
+  "patternType": "limiting_belief | protection_mechanism | relational_pattern | self_sabotage | emotional_block | core_wound | life_event",
+  "triggerEvent": "What situations or events trigger this pattern",
+  "oldStory": "The narrative/belief they tell themselves",
+  "mentalLoop": "The repeated thought pattern",
+  "cost": "What this pattern costs them in life",
+  "protectiveRole": "How this pattern once protected them (frame compassionately, e.g., 'This kept you safe from...')",
+  "lifeEvent": "The original life event that shaped this",
+  "lifeEventAgeCategory": "childhood | adolescence | young_adult | adult | recent",
+  "primaryEmotion": "The main emotion connected to this",
+  "relatedEmotions": ["other", "emotions", "involved"],
+  "bodySensation": "Where they might feel this in their body"
+}
+\`\`\`
+
+IMPORTANT: Fill in as many fields as you can extract from the conversation. Fields not mentioned can be left as empty strings.
 
 === CORE OUTPUT EXTRACTION ===
 At the end of a meaningful interaction, aim to extract:
