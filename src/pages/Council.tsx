@@ -19,6 +19,18 @@ interface LocationState {
   openerType?: string;
   notificationContext?: any;
   notificationId?: string;
+  // Standard handoff (from mentor switching, transmutation map, etc.)
+  handoffId?: string;
+  // Transmutation context for pattern-aware mentor openings
+  transmutationContext?: {
+    phase: 'white' | 'gold';
+    patternId: string;
+    patternName: string;
+    patternDescription?: string;
+    shadow: string;
+    existingTransmutationData?: any;
+    lifeEvents?: any;
+  };
   // Voice of System handoff
   voiceHandoffId?: string;
   voiceContext?: string;

@@ -91,6 +91,15 @@ interface ChatProps {
     problemClarificationMode?: boolean;
     projectId?: string;
     projectName?: string;
+    transmutationContext?: {
+      phase: 'white' | 'gold';
+      patternId: string;
+      patternName: string;
+      patternDescription?: string;
+      shadow: string;
+      existingTransmutationData?: any;
+      lifeEvents?: any;
+    };
   } | null;
 }
 
@@ -167,11 +176,22 @@ const Chat = ({ mentorTypeOverride, embedded = false, locationState: propState }
       problemClarificationMode?: boolean;
       projectId?: string;
       projectName?: string;
+      transmutationContext?: any;
     } | null;
     
-    console.log('[Chat] Checking handoff state:', { handoffState, mentorType, isHandoffProcessed, isVoiceHandoffProcessed, isProblemClarificationProcessed });
+    console.log('[Chat] Checking handoff state:', { 
+      handoffState, 
+      mentorType, 
+      isHandoffProcessed, 
+      isVoiceHandoffProcessed, 
+      isProblemClarificationProcessed,
+      hasHandoffId: !!handoffState?.handoffId,
+      hasTransmutationContext: !!handoffState?.transmutationContext
+    });
     
+    // Standard handoff (from mentor switching, transmutation map, etc.)
     if (handoffState?.handoffId && !isHandoffProcessed) {
+      console.log('[Chat] Processing handoff:', handoffState.handoffId);
       processHandoff(handoffState.handoffId);
     }
     // Voice of System handoff
@@ -182,37 +202,58 @@ const Chat = ({ mentorTypeOverride, embedded = false, locationState: propState }
     if (handoffState?.problemClarificationMode && mentorType === 'business_mentor' && !isProblemClarificationProcessed) {
       processProblemClarification(handoffState.projectId, handoffState.projectName);
     }
-  }, [propState, location.state, mentorType]);
+  }, [propState, location.state, mentorType, isHandoffProcessed, isVoiceHandoffProcessed, isProblemClarificationProcessed]);
 
   const processHandoff = async (handoffId: string) => {
+    console.log('[Chat] processHandoff called with:', { handoffId, mentorType });
     setLoading(true);
+    setIsHandoffProcessed(true); // Set immediately to prevent re-triggering
+    
     try {
       const { data: { user } } = await supabase.auth.getUser();
-      if (!user) return;
+      if (!user) {
+        console.error('[Chat] No user found during handoff');
+        return;
+      }
 
+      console.log('[Chat] Invoking chat-mentor with handoffId:', handoffId);
       const { data, error } = await supabase.functions.invoke("chat-mentor", {
         body: { mentorType, message: "__HANDOFF_INIT__", handoffId },
       });
 
-      if (error) throw error;
+      if (error) {
+        console.error('[Chat] chat-mentor error:', error);
+        throw error;
+      }
 
-      const { data: welcomeMsgData } = await supabase.from("chats").insert({
-        user_id: user.id,
-        mentor_type: mentorType as any,
-        role: "assistant",
-        content: data.response,
-      }).select().single();
+      console.log('[Chat] chat-mentor response:', data);
 
-      if (welcomeMsgData) {
-        setMessages((prev) => [...prev, welcomeMsgData]);
+      if (data?.response) {
+        const { data: welcomeMsgData, error: insertError } = await supabase.from("chats").insert({
+          user_id: user.id,
+          mentor_type: mentorType as any,
+          role: "assistant",
+          content: data.response,
+        }).select().single();
+
+        if (insertError) {
+          console.error('[Chat] Error inserting message:', insertError);
+        } else if (welcomeMsgData) {
+          console.log('[Chat] Message inserted successfully');
+          setMessages((prev) => [...prev, welcomeMsgData]);
+        }
+      } else {
+        console.error('[Chat] No response from chat-mentor');
       }
 
       await supabase.from("conversation_handoffs").update({ processed: true }).eq("id", handoffId);
-      setIsHandoffProcessed(true);
-      navigate(location.pathname, { replace: true, state: {} });
+      
+      // Clear navigation state but stay on the page
+      navigate(location.pathname + location.search, { replace: true, state: {} });
     } catch (error: any) {
       console.error("Error processing handoff:", error);
       toast.error("Failed to process handoff");
+      setIsHandoffProcessed(false); // Allow retry on error
     } finally {
       setLoading(false);
     }
