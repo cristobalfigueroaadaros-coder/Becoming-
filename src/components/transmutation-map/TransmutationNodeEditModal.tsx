@@ -3,8 +3,7 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, Di
 import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
 import { Badge } from "@/components/ui/badge";
-import { MessageCircle, Sparkles } from "lucide-react";
-import { toast } from "sonner";
+import { MessageCircle, Sparkles, Flame, Shield } from "lucide-react";
 
 interface TransmutationNodeEditModalProps {
   open: boolean;
@@ -14,6 +13,10 @@ interface TransmutationNodeEditModalProps {
   phase: 'black' | 'white' | 'gold';
   currentContent: string | null;
   onSave: (content: string) => void;
+  // NEW props for handoff context
+  patternName?: string;
+  patternContext?: string;
+  onNavigateToMentor?: (mentorType: string) => void;
 }
 
 const NODE_PROMPTS: Record<string, { prompt: string; examples: string[] }> = {
@@ -124,6 +127,9 @@ export const TransmutationNodeEditModal = ({
   phase,
   currentContent,
   onSave,
+  patternName,
+  patternContext,
+  onNavigateToMentor,
 }: TransmutationNodeEditModalProps) => {
   const [content, setContent] = useState(currentContent || "");
   const nodeConfig = NODE_PROMPTS[nodeId] || { prompt: "Share your thoughts...", examples: [] };
@@ -132,7 +138,6 @@ export const TransmutationNodeEditModal = ({
   const handleSave = () => {
     if (content.trim()) {
       onSave(content.trim());
-      onClose();
     }
   };
 
@@ -142,10 +147,18 @@ export const TransmutationNodeEditModal = ({
     return "Talk to Inner Clarity Mentor";
   };
 
+  const getMentorIcon = () => {
+    if (phase === 'white') return <Flame className="w-4 h-4 mr-2" />;
+    if (phase === 'gold') return <Shield className="w-4 h-4 mr-2" />;
+    return <MessageCircle className="w-4 h-4 mr-2" />;
+  };
+
   const handleTalkToMentor = () => {
+    if (!onNavigateToMentor) return;
+    
     const mentorType = phase === 'white' ? 'phoenix_mentor' : phase === 'gold' ? 'stoic_mentor' : 'inner_clarity_mentor';
-    // Navigate to council with the appropriate mentor
-    window.location.href = `/council?view=${mentorType}`;
+    onClose();
+    onNavigateToMentor(mentorType);
   };
 
   return (
@@ -199,14 +212,17 @@ export const TransmutationNodeEditModal = ({
             </Button>
           </div>
           
-          <Button 
-            variant="ghost" 
-            onClick={handleTalkToMentor}
-            className="w-full text-muted-foreground hover:text-foreground"
-          >
-            <MessageCircle className="w-4 h-4 mr-2" />
-            {getMentorCTAText()}
-          </Button>
+          {/* Mentor CTA - only show for white and gold phases */}
+          {(phase === 'white' || phase === 'gold') && onNavigateToMentor && (
+            <Button 
+              variant="ghost" 
+              onClick={handleTalkToMentor}
+              className="w-full text-muted-foreground hover:text-foreground"
+            >
+              {getMentorIcon()}
+              {getMentorCTAText()}
+            </Button>
+          )}
         </DialogFooter>
       </DialogContent>
     </Dialog>
