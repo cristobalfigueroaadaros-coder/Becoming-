@@ -221,34 +221,29 @@ export function CreativeSpace({ projectId, projectTitle }: CreativeSpaceProps) {
             >
               <div className="flex items-center gap-2 text-sm text-green-600 dark:text-green-400">
                 <Tag className="w-4 h-4" />
-                <span>Keywords from Conversations ({keywords.length})</span>
+                <span>Your Keywords</span>
               </div>
               {showKeywords ? <ChevronUp className="w-4 h-4 text-muted-foreground" /> : <ChevronDown className="w-4 h-4 text-muted-foreground" />}
             </div>
             {showKeywords && (
-              <>
-                <div className="flex flex-wrap gap-2 mt-2">
-                  {keywords.map(kw => (
-                    <Badge
-                      key={kw.id}
-                      variant={keywordsInSpace.has(kw.keyword.toLowerCase()) ? "outline" : "secondary"}
-                      className={cn(
-                        "cursor-pointer transition-colors",
-                        keywordsInSpace.has(kw.keyword.toLowerCase()) 
-                          ? "opacity-50 cursor-default" 
-                          : "hover:bg-green-500/20 hover:border-green-500"
-                      )}
-                      onClick={() => handleKeywordClick(kw.keyword)}
-                    >
-                      {kw.keyword}
-                      {!keywordsInSpace.has(kw.keyword.toLowerCase()) && <Plus className="w-3 h-3 ml-1 opacity-70" />}
-                    </Badge>
-                  ))}
-                </div>
-                <p className="text-xs text-muted-foreground mt-2">
-                  Click keywords to add them as tiles you can move and connect
-                </p>
-              </>
+              <div className="flex flex-wrap gap-2 mt-2">
+                {keywords.map(kw => (
+                  <Badge
+                    key={kw.id}
+                    variant={keywordsInSpace.has(kw.keyword.toLowerCase()) ? "outline" : "secondary"}
+                    className={cn(
+                      "cursor-pointer transition-colors",
+                      keywordsInSpace.has(kw.keyword.toLowerCase()) 
+                        ? "opacity-50 cursor-default" 
+                        : "hover:bg-green-500/20 hover:border-green-500"
+                    )}
+                    onClick={() => handleKeywordClick(kw.keyword)}
+                  >
+                    {kw.keyword}
+                    {!keywordsInSpace.has(kw.keyword.toLowerCase()) && <Plus className="w-3 h-3 ml-1 opacity-70" />}
+                  </Badge>
+                ))}
+              </div>
             )}
           </div>
         )}

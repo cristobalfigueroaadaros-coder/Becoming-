@@ -5,7 +5,7 @@ import { Button } from "@/components/ui/button";
 import { Card, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { toast } from "sonner";
-import { Brain, Lightbulb, Zap, Trees, Heart, Sparkles, Target, TrendingUp, Megaphone, FlaskConical, Scale, Moon, Lock, Star, Search, Eye, Waves } from "lucide-react";
+import { Brain, Lightbulb, Zap, Trees, Heart, Sparkles, Target, TrendingUp, Megaphone, FlaskConical, Scale, Moon, Lock, Star, Search, Eye, Waves, BookOpen, Flame } from "lucide-react";
 import { cn } from "@/lib/utils";
 
 // Mandatory mentors - always selected and cannot be removed
@@ -190,6 +190,31 @@ const mentors = [
     color: "bg-teal-600",
     category: "Clarity & Understanding",
   },
+  // 🔥 Transmutation Council
+  {
+    id: "storybreaker_mentor",
+    name: "The Storybreaker Mentor",
+    description: "Cleans narrative, rewrites beliefs",
+    icon: BookOpen,
+    color: "bg-rose-600",
+    category: "Transmutation",
+  },
+  {
+    id: "phoenix_mentor",
+    name: "The Phoenix Mentor",
+    description: "Turns pain into power",
+    icon: Flame,
+    color: "bg-orange-500",
+    category: "Transmutation",
+  },
+  {
+    id: "stoic_mentor",
+    name: "The Stoic Mentor",
+    description: "Brings grounded action",
+    icon: Scale,
+    color: "bg-stone-600",
+    category: "Transmutation",
+  },
 ];
 
 const OnboardingStep4 = () => {
@@ -286,7 +311,7 @@ const OnboardingStep4 = () => {
         )}
 
         <div className="space-y-8">
-          {["Action & Discipline", "Creativity & Expression", "Knowledge & Insight", "Emotional & Spiritual", "Perspective & Challenge", "Design & Creation", "Clarity & Understanding"].map((category) => {
+          {["Action & Discipline", "Creativity & Expression", "Knowledge & Insight", "Emotional & Spiritual", "Perspective & Challenge", "Design & Creation", "Clarity & Understanding", "Transmutation"].map((category) => {
             const categoryMentors = mentors.filter((m) => m.category === category);
             return (
               <div key={category}>
@@ -298,6 +323,7 @@ const OnboardingStep4 = () => {
                   {category === "Perspective & Challenge" && "🧭"}
                   {category === "Design & Creation" && "🛠️"}
                   {category === "Clarity & Understanding" && "🔮"}
+                  {category === "Transmutation" && "⚗️"}
                   {category}
                 </h2>
                 <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">

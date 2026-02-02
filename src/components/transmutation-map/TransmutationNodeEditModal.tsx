@@ -136,10 +136,16 @@ export const TransmutationNodeEditModal = ({
     }
   };
 
-  const handleTalkToTeam = () => {
-    toast.info("Transmutation Team coming soon", {
-      description: "This feature will be available in the next update.",
-    });
+  const getMentorCTAText = () => {
+    if (phase === 'white') return "Talk to Phoenix Mentor";
+    if (phase === 'gold') return "Talk to Stoic Mentor";
+    return "Talk to Inner Clarity Mentor";
+  };
+
+  const handleTalkToMentor = () => {
+    const mentorType = phase === 'white' ? 'phoenix_mentor' : phase === 'gold' ? 'stoic_mentor' : 'inner_clarity_mentor';
+    // Navigate to council with the appropriate mentor
+    window.location.href = `/council?view=${mentorType}`;
   };
 
   return (
@@ -195,11 +201,11 @@ export const TransmutationNodeEditModal = ({
           
           <Button 
             variant="ghost" 
-            onClick={handleTalkToTeam}
+            onClick={handleTalkToMentor}
             className="w-full text-muted-foreground hover:text-foreground"
           >
             <MessageCircle className="w-4 h-4 mr-2" />
-            Talk to the Transmutation Team
+            {getMentorCTAText()}
           </Button>
         </DialogFooter>
       </DialogContent>

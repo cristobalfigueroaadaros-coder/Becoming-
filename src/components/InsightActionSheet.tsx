@@ -47,6 +47,7 @@ export const InsightActionSheet = ({
   const [saving, setSaving] = useState(false);
   const [selectedMentor, setSelectedMentor] = useState<string>(sourceMentor || '');
   const [showMentorSelect, setShowMentorSelect] = useState(false);
+  const [showFullText, setShowFullText] = useState(false);
 
   const handleAddToConcepts = async () => {
     setSaving(true);
@@ -189,10 +190,11 @@ export const InsightActionSheet = ({
     }
   };
 
-  // Truncate text for display
-  const displayText = insightText.length > 150 
-    ? insightText.substring(0, 150) + '...' 
-    : insightText;
+  // Truncate text for display with read more option
+  const isLongText = insightText.length > 150;
+  const displayText = showFullText || !isLongText
+    ? insightText 
+    : insightText.substring(0, 150) + '...';
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
@@ -207,6 +209,14 @@ export const InsightActionSheet = ({
         {/* Preview of saved text */}
         <div className="p-3 rounded-lg bg-muted/50 border-l-4 border-accent text-sm text-muted-foreground italic">
           "{displayText}"
+          {isLongText && (
+            <button 
+              onClick={() => setShowFullText(!showFullText)}
+              className="ml-2 text-primary hover:underline text-xs font-medium not-italic"
+            >
+              {showFullText ? "Show less" : "Read more"}
+            </button>
+          )}
         </div>
 
         <div className="space-y-3 pt-2">

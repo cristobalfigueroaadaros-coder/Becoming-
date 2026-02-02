@@ -252,13 +252,15 @@ const Council = () => {
                 .single();
 
               if (handoff && !handoffError) {
-                // Navigate with handoff context so Chat.tsx triggers __HANDOFF_INIT__
-                navigate(`/council?view=${mentorType}`, { 
-                  state: { handoffId: handoff.id },
-                  replace: true
-                });
+                // Set search params first, then navigate with handoff state
+                // Using replace: false to avoid redirect loops
+                setSearchParams({ view: mentorType });
                 setShowMobileList(false);
                 markMentorNotificationsAsRead(mentorType);
+                // Pass handoff context through location state for Chat.tsx to pick up
+                navigate(`/council?view=${mentorType}`, { 
+                  state: { handoffId: handoff.id }
+                });
                 return;
               }
               // If handoff creation failed, fall through to simple navigation
