@@ -1581,6 +1581,7 @@ Deno.serve(async (req) => {
     // Check for handoff context - WITH FULL CHAIN MEMORY
     let handoffContext = "";
     let journeyPath: string[] = [];
+    let transmutationHandoffResponse: string | null = null;
     
     if (handoffId) {
       const { data: handoff } = await supabaseClient
@@ -1592,6 +1593,58 @@ Deno.serve(async (req) => {
         .single();
 
       if (handoff) {
+        // ========== TRANSMUTATION HANDOFF DETECTION ==========
+        // Check if this is a transmutation handoff (voice_context contains phase)
+        const voiceCtx = handoff.voice_context as any;
+        if (voiceCtx && voiceCtx.phase && (voiceCtx.phase === 'white' || voiceCtx.phase === 'gold')) {
+          console.log("Transmutation handoff detected:", voiceCtx.phase, voiceCtx.patternName);
+          
+          const phase = voiceCtx.phase;
+          const patternName = voiceCtx.patternName || 'your pattern';
+          const shadow = voiceCtx.shadow || voiceCtx.patternDescription || 'the pain you named';
+          const existingData = voiceCtx.existingTransmutationData || {};
+          const lifeEvents = voiceCtx.lifeEvents || {};
+          
+          if (phase === 'white' && mentorType === 'phoenix_mentor') {
+            // Phoenix Mentor opening for White Phase
+            transmutationHandoffResponse = `You've named what hurt — "${patternName}".
+
+That takes courage.
+
+The shadow you're holding: "${shadow}"
+
+Now let's find what this experience gave you.
+
+Looking back now, what shifted? Was there a moment, a conversation, a realization that changed how you saw this?`;
+          } else if (phase === 'gold' && mentorType === 'stoic_mentor') {
+            // Stoic Mentor opening for Gold Phase
+            const shiftMoment = existingData.shift_moment || 'the shift you found';
+            const lesson = existingData.lesson_learned || 'the lesson you learned';
+            
+            transmutationHandoffResponse = `The shift happened: "${shiftMoment}"
+
+The lesson is clear: "${lesson}"
+
+Now let's turn "${patternName}" into something you carry forward.
+
+What did you actually gain from going through this? What's different about you now?`;
+          }
+          
+          // If we have a transmutation-specific response, mark as processed and return early
+          if (transmutationHandoffResponse) {
+            await supabaseClient
+              .from("conversation_handoffs")
+              .update({ processed: true })
+              .eq("id", handoffId);
+            
+            return new Response(
+              JSON.stringify({ response: transmutationHandoffResponse }),
+              { headers: { ...corsHeaders, "Content-Type": "application/json" } }
+            );
+          }
+        }
+        // ========== END TRANSMUTATION HANDOFF ==========
+
         // Get all handoffs in this chain for full journey context
         const chainId = handoff.handoff_chain_id;
         const { data: chainHandoffs } = await supabaseClient
