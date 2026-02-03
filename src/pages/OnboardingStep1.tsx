@@ -20,8 +20,6 @@ const profileSchema = z.object({
   birth_location: z.string().min(1, "Birth location is required"),
   birth_time: z.string().optional(),
   birth_time_unknown: z.boolean().optional(),
-  // Future vision (simplified)
-  future_lifestyle: z.string().optional(),
 });
 
 type ProfileFormData = z.infer<typeof profileSchema>;
@@ -38,7 +36,6 @@ const OnboardingStep1 = () => {
       birth_time: "",
       birth_time_unknown: false,
       birth_location: "",
-      future_lifestyle: "",
     },
   });
 
@@ -60,7 +57,6 @@ const OnboardingStep1 = () => {
           birth_time: data.birth_time_unknown ? null : (data.birth_time || null),
           birth_time_unknown: data.birth_time_unknown || false,
           birth_location: data.birth_location,
-          future_lifestyle: data.future_lifestyle || null,
           display_name: data.birth_name.split(' ')[0], // Use first name as display name
         });
 
@@ -228,33 +224,6 @@ const OnboardingStep1 = () => {
                         <FormLabel className="!mt-0 text-sm text-muted-foreground cursor-pointer">
                           I don't know my birth time
                         </FormLabel>
-                      </FormItem>
-                    )}
-                  />
-                </div>
-
-                <div className="pt-4 border-t">
-                  <div className="mb-4">
-                    <h3 className="font-medium mb-1">Your Vision</h3>
-                    <p className="text-sm text-muted-foreground">
-                      Let's paint a light picture of where you're heading.
-                    </p>
-                  </div>
-                  
-                  <FormField
-                    control={form.control}
-                    name="future_lifestyle"
-                    render={({ field }) => (
-                      <FormItem>
-                        <FormLabel>Future Lifestyle</FormLabel>
-                        <FormControl>
-                          <Textarea
-                            placeholder="Describe your ideal future... There's no right or wrong answer."
-                            className="resize-none min-h-[100px]"
-                            {...field}
-                          />
-                        </FormControl>
-                        <FormMessage />
                       </FormItem>
                     )}
                   />
