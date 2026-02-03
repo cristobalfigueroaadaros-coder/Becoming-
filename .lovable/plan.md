@@ -1,369 +1,176 @@
 
+# Plan: Delete "Your Vision" from Onboarding + Update Phoenix Mentor Instructions
 
-# Fix Plan: Restore Transmutation Map Structure + Full Handoff Context
+## Summary
 
-## Problem Summary
-
-The current implementation broke the original flow:
-1. Clicking a White/Gold node opens a **separate chat modal** (`TransmutationPhaseModal`) instead of the original node edit modal
-2. The mentor in this modal receives `"BEGIN_TRANSMUTATION_PHASE"` with no real context
-3. No handoff system is used — the mentor doesn't know the user's history, pattern details, or progress
-
-## What User Wants
-
-```
-Original Flow (RESTORE):
-┌────────────────────────────────────────┐
-│  [White Phase Badge]                   │
-│  Node Title: "The Shift"               │
-│  Question: "What made you change..."   │
-│                                        │
-│  • Example placeholder 1               │
-│  • Example placeholder 2               │
-│  • Example placeholder 3               │
-│                                        │
-│  ┌────────────────────────────────┐    │
-│  │ Textarea for user input        │    │
-│  └────────────────────────────────┘    │
-│                                        │
-│  [Cancel]  [Save]                      │
-│  [Talk to Phoenix Mentor]              │
-│         ↓                              │
-│  Creates HANDOFF with full context     │
-│  → Navigate to Council chat            │
-│  → Phoenix knows pattern + history     │
-└────────────────────────────────────────┘
-```
+This plan addresses two changes:
+1. **Delete** the "Your Vision" / "Future Lifestyle" section from OnboardingStep1
+2. **Replace** the Phoenix Mentor prompt with the comprehensive new instructions provided
 
 ---
 
-## Implementation Plan
+## Part 1: Remove "Your Vision" from Onboarding Step 1
 
-### Step 1: Restore Original Node Click Behavior
+**File:** `src/pages/OnboardingStep1.tsx`
 
-**File:** `src/components/creation-lab/BecomingTransmutation.tsx`
+### What Will Be Removed
 
-**Changes:**
-1. **Remove** `TransmutationPhaseModal` usage
-2. **Add** `TransmutationNodeEditModal` state management back
-3. Restore original `handleNodeClick` to open the edit modal (not the phase modal)
-4. Update bottom CTAs to navigate with handoff context
+The following section (lines 236-261) contains "Your Vision" and "Future Lifestyle" fields:
 
-```typescript
-// REMOVE these states:
-// const [showPhaseModal, setShowPhaseModal] = useState(false);
-// const [activePhase, setActivePhase] = useState<'white' | 'gold'>('white');
-
-// ADD these states back:
-const [showNodeEditModal, setShowNodeEditModal] = useState(false);
-const [editingNode, setEditingNode] = useState<{id: string; label: string; phase: string} | null>(null);
-
-// RESTORE handleNodeClick:
-const handleNodeClick = (nodeId: string, phase: 'black' | 'white' | 'gold') => {
-  if (phase === 'gold' && !whiteComplete) {
-    toast.info("Complete the White phase first");
-    return;
-  }
+```jsx
+<div className="pt-4 border-t">
+  <div className="mb-4">
+    <h3 className="font-medium mb-1">Your Vision</h3>
+    <p className="text-sm text-muted-foreground">
+      Let's paint a light picture of where you're heading.
+    </p>
+  </div>
   
-  // Open the node edit modal with the specific node
-  const label = getNodeLabel(nodeId);
-  setEditingNode({ id: nodeId, label, phase });
-  setShowNodeEditModal(true);
-};
-```
-
-### Step 2: Update TransmutationNodeEditModal for Handoff Navigation
-
-**File:** `src/components/transmutation-map/TransmutationNodeEditModal.tsx`
-
-**Add new props:**
-- `patternId: string`
-- `patternName: string`
-- `patternContext: string` (shadow)
-- `transmutationData: TransmutationData`
-
-**Update `handleTalkToMentor`:**
-Instead of `window.location.href`, use a proper handoff-based navigation:
-
-```typescript
-interface TransmutationNodeEditModalProps {
-  // ... existing props
-  patternId: string;
-  patternName: string;
-  patternContext: string;
-  transmutationData: TransmutationData;
-  onNavigateToMentor: (mentorType: string) => void;
-}
-
-// In the component:
-const handleTalkToMentor = () => {
-  const mentorType = phase === 'white' ? 'phoenix_mentor' : phase === 'gold' ? 'stoic_mentor' : 'inner_clarity_mentor';
-  onClose();
-  onNavigateToMentor(mentorType);
-};
-```
-
-### Step 3: Create Transmutation Handoff Function
-
-**File:** `src/components/creation-lab/BecomingTransmutation.tsx`
-
-Create a function that:
-1. Fetches last 20 messages from all mentors (for full context)
-2. Creates a `conversation_handoffs` record with transmutation context
-3. Navigates to Council with handoff ID
-
-```typescript
-const navigateToMentorWithHandoff = async (mentorType: string) => {
-  try {
-    const { data: { user } } = await supabase.auth.getUser();
-    if (!user || !selectedPattern) return;
-
-    // Fetch recent conversation history across all mentors
-    const { data: recentMessages } = await supabase
-      .from("chats")
-      .select("role, content, mentor_type")
-      .eq("user_id", user.id)
-      .order("created_at", { ascending: false })
-      .limit(20);
-
-    // Create handoff with transmutation context
-    const transmutationContext = {
-      phase: !whiteComplete ? 'white' : 'gold',
-      patternId: selectedPattern.id,
-      patternName: selectedPattern.pattern_name,
-      patternDescription: selectedPattern.pattern_description,
-      shadow: transmutationData.shadow,
-      existingTransmutationData: transmutationData,
-      lifeEvents: selectedPattern.life_events, // Pattern Map data
-    };
-
-    const { data: handoff, error } = await supabase
-      .from("conversation_handoffs")
-      .insert({
-        user_id: user.id,
-        source_mentor_type: "transmutation_map",
-        target_mentor_type: mentorType,
-        source_messages: recentMessages?.reverse() || [],
-        journey_topic: `Transmutation ${!whiteComplete ? 'White' : 'Gold'} Phase for pattern: ${selectedPattern.pattern_name}`,
-        voice_context: transmutationContext, // Using voice_context for transmutation context
-        processed: false,
-      })
-      .select()
-      .single();
-
-    if (handoff && !error) {
-      navigate(`/council?view=${mentorType}`, {
-        state: {
-          handoffId: handoff.id,
-          transmutationContext, // Also pass directly for immediate access
-        }
-      });
-    } else {
-      console.error("Handoff creation error:", error);
-      toast.error("Failed to start conversation");
-    }
-  } catch (error) {
-    console.error("Error creating transmutation handoff:", error);
-    toast.error("Something went wrong");
-  }
-};
-```
-
-### Step 4: Update Chat.tsx to Handle Transmutation Handoff
-
-**File:** `src/pages/Chat.tsx`
-
-**Update interface:**
-```typescript
-interface ChatProps {
-  // ... existing
-  locationState?: { 
-    handoffId?: string; 
-    voiceHandoffId?: string; 
-    voiceContext?: string;
-    problemClarificationMode?: boolean;
-    projectId?: string;
-    projectName?: string;
-    transmutationContext?: TransmutationContext; // NEW
-  } | null;
-}
-
-interface TransmutationContext {
-  phase: 'white' | 'gold';
-  patternId: string;
-  patternName: string;
-  patternDescription?: string;
-  shadow: string;
-  existingTransmutationData: TransmutationData;
-  lifeEvents?: any;
-}
-```
-
-The existing `processHandoff` function already handles handoffs. When a handoff is detected, `chat-mentor` is called with `__HANDOFF_INIT__` which retrieves the handoff record.
-
-### Step 5: Update chat-mentor to Handle Transmutation Handoff
-
-**File:** `supabase/functions/chat-mentor/index.ts`
-
-When processing `__HANDOFF_INIT__`, check for `voice_context` (which contains transmutation context):
-
-```typescript
-// In __HANDOFF_INIT__ handling:
-if (handoffRecord?.voice_context && handoffRecord.voice_context.phase) {
-  // This is a transmutation handoff
-  const transmutationCtx = handoffRecord.voice_context;
-  const phase = transmutationCtx.phase;
-  const patternName = transmutationCtx.patternName;
-  const shadow = transmutationCtx.shadow;
-  
-  if (phase === 'white') {
-    // Phoenix mentor opening
-    return {
-      response: `You've named what hurt — "${patternName}".
-
-That takes courage.
-
-The shadow you're holding: "${shadow}"
-
-Now let's find what this experience gave you.
-
-Looking back now, what shifted? Was there a moment, a conversation, a realization that changed how you saw this?`
-    };
-  } else if (phase === 'gold') {
-    // Stoic mentor opening
-    const shiftMoment = transmutationCtx.existingTransmutationData?.shift_moment || 'the shift you found';
-    const lesson = transmutationCtx.existingTransmutationData?.lesson_learned || 'the lesson you learned';
-    
-    return {
-      response: `The shift happened: ${shiftMoment}
-
-The lesson is clear: ${lesson}
-
-Now let's turn "${patternName}" into something you carry forward.
-
-What did you actually gain from going through this? What's different about you now?`
-    };
-  }
-}
-```
-
-### Step 6: Update Bottom CTA Buttons
-
-**File:** `src/components/creation-lab/BecomingTransmutation.tsx`
-
-Change the bottom buttons to use the handoff navigation:
-
-```typescript
-{/* Mentor-Specific CTAs */}
-<div className="space-y-3">
-  {!whiteComplete && selectedPattern && (
-    <Button
-      onClick={() => navigateToMentorWithHandoff('phoenix_mentor')}
-      className="w-full bg-gradient-to-r from-slate-600 to-slate-700 hover:from-slate-500 hover:to-slate-600"
-      size="lg"
-    >
-      <Flame className="w-4 h-4 mr-2" />
-      Talk to Phoenix Mentor
-    </Button>
-  )}
-
-  {whiteComplete && !goldComplete && selectedPattern && (
-    <Button
-      onClick={() => navigateToMentorWithHandoff('stoic_mentor')}
-      className="w-full bg-gradient-to-r from-amber-500 to-amber-600 hover:from-amber-400 hover:to-amber-500"
-      size="lg"
-    >
-      <Shield className="w-4 h-4 mr-2" />
-      Talk to Stoic Mentor
-    </Button>
-  )}
+  <FormField
+    control={form.control}
+    name="future_lifestyle"
+    render={...}
+  />
 </div>
 ```
 
-### Step 7: Keep the Node Edit Modal for Manual Entry
+### Changes
 
-The `TransmutationNodeEditModal` remains for users who want to type directly. The modal now has two paths:
-1. **Manual entry**: User types in textarea → clicks Save → data saved
-2. **Mentor guidance**: User clicks "Talk to Phoenix/Stoic Mentor" → navigates to Council with full handoff
+1. Remove the entire "Your Vision" section (lines 236-261)
+2. Remove `future_lifestyle` from the form schema (line 24)
+3. Remove `future_lifestyle` from default values (line 41)
+4. Remove `future_lifestyle` from the database upsert (line 63)
 
----
-
-## Handoff Data Structure
-
-The handoff record contains:
-
-| Field | Content |
-|-------|---------|
-| `source_mentor_type` | `"transmutation_map"` |
-| `target_mentor_type` | `"phoenix_mentor"` or `"stoic_mentor"` |
-| `source_messages` | Last 20 messages across all mentors |
-| `journey_topic` | `"Transmutation White Phase for pattern: [name]"` |
-| `voice_context` | Full transmutation context (phase, pattern, shadow, existing data, life events) |
+The onboarding flow will now only collect:
+- Birth name
+- Birth date
+- Birth location
+- Birth time (optional)
 
 ---
 
-## File Summary
+## Part 2: Complete Phoenix Mentor Prompt Replacement
 
-| File | Action | Purpose |
-|------|--------|---------|
-| `BecomingTransmutation.tsx` | MODIFY | Restore node edit modal, remove phase modal, add handoff navigation |
-| `TransmutationNodeEditModal.tsx` | MODIFY | Add pattern props, onNavigateToMentor callback |
-| `Chat.tsx` | VERIFY | Already handles handoffs correctly |
-| `chat-mentor/index.ts` | MODIFY | Add transmutation-aware opening for Phoenix/Stoic |
+**File:** `supabase/functions/chat-mentor/index.ts`
+
+### Current Phoenix Mentor (lines 1305-1364)
+
+The current prompt focuses on:
+- Extracting "practical learnings"
+- Asking 6 specific questions in rotation
+- 3-4 sentence responses
+- Forbidden abstract concepts
+
+### New Phoenix Mentor Philosophy
+
+Based on the detailed instructions provided, the Phoenix Mentor needs to be:
+
+| Aspect | Current | New |
+|--------|---------|-----|
+| Core Role | Extract practical learnings | Distillation and learning extraction stage |
+| Focus | Surface "lessons, boundaries, wisdom, growth" | Detected PATTERN over surface story |
+| Approach | Question rotation (6 questions) | Adapt to emotional weight (light vs. heavy) |
+| Flow | 3-4 exchanges then summarize | Natural progression through Black → White → Gold |
+| Trauma Handling | Brief acknowledgment, move to learning | Heavy trauma: prioritize safety, never force lessons |
+| Output | User says "I learned X" | System auto-populates shift statements, lessons, insights |
+
+### New Prompt Structure
+
+The new Phoenix Mentor prompt will include:
+
+1. **Role and Purpose** - Distillation and learning extraction stage
+2. **Core Focus** - Pattern over surface story
+3. **Emotional Posture** - Human, warm, empathetic, grounded
+4. **Adaptation to Emotional Weight**:
+   - Lighter situations: reframe, highlight effort, guide to learning
+   - Heavy/traumatic situations: safety first, no forced lessons
+5. **Distillation Flow** - Internal logic for every response
+6. **Learning Extraction** - Learnings, values, strengths, sensitivities
+7. **Phase Connection** - Black (awareness), White (distillation), Gold (integration)
+8. **Auto-Population Logic** - Cards emerge naturally, not explicitly asked
+9. **Conversation Style** - Guides reflection, never interrogates
+
+### Key Behavioral Changes
+
+**Forbidden (NEW):**
+- Implying trauma was "good" or "necessary"
+- Rushing reframing for heavy experiences
+- Clinical or diagnostic language
+- Explicitly asking to "unlock" or "complete" phases
+
+**Required (NEW):**
+- Reference the detected pattern (from transmutation context)
+- Adapt tone based on emotional intensity
+- Create conditions for insight (system auto-populates)
+- Connect past experiences to future identity
 
 ---
 
-## User Flow After Fix
+## Part 3: Update Transmutation Handoff Opening
 
+**Current Opening (White Phase):**
 ```
-User clicks "The Shift" node in White Phase
-              ↓
-TransmutationNodeEditModal opens:
-- Question: "What made you change your perspective?"
-- Placeholder examples
-- Textarea for input
-- [Cancel] [Save]
-- [Talk to Phoenix Mentor] button
-              ↓
-User clicks "Talk to Phoenix Mentor"
-              ↓
-System creates conversation_handoffs record with:
-- Last 20 messages from all mentors
-- Full transmutation context (pattern, shadow, life_events, phase)
-              ↓
-Navigate to /council?view=phoenix_mentor
-with state: { handoffId: "xxx-xxx" }
-              ↓
-Chat.tsx detects handoffId
-              ↓
-Calls chat-mentor with __HANDOFF_INIT__
-              ↓
-chat-mentor fetches handoff record
-Sees voice_context.phase === 'white'
-              ↓
-Phoenix Mentor sends personalized opening:
-"You've named what hurt — 'Fear of Abandonment'.
+"${patternName}" — you named it. That takes guts.
+Now let's extract the wisdom from it.
+**What did you LEARN from this experience?** What's one thing you know now that you didn't know before?
+```
+
+**New Opening (aligned with philosophy):**
+```
+You've named what you're working through — "${patternName}".
+
 That takes courage.
-The shadow you're holding: 'Always expecting people to leave'
-Now let's find what this experience gave you..."
-              ↓
-User continues conversation with Phoenix
-(Phoenix knows full pattern context, life events, previous conversations)
+
+This isn't about finding silver linings or pretending it was "good."
+
+It's about understanding what this experience shaped in you.
+
+Looking back, what shifted? Was there a moment, a conversation, or a realization that changed how you saw this?
 ```
+
+---
+
+## Files to Modify
+
+| File | Changes |
+|------|---------|
+| `src/pages/OnboardingStep1.tsx` | Remove "Your Vision" section, update schema/defaults |
+| `supabase/functions/chat-mentor/index.ts` | Replace Phoenix Mentor prompt (lines 1305-1364) and update White phase handoff opening |
+
+---
+
+## Technical Details
+
+### OnboardingStep1.tsx Changes
+
+1. **Schema update** (line 24):
+   - Remove: `future_lifestyle: z.string().optional()`
+
+2. **Default values update** (line 41):
+   - Remove: `future_lifestyle: ""`
+
+3. **Database upsert** (line 63):
+   - Remove: `future_lifestyle: data.future_lifestyle || null`
+
+4. **Form UI** (lines 236-261):
+   - Remove entire "Your Vision" div block
+
+### chat-mentor/index.ts Changes
+
+1. **Phoenix Mentor prompt** (lines 1305-1364):
+   - Complete replacement with new comprehensive prompt
+
+2. **Transmutation handoff** (lines ~1580-1604):
+   - Update White phase opening to align with new philosophy
+   - Ensure pattern name and shadow are referenced with appropriate tone
 
 ---
 
 ## Success Criteria
 
-1. Clicking a White/Gold node opens `TransmutationNodeEditModal` (question, placeholders, textarea)
-2. "Talk to Phoenix Mentor" button creates a handoff with full transmutation context
-3. Navigation goes to Council chat (not a separate modal)
-4. Phoenix/Stoic mentor receives the handoff and knows:
-   - The pattern name and description
-   - The shadow/pain from Black phase
-   - Life events data from Pattern Map
-   - Existing transmutation progress
-   - Last 20 messages from previous conversations
-5. Mentor sends a personalized opening mentioning the specific pattern
-6. Same flow works for both White (Phoenix) and Gold (Stoic) phases
-
+1. OnboardingStep1 no longer shows "Your Vision" or "Future Lifestyle" fields
+2. Phoenix Mentor adapts tone based on emotional weight of the topic
+3. Phoenix Mentor references the detected pattern naturally
+4. Heavy trauma receives validation, not forced reframing
+5. Cards/insights emerge through natural conversation, not explicit asks
+6. The flow connects past experiences → present identity → future self
