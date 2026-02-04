@@ -69,43 +69,89 @@ export const PatternMapCanvas = ({
         className="w-full max-w-[360px] h-auto"
         style={{ minHeight: '300px' }}
       >
-        {/* Background gradient */}
+        {/* Improved gradient definitions for visibility */}
         <defs>
-          <radialGradient id="bgGradient" cx="50%" cy="50%" r="50%">
-            <stop offset="0%" stopColor="hsl(var(--indigo-500) / 0.1)" />
+          {/* Warm violet background gradient */}
+          <radialGradient id="bgGradient" cx="50%" cy="50%" r="60%">
+            <stop offset="0%" stopColor="hsl(280 70% 50% / 0.15)" />
+            <stop offset="50%" stopColor="hsl(270 60% 40% / 0.08)" />
             <stop offset="100%" stopColor="transparent" />
           </radialGradient>
           
-          <filter id="glow">
-            <feGaussianBlur stdDeviation="3" result="coloredBlur"/>
+          {/* Outer ambient glow */}
+          <radialGradient id="ambientGlow" cx="50%" cy="50%" r="50%">
+            <stop offset="60%" stopColor="transparent" />
+            <stop offset="100%" stopColor="hsl(280 60% 60% / 0.1)" />
+          </radialGradient>
+          
+          {/* Connection line gradient for filled nodes */}
+          <linearGradient id="connectionGradientFilled" x1="0%" y1="0%" x2="100%" y2="0%">
+            <stop offset="0%" stopColor="hsl(280 80% 65% / 0.8)" />
+            <stop offset="100%" stopColor="hsl(270 70% 55% / 0.6)" />
+          </linearGradient>
+          
+          {/* Glow filter */}
+          <filter id="glow" x="-50%" y="-50%" width="200%" height="200%">
+            <feGaussianBlur stdDeviation="4" result="coloredBlur"/>
             <feMerge>
+              <feMergeNode in="coloredBlur"/>
+              <feMergeNode in="SourceGraphic"/>
+            </feMerge>
+          </filter>
+          
+          {/* Stronger glow for center */}
+          <filter id="centerGlow" x="-100%" y="-100%" width="300%" height="300%">
+            <feGaussianBlur stdDeviation="8" result="coloredBlur"/>
+            <feMerge>
+              <feMergeNode in="coloredBlur"/>
               <feMergeNode in="coloredBlur"/>
               <feMergeNode in="SourceGraphic"/>
             </feMerge>
           </filter>
         </defs>
         
+        {/* Ambient outer glow ring */}
+        <circle
+          cx={centerX}
+          cy={centerY}
+          r={radius + 80}
+          fill="url(#ambientGlow)"
+        />
+        
+        {/* Background gradient */}
         <circle
           cx={centerX}
           cy={centerY}
           r={radius + 60}
           fill="url(#bgGradient)"
         />
+        
+        {/* Decorative orbit ring */}
+        <circle
+          cx={centerX}
+          cy={centerY}
+          r={radius}
+          fill="none"
+          stroke="hsl(280 60% 60% / 0.15)"
+          strokeWidth="1"
+          strokeDasharray="8 8"
+        />
 
-        {/* Connection lines */}
+        {/* Connection lines with glow effect */}
         {nodes.map((node, index) => (
           <motion.line
             key={`line-${node.id}`}
             initial={{ pathLength: 0, opacity: 0 }}
-            animate={{ pathLength: 1, opacity: 0.4 }}
+            animate={{ pathLength: 1, opacity: 1 }}
             transition={{ delay: 0.3 + index * 0.1, duration: 0.5 }}
             x1={centerX}
             y1={centerY}
             x2={node.x}
             y2={node.y}
-            className={node.content ? "stroke-purple-500/60" : "stroke-muted-foreground/20"}
-            strokeWidth={node.content ? 2 : 1}
-            strokeDasharray={node.content ? "none" : "4 4"}
+            stroke={node.content ? "url(#connectionGradientFilled)" : "hsl(280 30% 50% / 0.25)"}
+            strokeWidth={node.content ? 2.5 : 1.5}
+            strokeDasharray={node.content ? "none" : "6 6"}
+            filter={node.content ? "url(#glow)" : "none"}
           />
         ))}
 

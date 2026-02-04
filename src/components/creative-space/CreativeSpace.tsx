@@ -219,9 +219,10 @@ export function CreativeSpace({ projectId, projectTitle }: CreativeSpaceProps) {
               className="flex items-center justify-between cursor-pointer"
               onClick={() => setShowKeywords(!showKeywords)}
             >
-              <div className="flex items-center gap-2 text-sm text-green-600 dark:text-green-400">
-                <Tag className="w-4 h-4" />
-                <span>Your Keywords</span>
+              <div className="flex items-center gap-2">
+                <Tag className="w-4 h-4 text-green-600 dark:text-green-400" />
+                <span className="text-sm font-medium text-green-600 dark:text-green-400">Keywords</span>
+                <span className="text-xs text-muted-foreground">from your conversations</span>
               </div>
               {showKeywords ? <ChevronUp className="w-4 h-4 text-muted-foreground" /> : <ChevronDown className="w-4 h-4 text-muted-foreground" />}
             </div>
