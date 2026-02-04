@@ -29,7 +29,8 @@ export const PhaseCircle: React.FC<PhaseCircleProps> = ({
   onOpenThread,
 }) => {
   // Calculate positions for phases in a circle
-  const radius = 120; // Distance from center
+  // Increased radius to prevent overlap with smaller center (w-28 = 112px, radius ~56px)
+  const radius = 135; // Distance from center (increased from 120)
   const centerX = 180;
   const centerY = 180;
 

@@ -74,3 +74,11 @@ export const PHASE_ANGLES: Record<PhaseType, { start: number; end: number }> = {
   prototype: { start: 126, end: 198 },
   test: { start: 198, end: 270 }
 };
+
+export const PHASE_PLACEHOLDERS: Record<PhaseType, string> = {
+  empathize: "e.g., 'Users feel overwhelmed by too many choices'",
+  define: "e.g., 'The core problem is decision paralysis'",
+  ideate: "e.g., 'What if we simplified to 3 options?'",
+  prototype: "e.g., 'Testing a simple A/B flow'",
+  test: "e.g., 'Users preferred option B by 3:1'"
+};

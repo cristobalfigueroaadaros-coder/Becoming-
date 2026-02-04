@@ -40,39 +40,33 @@ export const ProjectThreadCenter: React.FC<ProjectThreadCenterProps> = ({
       transition={{ delay: 0.2 }}
     >
       <motion.div
-        className="w-44 h-44 rounded-full bg-gradient-to-br from-background/95 to-muted/80 backdrop-blur-md border border-border/50 flex flex-col items-center justify-center p-4 cursor-pointer shadow-xl"
+        className="w-28 h-28 rounded-full bg-gradient-to-br from-background/95 to-muted/80 backdrop-blur-md border border-border/50 flex flex-col items-center justify-center p-2 cursor-pointer shadow-xl"
         whileHover={{ scale: 1.05 }}
         whileTap={{ scale: 0.98 }}
         onClick={onOpenThread}
       >
-        <div className="flex items-center gap-1.5 mb-2">
-          <Sparkles className="w-4 h-4 text-primary" />
-          <span className="text-xs font-medium text-muted-foreground">Project Thread</span>
+        <div className="flex items-center gap-1 mb-1">
+          <Sparkles className="w-3 h-3 text-primary" />
+          <span className="text-[10px] font-medium text-muted-foreground">Thread</span>
         </div>
         
-        <h3 className="text-sm font-semibold text-foreground text-center line-clamp-2 mb-1">
+        <h3 className="text-[11px] font-semibold text-foreground text-center line-clamp-2 mb-0.5 px-1">
           {projectInfo.title}
         </h3>
         
         {projectInfo.currentFocus && (
-          <p className="text-[10px] text-muted-foreground text-center line-clamp-2 mb-2">
+          <p className="text-[9px] text-muted-foreground text-center line-clamp-1 px-1">
             {projectInfo.currentFocus}
-          </p>
-        )}
-        
-        {latestSnapshot && (
-          <p className="text-[10px] text-muted-foreground/80 text-center italic line-clamp-2 mb-2">
-            "{latestSnapshot}"
           </p>
         )}
         
         <Button 
           variant="ghost" 
           size="sm" 
-          className="h-6 text-xs gap-1 text-primary hover:text-primary/80"
+          className="h-5 text-[10px] gap-0.5 text-primary hover:text-primary/80 mt-1 px-1"
         >
-          Open Thread
-          <ChevronRight className="w-3 h-3" />
+          Open
+          <ChevronRight className="w-2.5 h-2.5" />
         </Button>
       </motion.div>
     </motion.div>

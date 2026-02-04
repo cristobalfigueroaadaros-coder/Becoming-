@@ -7,7 +7,7 @@ import { Input } from '@/components/ui/input';
 import { ScrollArea } from '@/components/ui/scroll-area';
 import { Badge } from '@/components/ui/badge';
 import { PhaseType, PhaseContentData, PhaseNote } from './types';
-import { PHASE_CONFIG } from './constants';
+import { PHASE_CONFIG, PHASE_PLACEHOLDERS } from './constants';
 import { DefinePhaseClarificationPrompt } from './DefinePhaseClarificationPrompt';
 import { useNavigate } from 'react-router-dom';
 
@@ -191,7 +191,7 @@ export const PhaseContent: React.FC<PhaseContentProps> = ({
             {/* Add note input */}
             <div className="flex gap-2">
               <Input
-                placeholder="Add an observation or note..."
+                placeholder={PHASE_PLACEHOLDERS[phase]}
                 value={newNote}
                 onChange={(e) => setNewNote(e.target.value)}
                 onKeyDown={(e) => e.key === 'Enter' && handleAddNote()}
