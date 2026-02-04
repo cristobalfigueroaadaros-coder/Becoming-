@@ -1,176 +1,220 @@
 
-# Plan: Delete "Your Vision" from Onboarding + Update Phoenix Mentor Instructions
+
+# Visual Improvements Plan: Pattern Map, Design Thinking Lab, and Creative Space
 
 ## Summary
 
-This plan addresses two changes:
-1. **Delete** the "Your Vision" / "Future Lifestyle" section from OnboardingStep1
-2. **Replace** the Phoenix Mentor prompt with the comprehensive new instructions provided
+This plan addresses three visual improvement areas:
+1. **Pattern Map** - Improve visibility against dark background with better contrast and colors
+2. **Design Thinking Lab** - Center the project thread properly and add example placeholders
+3. **Creative Space** - Simplify the keyword section title
 
 ---
 
-## Part 1: Remove "Your Vision" from Onboarding Step 1
+## Part 1: Pattern Map Visual Improvements
 
-**File:** `src/pages/OnboardingStep1.tsx`
+**Current Issues:**
+- Poor visibility with dark background
+- Purple/indigo colors blend into dark mode
+- Nodes are hard to see and don't stand out
 
-### What Will Be Removed
+**Files to Modify:**
+- `src/components/pattern-map/PatternMapCanvas.tsx`
+- `src/components/pattern-map/PatternMapNode.tsx`
 
-The following section (lines 236-261) contains "Your Vision" and "Future Lifestyle" fields:
+### Changes:
 
-```jsx
-<div className="pt-4 border-t">
-  <div className="mb-4">
-    <h3 className="font-medium mb-1">Your Vision</h3>
-    <p className="text-sm text-muted-foreground">
-      Let's paint a light picture of where you're heading.
-    </p>
-  </div>
-  
-  <FormField
-    control={form.control}
-    name="future_lifestyle"
-    render={...}
-  />
+**PatternMapCanvas.tsx:**
+1. Add a subtle gradient background behind the canvas for better contrast
+2. Use glowing connection lines that are more visible
+3. Add an outer ring glow effect
+
+```text
+Before:
+- Radial gradient with hsl(var(--indigo-500) / 0.1)
+- Basic stroke lines
+
+After:
+- Warmer, more visible gradient (violet/purple with higher opacity)
+- Glowing stroke effects on connections
+- Soft ambient glow around the entire map
+```
+
+**PatternMapNode.tsx:**
+1. Add glowing borders around nodes for better visibility
+2. Use brighter, more contrasting colors
+3. Add subtle pulsing animation for empty nodes (to invite interaction)
+4. Improve text readability with backdrop blur
+
+```text
+Node Color Improvements:
+- Center node: Deeper purple with bright border glow
+- Filled nodes: Bright violet with glow effect
+- Empty nodes: Subtle outline with pulsing invite animation
+- Labels: Better contrast with backdrop blur
+```
+
+---
+
+## Part 2: Design Thinking Lab - Center Alignment & Placeholders
+
+**Current Issues:**
+- Project Thread center (w-44 h-44) overlaps with Ideate phase at angle 54 degrees
+- The center is positioned at (180, 180) but the phase circle is 360x360
+- No example placeholders in the phase content input
+
+**Files to Modify:**
+- `src/components/design-thinking-lab/PhaseCircle.tsx`
+- `src/components/design-thinking-lab/ProjectThreadCenter.tsx`
+- `src/components/design-thinking-lab/PhaseContent.tsx`
+- `src/components/design-thinking-lab/constants.ts`
+
+### Changes:
+
+**PhaseCircle.tsx:**
+1. Reduce center size to prevent overlap with Ideate
+2. Adjust the radius or center positioning to ensure proper clearance
+
+```text
+Current Layout:
+- Container: 360x360
+- Center: (180, 180)
+- Radius: 120
+- Phase positions calculated from center
+
+Problem: Center node (w-44 = 176px) nearly fills the entire inner circle
+
+Fix:
+- Reduce ProjectThreadCenter size from 176px to ~120px
+- Or increase radius from 120 to 140px to push phases outward
+```
+
+**ProjectThreadCenter.tsx:**
+- Reduce size from w-44 h-44 to w-32 h-32 (128px)
+- Adjust internal padding and text sizes accordingly
+
+**PhaseContent.tsx - Add Placeholder Examples:**
+```typescript
+const PHASE_PLACEHOLDERS: Record<PhaseType, string> = {
+  empathize: "e.g., 'Users feel overwhelmed by too many choices'",
+  define: "e.g., 'The core problem is decision paralysis'",
+  ideate: "e.g., 'What if we simplified to 3 options?'",
+  prototype: "e.g., 'Testing a simple A/B flow'",
+  test: "e.g., 'Users preferred option B by 3:1'"
+};
+```
+
+Update the Input placeholder to use phase-specific examples.
+
+**constants.ts - Add placeholder config:**
+```typescript
+export const PHASE_PLACEHOLDERS: Record<PhaseType, string> = {
+  empathize: "e.g., 'Users feel overwhelmed by too many choices'",
+  define: "e.g., 'The core problem is decision paralysis'",
+  ideate: "e.g., 'What if we simplified to 3 options?'",
+  prototype: "e.g., 'Testing a simple A/B flow'",
+  test: "e.g., 'Users preferred option B by 3:1'"
+};
+```
+
+---
+
+## Part 3: Creative Space - Keyword Section Simplification
+
+**Current Issue:**
+The keyword section shows:
+- Icon + "Your Keywords" title
+- ChevronUp/Down toggle
+- Badges with keywords
+
+User wants: Just show the title + detail of what it says, remove the "keywords from your conversations..." text.
+
+**File to Modify:**
+- `src/components/creative-space/CreativeSpace.tsx`
+
+### Changes:
+
+**Lines 216-249 (Keyword Library section):**
+
+```text
+Current:
+<div className="flex items-center gap-2 text-sm text-green-600">
+  <Tag className="w-4 h-4" />
+  <span>Your Keywords</span>
+</div>
+
+Change to:
+<div className="flex items-center gap-2 text-sm text-green-600">
+  <Tag className="w-4 h-4" />
+  <span>Keywords</span>
+  <span className="text-muted-foreground text-xs">from your conversations</span>
 </div>
 ```
 
-### Changes
-
-1. Remove the entire "Your Vision" section (lines 236-261)
-2. Remove `future_lifestyle` from the form schema (line 24)
-3. Remove `future_lifestyle` from default values (line 41)
-4. Remove `future_lifestyle` from the database upsert (line 63)
-
-The onboarding flow will now only collect:
-- Birth name
-- Birth date
-- Birth location
-- Birth time (optional)
+Remove any extra description text, keeping only the concise header with "Keywords" and a subtle subtitle.
 
 ---
 
-## Part 2: Complete Phoenix Mentor Prompt Replacement
+## File Summary
 
-**File:** `supabase/functions/chat-mentor/index.ts`
-
-### Current Phoenix Mentor (lines 1305-1364)
-
-The current prompt focuses on:
-- Extracting "practical learnings"
-- Asking 6 specific questions in rotation
-- 3-4 sentence responses
-- Forbidden abstract concepts
-
-### New Phoenix Mentor Philosophy
-
-Based on the detailed instructions provided, the Phoenix Mentor needs to be:
-
-| Aspect | Current | New |
-|--------|---------|-----|
-| Core Role | Extract practical learnings | Distillation and learning extraction stage |
-| Focus | Surface "lessons, boundaries, wisdom, growth" | Detected PATTERN over surface story |
-| Approach | Question rotation (6 questions) | Adapt to emotional weight (light vs. heavy) |
-| Flow | 3-4 exchanges then summarize | Natural progression through Black → White → Gold |
-| Trauma Handling | Brief acknowledgment, move to learning | Heavy trauma: prioritize safety, never force lessons |
-| Output | User says "I learned X" | System auto-populates shift statements, lessons, insights |
-
-### New Prompt Structure
-
-The new Phoenix Mentor prompt will include:
-
-1. **Role and Purpose** - Distillation and learning extraction stage
-2. **Core Focus** - Pattern over surface story
-3. **Emotional Posture** - Human, warm, empathetic, grounded
-4. **Adaptation to Emotional Weight**:
-   - Lighter situations: reframe, highlight effort, guide to learning
-   - Heavy/traumatic situations: safety first, no forced lessons
-5. **Distillation Flow** - Internal logic for every response
-6. **Learning Extraction** - Learnings, values, strengths, sensitivities
-7. **Phase Connection** - Black (awareness), White (distillation), Gold (integration)
-8. **Auto-Population Logic** - Cards emerge naturally, not explicitly asked
-9. **Conversation Style** - Guides reflection, never interrogates
-
-### Key Behavioral Changes
-
-**Forbidden (NEW):**
-- Implying trauma was "good" or "necessary"
-- Rushing reframing for heavy experiences
-- Clinical or diagnostic language
-- Explicitly asking to "unlock" or "complete" phases
-
-**Required (NEW):**
-- Reference the detected pattern (from transmutation context)
-- Adapt tone based on emotional intensity
-- Create conditions for insight (system auto-populates)
-- Connect past experiences to future identity
+| File | Action | Purpose |
+|------|--------|---------|
+| `PatternMapCanvas.tsx` | MODIFY | Add better background gradient, glow effects |
+| `PatternMapNode.tsx` | MODIFY | Improve node colors, add glow borders, better contrast |
+| `PhaseCircle.tsx` | MODIFY | Adjust layout to prevent center overlap |
+| `ProjectThreadCenter.tsx` | MODIFY | Reduce size to prevent overlap with Ideate |
+| `PhaseContent.tsx` | MODIFY | Add phase-specific placeholder examples |
+| `constants.ts` | MODIFY | Add PHASE_PLACEHOLDERS config |
+| `CreativeSpace.tsx` | MODIFY | Simplify keyword section title |
 
 ---
 
-## Part 3: Update Transmutation Handoff Opening
+## Visual Preview
 
-**Current Opening (White Phase):**
+### Pattern Map (After):
+```text
+         ┌─────────────────────────────────────┐
+         │   ╭──────╮                          │
+         │   │Trigger│  ← Glowing violet node  │
+         │   ╰──────╯                          │
+         │       ╲                             │
+         │        ╲ ← Soft glowing line        │
+         │    ╭────────────╮                   │
+         │    │  PATTERN   │ ← Bright center   │
+         │    │   NAME     │   with deep glow  │
+         │    ╰────────────╯                   │
+         │   Subtle ambient gradient bg        │
+         └─────────────────────────────────────┘
 ```
-"${patternName}" — you named it. That takes guts.
-Now let's extract the wisdom from it.
-**What did you LEARN from this experience?** What's one thing you know now that you didn't know before?
+
+### Design Thinking Lab (After):
+```text
+              Empathize
+                 ⬆
+                / \
+    Test ⬅    [SMALL]    ➡ Define
+              CENTER
+              (128px)
+                \ /
+                 ⬇
+      Prototype   Ideate
 ```
 
-**New Opening (aligned with philosophy):**
-```
-You've named what you're working through — "${patternName}".
-
-That takes courage.
-
-This isn't about finding silver linings or pretending it was "good."
-
-It's about understanding what this experience shaped in you.
-
-Looking back, what shifted? Was there a moment, a conversation, or a realization that changed how you saw this?
+### Creative Space Keywords (After):
+```text
+┌────────────────────────────────────────┐
+│ 🏷️ Keywords from your conversations ▼ │
+│ ┌─────┐ ┌──────────┐ ┌───────────┐    │
+│ │self │ │ patterns │ │ discovery │    │
+│ └─────┘ └──────────┘ └───────────┘    │
+└────────────────────────────────────────┘
 ```
 
 ---
 
-## Files to Modify
+## Implementation Order
 
-| File | Changes |
-|------|---------|
-| `src/pages/OnboardingStep1.tsx` | Remove "Your Vision" section, update schema/defaults |
-| `supabase/functions/chat-mentor/index.ts` | Replace Phoenix Mentor prompt (lines 1305-1364) and update White phase handoff opening |
+1. **Pattern Map** - PatternMapCanvas.tsx, PatternMapNode.tsx
+2. **Design Thinking Lab** - constants.ts, PhaseCircle.tsx, ProjectThreadCenter.tsx, PhaseContent.tsx
+3. **Creative Space** - CreativeSpace.tsx
 
----
-
-## Technical Details
-
-### OnboardingStep1.tsx Changes
-
-1. **Schema update** (line 24):
-   - Remove: `future_lifestyle: z.string().optional()`
-
-2. **Default values update** (line 41):
-   - Remove: `future_lifestyle: ""`
-
-3. **Database upsert** (line 63):
-   - Remove: `future_lifestyle: data.future_lifestyle || null`
-
-4. **Form UI** (lines 236-261):
-   - Remove entire "Your Vision" div block
-
-### chat-mentor/index.ts Changes
-
-1. **Phoenix Mentor prompt** (lines 1305-1364):
-   - Complete replacement with new comprehensive prompt
-
-2. **Transmutation handoff** (lines ~1580-1604):
-   - Update White phase opening to align with new philosophy
-   - Ensure pattern name and shadow are referenced with appropriate tone
-
----
-
-## Success Criteria
-
-1. OnboardingStep1 no longer shows "Your Vision" or "Future Lifestyle" fields
-2. Phoenix Mentor adapts tone based on emotional weight of the topic
-3. Phoenix Mentor references the detected pattern naturally
-4. Heavy trauma receives validation, not forced reframing
-5. Cards/insights emerge through natural conversation, not explicit asks
-6. The flow connects past experiences → present identity → future self
