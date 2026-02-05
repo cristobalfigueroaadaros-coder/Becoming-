@@ -16,6 +16,22 @@ import { InsightActionButton } from "@/components/InsightActionButton";
 import { PatternDiscoveryCard, PatternCelebration } from "@/components/pattern-map";
 import { useInnerPatterns } from "@/hooks/useInnerPatterns";
 
+// Types for conversation history
+interface ConversationEntry {
+  role: 'user' | 'inner_self';
+  content: string | {
+    councilInsight?: string;
+    mentorPerspectives?: Record<string, string>;
+    stage?: string;
+    clarityQuestion?: string;
+    questionNumber?: number;
+    banterLines?: Array<{mentor: string; text: string; color: string}>;
+    emotionalReflection?: string;
+    suggestedNextQuestion?: string | null;
+    suggestedMentor?: { targetMentor: string; reason: string } | null;
+  };
+}
+
 // Inner Self Council mentors
 const INNER_SELF_MENTORS = ['alignment_mentor', 'perspective_mentor', 'inner_clarity_mentor', 'quantum_inventor', 'release_mentor'];
 
@@ -233,8 +249,73 @@ const InnerSelfCouncil = ({ embedded = false }: InnerSelfCouncilProps) => {
     setDetectedPattern(null);
   };
 
-  const handleMentorHandoff = (targetMentor: string) => {
-    navigate(`/council?view=${targetMentor}`);
+  const handleMentorHandoff = async (targetMentor: string) => {
+    try {
+      const { data: { user } } = await supabase.auth.getUser();
+      if (!user) {
+        toast.error("Please sign in to continue");
+        navigate("/");
+        return;
+      }
+
+      // Build source messages from the Inner Self Council conversation
+      const sourceMessages = conversationHistory.flatMap((entry: ConversationEntry) => {
+        const messages: Array<{ role: string; content: string }> = [];
+        if (entry.role === 'user' && typeof entry.content === 'string') {
+          messages.push({ role: 'user', content: entry.content });
+        } else if (entry.role === 'inner_self' && typeof entry.content === 'object' && entry.content) {
+          // Include council insight as context
+          if (entry.content.councilInsight) {
+            messages.push({ 
+              role: 'assistant', 
+              content: `Council Insight: ${entry.content.councilInsight}` 
+            });
+          }
+          // Include relevant mentor perspective
+          if (entry.content.mentorPerspectives?.[targetMentor]) {
+            messages.push({ 
+              role: 'assistant', 
+              content: `${targetMentor.replace(/_/g, ' ')}: ${entry.content.mentorPerspectives[targetMentor]}` 
+            });
+          }
+        }
+        return messages;
+      });
+
+      // Create handoff record
+      const chainId = crypto.randomUUID();
+      const { data: handoff, error: handoffError } = await supabase
+        .from("conversation_handoffs")
+        .insert({
+          user_id: user.id,
+          source_mentor_type: 'inner_self_council',
+          target_mentor_type: targetMentor,
+          source_messages: sourceMessages,
+          handoff_chain_id: chainId,
+          chain_position: 1,
+          journey_topic: suggestedMentor?.reason || "Continuing inner exploration from council",
+          processed: false,
+          initiated_by: 'inner_self_council'
+        })
+        .select()
+        .single();
+
+      if (handoffError) {
+        console.error("Handoff creation failed:", handoffError);
+        // Fall back to simple navigation
+        navigate(`/council?view=${targetMentor}`);
+        return;
+      }
+
+      // Navigate with handoff context
+      navigate(`/council?view=${targetMentor}`, { 
+        state: { handoffId: handoff.id } 
+      });
+    } catch (error) {
+      console.error("Error creating handoff:", error);
+      toast.error("Failed to create handoff. Please try again.");
+      navigate(`/council?view=${targetMentor}`);
+    }
   };
 
   const handleVoiceTranscription = (text: string, audioUrl: string) => {

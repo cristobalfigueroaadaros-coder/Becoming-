@@ -14,6 +14,21 @@ import { VoiceRecorder } from "@/components/VoiceRecorder";
 import { HighlightedText } from "@/components/HighlightedText";
 import { InsightActionButton } from "@/components/InsightActionButton";
 
+// Types for conversation history
+interface ConversationEntry {
+  role: 'user' | 'builders';
+  content: string | {
+    councilInsight?: string;
+    mentorPerspectives?: Record<string, string>;
+    stage?: string;
+    clarityQuestion?: string;
+    questionNumber?: number;
+    banterLines?: Array<{mentor: string; text: string; color: string}>;
+    emotionalReflection?: string;
+    suggestedNextQuestion?: string | null;
+    suggestedMentor?: { targetMentor: string; reason: string } | null;
+  };
+}
 
 // Builders Team mentors only
 const BUILDERS_MENTORS = ['design_thinking_mentor', 'ux_mentor', 'gamification_mentor'];
@@ -174,8 +189,73 @@ const BuildersTeam = ({ embedded = false }: BuildersTeamProps) => {
     setSuggestedMentor(null);
   };
 
-  const handleMentorHandoff = (targetMentor: string) => {
-    navigate(`/council?view=${targetMentor}`);
+  const handleMentorHandoff = async (targetMentor: string) => {
+    try {
+      const { data: { user } } = await supabase.auth.getUser();
+      if (!user) {
+        toast.error("Please sign in to continue");
+        navigate("/");
+        return;
+      }
+
+      // Build source messages from the Builders Team conversation
+      const sourceMessages = conversationHistory.flatMap((entry: ConversationEntry) => {
+        const messages: Array<{ role: string; content: string }> = [];
+        if (entry.role === 'user' && typeof entry.content === 'string') {
+          messages.push({ role: 'user', content: entry.content });
+        } else if (entry.role === 'builders' && typeof entry.content === 'object' && entry.content) {
+          // Include team insight as context
+          if (entry.content.councilInsight) {
+            messages.push({ 
+              role: 'assistant', 
+              content: `Team Insight: ${entry.content.councilInsight}` 
+            });
+          }
+          // Include relevant mentor perspective
+          if (entry.content.mentorPerspectives?.[targetMentor]) {
+            messages.push({ 
+              role: 'assistant', 
+              content: `${targetMentor.replace(/_/g, ' ')}: ${entry.content.mentorPerspectives[targetMentor]}` 
+            });
+          }
+        }
+        return messages;
+      });
+
+      // Create handoff record
+      const chainId = crypto.randomUUID();
+      const { data: handoff, error: handoffError } = await supabase
+        .from("conversation_handoffs")
+        .insert({
+          user_id: user.id,
+          source_mentor_type: 'builders_team',
+          target_mentor_type: targetMentor,
+          source_messages: sourceMessages,
+          handoff_chain_id: chainId,
+          chain_position: 1,
+          journey_topic: suggestedMentor?.reason || "Continuing build exploration from Builders Team",
+          processed: false,
+          initiated_by: 'builders_team'
+        })
+        .select()
+        .single();
+
+      if (handoffError) {
+        console.error("Handoff creation failed:", handoffError);
+        // Fall back to simple navigation
+        navigate(`/council?view=${targetMentor}`);
+        return;
+      }
+
+      // Navigate with handoff context
+      navigate(`/council?view=${targetMentor}`, { 
+        state: { handoffId: handoff.id } 
+      });
+    } catch (error) {
+      console.error("Error creating handoff:", error);
+      toast.error("Failed to create handoff. Please try again.");
+      navigate(`/council?view=${targetMentor}`);
+    }
   };
 
   const handleVoiceTranscription = (text: string, audioUrl: string) => {
