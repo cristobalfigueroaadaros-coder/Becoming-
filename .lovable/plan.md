@@ -1,213 +1,208 @@
 
 
-# Inner Self Console - Onboarding PDR Implementation
+# Fix: Pattern Detection Flow from Inner Clarity Mentor
 
-## Summary
+## Problems Identified
 
-This plan implements two distinct onboarding states for the Inner Self Console based on the user's transmutation history:
+### Problem 1: Raw JSON Visible to User
+The Inner Clarity Mentor includes a `[PATTERN_READY]` marker and JSON block in the response text. Since Chat.tsx doesn't parse this, the raw JSON is displayed to the user - this should never happen.
 
-1. **State 1 (First Time User)** - Life Event Focus - Safe, inviting entry point
-2. **State 2 (Returning User)** - Deeper Emotional Exploration - For users who have completed at least one transmutation cycle
+### Problem 2: Pattern Card Not Triggered
+Chat.tsx has no logic to:
+1. Detect the `[PATTERN_READY]` marker in the response
+2. Extract the pattern JSON data
+3. Show the `PatternDiscoveryCard` component
+4. Handle pattern acceptance
 
----
+### Problem 3: Pattern Map Not Auto-Populated
+When patterns are created via `handlePatternAccept` in InnerSelfCouncil.tsx, the `life_events` field (which contains Pattern Map node data) is not being passed to `createPattern()`. The database shows all patterns have empty `life_events` arrays.
 
-## Part 1: Detecting User State
-
-**Logic for determining which onboarding state to show:**
-
-A user is considered a "Returning User" (State 2) if:
-- They have at least one `inner_patterns` record with `status = 'transmuted'` OR `transformed_at IS NOT NULL`
-
-Otherwise, they see State 1 (First Time User).
-
-**Implementation:**
-- Add a new state variable: `hasCompletedTransmutation`
-- Query `inner_patterns` on mount to check for transmuted patterns
-- Use this to conditionally render the appropriate onboarding copy
+### Problem 4: Life Event Support
+The new onboarding focuses on "life events" rather than patterns. The system needs to:
+1. Accept "life_event" as a valid pattern type
+2. Handle cases where no psychological pattern emerges (use life event name instead)
+3. Ensure the same White Phase flow works for both patterns and life events
 
 ---
 
-## Part 2: UI Changes - Council Introduction Card
+## Solution Overview
+
+### Part 1: Edge Function - Clean Response and Return Structured Data
+
+**File:** `supabase/functions/chat-mentor/index.ts`
+
+**Changes:**
+1. When `[PATTERN_READY]` is detected in the AI response, extract the JSON and return it as a separate `patternDetection` field
+2. Clean the response text to remove the JSON block before sending to the user
+3. Never show raw JSON to users
+
+```typescript
+// In the response processing section
+let patternDetection = null;
+
+// Check for [PATTERN_READY] marker
+if (response.includes('[PATTERN_READY]') && mentorType === 'inner_clarity_mentor') {
+  // Extract JSON block from response
+  const jsonMatch = response.match(/```json\s*([\s\S]*?)```/);
+  if (jsonMatch && jsonMatch[1]) {
+    try {
+      patternDetection = JSON.parse(jsonMatch[1].trim());
+      console.log("Pattern detected:", patternDetection);
+      
+      // Clean the response - remove the JSON block
+      response = response
+        .replace(/```json[\s\S]*?```/g, '')
+        .replace(/\[PATTERN_READY\]/g, '')
+        .trim();
+    } catch (e) {
+      console.error("Failed to parse pattern JSON:", e);
+    }
+  }
+}
+
+// Return patternDetection in the response
+return new Response(
+  JSON.stringify({ 
+    response, 
+    valueMapDetection,
+    suggestedHandoff,
+    patternDetection, // NEW: For pattern card
+    ...
+  })
+);
+```
+
+### Part 2: Chat.tsx - Handle Pattern Detection
+
+**File:** `src/pages/Chat.tsx`
+
+**Changes:**
+1. Add state for pattern detection: `patternDetection`, `showPatternCard`
+2. Import `PatternDiscoveryCard` and `PatternCelebration`
+3. In `handleSend`, check for `data.patternDetection` and trigger the pattern card
+4. Add `handlePatternAccept` function that:
+   - Creates the pattern with full `life_events` data mapping
+   - Shows celebration
+   - Navigates to Pattern Map
+
+```typescript
+// New state
+const [patternDetection, setPatternDetection] = useState<any>(null);
+const [showPatternCard, setShowPatternCard] = useState(false);
+const [showPatternCelebration, setShowPatternCelebration] = useState(false);
+const [createdPatternId, setCreatedPatternId] = useState<string | null>(null);
+
+// In handleSend, after getting response:
+if (data.patternDetection) {
+  setPatternDetection(data.patternDetection);
+  setShowPatternCard(true);
+}
+
+// Pattern acceptance handler
+const handlePatternAccept = async (patternName: string) => {
+  if (!patternDetection) return;
+  
+  // Map the extracted data to life_events format for Pattern Map nodes
+  const lifeEventsData = {
+    trigger_event: patternDetection.triggerEvent || '',
+    old_story: patternDetection.oldStory || '',
+    mental_loop: patternDetection.mentalLoop || '',
+    cost: patternDetection.cost || '',
+    protective_role: patternDetection.protectiveRole || '',
+    life_event: patternDetection.lifeEvent || '',
+    life_event_age_category: patternDetection.lifeEventAgeCategory || '',
+  };
+  
+  // Map to transmutation_data for Black Phase
+  const transmutationData = {
+    shadow: patternDetection.oldStory || patternDetection.triggerEvent || '',
+  };
+  
+  const pattern = await createPattern({
+    pattern_name: patternName,
+    pattern_type: patternDetection.patternType || 'life_event',
+    pattern_description: patternDetection.lifeEvent || '',
+    trigger_context: patternDetection.triggerEvent || '',
+    primary_emotion: patternDetection.primaryEmotion || '',
+    related_emotions: patternDetection.relatedEmotions || [],
+    body_sensation: patternDetection.bodySensation || '',
+    life_events: lifeEventsData,  // NEW: Auto-populate Pattern Map
+    transmutation_data: transmutationData, // NEW: Auto-populate Black Phase
+  });
+  
+  if (pattern) {
+    setCreatedPatternId(pattern.id);
+    setShowPatternCard(false);
+    setShowPatternCelebration(true);
+  }
+};
+```
+
+### Part 3: Update PatternDiscoveryCard Label for Life Events
+
+**File:** `src/components/pattern-map/PatternDiscoveryCard.tsx`
+
+**Changes:**
+1. Add "life_event" to `patternTypeLabels`
+2. Conditionally show "Life Event" vs "Pattern" text based on type
+
+```typescript
+const patternTypeLabels: Record<string, string> = {
+  limiting_belief: "Limiting Belief",
+  protection_mechanism: "Protection Pattern",
+  relational_pattern: "Relational Pattern",
+  self_sabotage: "Self-Sabotage",
+  emotional_block: "Emotional Block",
+  core_wound: "Core Wound",
+  life_event: "Life Event", // NEW
+};
+
+// In the header, show different copy for life events
+<h3 className="text-xl font-semibold text-foreground">
+  {patternType === 'life_event' 
+    ? 'A meaningful moment is taking shape.'
+    : 'A pattern is becoming clear.'}
+</h3>
+```
+
+### Part 4: Fix InnerSelfCouncil Pattern Acceptance
 
 **File:** `src/pages/InnerSelfCouncil.tsx`
 
-### Current Introduction (Lines 368-401):
-
-The current introduction card shows generic copy about the Inner Self Council. This will be replaced with state-aware onboarding.
-
-### New State 1 Copy (First Time User):
-
-```
-Let's pause for a moment and look inward.
-
-This is a safe space. You're in control of what you share.
-
-To begin, think about a life event that challenged you, changed you, or marked a turning point for you.
-
-It doesn't have to be dramatic or traumatic.
-It could be a big decision, a transition, a failure, a loss, or a moment when life pushed you in a new direction.
-
-Share what feels meaningful to you right now.
-```
-
-### New State 2 Copy (Returning User):
-
-```
-You've already worked through something important here.
-
-If you feel ready, this space can hold something deeper this time.
-
-You might choose a life moment that still carries emotional weight for you.
-Something that shaped you in a lasting way.
-
-Or, if that doesn't feel right today, you can share another meaningful experience instead.
-You're always in control.
-```
-
----
-
-## Part 3: Placeholder Examples
-
-### State 1 Placeholder (Lighter examples):
-
-```
-For example:
-"I left my business and moved to another country."
-"I ended a long relationship and had to rebuild myself."
-"I failed at something I deeply cared about."
-```
-
-### State 2 Placeholder (Heavier examples):
-
-```
-For example:
-"I was bullied for years and it affected how I see myself."
-"One of my parents left when I was young."
-"I lost someone important and never fully processed it."
-```
-
----
-
-## Part 4: Implementation Details
-
-### New State Variable:
+The existing `handlePatternAccept` function doesn't pass `life_events` or `transmutation_data`. If patterns are also detected through the council (rare), it should be updated:
 
 ```typescript
-const [hasCompletedTransmutation, setHasCompletedTransmutation] = useState(false);
-const [isLoadingState, setIsLoadingState] = useState(true);
-```
-
-### Query on Mount:
-
-```typescript
-useEffect(() => {
-  const checkTransmutationHistory = async () => {
-    const { data: { user } } = await supabase.auth.getUser();
-    if (!user) {
-      setIsLoadingState(false);
-      return;
-    }
-    
-    // Check for any completed transmutation cycles
-    const { data: transmutedPatterns, error } = await supabase
-      .from("inner_patterns")
-      .select("id")
-      .eq("user_id", user.id)
-      .or("status.eq.transmuted,transformed_at.not.is.null")
-      .limit(1);
-    
-    if (!error && transmutedPatterns && transmutedPatterns.length > 0) {
-      setHasCompletedTransmutation(true);
-    }
-    
-    setIsLoadingState(false);
+const handlePatternAccept = async (patternName: string) => {
+  if (!detectedPattern) return;
+  
+  // Map the extracted data to life_events format
+  const lifeEventsData = {
+    trigger_event: detectedPattern.triggerEvent || '',
+    old_story: detectedPattern.oldStory || '',
+    mental_loop: detectedPattern.mentalLoop || '',
+    cost: detectedPattern.cost || '',
+    protective_role: detectedPattern.protectiveRole || '',
+    life_event: detectedPattern.lifeEvent || '',
+    life_event_age_category: detectedPattern.lifeEventAgeCategory || '',
   };
   
-  checkTransmutationHistory();
-}, []);
-```
-
-### Conditional Rendering in Introduction Card:
-
-```tsx
-{!hasActiveThread && stage === 'input' && !isLoadingState && (
-  <motion.div
-    initial={{ opacity: 0, y: 10 }}
-    animate={{ opacity: 1, y: 0 }}
-  >
-    <Card className="border-indigo-500/30 bg-gradient-to-r from-indigo-500/5 to-purple-500/5">
-      <CardContent className="pt-6 space-y-4">
-        {/* Mentor icons row */}
-        <div className="flex flex-wrap gap-4">
-          {INNER_SELF_MENTORS.map((mentor) => (
-            <div key={mentor} className="flex items-center gap-2">
-              <span className="text-xl">{mentorIcons[mentor]}</span>
-              <span className="text-sm font-medium">{mentorNames[mentor]}</span>
-            </div>
-          ))}
-        </div>
-        
-        {/* State-aware onboarding copy */}
-        {hasCompletedTransmutation ? (
-          // STATE 2: Returning User
-          <div className="space-y-3 pt-2">
-            <p className="text-base font-medium text-foreground">
-              You've already worked through something important here.
-            </p>
-            <p className="text-sm text-muted-foreground">
-              If you feel ready, this space can hold something deeper this time.
-            </p>
-            <p className="text-sm text-muted-foreground">
-              You might choose a life moment that still carries emotional weight for you.
-              Something that shaped you in a lasting way.
-            </p>
-            <p className="text-sm text-muted-foreground">
-              Or, if that doesn't feel right today, you can share another meaningful experience instead.
-              <strong> You're always in control.</strong>
-            </p>
-          </div>
-        ) : (
-          // STATE 1: First Time User
-          <div className="space-y-3 pt-2">
-            <p className="text-base font-medium text-foreground">
-              Let's pause for a moment and look inward.
-            </p>
-            <p className="text-sm text-muted-foreground">
-              This is a safe space. You're in control of what you share.
-            </p>
-            <p className="text-sm text-muted-foreground">
-              To begin, think about a life event that challenged you, changed you, or marked a turning point for you.
-            </p>
-            <p className="text-sm text-muted-foreground">
-              It doesn't have to be dramatic or traumatic.
-              It could be a big decision, a transition, a failure, a loss, or a moment when life pushed you in a new direction.
-            </p>
-            <p className="text-sm font-medium text-foreground">
-              Share what feels meaningful to you right now.
-            </p>
-          </div>
-        )}
-      </CardContent>
-    </Card>
-  </motion.div>
-)}
-```
-
-### Conditional Placeholder in Textarea:
-
-```tsx
-<Textarea
-  placeholder={hasActiveThread 
-    ? "Continue exploring what you're feeling..." 
-    : hasCompletedTransmutation
-      ? `For example:\n"I was bullied for years and it affected how I see myself."\n"One of my parents left when I was young."\n"I lost someone important and never fully processed it."`
-      : `For example:\n"I left my business and moved to another country."\n"I ended a long relationship and had to rebuild myself."\n"I failed at something I deeply cared about."`
-  }
-  value={question}
-  onChange={(e) => setQuestion(e.target.value)}
-  rows={5}
-  disabled={loading || stage === 'complete' || stage === 'seeking_clarity'}
-/>
+  const transmutationData = {
+    shadow: detectedPattern.oldStory || detectedPattern.triggerEvent || '',
+  };
+  
+  const pattern = await createPattern({
+    pattern_name: patternName,
+    pattern_description: detectedPattern.lifeEvent || detectedPattern.triggerContext || undefined,
+    pattern_type: detectedPattern.patternType || 'life_event',
+    trigger_context: detectedPattern.triggerEvent || detectedPattern.triggerContext || undefined,
+    primary_emotion: detectedPattern.primaryEmotion || undefined,
+    related_emotions: detectedPattern.relatedEmotions || undefined,
+    body_sensation: detectedPattern.bodySensation || undefined,
+    life_events: lifeEventsData, // NEW
+    transmutation_data: transmutationData, // NEW
+  });
+  ...
+};
 ```
 
 ---
@@ -216,30 +211,64 @@ useEffect(() => {
 
 | File | Changes |
 |------|---------|
-| `src/pages/InnerSelfCouncil.tsx` | Add state detection, conditional introduction copy, conditional placeholders |
+| `supabase/functions/chat-mentor/index.ts` | Extract pattern JSON, clean response, return `patternDetection` field |
+| `src/pages/Chat.tsx` | Add pattern detection state, show PatternDiscoveryCard, handle pattern acceptance with full data mapping |
+| `src/components/pattern-map/PatternDiscoveryCard.tsx` | Add "life_event" type label, show appropriate copy |
+| `src/pages/InnerSelfCouncil.tsx` | Fix handlePatternAccept to pass life_events and transmutation_data |
 
 ---
 
-## Design Principles Maintained
+## Data Flow After Fix
 
-- Never ask directly for trauma
-- Always invite, never demand
-- Life events come first, patterns come later
-- Depth is progressive, not forced
-- User autonomy is always respected
+```text
+User shares life event in Inner Self Council
+         │
+         ▼
+Council redirects to Inner Clarity Mentor (with handoff)
+         │
+         ▼
+Inner Clarity Mentor asks focused questions (2-3 elements)
+         │
+         ▼
+Mentor proposes name: "This feels like: 'Moving Abroad Alone'"
+         │
+         ▼
+chat-mentor returns:
+  - response: "This feels like: 'Moving Abroad Alone'..." (CLEAN - no JSON)
+  - patternDetection: { patternName, patternType, lifeEvent, ... }
+         │
+         ▼
+Chat.tsx detects patternDetection → shows PatternDiscoveryCard
+         │
+         ▼
+User accepts → createPattern() called with:
+  - pattern_name
+  - life_events: { trigger_event, old_story, mental_loop, cost, protective_role, life_event }
+  - transmutation_data: { shadow }
+         │
+         ▼
+Pattern saved to database with auto-populated maps
+         │
+         ▼
+PatternCelebration shown → Navigate to Pattern Map (fully populated)
+         │
+         ▼
+Black Phase unlocked (shadow pre-filled) → Ready for White Phase (Phoenix)
+```
 
 ---
 
-## Flow Alignment
+## Technical Notes
 
-This implementation ensures the Inner Self Console properly feeds the system:
+### Pattern vs Life Event Handling
+- Both use the same `inner_patterns` table
+- `patternType: 'life_event'` indicates a life event rather than a psychological pattern
+- The Pattern Map and Transmutation Map work identically for both
+- The UI copy changes slightly ("meaningful moment" vs "pattern")
 
-```
-Life Event (captured here) → 
-Pattern Detection (Black Phase via Inner Clarity Mentor) →
-Understanding and Learning (Phoenix, White Phase) →
-Integration and Superpowers (Stoic, Gold Phase)
-```
-
-The quality of what the user shares in this onboarding directly affects pattern clarity and the depth of transmutation downstream.
+### Safety: No Raw JSON to Users
+The edge function MUST clean the response before returning. The JSON block is:
+1. Extracted and parsed
+2. Returned as structured `patternDetection` field
+3. Removed from the visible `response` text
 
