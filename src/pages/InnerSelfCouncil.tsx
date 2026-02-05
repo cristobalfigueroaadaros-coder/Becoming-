@@ -16,6 +16,23 @@ import { InsightActionButton } from "@/components/InsightActionButton";
 import { PatternDiscoveryCard, PatternCelebration } from "@/components/pattern-map";
 import { useInnerPatterns } from "@/hooks/useInnerPatterns";
 
+// Helper function to get onboarding placeholders
+const getPlaceholderText = (hasActiveThread: boolean, hasCompletedTransmutation: boolean): string => {
+  if (hasActiveThread) {
+    return "Continue exploring what you're feeling...";
+  }
+  if (hasCompletedTransmutation) {
+    return `For example:
+"I was bullied for years and it affected how I see myself."
+"One of my parents left when I was young."
+"I lost someone important and never fully processed it."`;
+  }
+  return `For example:
+"I left my business and moved to another country."
+"I ended a long relationship and had to rebuild myself."
+"I failed at something I deeply cared about."`;
+};
+
 // Types for conversation history
 interface ConversationEntry {
   role: 'user' | 'inner_self';
@@ -101,6 +118,36 @@ const InnerSelfCouncil = ({ embedded = false }: InnerSelfCouncilProps) => {
   const [showPatternCelebration, setShowPatternCelebration] = useState(false);
   const [createdPatternId, setCreatedPatternId] = useState<string | null>(null);
   const [showAgeQuestion, setShowAgeQuestion] = useState(false);
+
+  // Onboarding state detection
+  const [hasCompletedTransmutation, setHasCompletedTransmutation] = useState(false);
+  const [isLoadingOnboardingState, setIsLoadingOnboardingState] = useState(true);
+
+  // Check if user has completed any transmutation cycles
+  useEffect(() => {
+    const checkTransmutationHistory = async () => {
+      const { data: { user } } = await supabase.auth.getUser();
+      if (!user) {
+        setIsLoadingOnboardingState(false);
+        return;
+      }
+      
+      const { data: transmutedPatterns, error } = await supabase
+        .from("inner_patterns")
+        .select("id")
+        .eq("user_id", user.id)
+        .or("status.eq.transmuted,transformed_at.not.is.null")
+        .limit(1);
+      
+      if (!error && transmutedPatterns && transmutedPatterns.length > 0) {
+        setHasCompletedTransmutation(true);
+      }
+      
+      setIsLoadingOnboardingState(false);
+    };
+    
+    checkTransmutationHistory();
+  }, []);
 
   // Track if we have an active thread
   const hasActiveThread = conversationHistory.length > 0;
@@ -366,7 +413,7 @@ const InnerSelfCouncil = ({ embedded = false }: InnerSelfCouncilProps) => {
         </div>
 
         {/* Council Introduction Card */}
-        {!hasActiveThread && stage === 'input' && (
+        {!hasActiveThread && stage === 'input' && !isLoadingOnboardingState && (
           <motion.div
             initial={{ opacity: 0, y: 10 }}
             animate={{ opacity: 1, y: 0 }}
@@ -382,20 +429,46 @@ const InnerSelfCouncil = ({ embedded = false }: InnerSelfCouncilProps) => {
                   ))}
                 </div>
                 
-                <div className="space-y-3 pt-2">
-                  <p className="text-sm text-muted-foreground">
-                    Now that we know what you're building, let's look at what's happening <strong>inside you</strong>.
-                  </p>
-                  <p className="text-sm text-muted-foreground">
-                    This is a safe space. You can share as much or as little as you want.
-                  </p>
-                  <p className="text-sm text-muted-foreground">
-                    Let's start with something real. Not dramatic. Just meaningful.
-                  </p>
-                  <p className="text-sm font-medium text-foreground">
-                    Tell us about a life event that challenged you or changed you.
-                  </p>
-                </div>
+                {/* State-aware onboarding copy */}
+                {hasCompletedTransmutation ? (
+                  // STATE 2: Returning User - Deeper Emotional Exploration
+                  <div className="space-y-3 pt-2">
+                    <p className="text-base font-medium text-foreground">
+                      You've already worked through something important here.
+                    </p>
+                    <p className="text-sm text-muted-foreground">
+                      If you feel ready, this space can hold something deeper this time.
+                    </p>
+                    <p className="text-sm text-muted-foreground">
+                      You might choose a life moment that still carries emotional weight for you.
+                      Something that shaped you in a lasting way.
+                    </p>
+                    <p className="text-sm text-muted-foreground">
+                      Or, if that doesn't feel right today, you can share another meaningful experience instead.
+                      <strong> You're always in control.</strong>
+                    </p>
+                  </div>
+                ) : (
+                  // STATE 1: First Time User - Life Event Focus
+                  <div className="space-y-3 pt-2">
+                    <p className="text-base font-medium text-foreground">
+                      Let's pause for a moment and look inward.
+                    </p>
+                    <p className="text-sm text-muted-foreground">
+                      This is a safe space. You're in control of what you share.
+                    </p>
+                    <p className="text-sm text-muted-foreground">
+                      To begin, think about a life event that challenged you, changed you, or marked a turning point for you.
+                    </p>
+                    <p className="text-sm text-muted-foreground">
+                      It doesn't have to be dramatic or traumatic.
+                      It could be a big decision, a transition, a failure, a loss, or a moment when life pushed you in a new direction.
+                    </p>
+                    <p className="text-sm font-medium text-foreground">
+                      Share what feels meaningful to you right now.
+                    </p>
+                  </div>
+                )}
               </CardContent>
             </Card>
           </motion.div>
@@ -439,15 +512,7 @@ const InnerSelfCouncil = ({ embedded = false }: InnerSelfCouncilProps) => {
           </CardHeader>
           <CardContent className="space-y-4">
             <Textarea
-              placeholder={hasActiveThread 
-                ? "Continue exploring what you're feeling..." 
-                : `Examples:
-• "I moved to another country and felt lost"
-• "I broke my leg and had to stop everything"
-• "I ended a long relationship"
-• "I failed a business"
-• "I lost someone important"
-• "I left my comfort zone for the first time"`}
+              placeholder={getPlaceholderText(hasActiveThread, hasCompletedTransmutation)}
               value={question}
               onChange={(e) => setQuestion(e.target.value)}
               rows={5}
