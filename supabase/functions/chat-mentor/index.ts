@@ -2209,7 +2209,7 @@ IMPORTANT: Continue this conversation naturally. You reached out to the user abo
     }
 
     const aiData = await aiResponse.json();
-    const response = aiData.choices[0].message.content;
+    let response = aiData.choices[0].message.content;
 
     // === DETECT HANDOFF SIGNALS ===
     let suggestedHandoff = null;
@@ -2885,6 +2885,42 @@ Only return isCoherent: true if:
       }
     }
 
+    // === PATTERN DETECTION (Inner Clarity Mentor) ===
+    // Extract pattern JSON and clean response when [PATTERN_READY] is detected
+    let patternDetection = null;
+    
+    if (response.includes('[PATTERN_READY]') && mentorType === 'inner_clarity_mentor') {
+      console.log("[chat-mentor] [PATTERN_READY] marker detected in response");
+      
+      // Extract JSON block from response
+      const jsonMatch = response.match(/```json\s*([\s\S]*?)```/);
+      if (jsonMatch && jsonMatch[1]) {
+        try {
+          patternDetection = JSON.parse(jsonMatch[1].trim());
+          console.log("[chat-mentor] Pattern detection parsed successfully:", patternDetection?.patternName);
+          
+          // Clean the response - remove the JSON block and marker
+          response = response
+            .replace(/```json[\s\S]*?```/g, '')
+            .replace(/\[PATTERN_READY\]/g, '')
+            .trim();
+          
+          console.log("[chat-mentor] Response cleaned, length:", response.length);
+        } catch (e) {
+          console.error("[chat-mentor] Failed to parse pattern JSON:", e);
+          // Still clean the raw JSON from response even if parsing fails
+          response = response
+            .replace(/```json[\s\S]*?```/g, '')
+            .replace(/\[PATTERN_READY\]/g, '')
+            .trim();
+        }
+      } else {
+        // No JSON block found but marker exists - clean the marker
+        response = response.replace(/\[PATTERN_READY\]/g, '').trim();
+        console.log("[chat-mentor] [PATTERN_READY] marker found but no JSON block");
+      }
+    }
+
     // === KEYWORD EXTRACTION ===
     // Extract meaningful keywords from user message and mentor response
     let extractedKeywords: string[] = [];
@@ -2949,7 +2985,8 @@ If no meaningful keywords found, return: {"keywords": []}`;
         suggestedHandoff,
         conversationDepth,
         projectCoherence, // PDR v2.1: For Commitment Card
-        extractedKeywords // New: For keyword tracking
+        extractedKeywords, // For keyword tracking
+        patternDetection // For Pattern Discovery Card (Inner Work Lab)
       }),
       { headers: { ...corsHeaders, "Content-Type": "application/json" } }
     );
