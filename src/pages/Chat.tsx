@@ -19,6 +19,8 @@ import { FirstWinCelebration } from "@/components/FirstWinCelebration";
 import { InlineProjectSuggestion } from "@/components/InlineProjectSuggestion";
 import { KeywordHighlighter } from "@/components/KeywordHighlighter";
 import { useMicroWins } from "@/hooks/useMicroWins";
+import { PatternDiscoveryCard, PatternCelebration } from "@/components/pattern-map";
+import { useInnerPatterns } from "@/hooks/useInnerPatterns";
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -137,6 +139,15 @@ const Chat = ({ mentorTypeOverride, embedded = false, locationState: propState }
   
   // Micro wins for post-first-win celebrations
   const { triggerMicroWin } = useMicroWins();
+  
+  // Inner patterns hook for pattern creation
+  const { createPattern } = useInnerPatterns();
+  
+  // Pattern detection state (Inner Work Lab)
+  const [patternDetection, setPatternDetection] = useState<any>(null);
+  const [showPatternCard, setShowPatternCard] = useState(false);
+  const [showPatternCelebration, setShowPatternCelebration] = useState(false);
+  const [createdPatternId, setCreatedPatternId] = useState<string | null>(null);
   
   // Breakthrough detection
   const {
@@ -605,6 +616,13 @@ const Chat = ({ mentorTypeOverride, embedded = false, locationState: propState }
       // Handle suggested handoff
       if (data.suggestedHandoff?.shouldSuggest) setSuggestedHandoff(data.suggestedHandoff);
 
+      // Handle pattern detection (Inner Clarity Mentor)
+      if (data.patternDetection) {
+        console.log('[Chat] Pattern detection received:', data.patternDetection?.patternName);
+        setPatternDetection(data.patternDetection);
+        setShowPatternCard(true);
+      }
+
       // PDR v2.1: Handle project coherence detection (Commitment Card trigger)
       if (data.projectCoherence?.isCoherent) {
         setProjectCoherence(data.projectCoherence);
@@ -692,6 +710,58 @@ const Chat = ({ mentorTypeOverride, embedded = false, locationState: propState }
     await completeFirstWin();
     triggerMicroWin('naming');
     setShowFirstWinCelebration(true);
+  };
+
+  // Pattern acceptance handler (Inner Work Lab)
+  const handlePatternAccept = async (patternName: string) => {
+    if (!patternDetection) return;
+    
+    try {
+      // Map the extracted data to life_events format for Pattern Map nodes
+      const lifeEventsData = {
+        trigger_event: patternDetection.triggerEvent || '',
+        old_story: patternDetection.oldStory || '',
+        mental_loop: patternDetection.mentalLoop || '',
+        cost: patternDetection.cost || '',
+        protective_role: patternDetection.protectiveRole || '',
+        life_event: patternDetection.lifeEvent || '',
+        life_event_age_category: patternDetection.lifeEventAgeCategory || '',
+      };
+      
+      // Map to transmutation_data for Black Phase (shadow is the old story or trigger)
+      const transmutationData = {
+        shadow: patternDetection.oldStory || patternDetection.triggerEvent || '',
+      };
+      
+      const pattern = await createPattern({
+        pattern_name: patternName,
+        pattern_type: patternDetection.patternType || 'life_event',
+        pattern_description: patternDetection.lifeEvent || '',
+        trigger_context: patternDetection.triggerEvent || '',
+        primary_emotion: patternDetection.primaryEmotion || '',
+        related_emotions: patternDetection.relatedEmotions || [],
+        body_sensation: patternDetection.bodySensation || '',
+        source_mentor: mentorType || 'inner_clarity_mentor',
+        life_events: lifeEventsData,
+        transmutation_data: transmutationData,
+      });
+      
+      if (pattern) {
+        setCreatedPatternId(pattern.id);
+        setShowPatternCard(false);
+        setShowPatternCelebration(true);
+      }
+    } catch (error) {
+      console.error("Failed to create pattern:", error);
+      toast.error("Failed to save pattern");
+    }
+  };
+
+  const handlePatternCelebrationContinue = () => {
+    setShowPatternCelebration(false);
+    if (createdPatternId) {
+      navigate(`/pattern-map/${createdPatternId}`);
+    }
   };
 
   // PDR v2.2: Handle Commitment Card acceptance (First Win moment) with branch support
@@ -972,6 +1042,31 @@ const Chat = ({ mentorTypeOverride, embedded = false, locationState: propState }
         <div className="fixed inset-0 bg-background/80 backdrop-blur-sm z-50 flex items-center justify-center p-4">
           <FirstWinCelebration conceptName={firstWinConceptName} onContinue={() => setShowFirstWinCelebration(false)} />
         </div>
+      )}
+
+      {/* Pattern Discovery Card (Inner Work Lab) */}
+      {showPatternCard && patternDetection && (
+        <PatternDiscoveryCard
+          proposedName={patternDetection.patternName || "Unnamed Pattern"}
+          patternType={patternDetection.patternType || "life_event"}
+          triggerContext={patternDetection.triggerEvent || ""}
+          primaryEmotion={patternDetection.primaryEmotion || ""}
+          summary={patternDetection.lifeEvent || ""}
+          reframe={patternDetection.protectiveRole || ""}
+          onAccept={handlePatternAccept}
+          onKeepExploring={() => {
+            setShowPatternCard(false);
+            setPatternDetection(null);
+          }}
+        />
+      )}
+
+      {/* Pattern Celebration (Inner Work Lab) */}
+      {showPatternCelebration && createdPatternId && (
+        <PatternCelebration
+          patternName={patternDetection?.patternName || "Your Pattern"}
+          onContinue={handlePatternCelebrationContinue}
+        />
       )}
 
       {/* PDR v2.2: Commitment Card as FIXED OVERLAY with context-aware copy */}

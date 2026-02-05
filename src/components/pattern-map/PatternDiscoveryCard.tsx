@@ -25,6 +25,7 @@ const patternTypeLabels: Record<string, string> = {
   self_sabotage: "Self-Sabotage",
   emotional_block: "Emotional Block",
   core_wound: "Core Wound",
+  life_event: "Life Event",
 };
 
 export const PatternDiscoveryCard = ({
@@ -84,7 +85,9 @@ export const PatternDiscoveryCard = ({
               className="space-y-3"
             >
               <h3 className="text-xl font-semibold text-foreground">
-                A pattern is becoming clear.
+                {patternType === 'life_event' 
+                  ? 'A meaningful moment is taking shape.'
+                  : 'A pattern is becoming clear.'}
               </h3>
               
               {summary && (

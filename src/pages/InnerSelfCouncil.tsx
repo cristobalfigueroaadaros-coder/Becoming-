@@ -263,14 +263,32 @@ const InnerSelfCouncil = ({ embedded = false }: InnerSelfCouncilProps) => {
     if (!detectedPattern) return;
     
     try {
+      // Map the extracted data to life_events format for Pattern Map nodes
+      const lifeEventsData = {
+        trigger_event: detectedPattern.triggerEvent || detectedPattern.triggerContext || '',
+        old_story: detectedPattern.oldStory || '',
+        mental_loop: detectedPattern.mentalLoop || '',
+        cost: detectedPattern.cost || '',
+        protective_role: detectedPattern.protectiveRole || '',
+        life_event: detectedPattern.lifeEvent || '',
+        life_event_age_category: detectedPattern.lifeEventAgeCategory || '',
+      };
+      
+      // Map to transmutation_data for Black Phase
+      const transmutationData = {
+        shadow: detectedPattern.oldStory || detectedPattern.triggerEvent || detectedPattern.triggerContext || '',
+      };
+      
       const pattern = await createPattern({
         pattern_name: patternName,
-        pattern_description: detectedPattern.triggerContext || undefined,
-        pattern_type: detectedPattern.patternType || 'limiting_belief',
-        trigger_context: detectedPattern.triggerContext || undefined,
+        pattern_description: detectedPattern.lifeEvent || detectedPattern.triggerContext || undefined,
+        pattern_type: detectedPattern.patternType || 'life_event',
+        trigger_context: detectedPattern.triggerEvent || detectedPattern.triggerContext || undefined,
         primary_emotion: detectedPattern.primaryEmotion || undefined,
         related_emotions: detectedPattern.relatedEmotions || undefined,
         body_sensation: detectedPattern.bodySensation || undefined,
+        life_events: lifeEventsData,
+        transmutation_data: transmutationData,
       });
       
       if (pattern) {
