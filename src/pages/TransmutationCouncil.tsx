@@ -119,8 +119,57 @@ const TransmutationCouncil = () => {
     }
   };
 
-  const handleMentorClick = (mentorType: string) => {
-    navigate(`/council?view=${mentorType}`);
+  const handleMentorClick = async (mentorType: string) => {
+    try {
+      const { data: { user } } = await supabase.auth.getUser();
+      if (!user) {
+        toast.error("Please sign in to continue");
+        navigate("/");
+        return;
+      }
+
+      // Build source messages from the Transmutation Council conversation
+      const sourceMessages = messages.map((msg: Message) => ({
+        role: msg.role === 'user' ? 'user' : 'assistant',
+        content: msg.mentorType && mentorConfig[msg.mentorType] 
+          ? `${mentorConfig[msg.mentorType].name}: ${msg.content}`
+          : msg.content
+      }));
+
+      // Create handoff record
+      const chainId = crypto.randomUUID();
+      const { data: handoff, error: handoffError } = await supabase
+        .from("conversation_handoffs")
+        .insert({
+          user_id: user.id,
+          source_mentor_type: 'transmutation_council',
+          target_mentor_type: mentorType,
+          source_messages: sourceMessages,
+          handoff_chain_id: chainId,
+          chain_position: 1,
+          journey_topic: "Continuing transmutation journey",
+          processed: false,
+          initiated_by: 'transmutation_council'
+        })
+        .select()
+        .single();
+
+      if (handoffError) {
+        console.error("Handoff creation failed:", handoffError);
+        // Fall back to simple navigation
+        navigate(`/council?view=${mentorType}`);
+        return;
+      }
+
+      // Navigate with handoff context
+      navigate(`/council?view=${mentorType}`, { 
+        state: { handoffId: handoff.id } 
+      });
+    } catch (error) {
+      console.error("Error creating handoff:", error);
+      toast.error("Failed to create handoff. Please try again.");
+      navigate(`/council?view=${mentorType}`);
+    }
   };
 
   return (
