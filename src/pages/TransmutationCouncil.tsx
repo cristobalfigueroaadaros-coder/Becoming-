@@ -8,6 +8,8 @@ import { ScrollArea } from "@/components/ui/scroll-area";
 import { ArrowLeft, Send, Loader2, Sparkles } from "lucide-react";
 import { toast } from "sonner";
 import { HighlightedText } from "@/components/HighlightedText";
+import { PatternDiscoveryCard, PatternCelebration } from "@/components/pattern-map";
+import { useInnerPatterns } from "@/hooks/useInnerPatterns";
 
 // Transmutation Council mentors
 const TRANSMUTATION_MENTORS = ['storybreaker_mentor', 'phoenix_mentor', 'stoic_mentor'] as const;
@@ -42,11 +44,46 @@ interface Message {
 
 const TransmutationCouncil = () => {
   const navigate = useNavigate();
+  const { createPattern } = useInnerPatterns();
   const [messages, setMessages] = useState<Message[]>([]);
   const [input, setInput] = useState("");
   const [isLoading, setIsLoading] = useState(false);
   const [questionNumber, setQuestionNumber] = useState(0);
   const messagesEndRef = useRef<HTMLDivElement>(null);
+
+  // State detection for onboarding
+  const [hasCompletedTransmutation, setHasCompletedTransmutation] = useState(false);
+  const [isLoadingState, setIsLoadingState] = useState(true);
+
+  // Pattern detection state
+  const [patternDetection, setPatternDetection] = useState<any>(null);
+  const [showPatternCard, setShowPatternCard] = useState(false);
+  const [showCelebration, setShowCelebration] = useState(false);
+  const [createdPatternId, setCreatedPatternId] = useState<string | null>(null);
+
+  // Check transmutation history on mount
+  useEffect(() => {
+    const checkTransmutationHistory = async () => {
+      const { data: { user } } = await supabase.auth.getUser();
+      if (!user) {
+        setIsLoadingState(false);
+        return;
+      }
+      
+      const { data: transmutedPatterns } = await supabase
+        .from("inner_patterns")
+        .select("id")
+        .eq("user_id", user.id)
+        .or("status.eq.transmuted,transformed_at.not.is.null")
+        .limit(1);
+      
+      if (transmutedPatterns && transmutedPatterns.length > 0) {
+        setHasCompletedTransmutation(true);
+      }
+      setIsLoadingState(false);
+    };
+    checkTransmutationHistory();
+  }, []);
 
   useEffect(() => {
     messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
@@ -98,6 +135,12 @@ const TransmutationCouncil = () => {
             mentorType: answer.mentor,
           }]);
         }
+      }
+
+      // Check for pattern detection from Storybreaker 1:1
+      if (data?.patternDetection) {
+        setPatternDetection(data.patternDetection);
+        setShowPatternCard(true);
       }
 
       // Handle mentor handoff suggestion
@@ -172,6 +215,57 @@ const TransmutationCouncil = () => {
     }
   };
 
+  // Pattern acceptance handler
+  const handlePatternAccept = async (patternName: string) => {
+    if (!patternDetection) return;
+    
+    try {
+      // Map the extracted data to life_events format for Pattern Map nodes
+      const lifeEventsData = {
+        trigger_event: patternDetection.triggerEvent || '',
+        old_story: patternDetection.oldStory || '',
+        mental_loop: patternDetection.mentalLoop || '',
+        cost: patternDetection.cost || patternDetection.fear || '',
+        protective_role: patternDetection.protectiveRole || '',
+        life_event: patternDetection.lifeEvent || '',
+        life_event_age_category: patternDetection.lifeEventAgeCategory || '',
+        primary_emotion: patternDetection.primaryEmotion || '',
+        fears: patternDetection.fears || patternDetection.fear || '',
+      };
+      
+      // Map to transmutation_data for Black Phase
+      const transmutationData = {
+        shadow: patternDetection.oldStory || patternDetection.fear || '',
+      };
+      
+      const pattern = await createPattern({
+        pattern_name: patternName,
+        pattern_type: patternDetection.patternType || 'life_event',
+        pattern_description: patternDetection.lifeEvent || '',
+        trigger_context: patternDetection.triggerEvent || '',
+        primary_emotion: patternDetection.primaryEmotion || '',
+        related_emotions: patternDetection.relatedEmotions || [],
+        body_sensation: patternDetection.bodySensation || '',
+        life_events: lifeEventsData,
+        transmutation_data: transmutationData,
+      });
+      
+      if (pattern) {
+        setCreatedPatternId(pattern.id);
+        setShowPatternCard(false);
+        setShowCelebration(true);
+      }
+    } catch (error) {
+      console.error("Failed to create pattern:", error);
+      toast.error("Failed to save pattern");
+    }
+  };
+
+  const handlePatternCelebrationContinue = () => {
+    setShowCelebration(false);
+    navigate(`/creation-lab?type=becoming&bmode=transmutation`);
+  };
+
   return (
     <div className="min-h-screen bg-background">
       {/* Header */}
@@ -214,18 +308,16 @@ const TransmutationCouncil = () => {
       {/* Chat Area */}
       <div className="container max-w-4xl mx-auto px-4 pb-32">
         <ScrollArea className="h-[calc(100vh-16rem)]">
-          {messages.length === 0 ? (
+          {messages.length === 0 && !isLoadingState ? (
             <Card className="mt-8 border-amber-500/20 bg-gradient-to-br from-amber-500/5 to-orange-500/5">
               <CardHeader>
                 <CardTitle className="flex items-center gap-2 text-lg">
                   <Sparkles className="w-5 h-5 text-amber-500" />
-                  The Transmutation Triangle
+                  The Transmutation Journey
                 </CardTitle>
               </CardHeader>
               <CardContent className="space-y-4">
-                <p className="text-muted-foreground">
-                  Share what you're struggling with. The three mentors will guide you through:
-                </p>
+                {/* Mentor badges */}
                 <div className="grid gap-3">
                   {TRANSMUTATION_MENTORS.map((mentor) => {
                     const config = mentorConfig[mentor];
@@ -240,9 +332,47 @@ const TransmutationCouncil = () => {
                     );
                   })}
                 </div>
-                <p className="text-sm text-muted-foreground italic">
-                  Story → Meaning → Perspective → Action → Identity Upgrade
-                </p>
+
+                {/* State-aware initiation copy */}
+                {hasCompletedTransmutation ? (
+                  <div className="space-y-3 pt-2 border-t border-amber-500/20">
+                    <p className="text-base font-medium text-foreground">
+                      You've already worked through something important here.
+                    </p>
+                    <p className="text-sm text-muted-foreground">
+                      If you feel ready, this space can hold something deeper this time.
+                    </p>
+                    <p className="text-sm text-muted-foreground">
+                      You might choose a life moment that still carries emotional weight for you.
+                      Something that shaped you in a lasting way.
+                    </p>
+                    <p className="text-sm text-muted-foreground">
+                      Or, if that doesn't feel right today, you can share another meaningful experience instead.
+                      <strong> You're always in control.</strong>
+                    </p>
+                  </div>
+                ) : (
+                  <div className="space-y-3 pt-2 border-t border-amber-500/20">
+                    <p className="text-base font-medium text-foreground">
+                      Let's pause for a moment and look inward.
+                    </p>
+                    <p className="text-sm text-muted-foreground">
+                      This is a safe space. You're in control of what you share.
+                    </p>
+                    <p className="text-sm text-muted-foreground">
+                      To begin, think about a life event that challenged you, changed you, 
+                      or marked a turning point for you.
+                    </p>
+                    <p className="text-sm text-muted-foreground">
+                      It doesn't have to be dramatic or traumatic.
+                      It could be a big decision, a transition, a failure, a loss, 
+                      or a moment when life pushed you in a new direction.
+                    </p>
+                    <p className="text-sm font-medium text-foreground">
+                      Share what feels meaningful to you right now.
+                    </p>
+                  </div>
+                )}
               </CardContent>
             </Card>
           ) : (
@@ -285,7 +415,7 @@ const TransmutationCouncil = () => {
           <Input
             value={input}
             onChange={(e) => setInput(e.target.value)}
-            placeholder="Share what you're struggling with..."
+            placeholder="Share what you're ready to transform..."
             className="flex-1"
             disabled={isLoading}
           />
@@ -298,6 +428,30 @@ const TransmutationCouncil = () => {
           </Button>
         </form>
       </div>
+
+      {/* Pattern Discovery Card (Winning Card) */}
+      {showPatternCard && patternDetection && (
+        <PatternDiscoveryCard
+          proposedName={patternDetection.patternName}
+          patternType={patternDetection.patternType || 'life_event'}
+          triggerContext={patternDetection.triggerEvent || ''}
+          primaryEmotion={patternDetection.primaryEmotion || ''}
+          summary={patternDetection.lifeEvent}
+          onAccept={handlePatternAccept}
+          onKeepExploring={() => {
+            setShowPatternCard(false);
+            setPatternDetection(null);
+          }}
+        />
+      )}
+
+      {/* Pattern Celebration */}
+      {showCelebration && patternDetection && (
+        <PatternCelebration
+          patternName={patternDetection.patternName || 'Your Pattern'}
+          onContinue={handlePatternCelebrationContinue}
+        />
+      )}
     </div>
   );
 };

@@ -54,6 +54,8 @@ export interface PatternInput {
   // Auto-populate data from conversation
   life_events?: {
     trigger_event?: string;
+    primary_emotion?: string;
+    fears?: string;
     old_story?: string;
     mental_loop?: string;
     cost?: string;
