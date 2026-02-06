@@ -2,9 +2,10 @@ import { useState, useEffect, useRef } from "react";
 import { useNavigate } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
 import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
+import { Textarea } from "@/components/ui/textarea";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { ScrollArea } from "@/components/ui/scroll-area";
+import { Badge } from "@/components/ui/badge";
 import { ArrowLeft, Send, Loader2, Sparkles } from "lucide-react";
 import { toast } from "sonner";
 import { HighlightedText } from "@/components/HighlightedText";
@@ -286,16 +287,16 @@ const TransmutationCouncil = () => {
         </div>
       </div>
 
-      {/* Mentor Badges */}
+      {/* Mentor Badges - Horizontal scroll on mobile */}
       <div className="container max-w-4xl mx-auto px-4 py-4">
-        <div className="flex gap-2 flex-wrap">
+        <div className="flex gap-2 flex-nowrap overflow-x-auto pb-2 scrollbar-hide">
           {TRANSMUTATION_MENTORS.map((mentor) => {
             const config = mentorConfig[mentor];
             return (
               <button
                 key={mentor}
                 onClick={() => handleMentorClick(mentor)}
-                className={`flex items-center gap-2 px-3 py-1.5 rounded-full text-sm font-medium transition-colors ${config.color} text-white hover:opacity-90`}
+                className={`flex items-center gap-2 px-3 py-1.5 rounded-full text-sm font-medium transition-colors whitespace-nowrap ${config.color} text-white hover:opacity-90`}
               >
                 <span>{config.icon}</span>
                 <span>{config.name}</span>
@@ -317,21 +318,25 @@ const TransmutationCouncil = () => {
                 </CardTitle>
               </CardHeader>
               <CardContent className="space-y-4">
-                {/* Mentor badges */}
-                <div className="grid gap-3">
+                {/* Mentor badges - Horizontal layout */}
+                <div className="flex gap-2 flex-wrap">
                   {TRANSMUTATION_MENTORS.map((mentor) => {
                     const config = mentorConfig[mentor];
                     return (
-                      <div key={mentor} className="flex items-center gap-3 p-3 rounded-lg bg-background/50">
-                        <span className="text-2xl">{config.icon}</span>
-                        <div>
-                          <p className="font-medium">{config.name}</p>
-                          <p className="text-sm text-muted-foreground">{config.role}</p>
-                        </div>
-                      </div>
+                      <Badge
+                        key={mentor}
+                        variant="secondary"
+                        className={`${config.color} text-white px-3 py-1.5 text-sm font-medium`}
+                      >
+                        <span className="mr-1.5">{config.icon}</span>
+                        {config.name}
+                      </Badge>
                     );
                   })}
                 </div>
+                <p className="text-xs text-muted-foreground">
+                  Storybreaker cleans narrative • Phoenix turns pain into power • Stoic brings action
+                </p>
 
                 {/* State-aware initiation copy */}
                 {hasCompletedTransmutation ? (
@@ -411,39 +416,81 @@ const TransmutationCouncil = () => {
 
       {/* Input Area */}
       <div className="fixed bottom-0 left-0 right-0 bg-background border-t border-border p-4">
-        <form onSubmit={handleSubmit} className="container max-w-4xl mx-auto">
-          {messages.length === 0 && !isLoadingState && (
-            <p className="text-xs text-muted-foreground mb-2 text-center italic">
-              {hasCompletedTransmutation 
-                ? 'For example: "I was bullied for years and it affected how I see myself."'
-                : 'For example: "I left my business and moved to another country."'
-              }
-            </p>
+        <form onSubmit={handleSubmit} className="container max-w-4xl mx-auto space-y-3">
+          {/* Always-visible example chips when no messages */}
+          {messages.length === 0 && (
+            <div className="space-y-2">
+              <p className="text-xs text-muted-foreground text-center">
+                Tap an example or type your own:
+              </p>
+              <div className="flex gap-2 flex-wrap justify-center">
+                {(hasCompletedTransmutation ? [
+                  "I was bullied for years and it affected how I see myself.",
+                  "One of my parents left when I was young.",
+                  "I lost someone important and never fully processed it."
+                ] : [
+                  "I left my business and moved to another country.",
+                  "I ended a long relationship and had to rebuild myself.",
+                  "I failed at something I deeply cared about."
+                ]).map((example, idx) => (
+                  <button
+                    key={idx}
+                    type="button"
+                    onClick={() => setInput(example)}
+                    className="text-xs px-3 py-1.5 rounded-full bg-amber-500/10 hover:bg-amber-500/20 text-amber-600 dark:text-amber-400 border border-amber-500/20 transition-colors truncate max-w-[280px]"
+                  >
+                    "{example.length > 40 ? example.slice(0, 40) + '...' : example}"
+                  </button>
+                ))}
+              </div>
+            </div>
           )}
-          <div className="flex gap-2">
-            <Input
+          
+          <div className="flex gap-2 items-end">
+            <Textarea
               value={input}
               onChange={(e) => setInput(e.target.value)}
+              onKeyDown={(e) => {
+                if (e.key === 'Enter' && !e.shiftKey) {
+                  e.preventDefault();
+                  if (input.trim() && !isLoading) {
+                    handleSubmit(e as any);
+                  }
+                }
+              }}
               placeholder={messages.length > 0 
                 ? "Continue sharing..." 
                 : "Share a life event that challenged or changed you..."
               }
-              className="flex-1"
+              className="flex-1 min-h-[48px] max-h-[120px] resize-none"
+              rows={2}
               disabled={isLoading}
             />
-            <Button type="submit" disabled={isLoading || !input.trim()}>
+            <Button 
+              type="submit" 
+              disabled={isLoading || !input.trim()}
+              className={messages.length === 0 ? "bg-amber-600 hover:bg-amber-500 px-4" : ""}
+              size={messages.length === 0 ? "default" : "icon"}
+            >
               {isLoading ? (
                 <Loader2 className="w-4 h-4 animate-spin" />
               ) : messages.length === 0 ? (
                 <span className="flex items-center gap-2">
                   <Sparkles className="w-4 h-4" />
-                  Begin
+                  Ask the Council
                 </span>
               ) : (
                 <Send className="w-4 h-4" />
               )}
             </Button>
           </div>
+          
+          {/* Helper text when empty */}
+          {messages.length === 0 && !input.trim() && (
+            <p className="text-[10px] text-muted-foreground text-center">
+              Type a life event or tap an example to begin
+            </p>
+          )}
         </form>
       </div>
 
