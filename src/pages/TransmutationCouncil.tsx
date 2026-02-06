@@ -268,11 +268,12 @@ const TransmutationCouncil = () => {
   };
 
   return (
-    <div className="min-h-screen bg-background">
+    <div className="h-screen bg-background flex flex-col">
       {/* Header */}
       <div className="border-b border-border bg-card/50 sticky top-0 z-10">
         <div className="container max-w-4xl mx-auto px-4 py-4 flex items-center gap-4">
-          <Button variant="ghost" size="icon" onClick={() => navigate("/council")}>
+          <Button variant="ghost" size="icon" onClick={() => navigate("/council")}
+          >
             <ArrowLeft className="w-5 h-5" />
           </Button>
           <div className="flex items-center gap-3">
@@ -288,7 +289,7 @@ const TransmutationCouncil = () => {
       </div>
 
       {/* Mentor Badges - Horizontal scroll on mobile */}
-      <div className="container max-w-4xl mx-auto px-4 py-4">
+      <div className="container max-w-4xl mx-auto px-4 py-4 shrink-0">
         <div className="flex gap-2 flex-nowrap overflow-x-auto pb-2 scrollbar-hide">
           {TRANSMUTATION_MENTORS.map((mentor) => {
             const config = mentorConfig[mentor];
@@ -306,192 +307,193 @@ const TransmutationCouncil = () => {
         </div>
       </div>
 
-      {/* Chat Area */}
-      <div className="container max-w-4xl mx-auto px-4 pb-32">
-        <ScrollArea className="h-[calc(100vh-16rem)]">
-          {messages.length === 0 && !isLoadingState ? (
-            <Card className="mt-8 border-amber-500/20 bg-gradient-to-br from-amber-500/5 to-orange-500/5">
-              <CardHeader>
-                <CardTitle className="flex items-center gap-2 text-lg">
-                  <Sparkles className="w-5 h-5 text-amber-500" />
-                  The Transmutation Journey
-                </CardTitle>
-              </CardHeader>
-              <CardContent className="space-y-4">
-                {/* Mentor badges - Horizontal layout */}
-                <div className="flex gap-2 flex-wrap">
-                  {TRANSMUTATION_MENTORS.map((mentor) => {
-                    const config = mentorConfig[mentor];
-                    return (
-                      <Badge
-                        key={mentor}
-                        variant="secondary"
-                        className={`${config.color} text-white px-3 py-1.5 text-sm font-medium`}
-                      >
-                        <span className="mr-1.5">{config.icon}</span>
-                        {config.name}
-                      </Badge>
-                    );
-                  })}
-                </div>
-                <p className="text-xs text-muted-foreground">
-                  Storybreaker cleans narrative • Phoenix turns pain into power • Stoic brings action
-                </p>
+      {/* Chat + input */}
+      <div className="flex-1 overflow-hidden">
+        <div className="container max-w-4xl mx-auto px-4 h-full flex flex-col">
+          <div className="flex-1 overflow-hidden pb-4">
+            <ScrollArea className="h-full">
+              {messages.length === 0 && !isLoadingState ? (
+                <Card className="mt-8 border-amber-500/20 bg-gradient-to-br from-amber-500/5 to-orange-500/5">
+                  <CardHeader>
+                    <CardTitle className="flex items-center gap-2 text-lg">
+                      <Sparkles className="w-5 h-5 text-amber-500" />
+                      The Transmutation Journey
+                    </CardTitle>
+                  </CardHeader>
+                  <CardContent className="space-y-4">
+                    {/* Mentor badges - Horizontal layout */}
+                    <div className="flex gap-2 flex-wrap">
+                      {TRANSMUTATION_MENTORS.map((mentor) => {
+                        const config = mentorConfig[mentor];
+                        return (
+                          <Badge
+                            key={mentor}
+                            variant="secondary"
+                            className={`${config.color} text-white px-3 py-1.5 text-sm font-medium`}
+                          >
+                            <span className="mr-1.5">{config.icon}</span>
+                            {config.name}
+                          </Badge>
+                        );
+                      })}
+                    </div>
+                    <p className="text-xs text-muted-foreground">
+                      Storybreaker cleans narrative • Phoenix turns pain into power • Stoic brings action
+                    </p>
 
-                {/* State-aware initiation copy */}
-                {hasCompletedTransmutation ? (
-                  <div className="space-y-3 pt-2 border-t border-amber-500/20">
-                    <p className="text-base font-medium text-foreground">
-                      You've already worked through something important here.
-                    </p>
-                    <p className="text-sm text-muted-foreground">
-                      If you feel ready, this space can hold something deeper this time.
-                    </p>
-                    <p className="text-sm text-muted-foreground">
-                      You might choose a life moment that still carries emotional weight for you.
-                      Something that shaped you in a lasting way.
-                    </p>
-                    <p className="text-sm text-muted-foreground">
-                      Or, if that doesn't feel right today, you can share another meaningful experience instead.
-                      <strong> You're always in control.</strong>
-                    </p>
-                  </div>
-                ) : (
-                  <div className="space-y-3 pt-2 border-t border-amber-500/20">
-                    <p className="text-base font-medium text-foreground">
-                      Let's pause for a moment and look inward.
-                    </p>
-                    <p className="text-sm text-muted-foreground">
-                      This is a safe space. You're in control of what you share.
-                    </p>
-                    <p className="text-sm text-muted-foreground">
-                      To begin, think about a life event that challenged you, changed you, 
-                      or marked a turning point for you.
-                    </p>
-                    <p className="text-sm text-muted-foreground">
-                      It doesn't have to be dramatic or traumatic.
-                      It could be a big decision, a transition, a failure, a loss, 
-                      or a moment when life pushed you in a new direction.
-                    </p>
-                    <p className="text-sm font-medium text-foreground">
-                      Share what feels meaningful to you right now.
-                    </p>
-                  </div>
-                )}
-              </CardContent>
-            </Card>
-          ) : (
-            <div className="space-y-4 py-4">
-              {messages.map((message) => (
-                <div
-                  key={message.id}
-                  className={`flex ${message.role === "user" ? "justify-end" : "justify-start"}`}
-                >
-                  <div
-                    className={`max-w-[85%] rounded-2xl px-4 py-3 ${
-                      message.role === "user"
-                        ? "bg-primary text-primary-foreground"
-                        : message.mentorType === "system"
-                        ? "bg-amber-500/10 border border-amber-500/20"
-                        : "bg-muted"
-                    }`}
-                  >
-                    {message.mentorType && message.mentorType !== "system" && mentorConfig[message.mentorType] && (
-                      <div className="flex items-center gap-2 mb-2 pb-2 border-b border-border/50">
-                        <span className="text-lg">{mentorConfig[message.mentorType].icon}</span>
-                        <span className="font-medium text-sm">{mentorConfig[message.mentorType].name}</span>
+                    {/* State-aware initiation copy */}
+                    {hasCompletedTransmutation ? (
+                      <div className="space-y-3 pt-2 border-t border-amber-500/20">
+                        <p className="text-base font-medium text-foreground">
+                          You've already worked through something important here.
+                        </p>
+                        <p className="text-sm text-muted-foreground">
+                          If you feel ready, this space can hold something deeper this time.
+                        </p>
+                        <p className="text-sm text-muted-foreground">
+                          You might choose a life moment that still carries emotional weight for you.
+                          Something that shaped you in a lasting way.
+                        </p>
+                        <p className="text-sm text-muted-foreground">
+                          Or, if that doesn't feel right today, you can share another meaningful experience instead.
+                          <strong> You're always in control.</strong>
+                        </p>
+                      </div>
+                    ) : (
+                      <div className="space-y-3 pt-2 border-t border-amber-500/20">
+                        <p className="text-base font-medium text-foreground">
+                          Let's pause for a moment and look inward.
+                        </p>
+                        <p className="text-sm text-muted-foreground">
+                          This is a safe space. You're in control of what you share.
+                        </p>
+                        <p className="text-sm text-muted-foreground">
+                          To begin, think about a life event that challenged you, changed you,
+                          or marked a turning point for you.
+                        </p>
+                        <p className="text-sm text-muted-foreground">
+                          It doesn't have to be dramatic or traumatic.
+                          It could be a big decision, a transition, a failure, a loss,
+                          or a moment when life pushed you in a new direction.
+                        </p>
+                        <p className="text-sm font-medium text-foreground">
+                          Share what feels meaningful to you right now.
+                        </p>
                       </div>
                     )}
-                    <div className="prose prose-sm dark:prose-invert max-w-none text-sm">
-                      <HighlightedText text={message.content} />
-                    </div>
-                  </div>
-                </div>
-              ))}
-              <div ref={messagesEndRef} />
-            </div>
-          )}
-        </ScrollArea>
-      </div>
 
-      {/* Input Area */}
-      <div className="fixed bottom-0 left-0 right-0 bg-background border-t border-border p-4">
-        <form onSubmit={handleSubmit} className="container max-w-4xl mx-auto space-y-3">
-          {/* Always-visible example chips when no messages */}
-          {messages.length === 0 && (
-            <div className="space-y-2">
-              <p className="text-xs text-muted-foreground text-center">
-                Tap an example or type your own:
-              </p>
-              <div className="flex gap-2 flex-wrap justify-center">
-                {(hasCompletedTransmutation ? [
-                  "I was bullied for years and it affected how I see myself.",
-                  "One of my parents left when I was young.",
-                  "I lost someone important and never fully processed it."
-                ] : [
-                  "I left my business and moved to another country.",
-                  "I ended a long relationship and had to rebuild myself.",
-                  "I failed at something I deeply cared about."
-                ]).map((example, idx) => (
-                  <button
-                    key={idx}
-                    type="button"
-                    onClick={() => setInput(example)}
-                    className="text-xs px-3 py-1.5 rounded-full bg-amber-500/10 hover:bg-amber-500/20 text-amber-600 dark:text-amber-400 border border-amber-500/20 transition-colors truncate max-w-[280px]"
-                  >
-                    "{example.length > 40 ? example.slice(0, 40) + '...' : example}"
-                  </button>
-                ))}
-              </div>
-            </div>
-          )}
-          
-          <div className="flex gap-2 items-end">
-            <Textarea
-              value={input}
-              onChange={(e) => setInput(e.target.value)}
-              onKeyDown={(e) => {
-                if (e.key === 'Enter' && !e.shiftKey) {
-                  e.preventDefault();
-                  if (input.trim() && !isLoading) {
-                    handleSubmit(e as any);
-                  }
-                }
-              }}
-              placeholder={messages.length > 0 
-                ? "Continue sharing..." 
-                : "Share a life event that challenged or changed you..."
-              }
-              className="flex-1 min-h-[48px] max-h-[120px] resize-none"
-              rows={2}
-              disabled={isLoading}
-            />
-            <Button 
-              type="submit" 
-              disabled={isLoading || !input.trim()}
-              className={messages.length === 0 ? "bg-amber-600 hover:bg-amber-500 px-4" : ""}
-              size={messages.length === 0 ? "default" : "icon"}
-            >
-              {isLoading ? (
-                <Loader2 className="w-4 h-4 animate-spin" />
-              ) : messages.length === 0 ? (
-                <span className="flex items-center gap-2">
-                  <Sparkles className="w-4 h-4" />
-                  Ask the Council
-                </span>
+                    {/* Examples (always visible in the intro card) */}
+                    <div className="pt-2 border-t border-amber-500/20">
+                      <p className="text-xs text-muted-foreground mb-2">Examples you can copy:</p>
+                      <div className="flex gap-2 flex-wrap">
+                        {(hasCompletedTransmutation
+                          ? [
+                              "I was bullied for years and it affected how I see myself.",
+                              "One of my parents left when I was young.",
+                              "I lost someone important and never fully processed it.",
+                            ]
+                          : [
+                              "I left my business and moved to another country.",
+                              "I ended a long relationship and had to rebuild myself.",
+                              "I failed at something I deeply cared about.",
+                            ]
+                        ).map((example, idx) => (
+                          <button
+                            key={idx}
+                            type="button"
+                            onClick={() => setInput(example)}
+                            className="text-xs px-3 py-1.5 rounded-full bg-amber-500/10 hover:bg-amber-500/20 text-amber-600 dark:text-amber-400 border border-amber-500/20 transition-colors"
+                          >
+                            {example}
+                          </button>
+                        ))}
+                      </div>
+                    </div>
+                  </CardContent>
+                </Card>
               ) : (
-                <Send className="w-4 h-4" />
+                <div className="space-y-4 py-4">
+                  {messages.map((message) => (
+                    <div
+                      key={message.id}
+                      className={`flex ${message.role === "user" ? "justify-end" : "justify-start"}`}
+                    >
+                      <div
+                        className={`max-w-[85%] rounded-2xl px-4 py-3 ${
+                          message.role === "user"
+                            ? "bg-primary text-primary-foreground"
+                            : message.mentorType === "system"
+                            ? "bg-amber-500/10 border border-amber-500/20"
+                            : "bg-muted"
+                        }`}
+                      >
+                        {message.mentorType &&
+                          message.mentorType !== "system" &&
+                          mentorConfig[message.mentorType] && (
+                            <div className="flex items-center gap-2 mb-2 pb-2 border-b border-border/50">
+                              <span className="text-lg">{mentorConfig[message.mentorType].icon}</span>
+                              <span className="font-medium text-sm">{mentorConfig[message.mentorType].name}</span>
+                            </div>
+                          )}
+                        <div className="prose prose-sm dark:prose-invert max-w-none text-sm">
+                          <HighlightedText text={message.content} />
+                        </div>
+                      </div>
+                    </div>
+                  ))}
+                  <div ref={messagesEndRef} />
+                </div>
               )}
-            </Button>
+            </ScrollArea>
           </div>
-          
-          {/* Helper text when empty */}
-          {messages.length === 0 && !input.trim() && (
-            <p className="text-[10px] text-muted-foreground text-center">
-              Type a life event or tap an example to begin
-            </p>
-          )}
-        </form>
+
+          {/* Input Area */}
+          <div className="shrink-0 bg-background border-t border-border p-4">
+            <form onSubmit={handleSubmit} className="space-y-2">
+              <div className="flex gap-2 items-end">
+                <Textarea
+                  value={input}
+                  onChange={(e) => setInput(e.target.value)}
+                  onKeyDown={(e) => {
+                    if (e.key === "Enter" && !e.shiftKey) {
+                      e.preventDefault();
+                      if (input.trim() && !isLoading) {
+                        handleSubmit(e as any);
+                      }
+                    }
+                  }}
+                  placeholder={messages.length > 0 ? "Continue sharing..." : "Share a life event that challenged or changed you..."}
+                  className="flex-1 min-h-[48px] max-h-[120px] resize-none"
+                  rows={2}
+                  disabled={isLoading}
+                />
+                <Button
+                  type="submit"
+                  disabled={isLoading || !input.trim()}
+                  className={messages.length === 0 ? "bg-amber-600 hover:bg-amber-500 px-4" : ""}
+                  size={messages.length === 0 ? "default" : "icon"}
+                >
+                  {isLoading ? (
+                    <Loader2 className="w-4 h-4 animate-spin" />
+                  ) : messages.length === 0 ? (
+                    <span className="flex items-center gap-2">
+                      <Sparkles className="w-4 h-4" />
+                      Ask the Council
+                    </span>
+                  ) : (
+                    <Send className="w-4 h-4" />
+                  )}
+                </Button>
+              </div>
+
+              {messages.length === 0 && !input.trim() && (
+                <p className="text-[10px] text-muted-foreground text-center">
+                  Type a life event (or tap an example above) to begin
+                </p>
+              )}
+            </form>
+          </div>
+        </div>
       </div>
 
       {/* Pattern Discovery Card (Winning Card) */}
