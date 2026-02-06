@@ -1,151 +1,91 @@
 
+## Goals (what will change)
+1. On **/transmutation-council**, the **answer input** (the field where the user replies) will always show:
+   - A clear **placeholder**
+   - A visible **example block** (so users see examples even if placeholders don’t render well on mobile)
+   - A primary action button labeled **“Ask the Transmutation Council”** (instead of “Begin”), and it will be visually obvious.
+2. The mentor names **Storybreaker / Phoenix / Stoic** will be displayed **horizontally** (not stacked vertically), both:
+   - In the top “mentor badges” row (already horizontal, but we’ll ensure it never collapses into a tall stack)
+   - Inside the initiation card (currently rendered as a vertical grid list)
 
-# Fix: Transmutation Council Input Enhancement & Navigation Links
+## Why it currently “doesn’t exist” for you
+From the current `src/pages/TransmutationCouncil.tsx`:
+- The examples text above the input is gated by `messages.length === 0 && !isLoadingState`.
+  - If `isLoadingState` stays `true` for any reason (slow auth call, transient backend delay), the example line never appears.
+- The button label changes to **Begin** only when `messages.length === 0`, and it is **disabled** until you type something (`disabled={!input.trim()}`), which can feel like “not activated”.
+- The initiation card shows mentors in a **vertical `grid`**, which makes “Storybreaker / Phoenix / Stoic” appear stacked and wastes space.
 
-## Summary
+## Implementation (code changes)
 
-This plan addresses two issues:
-1. **Transmutation Council** - Add placeholder with examples and ensure the action button is properly visible/functional
-2. **Becoming Path** - Fix navigation links in Pattern Map and Transmutation Map to link to Transmutation Council instead of Inner Self Council
-
----
-
-## Part 1: Transmutation Council Input Enhancement
-
+### A) Fix the input placeholder + examples + action button (TransmutationCouncil)
 **File:** `src/pages/TransmutationCouncil.tsx`
 
-### Current State (lines 415-429):
-The input currently has a simple placeholder: `"Share what you're ready to transform..."`
+1. **Make the example helper always render (remove `!isLoadingState` gating)**  
+   - Show examples based on:
+     - `messages.length === 0`
+     - `hasCompletedTransmutation` (defaults false while loading; that’s fine—better to show something than nothing)
 
-### Changes:
+2. **Use a Textarea (not Input) for better placeholder + multi-line examples**
+   - Swap `<Input />` to `<Textarea />` (already used elsewhere in the app and supports multi-line UX better)
+   - Keep it 2–4 rows tall (`min-h`, `rows={3}`), non-resizable (`resize-none`), mobile-friendly.
 
-1. **Add state-aware placeholder with examples** based on whether user has completed transmutation before
+3. **Add an always-visible “Examples” block (not just placeholder)**
+   - Under the Textarea (or above it), show 2–3 clickable example chips:
+     - Clicking a chip fills the textarea (`setInput(example)`).
+   - This ensures examples are visible even if placeholder styling is subtle.
 
-2. **Update input placeholder** to include example text:
+4. **Change the CTA button label when starting**
+   - When `messages.length === 0`, button text becomes:
+     - **“Ask the Transmutation Council”** (with `Sparkles` icon)
+   - When conversation already started, keep the send icon.
 
-**For first-time users:**
-```
-For example:
-"I left my business and moved to another country."
-"I ended a long relationship and had to rebuild myself."
-"I failed at something I deeply cared about."
-```
+5. **Make “button not activated” feel intentional**
+   - Keep disabling when empty (to prevent empty submits), but add helper microcopy:
+     - If empty: show a tiny hint like “Type a life event (or tap an example) to begin.”
 
-**For returning users:**
-```
-For example:
-"I was bullied for years and it affected how I see myself."
-"One of my parents left when I was young."
-"I lost someone important and never fully processed it."
-```
-
-3. **Enhance action button** - Add a more prominent "Begin Transmutation" CTA when no messages exist
+**Outcome:** The user will always see the prompt/examples + the correct CTA label in the exact place they respond.
 
 ---
 
-## Part 2: Fix Navigation Links
+### B) Make Storybreaker / Phoenix / Stoic horizontal (no vertical stacking)
+**File:** `src/pages/TransmutationCouncil.tsx`
 
-### 2.1 BecomingPatternMap.tsx
+There are two places to fix:
 
-**File:** `src/components/creation-lab/BecomingPatternMap.tsx`
+1. **Top mentor badges row** (already `flex gap-2 flex-wrap`)
+   - Keep it horizontal but reduce the chance it becomes tall:
+     - Add `overflow-x-auto` + `whitespace-nowrap` + `flex-nowrap` on small screens
+     - This makes it a horizontal scroll row on mobile instead of wrapping into many lines.
 
-| Line | Current | Change To |
-|------|---------|-----------|
-| 79 | `navigate("/council?view=inner_clarity_mentor")` | `navigate("/transmutation-council")` |
-| 101 | `navigate("/inner-self-council")` | `navigate("/transmutation-council")` |
-| 97-98 | "Explore your inner landscape with the Inner Self Mentor" | "Explore your inner landscape with the Transmutation Council" |
-| 104-105 | "Start Pattern Exploration" | "Start Pattern Exploration" |
-| 189-190 | "Continue with Inner Self Mentor" | "Continue with Transmutation Council" |
+2. **Initiation card mentor section** (currently a vertical `grid gap-3`)
+   - Replace the vertical list with horizontal chips:
+     - `div className="flex flex-wrap gap-2"` on desktop
+     - `flex-nowrap overflow-x-auto` on mobile
+   - Each chip shows: icon + name only (role text removed from this area to avoid height bloat)
+   - If you still want roles, we can show them in a compact tooltip/secondary line *below* the chips (optional).
 
-### 2.2 BecomingTransmutation.tsx
-
-**File:** `src/components/creation-lab/BecomingTransmutation.tsx`
-
-| Line | Current | Change To |
-|------|---------|-----------|
-| 272 | `navigate("/inner-self-council")` | `navigate("/transmutation-council")` |
-| 294 | `navigate("/inner-self-council")` | `navigate("/transmutation-council")` |
-| 289 | "Before you can transmute pain into gold, you need to first discover and map a pattern." | Keep as is (copy is fine) |
+**Outcome:** “Storybreaker / Phoenix / Stoic” stays horizontal, uses minimal vertical space, and matches your intended layout.
 
 ---
 
-## Implementation Details
+## Files to change
+- `src/pages/TransmutationCouncil.tsx`
+  - Input area: switch Input → Textarea, always show examples, rename CTA button
+  - Initiation card mentor display: grid → horizontal chips
+  - Top mentor row: force horizontal scroll on small screens instead of wrapping
 
-### TransmutationCouncil.tsx Changes
+## Testing checklist (what I’ll verify in preview)
+1. Navigate to `/transmutation-council` on desktop + mobile widths:
+   - See examples immediately without needing any load to finish.
+   - See Textarea placeholder and an examples area.
+   - See button labeled “Ask the Transmutation Council”.
+2. Ensure button submits correctly and conversation flow continues unchanged.
+3. Confirm mentor names are horizontal in:
+   - Top row
+   - Initiation card
+4. Confirm no overlap with the fixed bottom input (input remains visible while scrolling).
 
-```tsx
-// Add helper function for placeholder text
-const getPlaceholderText = () => {
-  if (messages.length > 0) {
-    return "Share what you're ready to transform...";
-  }
-  
-  if (hasCompletedTransmutation) {
-    return `For example:\n"I was bullied for years and it affected how I see myself."\n"One of my parents left when I was young."\n"I lost someone important and never fully processed it."`;
-  }
-  
-  return `For example:\n"I left my business and moved to another country."\n"I ended a long relationship and had to rebuild myself."\n"I failed at something I deeply cared about."`;
-};
-
-// Replace Input with Textarea for multi-line placeholder support
-// And add a prominent CTA button when no messages exist
-```
-
-### Updated Input Area (lines 412-430):
-
-```tsx
-{/* Input Area */}
-<div className="fixed bottom-0 left-0 right-0 bg-background border-t border-border p-4">
-  <form onSubmit={handleSubmit} className="container max-w-4xl mx-auto">
-    {messages.length === 0 && !isLoadingState && (
-      <p className="text-xs text-muted-foreground mb-2 text-center">
-        {hasCompletedTransmutation 
-          ? 'For example: "I was bullied for years and it affected how I see myself."'
-          : 'For example: "I left my business and moved to another country."'
-        }
-      </p>
-    )}
-    <div className="flex gap-2">
-      <Input
-        value={input}
-        onChange={(e) => setInput(e.target.value)}
-        placeholder={messages.length > 0 
-          ? "Continue sharing..." 
-          : "Share a life event that challenged or changed you..."
-        }
-        className="flex-1"
-        disabled={isLoading}
-      />
-      <Button type="submit" disabled={isLoading || !input.trim()}>
-        {isLoading ? (
-          <Loader2 className="w-4 h-4 animate-spin" />
-        ) : (
-          <Send className="w-4 h-4" />
-        )}
-      </Button>
-    </div>
-  </form>
-</div>
-```
-
----
-
-## File Summary
-
-| File | Changes |
-|------|---------|
-| `src/pages/TransmutationCouncil.tsx` | Add placeholder examples, update input area with helper text |
-| `src/components/creation-lab/BecomingPatternMap.tsx` | Fix 3 navigation links to `/transmutation-council` |
-| `src/components/creation-lab/BecomingTransmutation.tsx` | Fix 2 navigation links to `/transmutation-council` |
-
----
-
-## Result
-
-After implementation:
-- Transmutation Council shows helpful examples based on user state
-- Input placeholder is clear and inviting
-- All "Start Pattern Exploration" buttons in Becoming Path navigate to Transmutation Council
-- "Add New Pattern" button in Transmutation Map navigates to Transmutation Council
-- Inner Self Council remains purely reflective (as designed in previous PDR)
-
+## Notes / non-goals (kept unchanged)
+- No changes to your mentor banter logic, council-meeting logic, or handoff logic.
+- No changes to pattern extraction logic.
+- This is purely the missing/unclear UI affordances + layout issue you reported.
