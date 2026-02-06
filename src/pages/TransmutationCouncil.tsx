@@ -34,6 +34,12 @@ const mentorConfig: Record<string, { name: string; color: string; icon: string; 
     icon: "⚖️",
     role: "Brings grounded action"
   },
+  council: {
+    name: "Council",
+    color: "bg-amber-600",
+    icon: "✨",
+    role: "Unified insight"
+  },
 };
 
 interface Message {
@@ -124,18 +130,70 @@ const TransmutationCouncil = () => {
 
       if (error) throw error;
 
-      // Add council response
-      if (data?.answers) {
-        // Parse answers and create messages
-        for (const answer of data.answers) {
-          const mentorMsgId = crypto.randomUUID();
+      // Add council insight first (if present)
+      if (data?.councilInsight) {
+        const insightMsgId = crypto.randomUUID();
+        setMessages(prev => [...prev, {
+          id: insightMsgId,
+          role: "assistant",
+          content: data.councilInsight,
+          mentorType: "council",
+        }]);
+      }
+
+      // Add mentor perspectives (the main council banter)
+      if (data?.mentorPerspectives) {
+        for (const [mentor, perspective] of Object.entries(data.mentorPerspectives)) {
+          if (perspective && typeof perspective === 'string') {
+            const mentorMsgId = crypto.randomUUID();
+            setMessages(prev => [...prev, {
+              id: mentorMsgId,
+              role: "assistant",
+              content: perspective,
+              mentorType: mentor,
+            }]);
+          }
+        }
+      }
+
+      // Add banter lines (WhatsApp-style exchanges)
+      if (data?.banterLines && Array.isArray(data.banterLines)) {
+        for (const line of data.banterLines) {
+          // Map mentor display name back to mentor key
+          const mentorKey = Object.keys(mentorConfig).find(
+            k => mentorConfig[k]?.name === line.mentor
+          ) || 'council';
+          
+          const banterMsgId = crypto.randomUUID();
           setMessages(prev => [...prev, {
-            id: mentorMsgId,
+            id: banterMsgId,
             role: "assistant",
-            content: answer.response,
-            mentorType: answer.mentor,
+            content: line.text,
+            mentorType: mentorKey,
           }]);
         }
+      }
+
+      // Add emotional reflection (if present)
+      if (data?.emotionalReflection) {
+        const reflectionMsgId = crypto.randomUUID();
+        setMessages(prev => [...prev, {
+          id: reflectionMsgId,
+          role: "assistant",
+          content: data.emotionalReflection,
+          mentorType: "council",
+        }]);
+      }
+
+      // Add suggested next question (if present)
+      if (data?.suggestedNextQuestion) {
+        const suggestMsgId = crypto.randomUUID();
+        setMessages(prev => [...prev, {
+          id: suggestMsgId,
+          role: "assistant",
+          content: `💭 *${data.suggestedNextQuestion}*`,
+          mentorType: "council",
+        }]);
       }
 
       // Check for pattern detection from Storybreaker 1:1
