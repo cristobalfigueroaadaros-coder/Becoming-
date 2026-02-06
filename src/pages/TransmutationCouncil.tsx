@@ -411,21 +411,39 @@ const TransmutationCouncil = () => {
 
       {/* Input Area */}
       <div className="fixed bottom-0 left-0 right-0 bg-background border-t border-border p-4">
-        <form onSubmit={handleSubmit} className="container max-w-4xl mx-auto flex gap-2">
-          <Input
-            value={input}
-            onChange={(e) => setInput(e.target.value)}
-            placeholder="Share what you're ready to transform..."
-            className="flex-1"
-            disabled={isLoading}
-          />
-          <Button type="submit" disabled={isLoading || !input.trim()}>
-            {isLoading ? (
-              <Loader2 className="w-4 h-4 animate-spin" />
-            ) : (
-              <Send className="w-4 h-4" />
-            )}
-          </Button>
+        <form onSubmit={handleSubmit} className="container max-w-4xl mx-auto">
+          {messages.length === 0 && !isLoadingState && (
+            <p className="text-xs text-muted-foreground mb-2 text-center italic">
+              {hasCompletedTransmutation 
+                ? 'For example: "I was bullied for years and it affected how I see myself."'
+                : 'For example: "I left my business and moved to another country."'
+              }
+            </p>
+          )}
+          <div className="flex gap-2">
+            <Input
+              value={input}
+              onChange={(e) => setInput(e.target.value)}
+              placeholder={messages.length > 0 
+                ? "Continue sharing..." 
+                : "Share a life event that challenged or changed you..."
+              }
+              className="flex-1"
+              disabled={isLoading}
+            />
+            <Button type="submit" disabled={isLoading || !input.trim()}>
+              {isLoading ? (
+                <Loader2 className="w-4 h-4 animate-spin" />
+              ) : messages.length === 0 ? (
+                <span className="flex items-center gap-2">
+                  <Sparkles className="w-4 h-4" />
+                  Begin
+                </span>
+              ) : (
+                <Send className="w-4 h-4" />
+              )}
+            </Button>
+          </div>
         </form>
       </div>
 

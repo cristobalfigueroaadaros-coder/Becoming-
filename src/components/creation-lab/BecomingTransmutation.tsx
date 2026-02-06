@@ -269,7 +269,7 @@ export const BecomingTransmutation = ({
   };
 
   const handleAddNewPattern = () => {
-    navigate("/inner-self-council");
+    navigate("/transmutation-council");
   };
 
   // Empty state
@@ -291,8 +291,8 @@ export const BecomingTransmutation = ({
               pattern.
             </p>
             <Button
-              onClick={() => navigate("/inner-self-council")}
-              className="bg-gradient-to-r from-indigo-600 to-purple-600 hover:from-indigo-500 hover:to-purple-500"
+              onClick={() => navigate("/transmutation-council")}
+              className="bg-gradient-to-r from-amber-600 to-orange-600 hover:from-amber-500 hover:to-orange-500"
             >
               <MessageCircle className="w-4 h-4 mr-2" />
               Start Pattern Exploration

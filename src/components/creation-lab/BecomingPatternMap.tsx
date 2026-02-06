@@ -76,7 +76,7 @@ export const BecomingPatternMap = ({
   };
 
   const handleKeepTalking = () => {
-    navigate("/council?view=inner_clarity_mentor");
+    navigate("/transmutation-council");
   };
 
   // Empty state
@@ -94,12 +94,12 @@ export const BecomingPatternMap = ({
             </div>
             <h3 className="text-lg font-semibold mb-2">No patterns discovered yet</h3>
             <p className="text-muted-foreground mb-6 max-w-sm mx-auto">
-              Explore your inner landscape with the Inner Self Mentor to discover and map your
+              Explore your inner landscape with the Transmutation Council to discover and map your
               patterns.
             </p>
             <Button
-              onClick={() => navigate("/inner-self-council")}
-              className="bg-gradient-to-r from-indigo-600 to-purple-600 hover:from-indigo-500 hover:to-purple-500"
+              onClick={() => navigate("/transmutation-council")}
+              className="bg-gradient-to-r from-amber-600 to-orange-600 hover:from-amber-500 hover:to-orange-500"
             >
               <MessageCircle className="w-4 h-4 mr-2" />
               Start Pattern Exploration
@@ -183,11 +183,11 @@ export const BecomingPatternMap = ({
       {/* Actions */}
       <Button
         onClick={handleKeepTalking}
-        className="w-full bg-gradient-to-r from-indigo-600 to-purple-600 hover:from-indigo-500 hover:to-purple-500"
+        className="w-full bg-gradient-to-r from-amber-600 to-orange-600 hover:from-amber-500 hover:to-orange-500"
         size="lg"
       >
         <MessageCircle className="w-4 h-4 mr-2" />
-        Continue with Inner Self Mentor
+        Continue with Transmutation Council
       </Button>
 
       {/* Pattern Node Edit Modal */}
