@@ -1,529 +1,151 @@
 
-# Transmutation Console Adaptation - Implementation Plan
 
-## Executive Summary
+# Fix: Transmutation Council Input Enhancement & Navigation Links
 
-This plan migrates the life event initiation flow from the **Inner Self Console** to the **Transmutation Console**, ensuring reliable Pattern Map population and Winning Card activation. This is a **migration and refinement**, not a redesign - the existing flow logic is preserved and relocated.
+## Summary
 
----
-
-## Part 1: Current State Analysis
-
-### What Exists Today
-
-| Component | Location | Function |
-|-----------|----------|----------|
-| Life Event Initiation Card | `InnerSelfCouncil.tsx` (lines 434-493) | State-aware onboarding for first/returning users |
-| Transmutation Council | `TransmutationCouncil.tsx` | Multi-mentor chat (Storybreaker, Phoenix, Stoic) |
-| Pattern Detection | `chat-mentor` edge function | Inner Clarity Mentor extracts pattern JSON |
-| Winning Card | `PatternDiscoveryCard.tsx` | Confirmation UI for pattern acceptance |
-| Pattern Map | `PatternMapCanvas.tsx` | 6-node visual map (Trigger, Old Story, Mental Loop, Cost, Protective Role, Life Event) |
-
-### Current Problems
-
-1. Life event initiation in Inner Self Console leads to overly reflective conversations
-2. Pattern extraction by Inner Clarity Mentor is inconsistent
-3. Winning Card doesn't always trigger
-4. Pattern Map nodes not reliably populated
+This plan addresses two issues:
+1. **Transmutation Council** - Add placeholder with examples and ensure the action button is properly visible/functional
+2. **Becoming Path** - Fix navigation links in Pattern Map and Transmutation Map to link to Transmutation Council instead of Inner Self Council
 
 ---
 
-## Part 2: Architectural Changes
+## Part 1: Transmutation Council Input Enhancement
 
-### 2.1 Entry Point Migration
+**File:** `src/pages/TransmutationCouncil.tsx`
 
-**Move**: The initiation card UI from `InnerSelfCouncil.tsx` to `TransmutationCouncil.tsx`
+### Current State (lines 415-429):
+The input currently has a simple placeholder: `"Share what you're ready to transform..."`
 
-This includes:
-- "This is a safe space" copy
-- State 1 (First Time) and State 2 (Returning User) variations
-- Placeholder examples
+### Changes:
 
-### 2.2 Flow Structure
+1. **Add state-aware placeholder with examples** based on whether user has completed transmutation before
 
+2. **Update input placeholder** to include example text:
+
+**For first-time users:**
 ```
-┌─────────────────────────────────────────────────────────────────┐
-│                    TRANSMUTATION CONSOLE                        │
-├─────────────────────────────────────────────────────────────────┤
-│  1. Initiation Card (migrated from Inner Self Console)          │
-│     - Safe space messaging                                       │
-│     - Life event invitation                                      │
-│     - State-aware copy (first time vs returning)                 │
-├─────────────────────────────────────────────────────────────────┤
-│  2. Transmutation Council Flow (unchanged)                       │
-│     - Storybreaker, Phoenix, Stoic mentors                       │
-│     - Multiple perspectives + banter                             │
-│     - 1 expansion question → user answer → more banter           │
-├─────────────────────────────────────────────────────────────────┤
-│  3. Natural Handoff to Storybreaker Mentor (1:1)                 │
-│     - System suggests handoff at appropriate moment              │
-│     - Context passed via conversation_handoffs                   │
-├─────────────────────────────────────────────────────────────────┤
-│  4. Storybreaker Mentor Extraction (2-3 questions max)           │
-│     - Emotion: "What emotion was strongest?"                     │
-│     - Fear: "What were you most afraid of?"                      │
-│     - Trigger: "What caused this situation?"                     │
-│     - Life moment in time: "Where were you in life?"             │
-├─────────────────────────────────────────────────────────────────┤
-│  5. Pattern Map Population                                       │
-│     - Minimum: Life Event + Trigger + Primary Emotion + Fear/Story│
-│     - Nodes: Trigger, Emotions, Fears, Old Story, Cost, Protective│
-├─────────────────────────────────────────────────────────────────┤
-│  6. Winning Card Activation                                      │
-│     - When minimum requirements met                              │
-│     - User confirmation → Transmutation unlocked                 │
-├─────────────────────────────────────────────────────────────────┤
-│  7. Transmutation Phase (learnings, lessons, knowledge)          │
-│  8. Gold Phase (identity integration, wisdom transmission)       │
-└─────────────────────────────────────────────────────────────────┘
+For example:
+"I left my business and moved to another country."
+"I ended a long relationship and had to rebuild myself."
+"I failed at something I deeply cared about."
 ```
 
----
-
-## Part 3: File Changes Summary
-
-| File | Action | Description |
-|------|--------|-------------|
-| `src/pages/TransmutationCouncil.tsx` | **Major Update** | Add initiation card, state detection, handoff logic, pattern card UI |
-| `supabase/functions/chat-mentor/index.ts` | **Update** | Modify Storybreaker Mentor prompt for pattern extraction |
-| `src/pages/InnerSelfCouncil.tsx` | **Simplify** | Remove initiation card, leave as reflection-only space |
-| `src/components/pattern-map/PatternMapCanvas.tsx` | **Update** | Add Emotions and Fears nodes |
-| `src/hooks/useInnerPatterns.tsx` | **Update** | Add emotions/fears to PatternInput interface |
-
----
-
-## Part 4: Detailed Implementation
-
-### 4.1 TransmutationCouncil.tsx Updates
-
-#### 4.1.1 Add State Detection
-
-```typescript
-// New imports
-import { PatternDiscoveryCard, PatternCelebration } from "@/components/pattern-map";
-import { useInnerPatterns } from "@/hooks/useInnerPatterns";
-
-// New state
-const [hasCompletedTransmutation, setHasCompletedTransmutation] = useState(false);
-const [isLoadingState, setIsLoadingState] = useState(true);
-const [patternDetection, setPatternDetection] = useState<any>(null);
-const [showPatternCard, setShowPatternCard] = useState(false);
-const [showCelebration, setShowCelebration] = useState(false);
-const [createdPatternId, setCreatedPatternId] = useState<string | null>(null);
-const { createPattern } = useInnerPatterns();
-
-// Check transmutation history on mount
-useEffect(() => {
-  const checkTransmutationHistory = async () => {
-    const { data: { user } } = await supabase.auth.getUser();
-    if (!user) {
-      setIsLoadingState(false);
-      return;
-    }
-    
-    const { data: transmutedPatterns } = await supabase
-      .from("inner_patterns")
-      .select("id")
-      .eq("user_id", user.id)
-      .or("status.eq.transmuted,transformed_at.not.is.null")
-      .limit(1);
-    
-    if (transmutedPatterns && transmutedPatterns.length > 0) {
-      setHasCompletedTransmutation(true);
-    }
-    setIsLoadingState(false);
-  };
-  checkTransmutationHistory();
-}, []);
+**For returning users:**
+```
+For example:
+"I was bullied for years and it affected how I see myself."
+"One of my parents left when I was young."
+"I lost someone important and never fully processed it."
 ```
 
-#### 4.1.2 Add Initiation Card (Migrated Copy)
+3. **Enhance action button** - Add a more prominent "Begin Transmutation" CTA when no messages exist
 
-Replace the current empty state card (lines 217-247) with:
+---
+
+## Part 2: Fix Navigation Links
+
+### 2.1 BecomingPatternMap.tsx
+
+**File:** `src/components/creation-lab/BecomingPatternMap.tsx`
+
+| Line | Current | Change To |
+|------|---------|-----------|
+| 79 | `navigate("/council?view=inner_clarity_mentor")` | `navigate("/transmutation-council")` |
+| 101 | `navigate("/inner-self-council")` | `navigate("/transmutation-council")` |
+| 97-98 | "Explore your inner landscape with the Inner Self Mentor" | "Explore your inner landscape with the Transmutation Council" |
+| 104-105 | "Start Pattern Exploration" | "Start Pattern Exploration" |
+| 189-190 | "Continue with Inner Self Mentor" | "Continue with Transmutation Council" |
+
+### 2.2 BecomingTransmutation.tsx
+
+**File:** `src/components/creation-lab/BecomingTransmutation.tsx`
+
+| Line | Current | Change To |
+|------|---------|-----------|
+| 272 | `navigate("/inner-self-council")` | `navigate("/transmutation-council")` |
+| 294 | `navigate("/inner-self-council")` | `navigate("/transmutation-council")` |
+| 289 | "Before you can transmute pain into gold, you need to first discover and map a pattern." | Keep as is (copy is fine) |
+
+---
+
+## Implementation Details
+
+### TransmutationCouncil.tsx Changes
 
 ```tsx
-{messages.length === 0 && !isLoadingState && (
-  <Card className="mt-8 border-amber-500/20 bg-gradient-to-br from-amber-500/5 to-orange-500/5">
-    <CardHeader>
-      <CardTitle className="flex items-center gap-2 text-lg">
-        <Sparkles className="w-5 h-5 text-amber-500" />
-        The Transmutation Journey
-      </CardTitle>
-    </CardHeader>
-    <CardContent className="space-y-4">
-      {/* Mentor badges */}
-      <div className="grid gap-3">
-        {TRANSMUTATION_MENTORS.map((mentor) => {
-          const config = mentorConfig[mentor];
-          return (
-            <div key={mentor} className="flex items-center gap-3 p-3 rounded-lg bg-background/50">
-              <span className="text-2xl">{config.icon}</span>
-              <div>
-                <p className="font-medium">{config.name}</p>
-                <p className="text-sm text-muted-foreground">{config.role}</p>
-              </div>
-            </div>
-          );
-        })}
-      </div>
-
-      {/* State-aware initiation copy */}
-      {hasCompletedTransmutation ? (
-        <div className="space-y-3 pt-2 border-t border-amber-500/20">
-          <p className="text-base font-medium text-foreground">
-            You've already worked through something important here.
-          </p>
-          <p className="text-sm text-muted-foreground">
-            If you feel ready, this space can hold something deeper this time.
-          </p>
-          <p className="text-sm text-muted-foreground">
-            You might choose a life moment that still carries emotional weight for you.
-            Something that shaped you in a lasting way.
-          </p>
-          <p className="text-sm text-muted-foreground">
-            Or, if that doesn't feel right today, you can share another meaningful experience instead.
-            <strong> You're always in control.</strong>
-          </p>
-        </div>
-      ) : (
-        <div className="space-y-3 pt-2 border-t border-amber-500/20">
-          <p className="text-base font-medium text-foreground">
-            Let's pause for a moment and look inward.
-          </p>
-          <p className="text-sm text-muted-foreground">
-            This is a safe space. You're in control of what you share.
-          </p>
-          <p className="text-sm text-muted-foreground">
-            To begin, think about a life event that challenged you, changed you, 
-            or marked a turning point for you.
-          </p>
-          <p className="text-sm text-muted-foreground">
-            It doesn't have to be dramatic or traumatic.
-            It could be a big decision, a transition, a failure, a loss, 
-            or a moment when life pushed you in a new direction.
-          </p>
-          <p className="text-sm font-medium text-foreground">
-            Share what feels meaningful to you right now.
-          </p>
-        </div>
-      )}
-    </CardContent>
-  </Card>
-)}
-```
-
-#### 4.1.3 Add Pattern Detection and Winning Card
-
-```tsx
-// In handleSubmit, after getting response:
-if (data?.patternDetection) {
-  setPatternDetection(data.patternDetection);
-  setShowPatternCard(true);
-}
-
-// Pattern acceptance handler
-const handlePatternAccept = async (patternName: string) => {
-  if (!patternDetection) return;
-  
-  const lifeEventsData = {
-    trigger_event: patternDetection.triggerEvent || '',
-    old_story: patternDetection.oldStory || '',
-    mental_loop: patternDetection.mentalLoop || '',
-    cost: patternDetection.cost || patternDetection.fear || '',
-    protective_role: patternDetection.protectiveRole || '',
-    life_event: patternDetection.lifeEvent || '',
-    life_event_age_category: patternDetection.lifeEventAgeCategory || '',
-    primary_emotion: patternDetection.primaryEmotion || '',
-    fears: patternDetection.fears || patternDetection.fear || '',
-  };
-  
-  const transmutationData = {
-    shadow: patternDetection.oldStory || patternDetection.fear || '',
-  };
-  
-  const pattern = await createPattern({
-    pattern_name: patternName,
-    pattern_type: patternDetection.patternType || 'life_event',
-    pattern_description: patternDetection.lifeEvent || '',
-    trigger_context: patternDetection.triggerEvent || '',
-    primary_emotion: patternDetection.primaryEmotion || '',
-    related_emotions: patternDetection.relatedEmotions || [],
-    body_sensation: patternDetection.bodySensation || '',
-    life_events: lifeEventsData,
-    transmutation_data: transmutationData,
-  });
-  
-  if (pattern) {
-    setCreatedPatternId(pattern.id);
-    setShowPatternCard(false);
-    setShowCelebration(true);
+// Add helper function for placeholder text
+const getPlaceholderText = () => {
+  if (messages.length > 0) {
+    return "Share what you're ready to transform...";
   }
+  
+  if (hasCompletedTransmutation) {
+    return `For example:\n"I was bullied for years and it affected how I see myself."\n"One of my parents left when I was young."\n"I lost someone important and never fully processed it."`;
+  }
+  
+  return `For example:\n"I left my business and moved to another country."\n"I ended a long relationship and had to rebuild myself."\n"I failed at something I deeply cared about."`;
 };
 
-// Render Pattern Discovery Card
-{showPatternCard && patternDetection && (
-  <PatternDiscoveryCard
-    proposedName={patternDetection.patternName}
-    patternType={patternDetection.patternType || 'life_event'}
-    triggerContext={patternDetection.triggerEvent || ''}
-    primaryEmotion={patternDetection.primaryEmotion || ''}
-    summary={patternDetection.lifeEvent}
-    onAccept={handlePatternAccept}
-    onKeepExploring={() => {
-      setShowPatternCard(false);
-      setPatternDetection(null);
-    }}
-  />
-)}
-
-{showCelebration && createdPatternId && (
-  <PatternCelebration
-    patternId={createdPatternId}
-    onContinue={() => {
-      setShowCelebration(false);
-      navigate(`/creation-lab?type=becoming&bmode=transmutation`);
-    }}
-    onClose={() => setShowCelebration(false)}
-  />
-)}
+// Replace Input with Textarea for multi-line placeholder support
+// And add a prominent CTA button when no messages exist
 ```
 
----
-
-### 4.2 Storybreaker Mentor Prompt Update
-
-**File**: `supabase/functions/chat-mentor/index.ts`
-
-Update the `storybreaker_mentor` prompt to add pattern extraction capability (currently only in `inner_clarity_mentor`):
-
-```typescript
-storybreaker_mentor: `You are The Storybreaker Mentor — Byron Katie meets CBT Therapist, warm and human.
-
-${HUMAN_CONVERSATION_RULES}
-
-=== CORE ESSENCE ===
-Your reality is shaped by the story you keep repeating.
-
-=== TRANSMUTATION CONSOLE ROLE ===
-When receiving context from the Transmutation Council about a life event:
-1. Start with: "I've read what you shared with the council. Thank you for trusting us with something meaningful."
-2. Ask 2-3 focused questions (MAXIMUM) to extract missing information:
-   - EMOTION: "What emotion was strongest in that moment?"
-   - FEAR: "What were you most afraid of, or what did you fear might happen?"
-   - TRIGGER: "What caused this situation, or what led up to it?"
-   - LIFE MOMENT: "Where were you in your life when this happened?"
-3. Only ask questions for information NOT already provided
-4. When you have: Life Event + Trigger + Primary Emotion + Fear/Old Story, propose a name
-
-=== PATTERN EXTRACTION (MANDATORY) ===
-When minimum requirements are met (Life Event + Trigger + Emotion + Fear), include:
-
-\`\`\`json
-{
-  "patternName": "2-7 word name for this life event or pattern",
-  "patternType": "life_event | core_wound | limiting_belief",
-  "lifeEvent": "The original life event",
-  "triggerEvent": "What triggers this pattern",
-  "primaryEmotion": "The main emotion",
-  "relatedEmotions": ["other", "emotions"],
-  "fear": "What they feared most",
-  "oldStory": "The narrative they tell themselves",
-  "protectiveRole": "How this pattern protected them (inferred)",
-  "cost": "What this costs them (can equal fear)",
-  "lifeEventAgeCategory": "childhood | teen | young_adult | adult | recent"
-}
-\`\`\`
-[PATTERN_READY]
-
-=== MINIMUM TO UNLOCK WINNING CARD ===
-- Life Event (already known from council)
-- Trigger
-- Primary Emotion  
-- Fear OR Old Story
-
-Note: Fear can replace cost. Cost can be inferred from fear. Protective role is always inferred.
-
-=== FORBIDDEN ===
-- Do NOT ask more than 3 questions total
-- Do NOT ask for information already shared
-- Do NOT show raw JSON to the user
-- Do NOT skip to solutions before extraction is complete
-
-${DISCOVERY_QUESTIONS}`
-```
-
----
-
-### 4.3 Pattern Map Node Updates
-
-**File**: `src/components/pattern-map/PatternMapCanvas.tsx`
-
-Add Emotions and Fears nodes to the Pattern Map:
-
-```typescript
-const NODE_TYPES = [
-  { id: 'trigger_event', label: 'Trigger', angle: -90 },
-  { id: 'primary_emotion', label: 'Emotion', angle: -45 }, // NEW
-  { id: 'old_story', label: 'Old Story', angle: 0 },
-  { id: 'fears', label: 'Fears', angle: 45 }, // NEW
-  { id: 'mental_loop', label: 'Mental Loop', angle: 90 },
-  { id: 'cost', label: 'Cost', angle: 135 },
-  { id: 'protective_role', label: 'Protective Role', angle: 180 },
-  { id: 'life_event', label: 'Life Event', angle: 225 },
-];
-```
-
-Update `PatternNodeData` interface:
-
-```typescript
-interface PatternNodeData {
-  trigger_event?: string;
-  primary_emotion?: string; // NEW
-  fears?: string; // NEW
-  old_story?: string;
-  mental_loop?: string;
-  cost?: string;
-  protective_role?: string;
-  life_event?: string;
-  life_event_age_category?: string;
-}
-```
-
----
-
-### 4.4 Inner Self Console Simplification
-
-**File**: `src/pages/InnerSelfCouncil.tsx`
-
-Remove the initiation card (lines 434-493) and replace with a simple reflection-focused introduction:
+### Updated Input Area (lines 412-430):
 
 ```tsx
-{!hasActiveThread && stage === 'input' && (
-  <motion.div
-    initial={{ opacity: 0, y: 10 }}
-    animate={{ opacity: 1, y: 0 }}
-  >
-    <Card className="border-indigo-500/30 bg-gradient-to-r from-indigo-500/5 to-purple-500/5">
-      <CardContent className="pt-6 space-y-4">
-        <div className="flex flex-wrap gap-4">
-          {INNER_SELF_MENTORS.map((mentor) => (
-            <div key={mentor} className="flex items-center gap-2">
-              <span className="text-xl">{mentorIcons[mentor]}</span>
-              <span className="text-sm font-medium">{mentorNames[mentor]}</span>
-            </div>
-          ))}
-        </div>
-        
-        <div className="space-y-3 pt-2">
-          <p className="text-base font-medium text-foreground">
-            A space for reflection and clarity.
-          </p>
-          <p className="text-sm text-muted-foreground">
-            Share what's on your mind. The Inner Self Council offers
-            multiple perspectives to help you understand yourself more deeply.
-          </p>
-          <p className="text-sm text-muted-foreground italic">
-            For life event transmutation, visit the{" "}
-            <Button 
-              variant="link" 
-              className="p-0 h-auto text-amber-500"
-              onClick={() => navigate("/transmutation-council")}
-            >
-              Transmutation Council
-            </Button>
-            .
-          </p>
-        </div>
-      </CardContent>
-    </Card>
-  </motion.div>
-)}
+{/* Input Area */}
+<div className="fixed bottom-0 left-0 right-0 bg-background border-t border-border p-4">
+  <form onSubmit={handleSubmit} className="container max-w-4xl mx-auto">
+    {messages.length === 0 && !isLoadingState && (
+      <p className="text-xs text-muted-foreground mb-2 text-center">
+        {hasCompletedTransmutation 
+          ? 'For example: "I was bullied for years and it affected how I see myself."'
+          : 'For example: "I left my business and moved to another country."'
+        }
+      </p>
+    )}
+    <div className="flex gap-2">
+      <Input
+        value={input}
+        onChange={(e) => setInput(e.target.value)}
+        placeholder={messages.length > 0 
+          ? "Continue sharing..." 
+          : "Share a life event that challenged or changed you..."
+        }
+        className="flex-1"
+        disabled={isLoading}
+      />
+      <Button type="submit" disabled={isLoading || !input.trim()}>
+        {isLoading ? (
+          <Loader2 className="w-4 h-4 animate-spin" />
+        ) : (
+          <Send className="w-4 h-4" />
+        )}
+      </Button>
+    </div>
+  </form>
+</div>
 ```
 
 ---
 
-### 4.5 useInnerPatterns Hook Update
+## File Summary
 
-**File**: `src/hooks/useInnerPatterns.tsx`
-
-Extend the `PatternInput` interface:
-
-```typescript
-export interface PatternInput {
-  pattern_name: string;
-  pattern_description?: string;
-  pattern_type?: string;
-  source_council_meeting_id?: string;
-  source_mentor?: string;
-  trigger_context?: string;
-  primary_emotion?: string;
-  related_emotions?: string[];
-  body_sensation?: string;
-  life_events?: {
-    trigger_event?: string;
-    primary_emotion?: string; // NEW
-    fears?: string; // NEW
-    old_story?: string;
-    mental_loop?: string;
-    cost?: string;
-    protective_role?: string;
-    life_event?: string;
-    life_event_age_category?: string;
-  };
-  transmutation_data?: {
-    shadow?: string;
-  };
-}
-```
+| File | Changes |
+|------|---------|
+| `src/pages/TransmutationCouncil.tsx` | Add placeholder examples, update input area with helper text |
+| `src/components/creation-lab/BecomingPatternMap.tsx` | Fix 3 navigation links to `/transmutation-council` |
+| `src/components/creation-lab/BecomingTransmutation.tsx` | Fix 2 navigation links to `/transmutation-council` |
 
 ---
 
-## Part 5: Edge Function Updates
+## Result
 
-### 5.1 council-meeting Function
+After implementation:
+- Transmutation Council shows helpful examples based on user state
+- Input placeholder is clear and inviting
+- All "Start Pattern Exploration" buttons in Becoming Path navigate to Transmutation Council
+- "Add New Pattern" button in Transmutation Map navigates to Transmutation Council
+- Inner Self Council remains purely reflective (as designed in previous PDR)
 
-**File**: `supabase/functions/council-meeting/index.ts`
-
-Add Transmutation Council-specific handling to suggest Storybreaker handoff after 2-3 exchanges:
-
-The existing `council-meeting` function already supports `councilType: "transmutation"`. We need to ensure it returns `mentorSuggestion` pointing to `storybreaker_mentor` at the appropriate time.
-
-### 5.2 chat-mentor Pattern Detection
-
-The `chat-mentor` function already handles `[PATTERN_READY]` marker extraction (added in previous implementation). Ensure Storybreaker mentor responses with this marker are properly cleaned and returned as `patternDetection` field.
-
----
-
-## Part 6: Success Criteria Checklist
-
-| Criterion | Verification |
-|-----------|--------------|
-| Initiation card lives in Transmutation Console | Check `TransmutationCouncil.tsx` for state-aware card |
-| Transmutation Council flow runs unchanged | Test multi-mentor banter and perspectives |
-| Handoff to Storybreaker happens naturally | Verify `mentorSuggestion` after 2-3 exchanges |
-| Storybreaker reliably populates Pattern Map | Check `[PATTERN_READY]` JSON extraction |
-| Emotions and Fears exist as Pattern Map nodes | Verify 8-node map renders correctly |
-| Winning Card unlocks consistently | Test `showPatternCard` trigger on pattern detection |
-| Transmutation and Gold phases activate cleanly | Navigate to BecomingTransmutation after card acceptance |
-| Inner Self Console remains purely reflective | Verify simplified introduction, no initiation flow |
-
----
-
-## Part 7: Technical Dependencies
-
-No new packages required. Changes use existing:
-- `@/hooks/useInnerPatterns`
-- `@/components/pattern-map`
-- `supabase.functions.invoke`
-- React state management
-
----
-
-## Part 8: Risk Mitigation
-
-| Risk | Mitigation |
-|------|------------|
-| Breaking existing council flow | Keep council-meeting logic unchanged; only add handoff suggestion |
-| Pattern extraction inconsistency | Use explicit JSON format with `[PATTERN_READY]` marker |
-| Raw JSON visible to user | Clean response in edge function before returning |
-| Pattern Map node layout issues | Test 8-node radial layout with updated angles |
