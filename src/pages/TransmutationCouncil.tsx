@@ -118,7 +118,7 @@ const TransmutationCouncil = () => {
           question: userMessage,
           questionNumber: currentQ,
           councilType: "transmutation",
-          mentors: TRANSMUTATION_MENTORS,
+          mentorTypes: [...TRANSMUTATION_MENTORS],
         },
       });
 
