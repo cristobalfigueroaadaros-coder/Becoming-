@@ -119,12 +119,17 @@ const TransmutationCouncil = () => {
       }
 
       // Call the council-meeting function with Transmutation Council context
+      const conversationHistory = messages
+        .filter((m) => m.role === "user")
+        .map((m) => ({ role: "user", content: m.content }));
+
       const { data, error } = await supabase.functions.invoke("council-meeting", {
         body: {
           question: userMessage,
           questionNumber: currentQ,
           councilType: "transmutation",
           mentorTypes: [...TRANSMUTATION_MENTORS],
+          conversationHistory,
         },
       });
 

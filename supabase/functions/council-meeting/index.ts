@@ -19,8 +19,9 @@ function countReflectionSignals(message: string): { reflectionCount: number; act
 
 // Check if conversation is stuck in reflection loop
 function detectReflectionLoop(conversationHistory: any[]): boolean {
-  // Get last 3 user messages
-  const userMessages = conversationHistory.filter((msg: any) => msg.role === 'user').slice(-3);
+  const userMessages = conversationHistory
+    .filter((msg: any) => msg && msg.role === 'user')
+    .slice(-3);
   if (userMessages.length < 3) return false;
   
   let consecutiveReflective = 0;
@@ -73,6 +74,12 @@ const mentorNames: Record<string, string> = {
   alignment_mentor: "Alignment Mentor",
   oracle_mother: "Oracle Mother",
   future_self: "Future Self",
+
+  // Transmutation mentors
+  storybreaker_mentor: "Storybreaker",
+  phoenix_mentor: "Phoenix",
+  stoic_mentor: "Stoic",
+
   // New mentors from PDR expansion
   perspective_mentor: "Perspective Mentor",
   challenger_mentor: "Challenger Mentor",
@@ -151,6 +158,24 @@ const mentorPrompts: Record<string, { personality: string; role: string; flaw: s
     role: "Long-term vision, reassurance, perspective from achieved future.",
     flaw: "Too idealistic, can minimize current struggle, sometimes dismisses present difficulty"
   },
+
+  // Transmutation mentors
+  storybreaker_mentor: {
+    personality: "Clear-eyed, precise, story-cleansing. Separates facts from interpretation. Calm but firm. Asks 1 sharp question when needed.",
+    role: "Narrative cleansing: identifies the old story, the loop, the belief, and what it was protecting.",
+    flaw: "Can feel clinical if the user needs emotional holding first"
+  },
+  phoenix_mentor: {
+    personality: "Warm, validating, distilling. Holds emotional weight safely, then extracts the lesson without forcing positivity.",
+    role: "Wisdom extraction: helps the user find the shift, the lesson, and the life skill emerging from pain.",
+    flaw: "Can move to meaning too quickly if the user is still in raw emotion"
+  },
+  stoic_mentor: {
+    personality: "Grounded, practical, reality-based. Calm strength. Sorts controllable vs uncontrollable. Ends with one doable next step.",
+    role: "Action and integration: turns insight into perspective, boundaries, and a brave step forward.",
+    flaw: "Can feel blunt if the user is seeking empathy more than direction"
+  },
+
   // New mentors from PDR expansion
   perspective_mentor: {
     personality: "Calm, explanatory, reflective. 'Let me show you the full landscape...' 'Here's how this connects...'",
@@ -210,6 +235,12 @@ const mentorColors: Record<string, string> = {
   alignment_mentor: "#0D9488",
   oracle_mother: "#BE185D",
   future_self: "#6366F1",
+
+  // Transmutation mentors
+  storybreaker_mentor: "#F43F5E", // rose-500
+  phoenix_mentor: "#F97316", // orange-500
+  stoic_mentor: "#57534E", // stone-600
+
   // New mentors from PDR expansion
   perspective_mentor: "#0EA5E9", // sky-500
   challenger_mentor: "#DC2626", // red-600
@@ -320,14 +351,22 @@ Deno.serve(async (req) => {
   }
 
   try {
-    const { 
-      question, 
-      mentorTypes, 
+    const {
+      question,
+      mentorTypes,
       conversationHistory = [],
       notificationContext,
       openerType,
-      generateOpenerOnly = false
+      generateOpenerOnly = false,
     } = await req.json();
+
+    // Defensive: conversationHistory is user-provided and can contain null/undefined
+    const safeConversationHistory = Array.isArray(conversationHistory)
+      ? conversationHistory
+          .filter((m) => m && typeof m === "object")
+          .filter((m) => (m as any).role && (m as any).content)
+      : [];
+
     const authHeader = req.headers.get("Authorization")!;
     const token = authHeader.replace("Bearer ", "");
 
@@ -441,8 +480,8 @@ Just the message, no labels or quotes.`;
       );
     }
 
-    // === DETERMINE QUESTION NUMBER IN JOURNEY ===
-    const questionNumber = conversationHistory.filter((msg: any) => msg.role === 'user').length + 1;
+    // (safeConversationHistory is sanitized above)
+    const questionNumber = safeConversationHistory.filter((msg: any) => msg.role === 'user').length + 1;
     const isQ1 = questionNumber === 1;
     const isQ2 = questionNumber === 2;
     const isQ3 = questionNumber >= 3;
@@ -450,7 +489,7 @@ Just the message, no labels or quotes.`;
     console.log(`Council Meeting - Q${questionNumber}: ${question.substring(0, 50)}...`);
 
     // === DETECT REFLECTION LOOP (Action Engine) ===
-    const isStuckInReflection = detectReflectionLoop(conversationHistory);
+    const isStuckInReflection = detectReflectionLoop(safeConversationHistory);
     let strategistInterruption = "";
     
     if (isStuckInReflection) {
@@ -524,7 +563,7 @@ CRITICAL: Reference specific details from their foundation story. Use their actu
 
     // === Q2 ONLY: COUNCIL SEEKING CLARITY ===
     if (isQ2 && !lowerQuestion.includes("i'm ready") && !lowerQuestion.includes("what should i do")) {
-      const conversationContext = formatConversationHistory(conversationHistory);
+    const conversationContext = formatConversationHistory(safeConversationHistory);
       
       const clarityPrompt = `You are the Council. Generate ONE very simple question to understand the user better.
 ${userFoundationContext}
@@ -821,7 +860,7 @@ Detect the context, then respond with 1-2 sentences in simple, energetic languag
 
       } else if (mentorType === "strategist_mentor") {
         // Special handling for Strategist - includes reflection loop interruption
-        const conversationContext = formatConversationHistory(conversationHistory);
+        const conversationContext = formatConversationHistory(safeConversationHistory);
         
         systemPrompt = `You are The Strategist Mentor — calm, analytical, structured. You bring clarity to chaos.
 
@@ -856,7 +895,7 @@ ${KEYWORD_HIGHLIGHTING_RULES}`;
 
       } else {
         // Standard prompt for other mentors
-        const conversationContext = formatConversationHistory(conversationHistory);
+        const conversationContext = formatConversationHistory(safeConversationHistory);
         
         systemPrompt = `You are ${mentorNames[mentorType]}.
 
@@ -936,7 +975,7 @@ Mission: ${profile.main_mission}`;
     if (isQ2) banterLength = 'MEDIUM';
     if (isQ3) banterLength = 'FULL';
 
-    const conversationContextBanter = formatConversationHistory(conversationHistory);
+    const conversationContextBanter = formatConversationHistory(safeConversationHistory);
 
     const banterPrompt = `Generate authentic WhatsApp-style group chat banter between these mentors:
 ${conversationContextBanter}
@@ -1121,7 +1160,7 @@ Keep it under 25 words. Just the reflection, no labels.`;
       const journeyStagePrompt = `Analyze this conversation to detect the user's current JOURNEY STAGE.
 
 User's current question: "${question}"
-Conversation history: ${formatConversationHistory(conversationHistory || [])}
+Conversation history: ${formatConversationHistory(safeConversationHistory)}
 Hidden tags from question: ${extractedTags.join(', ')}
 
 STAGES:
@@ -1565,10 +1604,14 @@ MENTOR PERSPECTIVES:
 ${Object.entries(mentorPerspectives).map(([m, p]) => `${mentorNames[m]}: ${p}`).join('\n')}
 
 AVAILABLE MENTORS (with their expertise):
-${selectedUserMentors.map((m: string) => {
-  const config = mentorPrompts[m];
-  return `- ${mentorNames[m]}: ${config.role}`;
-}).join('\n')}
+${selectedUserMentors
+  .map((m: string) => {
+    const config = mentorPrompts[m];
+    if (!config) return null;
+    return `- ${mentorNames[m] || m}: ${config.role}`;
+  })
+  .filter(Boolean)
+  .join('\n')}
 
 CRITICAL ANALYSIS CRITERIA:
 1. Is there GENUINE DEPTH to explore? Not surface-level, but real substance that would benefit from 1-on-1 conversation?
