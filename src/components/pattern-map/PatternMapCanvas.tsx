@@ -4,6 +4,8 @@ import { PatternMapNode } from "./PatternMapNode";
 
 interface PatternNodeData {
   trigger_event?: string;
+  primary_emotion?: string;
+  fears?: string;
   old_story?: string;
   mental_loop?: string;
   cost?: string;
@@ -18,13 +20,16 @@ interface PatternMapCanvasProps {
   onNodeClick: (nodeType: string) => void;
 }
 
+// 8-node radial layout with Emotions and Fears added
 const NODE_TYPES = [
   { id: 'trigger_event', label: 'Trigger', angle: -90 },
-  { id: 'old_story', label: 'Old Story', angle: -30 },
-  { id: 'mental_loop', label: 'Mental Loop', angle: 30 },
-  { id: 'cost', label: 'Cost', angle: 90 },
-  { id: 'protective_role', label: 'Protective Role', angle: 150 },
-  { id: 'life_event', label: 'Life Event', angle: 210 },
+  { id: 'primary_emotion', label: 'Emotion', angle: -45 },
+  { id: 'old_story', label: 'Old Story', angle: 0 },
+  { id: 'fears', label: 'Fears', angle: 45 },
+  { id: 'mental_loop', label: 'Mental Loop', angle: 90 },
+  { id: 'cost', label: 'Cost', angle: 135 },
+  { id: 'protective_role', label: 'Protective Role', angle: 180 },
+  { id: 'life_event', label: 'Life Event', angle: 225 },
 ];
 
 export const PatternMapCanvas = ({

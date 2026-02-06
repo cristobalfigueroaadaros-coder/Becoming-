@@ -430,7 +430,7 @@ const InnerSelfCouncil = ({ embedded = false }: InnerSelfCouncilProps) => {
           </div>
         </div>
 
-        {/* Council Introduction Card */}
+        {/* Council Introduction Card - Simplified for Reflection */}
         {!hasActiveThread && stage === 'input' && !isLoadingOnboardingState && (
           <motion.div
             initial={{ opacity: 0, y: 10 }}
@@ -447,46 +447,27 @@ const InnerSelfCouncil = ({ embedded = false }: InnerSelfCouncilProps) => {
                   ))}
                 </div>
                 
-                {/* State-aware onboarding copy */}
-                {hasCompletedTransmutation ? (
-                  // STATE 2: Returning User - Deeper Emotional Exploration
-                  <div className="space-y-3 pt-2">
-                    <p className="text-base font-medium text-foreground">
-                      You've already worked through something important here.
-                    </p>
-                    <p className="text-sm text-muted-foreground">
-                      If you feel ready, this space can hold something deeper this time.
-                    </p>
-                    <p className="text-sm text-muted-foreground">
-                      You might choose a life moment that still carries emotional weight for you.
-                      Something that shaped you in a lasting way.
-                    </p>
-                    <p className="text-sm text-muted-foreground">
-                      Or, if that doesn't feel right today, you can share another meaningful experience instead.
-                      <strong> You're always in control.</strong>
-                    </p>
-                  </div>
-                ) : (
-                  // STATE 1: First Time User - Life Event Focus
-                  <div className="space-y-3 pt-2">
-                    <p className="text-base font-medium text-foreground">
-                      Let's pause for a moment and look inward.
-                    </p>
-                    <p className="text-sm text-muted-foreground">
-                      This is a safe space. You're in control of what you share.
-                    </p>
-                    <p className="text-sm text-muted-foreground">
-                      To begin, think about a life event that challenged you, changed you, or marked a turning point for you.
-                    </p>
-                    <p className="text-sm text-muted-foreground">
-                      It doesn't have to be dramatic or traumatic.
-                      It could be a big decision, a transition, a failure, a loss, or a moment when life pushed you in a new direction.
-                    </p>
-                    <p className="text-sm font-medium text-foreground">
-                      Share what feels meaningful to you right now.
-                    </p>
-                  </div>
-                )}
+                {/* Simplified reflection-focused introduction */}
+                <div className="space-y-3 pt-2">
+                  <p className="text-base font-medium text-foreground">
+                    A space for reflection and clarity.
+                  </p>
+                  <p className="text-sm text-muted-foreground">
+                    Share what's on your mind. The Inner Self Council offers
+                    multiple perspectives to help you understand yourself more deeply.
+                  </p>
+                  <p className="text-sm text-muted-foreground italic">
+                    For life event transmutation, visit the{" "}
+                    <Button 
+                      variant="link" 
+                      className="p-0 h-auto text-amber-500 hover:text-amber-400"
+                      onClick={() => navigate("/transmutation-council")}
+                    >
+                      Transmutation Council
+                    </Button>
+                    .
+                  </p>
+                </div>
               </CardContent>
             </Card>
           </motion.div>
