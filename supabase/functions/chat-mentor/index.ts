@@ -1850,26 +1850,83 @@ Example: "I see you've been building on this idea from ${journeyPath[0]?.replace
       }
     }
 
+    // ========== TRANSMUTATION SESSION DETECTION ==========
+    // Detect if this is a continuation of a transmutation pattern discovery session
+    let isTransmutationSession = false;
+    let transmutationSessionStart: Date | null = null;
+    let transmutationLifeEvent: string | null = null;
+    let transmutationCouncilContext: string | null = null;
+    
+    if (mentorType === 'storybreaker_mentor' || mentorType === 'phoenix_mentor' || mentorType === 'stoic_mentor') {
+      // Check for recent transmutation handoff (within last 2 hours)
+      const { data: recentHandoff } = await supabaseClient
+        .from("conversation_handoffs")
+        .select("voice_context, created_at")
+        .eq("user_id", user.id)
+        .eq("target_mentor_type", mentorType)
+        .eq("processed", true)
+        .gte("created_at", new Date(Date.now() - 2 * 60 * 60 * 1000).toISOString())
+        .order("created_at", { ascending: false })
+        .limit(1);
+      
+      const voiceCtx = recentHandoff?.[0]?.voice_context as any;
+      if (voiceCtx?.flow === 'transmutation_pattern_discovery' || voiceCtx?.phase === 'white' || voiceCtx?.phase === 'gold') {
+        isTransmutationSession = true;
+        transmutationSessionStart = new Date(recentHandoff[0].created_at);
+        transmutationLifeEvent = voiceCtx.userInput || voiceCtx.patternName || null;
+        transmutationCouncilContext = voiceCtx.councilContext || null;
+        console.log("Transmutation session detected for", mentorType, "- Life event:", transmutationLifeEvent?.substring(0, 50));
+      }
+    }
+    // ========== END TRANSMUTATION SESSION DETECTION ==========
+
     // 1. Fetch recent chat history for context (last 20 messages with THIS mentor)
-    const { data: chatHistory } = await supabaseClient
-      .from("chats")
-      .select("role, content, created_at")
-      .eq("user_id", user.id)
-      .eq("mentor_type", mentorType)
-      .order("created_at", { ascending: true })
-      .limit(20);
+    // For transmutation sessions, only get messages from AFTER the handoff started
+    let chatHistory: Array<{ role: string; content: string; created_at: string }> | null = null;
+    
+    if (isTransmutationSession && transmutationSessionStart) {
+      // Only get messages from THIS transmutation session
+      const { data } = await supabaseClient
+        .from("chats")
+        .select("role, content, created_at")
+        .eq("user_id", user.id)
+        .eq("mentor_type", mentorType)
+        .gte("created_at", transmutationSessionStart.toISOString())
+        .order("created_at", { ascending: true })
+        .limit(20);
+      chatHistory = data;
+      console.log("Transmutation session: fetched", chatHistory?.length || 0, "messages since", transmutationSessionStart.toISOString());
+    } else {
+      // Standard query for non-transmutation sessions
+      const { data } = await supabaseClient
+        .from("chats")
+        .select("role, content, created_at")
+        .eq("user_id", user.id)
+        .eq("mentor_type", mentorType)
+        .order("created_at", { ascending: true })
+        .limit(20);
+      chatHistory = data;
+    }
 
     // Get conversation depth for handoff and breakthrough detection (current mentor only)
     const conversationDepth = chatHistory?.filter(m => m.role === "user").length || 0;
 
     // === CROSS-MENTOR MEMORY: Fetch recent conversations across ALL mentors ===
-    const { data: allRecentChats } = await supabaseClient
-      .from("chats")
-      .select("mentor_type, role, content, created_at")
-      .eq("user_id", user.id)
-      .neq("mentor_type", mentorType) // Exclude current mentor (already have that)
-      .order("created_at", { ascending: false })
-      .limit(50);
+    // SKIP for transmutation sessions to prevent context pollution
+    let allRecentChats: Array<{ mentor_type: string; role: string; content: string; created_at: string }> | null = null;
+    
+    if (!isTransmutationSession) {
+      const { data } = await supabaseClient
+        .from("chats")
+        .select("mentor_type, role, content, created_at")
+        .eq("user_id", user.id)
+        .neq("mentor_type", mentorType) // Exclude current mentor (already have that)
+        .order("created_at", { ascending: false })
+        .limit(50);
+      allRecentChats = data;
+    } else {
+      console.log("Transmutation session: skipping cross-mentor memory to maintain focus");
+    }
 
     // === CROSS-MENTOR PROJECT NAME DETECTION ===
     // Detect if a project name was already agreed upon with ANY mentor
@@ -2054,6 +2111,72 @@ EXAMPLE OPENING STYLE:
 
 Generate a welcoming, proactive opening message that shows you understand their situation.
 === END VOICE CONTEXT ===
+`;
+    }
+
+    // ========== TRANSMUTATION FOCUS INJECTION ==========
+    // When in a transmutation session, add laser focus to prevent context pollution
+    if (isTransmutationSession && transmutationLifeEvent) {
+      const mentorRole = mentorType === 'storybreaker_mentor' 
+        ? 'extracting the pattern (Emotion, Fear/Old Story, Trigger, Life Moment)' 
+        : mentorType === 'phoenix_mentor' 
+          ? 'completing the White Phase (Shift Moment, Lesson, Protective Purpose)' 
+          : 'completing the Gold Phase (Gain, New Belief, Strength/Creation)';
+      
+      systemPrompt += `
+
+=== TRANSMUTATION FOCUS (CRITICAL - OVERRIDE ALL OTHER CONTEXT) ===
+You are in a FOCUSED TRANSMUTATION session about a specific life event.
+IGNORE any unrelated topics from previous conversations or other mentors.
+
+LIFE EVENT TO EXPLORE:
+"${transmutationLifeEvent}"
+
+${transmutationCouncilContext ? `COUNCIL CONTEXT:\n${transmutationCouncilContext.substring(0, 500)}\n` : ''}
+
+YOUR ROLE: ${mentorRole}
+
+${mentorType === 'storybreaker_mentor' ? `
+STORYBREAKER MISSION:
+1. Keep asking questions ONLY about this specific life event
+2. Extract the pattern components:
+   - Primary Emotion: What emotion rises most strongly?
+   - Fear/Old Story: What did they tell themselves because of this?
+   - Trigger: What situations today still activate this feeling?
+   - Life Moment: When did this pattern start?
+3. When you have at least: Life Event + Trigger + Emotion + (Fear OR Old Story), output [PATTERN_READY] followed by JSON block
+4. Stay warm but focused - you are separating facts from interpretation
+
+PATTERN_READY FORMAT (use when you have enough data):
+[PATTERN_READY]
+{
+  "patternName": "The pattern name based on their story",
+  "primaryEmotion": "the dominant emotion",
+  "fear": "what they feared or believed",
+  "trigger": "what activates this today",
+  "lifeEvent": "the originating moment"
+}
+` : mentorType === 'phoenix_mentor' ? `
+PHOENIX MISSION (WHITE PHASE):
+1. Help them find the SHIFT - the moment or realization that changed perspective
+2. Extract the LESSON - what wisdom came from this experience
+3. Identify the PROTECTIVE PURPOSE - what this pattern was trying to protect
+4. When complete, celebrate the reframe and guide toward Gold Phase
+` : `
+STOIC MISSION (GOLD PHASE):
+1. Help them identify the GAIN - what they actually got from this experience
+2. Define the NEW BELIEF - the upgraded belief that replaces the old story
+3. Anchor the STRENGTH/CREATION - what they built or became because of this
+4. Celebrate the transmutation complete - pain transformed to gold
+`}
+
+FORBIDDEN (CRITICAL):
+- Do NOT mention unrelated topics (job hunting, memes, other projects)
+- Do NOT say "you mentioned with the Creative Visionary..." or reference other mentors
+- Do NOT pull in context from previous unrelated conversations
+- ONLY focus on the life event above and its transformation
+
+=== END TRANSMUTATION FOCUS ===
 `;
     }
 
