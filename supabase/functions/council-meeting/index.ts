@@ -38,8 +38,14 @@ function detectReflectionLoop(conversationHistory: any[]): boolean {
   return consecutiveReflective >= 3;
 }
 
-// MANDATORY MENTORS - Always include these
-const MANDATORY_MENTORS = ['creative_visionary', 'strategist_mentor'];
+// MANDATORY MENTORS - Dynamic based on council type
+// Default for standard councils, Transmutation gets different mentors
+function getMandatoryMentors(councilType: string): string[] {
+  if (councilType === 'transmutation') {
+    return ['problem_mentor', 'perspective_mentor'];
+  }
+  return ['creative_visionary', 'strategist_mentor'];
+}
 
 // Global keyword highlighting rules - add to all AI prompts
 const KEYWORD_HIGHLIGHTING_RULES = `
@@ -660,7 +666,10 @@ Just the insight, no labels.`;
     console.log(`Q${questionNumber}: Council insight ${shouldGenerateCouncilInsight ? 'generated' : 'skipped (Q2)'}`);
 
     // === GENERATE MENTOR MICRO-PERSPECTIVES ===
-    // Ensure mandatory mentors (Creative Visionary + Strategist) are always included
+    // Ensure mandatory mentors are always included (based on council type)
+    const councilType = body.councilType || 'default';
+    const MANDATORY_MENTORS = getMandatoryMentors(councilType);
+    
     let allMentors = [...mentorTypes];
     for (const mandatoryMentor of MANDATORY_MENTORS) {
       if (!allMentors.includes(mandatoryMentor)) {
@@ -679,7 +688,7 @@ Just the insight, no labels.`;
       selectedMentors = [...new Set([...MANDATORY_MENTORS, ...relevantMentors])].slice(0, 6);
     }
     
-    console.log(`Selected ${selectedMentors.length} mentors (mandatory: ${MANDATORY_MENTORS.join(', ')}):`, selectedMentors);
+    console.log(`Selected ${selectedMentors.length} mentors for ${councilType} (mandatory: ${MANDATORY_MENTORS.join(', ')}):`, selectedMentors);
     
     const mentorPerspectives: Record<string, string> = {};
 
@@ -1365,8 +1374,18 @@ Just the question, nothing else.`;
     let suggestedMentorFor1to1 = null;
     
     if (isQ2 || isQ3) {
-      // Analyze if user has clarity or needs more guidance
-      const mentorRoutingPrompt = `Analyze this conversation to determine the best 1-to-1 mentor for shaping.
+      // For transmutation council, ALWAYS suggest Storybreaker
+      if (councilType === 'transmutation') {
+        suggestedMentorFor1to1 = {
+          mentorType: 'storybreaker_mentor',
+          mentorName: 'Storybreaker',
+          suggestionMessage: "The Storybreaker can help you extract the deeper pattern from this life event.",
+          hasClarity: true
+        };
+        console.log("Transmutation council: suggesting storybreaker_mentor for pattern discovery");
+      } else {
+        // Standard council routing
+        const mentorRoutingPrompt = `Analyze this conversation to determine the best 1-to-1 mentor for shaping.
 
 CONVERSATION:
 ${conversationContext}
@@ -1432,6 +1451,7 @@ Use these EXACT mentor keys: strategist_mentor, creative_visionary, alignment_me
       } catch (error) {
         console.error("Mentor routing failed:", error);
       }
+      } // Close the else block for non-transmutation routing
     }
 
     // === Q3 ONLY: COUNCIL GUIDANCE (Mentor Recommendation) ===
