@@ -1,185 +1,178 @@
 
+# Fix Storybreaker Transmutation Context Pollution
 
-# Fix Transmutation Council Mentor Issues & Storybreaker Handoff Flow
+## The Problem
 
-## Problems Identified
+The Storybreaker mentor is receiving a handoff from the Transmutation Council about a **specific life event** (broken leg in Australia), but after the initial correct message, subsequent responses are **polluted with unrelated context** from other mentor conversations (Creative Visionary discussing memes, job hunting, etc.).
 
-### Problem 1: Wrong Mentors Appearing
-The **Creative Visionary** and **Strategist Mentor** are appearing in the Transmutation Council instead of the correct mentors. This happens because:
-- Line 42 in `council-meeting/index.ts`: `MANDATORY_MENTORS = ['creative_visionary', 'strategist_mentor']`
-- Lines 664-680: These mandatory mentors are always added to all council responses
+### Evidence from Database
 
-### Problem 2: Handoff to Storybreaker Not Working
-The mentor routing (lines 1364-1435) suggests generic mentors (`strategist_mentor`, `creative_visionary`, `alignment_mentor`) instead of Storybreaker. The routing logic doesn't consider the council type.
-
-### Problem 3: Storybreaker Doesn't Continue Conversation
-When handoff works, the Storybreaker doesn't have transmutation-specific logic to:
-1. Acknowledge the life event shared in the council
-2. Ask targeted questions to extract pattern data (Emotion, Fear, Trigger, Life Moment)
-3. Trigger the `PatternDiscoveryCard` when requirements are met
-
----
-
-## Implementation Plan
-
-### 1. Fix Mandatory Mentors by Council Type
-
-**File**: `supabase/functions/council-meeting/index.ts`
-
-**Change**: Make mandatory mentors dynamic based on `councilType`
-
-```typescript
-// Replace line 42 static definition with dynamic logic
-// OLD: const MANDATORY_MENTORS = ['creative_visionary', 'strategist_mentor'];
-
-// NEW: Dynamic selection inside the handler (after extracting councilType from request body)
-const councilType = body.councilType || 'default';
-const MANDATORY_MENTORS = councilType === 'transmutation' 
-  ? ['problem_mentor', 'perspective_mentor'] 
-  : ['creative_visionary', 'strategist_mentor'];
+**Handoff record (correct)**:
+```
+userInput: "I broked my leg while living in australia and it was lockdown for covid..."
+councilContext: "...challenges you faced with a broken leg in Australia during lockdown..."
+flow: transmutation_pattern_discovery
+phase: pattern_extraction
 ```
 
-This ensures:
-- **Transmutation Council**: Problem Mentor + Perspective Mentor (as requested)
-- **Other Councils**: Creative Visionary + Strategist (default behavior preserved)
-
----
-
-### 2. Fix Mentor Handoff Routing for Transmutation
-
-**File**: `supabase/functions/council-meeting/index.ts`
-
-**Change**: Update mentor routing prompt (lines 1364-1400) to prioritize Storybreaker for transmutation
-
-```typescript
-// Add councilType-aware routing rules
-const mentorRoutingPrompt = `Analyze this conversation...
-
-COUNCIL TYPE: ${councilType}
-
-${councilType === 'transmutation' ? `
-TRANSMUTATION COUNCIL RULES:
-- ALWAYS suggest storybreaker_mentor as the 1-to-1 follow-up
-- Reason: "The Storybreaker can help you extract the deeper pattern from this life event"
-- The Storybreaker is the ONLY mentor who can unlock the Pattern Map
-` : `
-STANDARD ROUTING RULES:
-- If CLARITY (they know what they want) → strategist_mentor or creative_visionary
-- If NEEDS GUIDANCE (still finding direction) → alignment_mentor
-...
-`}
-
-YOU MUST RESPOND WITH VALID JSON:
-{
-  "hasClarity": true/false,
-  "suggestedMentor": "${councilType === 'transmutation' ? 'storybreaker_mentor' : 'mentor_type'}",
-  ...
-}
-`;
+**First Storybreaker message (correct at 10:53:13)**:
+```
+"I was listening in the Council. What you shared took courage.
+'I broked my leg while living in australia...'
+What emotion comes up most strongly when you think about that moment?"
 ```
 
----
-
-### 3. Update TransmutationCouncil.tsx to Map Response Correctly
-
-**File**: `src/pages/TransmutationCouncil.tsx`
-
-**Change**: The current code expects `suggestedMentor` but the edge function returns `suggestedMentorFor1to1`. Fix the mapping:
-
-```typescript
-// In handleAsk, after receiving data:
-// Map the correct field from the response
-setSuggestedMentor(
-  data.suggestedMentor || 
-  (data.suggestedMentorFor1to1 ? {
-    targetMentor: data.suggestedMentorFor1to1.mentorType,
-    reason: data.suggestedMentorFor1to1.suggestionMessage
-  } : null)
-);
+**Second Storybreaker message (WRONG at 10:53:19)**:
+```
+"What strikes me is this thread about the 'difficulty of finding a good job 
+or office work' that you mentioned with the Creative Visionary mentor..."
 ```
 
----
+This is completely unrelated to the broken leg transmutation flow!
 
-### 4. Add Transmutation Context to Handoff
+## Root Cause
 
-**File**: `src/pages/TransmutationCouncil.tsx`
-
-**Change**: Ensure the handoff includes transmutation context so Storybreaker knows to continue pattern discovery
+In `supabase/functions/chat-mentor/index.ts`, lines 1853-1872:
 
 ```typescript
-// In handleMentorHandoff function, add transmutation context:
-const handoffPayload = {
-  user_id: user.id,
-  source_mentor_type: 'transmutation_council',
-  target_mentor_type: targetMentor,
-  source_messages: sourceMessages,
-  handoff_chain_id: chainId,
-  chain_position: 1,
-  journey_topic: suggestedMentor?.reason || "Continuing transmutation journey",
-  // ADD: Transmutation-specific context for Storybreaker
-  voice_context: {
-    flow: 'transmutation_pattern_discovery',
-    councilContext: councilInsight,
-    userInput: conversationHistory.filter(h => h.role === 'user').map(h => h.content).join('\n'),
-    phase: 'pattern_extraction'
-  },
-  processed: false,
-  initiated_by: 'transmutation_council'
-};
+// Lines 1854-1860: Gets ALL previous Storybreaker chats (unrelated topics)
+const { data: chatHistory } = await supabaseClient
+  .from("chats")
+  .select("role, content, created_at")
+  .eq("user_id", user.id)
+  .eq("mentor_type", mentorType)  // ← Gets OLD Storybreaker conversations too
+  .order("created_at", { ascending: true })
+  .limit(20);
+
+// Lines 1866-1872: Gets 50 messages from ALL other mentors (Creative Visionary, etc.)
+const { data: allRecentChats } = await supabaseClient
+  .from("chats")
+  .select("mentor_type, role, content, created_at")
+  .eq("user_id", user.id)
+  .neq("mentor_type", mentorType)  // ← Pulls in unrelated mentor context
+  .order("created_at", { ascending: false })
+  .limit(50);
 ```
+
+When in transmutation pattern discovery mode, this cross-mentor memory creates noise that distracts from the specific life event.
 
 ---
 
-### 5. Add Storybreaker Transmutation Handoff Handler
+## Solution
+
+### 1. Detect and Track Transmutation Session
+
+Add a flag/context that persists through the transmutation conversation so subsequent messages stay focused on the life event.
 
 **File**: `supabase/functions/chat-mentor/index.ts`
 
-**Change**: Add special handling when Storybreaker receives a handoff from Transmutation Council
+After the initial handoff is processed (lines 1698-1729), we need to:
+1. Store the transmutation context so follow-up messages use it
+2. Skip cross-mentor memory when in transmutation mode
+3. Only use chat history from AFTER the transmutation handoff started
 
 ```typescript
-// In the __HANDOFF_INIT__ handler section, add transmutation-aware logic:
+// After detecting transmutation handoff, set a flag
+let isTransmutationSession = false;
+let transmutationSessionStart: Date | null = null;
+let transmutationLifeEvent: string | null = null;
 
-if (mentorType === 'storybreaker_mentor' && handoffRecord?.voice_context?.flow === 'transmutation_pattern_discovery') {
-  const transmutationContext = handoffRecord.voice_context;
+// Check if this is a continuation of a transmutation session
+if (mentorType === 'storybreaker_mentor') {
+  // Check for recent transmutation handoff (within last hour)
+  const { data: recentHandoff } = await supabaseClient
+    .from("conversation_handoffs")
+    .select("voice_context, created_at")
+    .eq("user_id", user.id)
+    .eq("target_mentor_type", "storybreaker_mentor")
+    .eq("processed", true)
+    .gte("created_at", new Date(Date.now() - 60 * 60 * 1000).toISOString())
+    .order("created_at", { ascending: false })
+    .limit(1);
   
-  systemPrompt = `You are the Storybreaker Mentor receiving a handoff from the Transmutation Council.
+  if (recentHandoff?.[0]?.voice_context?.flow === 'transmutation_pattern_discovery') {
+    isTransmutationSession = true;
+    transmutationSessionStart = new Date(recentHandoff[0].created_at);
+    transmutationLifeEvent = recentHandoff[0].voice_context.userInput;
+  }
+}
+```
 
-CONTEXT FROM COUNCIL:
-${transmutationContext.councilContext || 'No council insight'}
+### 2. Filter Chat History for Transmutation Sessions
 
-USER'S SHARED LIFE EVENT:
-${transmutationContext.userInput || 'Not provided'}
+When in transmutation mode, only use messages from AFTER the handoff started:
+
+```typescript
+// Modify chat history query for transmutation sessions
+let chatHistory;
+if (isTransmutationSession && transmutationSessionStart) {
+  // Only get messages from THIS transmutation session
+  const { data } = await supabaseClient
+    .from("chats")
+    .select("role, content, created_at")
+    .eq("user_id", user.id)
+    .eq("mentor_type", mentorType)
+    .gte("created_at", transmutationSessionStart.toISOString())  // Only recent
+    .order("created_at", { ascending: true })
+    .limit(20);
+  chatHistory = data;
+} else {
+  // Standard query
+  const { data } = await supabaseClient
+    .from("chats")
+    // ... existing query
+  chatHistory = data;
+}
+```
+
+### 3. Skip Cross-Mentor Memory for Transmutation
+
+When in transmutation mode, skip the allRecentChats query entirely:
+
+```typescript
+// Skip cross-mentor memory for focused transmutation sessions
+let allRecentChats = null;
+if (!isTransmutationSession) {
+  const { data } = await supabaseClient
+    .from("chats")
+    .select("mentor_type, role, content, created_at")
+    .eq("user_id", user.id)
+    .neq("mentor_type", mentorType)
+    .order("created_at", { ascending: false })
+    .limit(50);
+  allRecentChats = data;
+}
+```
+
+### 4. Add Transmutation Focus to System Prompt
+
+When continuing a transmutation session, inject focus context:
+
+```typescript
+if (isTransmutationSession && transmutationLifeEvent) {
+  systemPrompt += `
+
+=== TRANSMUTATION FOCUS ===
+You are in a PATTERN DISCOVERY session about a specific life event.
+STAY FOCUSED on this event and IGNORE any unrelated topics from other mentors.
+
+LIFE EVENT TO EXPLORE:
+"${transmutationLifeEvent}"
 
 YOUR MISSION:
-1. Acknowledge what they shared in the council with warmth
-2. Ask 2-3 targeted questions to extract the MISSING pattern data:
-   - Primary Emotion: "What emotion comes up most strongly when you think about this?"
-   - Fear/Old Story: "What story did you tell yourself because of this?"
-   - Trigger: "What situations today still activate this feeling?"
-   - Life Moment: "Can you pinpoint a specific moment when this pattern started?"
+1. Keep asking questions ONLY about this specific life event
+2. Extract: Emotion, Fear/Old Story, Trigger, Life Moment
+3. When you have enough, output [PATTERN_READY] JSON block
+4. DO NOT reference other mentors or unrelated topics
 
-REQUIREMENTS FOR PATTERN DISCOVERY:
-- Minimum: Life Event, Trigger, Primary Emotion, and either Fear or Old Story
-- When you have enough, output [PATTERN_READY] JSON block
-
-TONE: Warm, precise, story-cleansing. You separate facts from interpretation.
-
-Generate your opening message that:
-1. Shows you were listening to the council conversation
-2. Asks ONE specific question to go deeper
+FORBIDDEN:
+- Do NOT mention job hunting, memes, or other unrelated topics
+- Do NOT say "you mentioned with the Creative Visionary..."
+- ONLY focus on the life event above
+=== END TRANSMUTATION FOCUS ===
 `;
 }
 ```
-
----
-
-### 6. Ensure Pattern Detection Triggers Correctly
-
-**File**: `supabase/functions/chat-mentor/index.ts`
-
-**Change**: Add pattern detection logic that triggers `PatternDiscoveryCard` when Storybreaker extracts enough data
-
-This is already partially implemented but needs the `[PATTERN_READY]` JSON output to be parsed and returned as `patternDetection` in the response.
 
 ---
 
@@ -187,19 +180,38 @@ This is already partially implemented but needs the `[PATTERN_READY]` JSON outpu
 
 | File | Changes |
 |------|---------|
-| `supabase/functions/council-meeting/index.ts` | Dynamic mandatory mentors, transmutation-specific routing |
-| `src/pages/TransmutationCouncil.tsx` | Fix suggestedMentor mapping, add transmutation context to handoff |
-| `supabase/functions/chat-mentor/index.ts` | Add Storybreaker transmutation handoff handler |
+| `supabase/functions/chat-mentor/index.ts` | Add transmutation session detection, filter chat history, skip cross-mentor memory, add focus prompt |
 
 ---
 
 ## Expected Result
 
-1. **Transmutation Council shows correct mentors**: Storybreaker, Phoenix, Stoic + Problem Mentor and Perspective Mentor (replacing Creative Visionary and Strategist)
+### Before (current behavior):
+```
+Storybreaker: "What strikes me is this thread about the 'difficulty of finding 
+a good job' that you mentioned with the Creative Visionary mentor..."
+```
 
-2. **Handoff card appears after Q2/Q3**: "Go deeper with Storybreaker" with reason explaining pattern discovery
+### After (fixed):
+```
+Storybreaker: "Thank you for sharing more. When you were alone with your broken 
+leg in Australia, what fear came up most strongly? What did you tell yourself 
+about what this meant?"
+```
 
-3. **Clicking handoff navigates to Council chat with Storybreaker**: The mentor acknowledges the life event and asks targeted questions
+---
 
-4. **Storybreaker conversation unlocks Pattern Map**: After 2-3 questions, the `PatternDiscoveryCard` appears with the extracted pattern data
+## Summary
 
+The fix ensures that when the Storybreaker is in a **transmutation pattern discovery session**, it:
+
+1. Only uses chat history from the current session (after the handoff)
+2. Ignores cross-mentor memory completely
+3. Stays laser-focused on extracting pattern data from the specific life event
+4. Never references unrelated topics from other mentor conversations
+
+This preserves the alchemy flow:
+- **Transmutation Council** → Shares life event
+- **Storybreaker** → Extracts pattern (Emotion, Fear, Trigger, Life Moment) → Unlocks Pattern Map
+- **Phoenix** → White Phase (Shift, Lesson, Protection)
+- **Stoic** → Gold Phase (Creation, New Belief, Strength)
