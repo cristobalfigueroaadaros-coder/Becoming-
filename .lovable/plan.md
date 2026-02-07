@@ -1,91 +1,231 @@
 
-## Goals (what will change)
-1. On **/transmutation-council**, the **answer input** (the field where the user replies) will always show:
-   - A clear **placeholder**
-   - A visible **example block** (so users see examples even if placeholders don’t render well on mobile)
-   - A primary action button labeled **“Ask the Transmutation Council”** (instead of “Begin”), and it will be visually obvious.
-2. The mentor names **Storybreaker / Phoenix / Stoic** will be displayed **horizontally** (not stacked vertically), both:
-   - In the top “mentor badges” row (already horizontal, but we’ll ensure it never collapses into a tall stack)
-   - Inside the initiation card (currently rendered as a vertical grid list)
+# Transmutation Council: Complete Structure Alignment
 
-## Why it currently “doesn’t exist” for you
-From the current `src/pages/TransmutationCouncil.tsx`:
-- The examples text above the input is gated by `messages.length === 0 && !isLoadingState`.
-  - If `isLoadingState` stays `true` for any reason (slow auth call, transient backend delay), the example line never appears.
-- The button label changes to **Begin** only when `messages.length === 0`, and it is **disabled** until you type something (`disabled={!input.trim()}`), which can feel like “not activated”.
-- The initiation card shows mentors in a **vertical `grid`**, which makes “Storybreaker / Phoenix / Stoic” appear stacked and wastes space.
+## The Root Problem
 
-## Implementation (code changes)
+The **Transmutation Council** uses a **chat message list pattern** (like WhatsApp) while all other councils (**CouncilMeeting**, **BuildersTeam**, **InnerSelfCouncil**) use a **staged card-based UI**.
 
-### A) Fix the input placeholder + examples + action button (TransmutationCouncil)
-**File:** `src/pages/TransmutationCouncil.tsx`
+### Current Transmutation Council (BROKEN):
+- Stores everything as `messages[]` (flat chat bubbles)
+- Renders perspectives/banter as plain chat bubbles with minimal styling
+- No WhatsApp-style alternating layout for banter
+- Follow-up question shown as text (`💭 *${question}*`) - **not clickable**
+- No proper mentor handoff suggestion card - just a text message
+- No "seeking clarity" stage, no "complete" stage
 
-1. **Make the example helper always render (remove `!isLoadingState` gating)**  
-   - Show examples based on:
-     - `messages.length === 0`
-     - `hasCompletedTransmutation` (defaults false while loading; that’s fine—better to show something than nothing)
-
-2. **Use a Textarea (not Input) for better placeholder + multi-line examples**
-   - Swap `<Input />` to `<Textarea />` (already used elsewhere in the app and supports multi-line UX better)
-   - Keep it 2–4 rows tall (`min-h`, `rows={3}`), non-resizable (`resize-none`), mobile-friendly.
-
-3. **Add an always-visible “Examples” block (not just placeholder)**
-   - Under the Textarea (or above it), show 2–3 clickable example chips:
-     - Clicking a chip fills the textarea (`setInput(example)`).
-   - This ensures examples are visible even if placeholder styling is subtle.
-
-4. **Change the CTA button label when starting**
-   - When `messages.length === 0`, button text becomes:
-     - **“Ask the Transmutation Council”** (with `Sparkles` icon)
-   - When conversation already started, keep the send icon.
-
-5. **Make “button not activated” feel intentional**
-   - Keep disabling when empty (to prevent empty submits), but add helper microcopy:
-     - If empty: show a tiny hint like “Type a life event (or tap an example) to begin.”
-
-**Outcome:** The user will always see the prompt/examples + the correct CTA label in the exact place they respond.
+### Working Councils (CouncilMeeting, BuildersTeam, InnerSelfCouncil):
+- Uses **stage state**: `'input' | 'seeking_clarity' | 'complete'`
+- Uses dedicated state variables:
+  - `councilInsight` → Highlighted insight card
+  - `mentorPerspectives` → Styled mentor cards
+  - `banterLines` → WhatsApp-style alternating chat bubbles with colors
+  - `suggestedNextQuestion` → **Clickable card** that prefills input
+  - `suggestedMentor` → **Handoff card** with "Continue with X" button
+- Clear visual separation between phases
 
 ---
 
-### B) Make Storybreaker / Phoenix / Stoic horizontal (no vertical stacking)
-**File:** `src/pages/TransmutationCouncil.tsx`
+## Implementation Plan
 
-There are two places to fix:
+### 1. Replace Message-Based Architecture with Stage-Based Architecture
 
-1. **Top mentor badges row** (already `flex gap-2 flex-wrap`)
-   - Keep it horizontal but reduce the chance it becomes tall:
-     - Add `overflow-x-auto` + `whitespace-nowrap` + `flex-nowrap` on small screens
-     - This makes it a horizontal scroll row on mobile instead of wrapping into many lines.
+**Remove:**
+```tsx
+const [messages, setMessages] = useState<Message[]>([]);
+```
 
-2. **Initiation card mentor section** (currently a vertical `grid gap-3`)
-   - Replace the vertical list with horizontal chips:
-     - `div className="flex flex-wrap gap-2"` on desktop
-     - `flex-nowrap overflow-x-auto` on mobile
-   - Each chip shows: icon + name only (role text removed from this area to avoid height bloat)
-   - If you still want roles, we can show them in a compact tooltip/secondary line *below* the chips (optional).
+**Add:**
+```tsx
+const [stage, setStage] = useState<'input' | 'seeking_clarity' | 'complete'>('input');
+const [questionNumber, setQuestionNumber] = useState<number>(0);
+const [clarityQuestion, setClarityQuestion] = useState<string>("");
+const [councilInsight, setCouncilInsight] = useState<string>("");
+const [mentorPerspectives, setMentorPerspectives] = useState<Record<string, string>>({});
+const [banterLines, setBanterLines] = useState<Array<{mentor: string; text: string; color: string}>>([]);
+const [emotionalReflection, setEmotionalReflection] = useState<string>("");
+const [suggestedNextQuestion, setSuggestedNextQuestion] = useState<string | null>(null);
+const [suggestedMentor, setSuggestedMentor] = useState<{ targetMentor: string; reason: string } | null>(null);
+const [conversationHistory, setConversationHistory] = useState<any[]>([]);
+```
 
-**Outcome:** “Storybreaker / Phoenix / Stoic” stays horizontal, uses minimal vertical space, and matches your intended layout.
+### 2. Update handleSubmit to Match Working Councils
+
+Replace the current logic that pushes to `messages[]` with the stage-based pattern:
+
+```tsx
+// Handle response from council-meeting
+if (data.stage === 'seeking_clarity') {
+  setStage('seeking_clarity');
+  setClarityQuestion(data.clarityQuestion || "");
+  setQuestionNumber(data.questionNumber);
+  setQuestion("");
+} else {
+  setStage('complete');
+  setQuestionNumber(data.questionNumber || 0);
+  setCouncilInsight(data.councilInsight || "");
+  setMentorPerspectives(data.mentorPerspectives || {});
+  setBanterLines(data.banterLines || []);
+  setEmotionalReflection(data.emotionalReflection || "");
+  setSuggestedNextQuestion(data.suggestedNextQuestion || null);
+  setSuggestedMentor(data.suggestedMentor || null);
+}
+```
+
+### 3. Render Complete Stage with Proper Components
+
+Replace the flat message rendering with the structured card layout from BuildersTeam/CouncilMeeting:
+
+**a) Council Insight Card:**
+```tsx
+{councilInsight && (
+  <Card className="border-2 border-amber-500/30 bg-gradient-to-br from-amber-500/5 to-transparent">
+    <CardTitle className="text-sm">✨ Council Insight</CardTitle>
+    <HighlightedText text={councilInsight} />
+  </Card>
+)}
+```
+
+**b) Mentor Perspectives (vertical cards):**
+```tsx
+{Object.entries(mentorPerspectives).map(([mentorType, perspective]) => (
+  <Card className="border-l-4 border-l-amber-500/50">
+    <div className="flex items-start gap-3">
+      <span>{mentorConfig[mentorType].icon}</span>
+      <div>
+        <p className="font-semibold">{mentorConfig[mentorType].name}</p>
+        <HighlightedText text={perspective} />
+      </div>
+    </div>
+  </Card>
+))}
+```
+
+**c) WhatsApp-Style Banter (alternating sides + colors):**
+```tsx
+{banterLines.map((line, idx) => {
+  const isEven = idx % 2 === 0;
+  return (
+    <div className={`flex ${isEven ? 'justify-start' : 'justify-end'}`}>
+      <div 
+        className={`max-w-[85%] p-3 rounded-2xl ${isEven ? 'rounded-tl-sm' : 'rounded-tr-sm'}`}
+        style={{ 
+          backgroundColor: `${line.color}15`, 
+          borderLeft: isEven ? `3px solid ${line.color}` : undefined,
+          borderRight: !isEven ? `3px solid ${line.color}` : undefined,
+        }}
+      >
+        <p className="text-xs font-semibold" style={{ color: line.color }}>
+          {mentorConfig[line.mentor]?.icon} {line.mentor}
+        </p>
+        <HighlightedText text={line.text} />
+      </div>
+    </div>
+  );
+})}
+```
+
+**d) Clickable Suggested Next Question:**
+```tsx
+{suggestedNextQuestion && (
+  <Card 
+    className="border-dashed border-2 cursor-pointer hover:border-amber-500/60"
+    onClick={() => continueAsking(suggestedNextQuestion)}
+  >
+    <p className="text-xs text-muted-foreground">💭 The Council suggests:</p>
+    <Button variant="outline" className="w-full">
+      {suggestedNextQuestion}
+    </Button>
+    <p className="text-xs italic">Click to answer</p>
+  </Card>
+)}
+```
+
+**e) Mentor Handoff Suggestion Card:**
+```tsx
+{suggestedMentor && (
+  <Card className="border-2 border-amber-500/50 bg-gradient-to-r from-amber-500/10 to-orange-500/10">
+    <div className="flex items-center justify-between">
+      <div className="flex items-start gap-3">
+        <span>{mentorConfig[suggestedMentor.targetMentor]?.icon}</span>
+        <div>
+          <p className="font-medium">Want to go deeper?</p>
+          <p className="text-xs text-muted-foreground">{suggestedMentor.reason}</p>
+        </div>
+      </div>
+      <Button onClick={() => handleMentorHandoff(suggestedMentor.targetMentor)}>
+        Continue with {mentorConfig[suggestedMentor.targetMentor]?.name}
+      </Button>
+    </div>
+  </Card>
+)}
+```
+
+### 4. Add Seeking Clarity Stage (Q2 Clickable Question)
+
+```tsx
+{stage === 'seeking_clarity' && clarityQuestion && (
+  <Card className="border-2 border-amber-500/50 bg-amber-500/5">
+    <CardTitle>Council Seeking Clarity</CardTitle>
+    <p>Before we go deeper, the Council needs to understand:</p>
+    <motion.button
+      onClick={() => setAnswerDialogOpen(true)}
+      className="w-full p-4 rounded-lg bg-gradient-to-r from-amber-500/10 to-orange-500/10 border-2 border-amber-500/30"
+    >
+      <MessageCircle />
+      <p>{clarityQuestion}</p>
+    </motion.button>
+    <p className="text-xs">👆 Tap to answer</p>
+  </Card>
+)}
+```
+
+### 5. Add Answer Dialog (for Q2 response)
+
+Copy the Dialog pattern from BuildersTeam:
+```tsx
+<Dialog open={answerDialogOpen} onOpenChange={setAnswerDialogOpen}>
+  <DialogContent>
+    <DialogTitle>Your Answer</DialogTitle>
+    <Textarea value={currentAnswer} onChange={...} />
+    <Button onClick={submitClarityAnswer}>Submit Answer</Button>
+  </DialogContent>
+</Dialog>
+```
+
+### 6. Add Helper Functions
+
+```tsx
+const continueAsking = (prefillQuestion?: string) => {
+  setStage('input');
+  setQuestion(prefillQuestion || "");
+  // Clear response state but keep conversationHistory
+};
+
+const resetConversation = () => {
+  setStage('input');
+  setQuestion("");
+  setConversationHistory([]);
+  // Clear all response state
+};
+```
 
 ---
 
-## Files to change
-- `src/pages/TransmutationCouncil.tsx`
-  - Input area: switch Input → Textarea, always show examples, rename CTA button
-  - Initiation card mentor display: grid → horizontal chips
-  - Top mentor row: force horizontal scroll on small screens instead of wrapping
+## Files Changed
 
-## Testing checklist (what I’ll verify in preview)
-1. Navigate to `/transmutation-council` on desktop + mobile widths:
-   - See examples immediately without needing any load to finish.
-   - See Textarea placeholder and an examples area.
-   - See button labeled “Ask the Transmutation Council”.
-2. Ensure button submits correctly and conversation flow continues unchanged.
-3. Confirm mentor names are horizontal in:
-   - Top row
-   - Initiation card
-4. Confirm no overlap with the fixed bottom input (input remains visible while scrolling).
+| File | Change |
+|------|--------|
+| `src/pages/TransmutationCouncil.tsx` | Complete rewrite of state management and rendering to match stage-based architecture from other councils |
 
-## Notes / non-goals (kept unchanged)
-- No changes to your mentor banter logic, council-meeting logic, or handoff logic.
-- No changes to pattern extraction logic.
-- This is purely the missing/unclear UI affordances + layout issue you reported.
+---
+
+## Summary of Visual Changes
+
+| Element | Before (Broken) | After (Fixed) |
+|---------|-----------------|---------------|
+| Mentor perspectives | Plain chat bubbles | Styled cards with icons + colored borders |
+| Banter | All left-aligned bubbles | WhatsApp-style alternating sides + unique colors |
+| Follow-up question | Plain text `💭 *question*` | Clickable card that prefills input |
+| Mentor handoff | Text message in chat | Styled card with "Continue with X" button |
+| Q2 Clarity question | Not implemented | Clickable card that opens answer dialog |
+| Action buttons | None | "Continue Exploring" + "Start New Topic" |
