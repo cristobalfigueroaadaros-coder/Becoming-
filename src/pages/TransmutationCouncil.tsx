@@ -176,7 +176,18 @@ const TransmutationCouncil = () => {
         setBanterLines(data.banterLines || []);
         setEmotionalReflection(data.emotionalReflection || "");
         setSuggestedNextQuestion(data.suggestedNextQuestion || null);
-        setSuggestedMentor(data.suggestedMentor || null);
+        
+        // Map suggestedMentorFor1to1 to suggestedMentor (edge function uses different field name)
+        if (data.suggestedMentorFor1to1) {
+          setSuggestedMentor({
+            targetMentor: data.suggestedMentorFor1to1.mentorType,
+            reason: data.suggestedMentorFor1to1.suggestionMessage
+          });
+        } else if (data.suggestedMentor) {
+          setSuggestedMentor(data.suggestedMentor);
+        } else {
+          setSuggestedMentor(null);
+        }
 
         // Check for pattern detection
         if (data?.patternDetection) {
@@ -254,7 +265,13 @@ const TransmutationCouncil = () => {
         return messages;
       });
 
-      // Create handoff record
+      // Build user's life event context for pattern discovery
+      const userInputs = conversationHistory
+        .filter((entry): entry is ConversationEntry & { content: string } => entry.role === 'user' && typeof entry.content === 'string')
+        .map(entry => entry.content)
+        .join('\n');
+
+      // Create handoff record with transmutation context
       const chainId = crypto.randomUUID();
       const { data: handoff, error: handoffError } = await supabase
         .from("conversation_handoffs")
@@ -266,6 +283,13 @@ const TransmutationCouncil = () => {
           handoff_chain_id: chainId,
           chain_position: 1,
           journey_topic: suggestedMentor?.reason || "Continuing transmutation journey",
+          // Transmutation-specific context for Storybreaker pattern discovery
+          voice_context: {
+            flow: 'transmutation_pattern_discovery',
+            councilContext: councilInsight,
+            userInput: userInputs,
+            phase: 'pattern_extraction'
+          },
           processed: false,
           initiated_by: 'transmutation_council'
         })

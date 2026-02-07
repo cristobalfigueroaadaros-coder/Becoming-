@@ -1695,9 +1695,42 @@ Deno.serve(async (req) => {
         .single();
 
       if (handoff) {
-        // ========== TRANSMUTATION HANDOFF DETECTION ==========
-        // Check if this is a transmutation handoff (voice_context contains phase)
+        // ========== STORYBREAKER PATTERN DISCOVERY HANDOFF ==========
+        // Check if this is a transmutation council handoff for pattern discovery
         const voiceCtx = handoff.voice_context as any;
+        
+        if (mentorType === 'storybreaker_mentor' && voiceCtx?.flow === 'transmutation_pattern_discovery') {
+          console.log("Storybreaker pattern discovery handoff detected");
+          
+          const councilContext = voiceCtx.councilContext || '';
+          const userInput = voiceCtx.userInput || '';
+          
+          const storyBreakerOpening = `I was listening in the Council. What you shared took courage.
+
+"${userInput.substring(0, 200)}${userInput.length > 200 ? '...' : ''}"
+
+I help people see the pattern beneath the story — the belief that formed, the emotion that got stuck, the protection that emerged.
+
+Let me ask you something specific:
+
+**What emotion comes up most strongly when you think about that moment?**
+
+Not what you think you should feel — what actually rises up when you go back there?`;
+
+          await supabaseClient
+            .from("conversation_handoffs")
+            .update({ processed: true })
+            .eq("id", handoffId);
+          
+          return new Response(
+            JSON.stringify({ response: storyBreakerOpening }),
+            { headers: { ...corsHeaders, "Content-Type": "application/json" } }
+          );
+        }
+        // ========== END STORYBREAKER PATTERN DISCOVERY HANDOFF ==========
+        
+        // ========== TRANSMUTATION MAP HANDOFF DETECTION ==========
+        // Check if this is a transmutation map handoff (voice_context contains phase)
         if (voiceCtx && voiceCtx.phase && (voiceCtx.phase === 'white' || voiceCtx.phase === 'gold')) {
           console.log("Transmutation handoff detected:", voiceCtx.phase, voiceCtx.patternName);
           
@@ -1745,7 +1778,7 @@ What did you actually gain from going through this? What's different about you n
             );
           }
         }
-        // ========== END TRANSMUTATION HANDOFF ==========
+        // ========== END TRANSMUTATION MAP HANDOFF ==========
 
         // Get all handoffs in this chain for full journey context
         const chainId = handoff.handoff_chain_id;
