@@ -364,6 +364,7 @@ Deno.serve(async (req) => {
       notificationContext,
       openerType,
       generateOpenerOnly = false,
+      councilType = 'default',
     } = await req.json();
 
     // Defensive: conversationHistory is user-provided and can contain null/undefined
@@ -667,7 +668,6 @@ Just the insight, no labels.`;
 
     // === GENERATE MENTOR MICRO-PERSPECTIVES ===
     // Ensure mandatory mentors are always included (based on council type)
-    const councilType = body.councilType || 'default';
     const MANDATORY_MENTORS = getMandatoryMentors(councilType);
     
     let allMentors = [...mentorTypes];
