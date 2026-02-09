@@ -2144,18 +2144,41 @@ STORYBREAKER MISSION:
    - Fear/Old Story: What did they tell themselves because of this?
    - Trigger: What situations today still activate this feeling?
    - Life Moment: When did this pattern start?
-3. When you have at least: Life Event + Trigger + Emotion + (Fear OR Old Story), output [PATTERN_READY] followed by JSON block
+3. When you have at least: Life Event + Trigger + Emotion + (Fear OR Old Story):
+   a) Write a brief acknowledgment of what you understood (2-3 sentences max)
+   b) Propose the pattern name naturally: "Based on what you've shared, I'd call this: '[Name]'"
+   c) Output the JSON block with all extracted data
+   d) End with [PATTERN_READY] marker (MANDATORY - this triggers the confirmation card)
 4. Stay warm but focused - you are separating facts from interpretation
 
-PATTERN_READY FORMAT (use when you have enough data):
-[PATTERN_READY]
+CRITICAL FORMAT RULES:
+- The JSON block + [PATTERN_READY] MUST be the LAST thing in your response
+- Do NOT ask "Does this resonate?" or any follow-up question after the JSON
+- Do NOT continue the conversation after [PATTERN_READY] - the UI card handles confirmation
+- The user will confirm via a visual card, not by typing in chat
+- NEVER show raw JSON to the user - the card will display it beautifully
+
+PATTERN_READY FORMAT (use EXACTLY when you have enough data):
+[Your acknowledgment and pattern name proposal here - NO question marks at the end]
+
+\`\`\`json
 {
   "patternName": "The pattern name based on their story",
-  "primaryEmotion": "the dominant emotion",
-  "fear": "what they feared or believed",
-  "trigger": "what activates this today",
-  "lifeEvent": "the originating moment"
+  "patternType": "life_event",
+  "lifeEvent": "Description of the originating moment",
+  "triggerEvent": "What situations today still activate this feeling",
+  "primaryEmotion": "The dominant emotion",
+  "relatedEmotions": ["other", "emotions", "felt"],
+  "fear": "What they feared or believed because of this",
+  "oldStory": "The narrative they told themselves",
+  "protectiveRole": "How this pattern was trying to protect them",
+  "cost": "What this pattern cost them",
+  "lifeEventAgeCategory": "child/teen/adult"
 }
+\`\`\`
+[PATTERN_READY]
+
+AFTER [PATTERN_READY]: Say NOTHING more. The UI takes over.
 ` : mentorType === 'phoenix_mentor' ? `
 PHOENIX MISSION (WHITE PHASE):
 1. Help them find the SHIFT - the moment or realization that changed perspective
@@ -2384,6 +2407,64 @@ IMPORTANT: Continue this conversation naturally. You reached out to the user abo
     } else {
       messages.push({ role: "user", content: message });
     }
+
+    // === USER PATTERN CONFIRMATION DETECTION ===
+    // If user says "yes" after Storybreaker proposed a pattern, return the pattern immediately
+    // This prevents the infinite loop where the mentor keeps asking questions
+    if (isTransmutationSession && mentorType === 'storybreaker_mentor') {
+      const confirmationPhrases = [
+        'yes', 'yes it does', 'that\'s right', 'that\'s it', 'thats it', 'thats right',
+        'exactly', 'correct', 'makes sense', 'resonates', 'yes it resonates',
+        'it does', 'definitely', 'absolutely', 'spot on', 'nailed it', 'perfect',
+        'yes that captures', 'that captures it', 'you got it', 'bingo'
+      ];
+      const userMsgLower = message.toLowerCase().trim();
+      
+      // Check if user message is a confirmation
+      const isConfirmation = confirmationPhrases.some(phrase => 
+        userMsgLower === phrase || 
+        userMsgLower.startsWith(phrase + ' ') || 
+        userMsgLower.startsWith(phrase + ',') ||
+        userMsgLower.startsWith(phrase + '.')
+      );
+      
+      if (isConfirmation) {
+        console.log("[chat-mentor] User confirmation detected in transmutation session:", userMsgLower);
+        
+        // Check if previous assistant message had a JSON pattern
+        const previousAssistantMessages = chatHistory?.filter((m: any) => m.role === 'assistant') || [];
+        const lastAssistantMsg = previousAssistantMessages[previousAssistantMessages.length - 1];
+        
+        if (lastAssistantMsg?.content) {
+          const jsonMatch = lastAssistantMsg.content.match(/```json\s*([\s\S]*?)```/);
+          if (jsonMatch && jsonMatch[1]) {
+            try {
+              const parsed = JSON.parse(jsonMatch[1].trim());
+              if (parsed.patternName) {
+                console.log("[chat-mentor] User confirmed pattern from previous message:", parsed.patternName);
+                
+                // Return immediately with the pattern - no need to call AI
+                return new Response(
+                  JSON.stringify({
+                    response: "I see this pattern clearly now. Let's anchor it and begin your transmutation journey.",
+                    patternDetection: parsed,
+                    extractedKeywords: [],
+                    suggestedHandoff: null,
+                    valueMapDetection: null,
+                    projectCoherence: null,
+                    conversationDepth: conversationDepth,
+                  }),
+                  { headers: { ...corsHeaders, "Content-Type": "application/json" } }
+                );
+              }
+            } catch (e) {
+              console.log("[chat-mentor] Failed to parse pattern from previous message:", e);
+            }
+          }
+        }
+      }
+    }
+    // === END USER PATTERN CONFIRMATION DETECTION ===
 
     // Call Lovable AI with full context
     const aiResponse = await fetch("https://ai.gateway.lovable.dev/v1/chat/completions", {
@@ -3088,6 +3169,7 @@ Only return isCoherent: true if:
     // Both inner_clarity_mentor and storybreaker_mentor can trigger pattern detection
     const patternDetectionMentors = ['inner_clarity_mentor', 'storybreaker_mentor'];
     
+    // PRIMARY DETECTION: [PATTERN_READY] marker present
     if (response.includes('[PATTERN_READY]') && patternDetectionMentors.includes(mentorType)) {
       console.log("[chat-mentor] [PATTERN_READY] marker detected in response from:", mentorType);
       
@@ -3117,6 +3199,31 @@ Only return isCoherent: true if:
         // No JSON block found but marker exists - clean the marker
         response = response.replace(/\[PATTERN_READY\]/g, '').trim();
         console.log("[chat-mentor] [PATTERN_READY] marker found but no JSON block");
+      }
+    }
+    // FALLBACK DETECTION: For transmutation sessions, detect JSON block even without marker
+    else if (isTransmutationSession && mentorType === 'storybreaker_mentor' && !patternDetection) {
+      const jsonMatch = response.match(/```json\s*([\s\S]*?)```/);
+      if (jsonMatch && jsonMatch[1]) {
+        try {
+          const parsed = JSON.parse(jsonMatch[1].trim());
+          // Validate this is a pattern JSON (has patternName field)
+          if (parsed.patternName) {
+            patternDetection = parsed;
+            console.log("[chat-mentor] FALLBACK pattern detection (no marker):", patternDetection.patternName);
+            
+            // Clean the response - remove the JSON block so user doesn't see it
+            response = response.replace(/```json[\s\S]*?```/g, '').trim();
+            
+            // Also remove any trailing questions that ask for confirmation (the card handles it)
+            response = response.replace(/\s*(Does this (resonate|feel right|capture|ring true)\?.*?)$/gi, '').trim();
+            response = response.replace(/\s*(What do you think\?.*?)$/gi, '').trim();
+          }
+        } catch (e) {
+          console.error("[chat-mentor] Fallback pattern parse failed:", e);
+          // Still clean the JSON block from response so user doesn't see raw JSON
+          response = response.replace(/```json[\s\S]*?```/g, '').trim();
+        }
       }
     }
 
