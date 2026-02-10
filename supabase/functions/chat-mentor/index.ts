@@ -1649,6 +1649,11 @@ Deno.serve(async (req) => {
     const { data: { user }, error: userError } = await supabaseClient.auth.getUser(token);
     if (userError || !user) throw new Error("Not authenticated");
 
+    // === MODE ENFORCEMENT ===
+    const PATTERN_MENTORS = ['storybreaker_mentor', 'phoenix_mentor', 'stoic_mentor'];
+    const currentMode = PATTERN_MENTORS.includes(mentorType) ? 'PATTERN' : 'PROJECT';
+    console.log("[MODE]", currentMode, "| mentor:", mentorType);
+
     // ========== VOICE OF SYSTEM INIT ==========
     // Handle __VOICE_INIT__ prefix for proactive mentor opening
     let voiceContext: any = null;
@@ -2074,6 +2079,68 @@ DO NOT mention "Value Map" or "blocks" - just ask questions that naturally uncov
     // Add keyword highlighting rules to all prompts
     systemPrompt += `\n\n${KEYWORD_HIGHLIGHTING_RULES}`;
 
+    // === MODE-SPECIFIC PROMPT GUARDRAILS ===
+    if (currentMode === 'PROJECT') {
+      systemPrompt += `
+
+=== PROJECT MODE ACTIVE ===
+You are in PROJECT MODE. Your purpose is to help the user build, create, or refine a project.
+
+TONE: Business-focused, action-oriented, future-directed.
+
+If the user shares emotional or personal content:
+1. Acknowledge it briefly (1 sentence max)
+2. Return to project convergence immediately
+3. Do NOT dive into pattern extraction, trauma work, or deep reflection
+4. If they need deeper emotional work, suggest: "This sounds like something worth exploring in the Transmutation space."
+
+NEVER in Project Mode:
+- Extract patterns, fears, triggers, or old stories
+- Ask about childhood memories or life events
+- Enter reflective loops about emotions
+- Output [PATTERN_READY] or pattern JSON
+=== END PROJECT MODE ===
+`;
+
+      // === PROJECT CONVERGENCE RULE (after 3+ exchanges) ===
+      if (conversationDepth >= 3 && !isTransmutationSession) {
+        systemPrompt += `
+
+=== PROJECT CONVERGENCE RULE (MANDATORY) ===
+You have asked ${conversationDepth} questions already. You MUST now:
+1. STOP asking open-ended exploratory questions
+2. DO one of the following:
+   a) Propose a clear project idea or direction based on what you've heard
+   b) Restate the user's project/idea clearly and ask for confirmation
+   c) Suggest a concrete next step or action
+
+You may ask ONE more narrowing question MAX, but it must be paired with a proposal.
+
+FORBIDDEN after 3+ exchanges:
+- "Tell me more about..."
+- "What does that mean to you?"
+- Open-ended reflective questions without proposals
+- Staying in exploration mode
+
+The user came here to BUILD something. Guide them toward it.
+=== END CONVERGENCE RULE ===
+`;
+      }
+    } else if (currentMode === 'PATTERN') {
+      systemPrompt += `
+
+=== PATTERN MODE ACTIVE ===
+You are in PATTERN MODE. Your purpose is to help the user explore a life event, extract a pattern, and complete the transmutation journey.
+
+NEVER in Pattern Mode:
+- Suggest creating a project
+- Discuss business strategy, marketing, or product ideas
+- Trigger commitment cards or project proposals
+- Reference project-related conversations from other mentors
+=== END PATTERN MODE ===
+`;
+    }
+
     // Add cross-mentor memory context
     if (crossMentorContext) {
       systemPrompt += `\n\n${crossMentorContext}`;
@@ -2488,9 +2555,9 @@ IMPORTANT: Continue this conversation naturally. You reached out to the user abo
     const aiData = await aiResponse.json();
     let response = aiData.choices[0].message.content;
 
-    // === DETECT HANDOFF SIGNALS ===
+    // === DETECT HANDOFF SIGNALS (PROJECT MODE ONLY) ===
     let suggestedHandoff = null;
-    if (conversationDepth >= 4 && message !== "__HANDOFF_INIT__") {
+    if (currentMode === 'PROJECT' && conversationDepth >= 4 && message !== "__HANDOFF_INIT__") {
       const handoffSignal = detectHandoffSignal(mentorType, message, response);
       if (handoffSignal) {
         suggestedHandoff = handoffSignal;
@@ -2498,41 +2565,44 @@ IMPORTANT: Continue this conversation naturally. You reached out to the user abo
       }
     }
 
-    // === DETECT VALUE MAP INSIGHTS ===
-    // Analyze user's message for Purpose-to-Value Map patterns
+    // === DETECT VALUE MAP INSIGHTS (PROJECT MODE ONLY) ===
     let valueMapDetection = null;
-    try {
-      const detectResponse = await fetch(
-        `${Deno.env.get("SUPABASE_URL")}/functions/v1/detect-value-map-insights`,
-        {
-          method: "POST",
-          headers: {
-            "Authorization": authHeader,
-            "Content-Type": "application/json",
-          },
-          body: JSON.stringify({
-            message: message,
-            conversationType: "mentor_chat",
-            mentorType: mentorType,
-            conversationDepth: conversationDepth,
-          }),
-        }
-      );
+    if (currentMode === 'PROJECT') {
+      try {
+        const detectResponse = await fetch(
+          `${Deno.env.get("SUPABASE_URL")}/functions/v1/detect-value-map-insights`,
+          {
+            method: "POST",
+            headers: {
+              "Authorization": authHeader,
+              "Content-Type": "application/json",
+            },
+            body: JSON.stringify({
+              message: message,
+              conversationType: "mentor_chat",
+              mentorType: mentorType,
+              conversationDepth: conversationDepth,
+            }),
+          }
+        );
 
-      if (detectResponse.ok) {
-        const detectData = await detectResponse.json();
-        if (detectData.detection) {
-          valueMapDetection = detectData.detection;
-          console.log("Value Map detection:", valueMapDetection.blockKey);
+        if (detectResponse.ok) {
+          const detectData = await detectResponse.json();
+          if (detectData.detection) {
+            valueMapDetection = detectData.detection;
+            console.log("Value Map detection:", valueMapDetection.blockKey);
+          }
         }
+      } catch (error) {
+        console.error("Value Map detection failed (non-fatal):", error);
       }
-    } catch (error) {
-      console.error("Value Map detection failed (non-fatal):", error);
     }
 
     // === PDR v2.2: COHERENCE DETECTION WITH BRANCH CLASSIFICATION & COOLDOWN ===
+    // ONLY run in PROJECT mode - never in PATTERN mode
     let projectCoherence = null;
     
+  if (currentMode === 'PROJECT') {
     // === SIMPLIFIED PROJECT DETECTION ===
     // Step 1: Check if PREVIOUS AI message proposed a project name
     // Step 2: Check if CURRENT user message shows agreement
@@ -3161,6 +3231,7 @@ Only return isCoherent: true if:
         console.error("Coherence detection failed (non-fatal):", error);
       }
     }
+    } // end currentMode === 'PROJECT' guard
 
     // === PATTERN DETECTION (Inner Clarity Mentor OR Storybreaker Mentor) ===
     // Extract pattern JSON and clean response when [PATTERN_READY] is detected

@@ -698,6 +698,11 @@ Just the insight, no labels.`;
 
       let systemPrompt = "";
 
+      // === MODE ENFORCEMENT: PROJECT vs PATTERN ===
+      if (councilType !== 'transmutation') {
+        systemPrompt += `You are in PROJECT MODE. Focus on helping crystallize a project, idea, or action. Be specific and constructive. Avoid open-ended philosophical exploration. Push toward convergence: propose names, directions, or next steps.\n\n`;
+      }
+
       // Special case: Quantum Inventor gets concise mystical prompt
       if (mentorType === "quantum_inventor") {
         systemPrompt = `You are The Quantum Inventor — mystic-scientist who perceives reality as frequency and resonance. Archetypes: Nikola Tesla, Joe Dispenza.
