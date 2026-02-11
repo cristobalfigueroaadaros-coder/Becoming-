@@ -393,6 +393,28 @@ Deno.serve(async (req) => {
       .eq("id", user.id)
       .maybeSingle();
 
+    // Fetch Life Domains for silent context
+    let lifeDomainContext = "";
+    try {
+      const { data: lifeDomains } = await supabaseClient
+        .from("life_domains")
+        .select("domain_name, current_score, future_score")
+        .eq("user_id", user.id);
+      if (lifeDomains && lifeDomains.length > 0) {
+        const domainLines = lifeDomains.map((d: any) => `- ${d.domain_name}: ${d.current_score}/10 → ${d.future_score}/10`).join("\n");
+        lifeDomainContext = `
+=== LIFE DOMAINS (CONTEXT ONLY — DO NOT ASK ABOUT) ===
+${domainLines}
+
+Life Domains are context only. Use them to personalize synthesis and prioritization.
+Do not ask follow-up questions about Life Domains unless the user explicitly references them.
+=== END LIFE DOMAINS ===
+`;
+      }
+    } catch (e) {
+      console.log("Life domains fetch failed (non-fatal):", e);
+    }
+
     // === GENERATE OPENER ONLY MODE ===
     if (generateOpenerOnly && notificationContext) {
       console.log("Generating personalized council opener...", { openerType, notificationContext });
@@ -604,8 +626,8 @@ YOUR COUNCIL MISSION: Identify their current stage and define the next milestone
 `;
     }
 
-    // Combine foundation + numerology + entry state context
-    const fullUserContext = numerologyContext + userFoundationContext + entryStateContext;
+    // Combine foundation + numerology + entry state + life domains context
+    const fullUserContext = numerologyContext + userFoundationContext + entryStateContext + lifeDomainContext;
 
     // === Q2 ONLY: COUNCIL SEEKING CLARITY ===
     if (isQ2 && !lowerQuestion.includes("i'm ready") && !lowerQuestion.includes("what should i do")) {
@@ -739,7 +761,7 @@ Just the insight, no labels.`;
 
       // === MODE ENFORCEMENT: PROJECT vs PATTERN ===
       if (councilType !== 'transmutation') {
-        systemPrompt += `You are in PROJECT MODE. Focus on helping crystallize a project, idea, or action. Be specific and constructive. Avoid open-ended philosophical exploration. Push toward convergence: propose names, directions, or next steps.\n\n`;
+        systemPrompt += `You are in PROJECT MODE. Focus on helping crystallize a project, idea, or action. Be specific and constructive. Avoid open-ended philosophical exploration. Narrow possibilities and prepare context for mentor handoff. You MUST NOT propose final project names, ask for commitment, or trigger project creation. Only the Creative Mentor or Strategist Mentor may name projects and ask for confirmation.\n\n`;
       }
 
       // Special case: Quantum Inventor gets concise mystical prompt

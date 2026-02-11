@@ -2079,8 +2079,9 @@ DO NOT mention "Value Map" or "blocks" - just ask questions that naturally uncov
     // Add keyword highlighting rules to all prompts
     systemPrompt += `\n\n${KEYWORD_HIGHLIGHTING_RULES}`;
 
-    // === FETCH ENTRY STATE FOR BRANCH-SPECIFIC BEHAVIOR ===
+    // === FETCH ENTRY STATE + LIFE DOMAINS FOR BRANCH-SPECIFIC BEHAVIOR ===
     let entryStateForMentor = "";
+    let lifeDomainContextMentor = "";
     try {
       const { data: entryProfile } = await supabaseClient
         .from("profiles")
@@ -2088,18 +2089,41 @@ DO NOT mention "Value Map" or "blocks" - just ask questions that naturally uncov
         .eq("id", user.id)
         .maybeSingle();
       const entryState = (entryProfile as any)?.entry_state || null;
+
+      // Fetch Life Domains as silent context
+      try {
+        const { data: lifeDomains } = await supabaseClient
+          .from("life_domains")
+          .select("domain_name, current_score, future_score")
+          .eq("user_id", user.id);
+        if (lifeDomains && lifeDomains.length > 0) {
+          const domainLines = lifeDomains.map((d: any) => `- ${d.domain_name}: ${d.current_score}/10 → ${d.future_score}/10`).join("\n");
+          lifeDomainContextMentor = `
+=== LIFE DOMAINS (CONTEXT ONLY — DO NOT ASK ABOUT) ===
+${domainLines}
+
+Life Domains are context only. Use them to personalize synthesis and prioritization.
+Do not ask follow-up questions about Life Domains unless the user explicitly references them.
+=== END LIFE DOMAINS ===
+`;
+        }
+      } catch (ldErr) {
+        console.log("Life domains fetch failed (non-fatal):", ldErr);
+      }
       
       if (entryState === "DISCOVER" && (mentorType === "creative_visionary" || mentorType === "creator_mentor")) {
         entryStateForMentor = `
 === ENTRY STATE: DISCOVER (SYNTHESIS MODE) ===
 This user is discovering their purpose. They came through onboarding with no clear direction.
 YOUR SPECIAL MISSION: Connect their biography + skills + emotional signals. Identify leverage intersections.
-- Propose 1 strong project direction OR 2-3 coherent options (max 3)
+- This is synthesis, not brainstorming. Connect dots the user cannot see alone.
+- Propose 1 strong project direction (preferred if synthesis is strong) OR 2-3 coherent options (NEVER exceed three)
 - Each proposal MUST reference specific user details from their onboarding answers and foundation story
 - Show clear dot-connection logic (why these elements combine into this direction)
 - Make it feel personalized and surprising
 - After proposal, you MUST ask: "Does this resonate? Is this something meaningful enough for you to build?"
-- If user says yes → trigger project creation immediately
+- If user says yes → trigger project creation immediately. Do not add extra clarification after confirmation.
+- TURN LIMIT: Converge to proposal within 4-6 meaningful user turns.
 === END ENTRY STATE ===
 `;
       } else if (entryState === "DISCOVER") {
@@ -2114,7 +2138,8 @@ This user is discovering their purpose. After 4-6 exchanges, suggest handoff to 
 This user has an emerging purpose and wants to grow it.
 YOUR MISSION: Sharpen their direction. Elevate scope. Possibly offer one stretch direction.
 - After proposal, ask: "Does this feel aligned for you to build?"
-- If yes → project created or updated → move to execution
+- If yes → project created or updated → move to execution. Do not add extra clarification after confirmation.
+- TURN LIMIT: Converge to proposal within 4-6 meaningful user turns.
 === END ENTRY STATE ===
 `;
       } else if (entryState === "BUILD" && mentorType === "strategist_mentor") {
@@ -2122,10 +2147,11 @@ YOUR MISSION: Sharpen their direction. Elevate scope. Possibly offer one stretch
 === ENTRY STATE: BUILD (EXECUTION MODE) ===
 This user is already working on something. They need execution support, not exploration.
 YOUR MISSION: Detect stage. Define next milestone. Propose short time-bound project.
-- Avoid feature deep dives unless escalated to Builders Team
+- Do not dive into feature architecture. Feature depth belongs to Builders Team.
+- Converge faster: once stage and friction are known, propose milestone within 2-3 turns.
 - Example: MVP almost ready → define 5-day completion sprint
 - After proposal, ask: "Are you ready to commit to this next step?"
-- If yes → project updated → action phase begins
+- If yes → project updated → action phase begins. Do not add extra clarification after confirmation.
 === END ENTRY STATE ===
 `;
       } else if (entryState === "BUILD") {
@@ -2148,6 +2174,7 @@ You are in PROJECT MODE. Your purpose is to help the user build, create, or refi
 
 TONE: Business-focused, action-oriented, future-directed.
 ${entryStateForMentor}
+${lifeDomainContextMentor}
 
 If the user shares emotional or personal content:
 1. Acknowledge it briefly (1 sentence max)
@@ -2176,6 +2203,12 @@ You have asked ${conversationDepth} questions already. You MUST now:
    c) Suggest a concrete next step or action
 
 You may ask ONE more narrowing question MAX, but it must be paired with a proposal.
+
+CONVERGENCE CONSTRAINTS:
+- Each question must reduce ambiguity. If a question does not reduce ambiguity, it must not be asked.
+- Do not add extra clarification after user confirms. Create project immediately.
+- DISCOVER/GROW: Must converge to proposal within 4-6 meaningful user turns after onboarding.
+- BUILD: Must converge within 2-3 turns after stage and friction are identified.
 
 FORBIDDEN after 3+ exchanges:
 - "Tell me more about..."
