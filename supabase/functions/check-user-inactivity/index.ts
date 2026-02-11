@@ -30,12 +30,61 @@ Deno.serve(async (req) => {
   }
 
   try {
+    // === AUTHORIZATION CHECK ===
+    const authHeader = req.headers.get("Authorization");
+    if (!authHeader?.startsWith("Bearer ")) {
+      return new Response(
+        JSON.stringify({ error: "Unauthorized" }),
+        { status: 401, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+      );
+    }
+
+    const token = authHeader.replace("Bearer ", "");
+    const serviceRoleKey = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY") ?? "";
+    const anonKey = Deno.env.get("SUPABASE_ANON_KEY") ?? "";
+
+    // Allow calls authorized with the service role key (cron jobs)
+    // or with a valid user JWT (authenticated dashboard calls)
+    let callerUserId: string | null = null;
+
+    if (token === serviceRoleKey) {
+      // Cron job call - authorized via service role key
+      console.log("[check-user-inactivity] Authorized via service role key (cron)");
+    } else {
+      // Try to validate as a user JWT
+      const userClient = createClient(
+        Deno.env.get("SUPABASE_URL") ?? "",
+        anonKey,
+        { global: { headers: { Authorization: authHeader } } }
+      );
+      const { data: claimsData, error: claimsError } = await userClient.auth.getClaims(token);
+      if (claimsError || !claimsData?.claims?.sub) {
+        return new Response(
+          JSON.stringify({ error: "Unauthorized" }),
+          { status: 401, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+        );
+      }
+      callerUserId = claimsData.claims.sub as string;
+      console.log("[check-user-inactivity] Authorized via user JWT:", callerUserId);
+    }
+
     const { hoursThreshold = 24, singleUserId } = await req.json().catch(() => ({}));
-    
-    // Use service role to check all users
+
+    // If called by a regular user, they can only check their own inactivity
+    if (callerUserId && singleUserId && singleUserId !== callerUserId) {
+      return new Response(
+        JSON.stringify({ error: "Forbidden: can only check your own inactivity" }),
+        { status: 403, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+      );
+    }
+
+    // If a regular user calls without singleUserId, scope to themselves
+    const effectiveUserId = callerUserId ? callerUserId : singleUserId;
+
+    // Use service role to check users
     const supabaseClient = createClient(
       Deno.env.get("SUPABASE_URL") ?? "",
-      Deno.env.get("SUPABASE_SERVICE_ROLE_KEY") ?? ""
+      serviceRoleKey
     );
 
     // Calculate the cutoff time
@@ -44,11 +93,11 @@ Deno.serve(async (req) => {
     // Find inactive users - those who haven't chatted, done rituals, or had council meetings recently
     let usersToCheck: string[] = [];
     
-    if (singleUserId) {
-      // Check specific user (called from dashboard)
-      usersToCheck = [singleUserId];
-    } else {
-      // Find all inactive users (for scheduled job)
+    if (effectiveUserId) {
+      // Check specific user (called from dashboard or scoped user call)
+      usersToCheck = [effectiveUserId];
+    } else if (!callerUserId) {
+      // Only cron jobs (service role) can scan all users
       const { data: profiles } = await supabaseClient
         .from("profiles")
         .select("id")
