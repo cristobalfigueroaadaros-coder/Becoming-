@@ -2195,6 +2195,7 @@ export type Database = {
           creation_gate_passed_at: string | null
           display_name: string | null
           emotional_tone: string | null
+          entry_state: string | null
           first_project_created_at: string | null
           first_project_id: string | null
           first_win_completed_at: string | null
@@ -2244,6 +2245,7 @@ export type Database = {
           creation_gate_passed_at?: string | null
           display_name?: string | null
           emotional_tone?: string | null
+          entry_state?: string | null
           first_project_created_at?: string | null
           first_project_id?: string | null
           first_win_completed_at?: string | null
@@ -2293,6 +2295,7 @@ export type Database = {
           creation_gate_passed_at?: string | null
           display_name?: string | null
           emotional_tone?: string | null
+          entry_state?: string | null
           first_project_created_at?: string | null
           first_project_id?: string | null
           first_win_completed_at?: string | null

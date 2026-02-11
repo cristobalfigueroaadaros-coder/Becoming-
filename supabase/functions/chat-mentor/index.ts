@@ -2079,6 +2079,66 @@ DO NOT mention "Value Map" or "blocks" - just ask questions that naturally uncov
     // Add keyword highlighting rules to all prompts
     systemPrompt += `\n\n${KEYWORD_HIGHLIGHTING_RULES}`;
 
+    // === FETCH ENTRY STATE FOR BRANCH-SPECIFIC BEHAVIOR ===
+    let entryStateForMentor = "";
+    try {
+      const { data: entryProfile } = await supabaseClient
+        .from("profiles")
+        .select("entry_state")
+        .eq("id", user.id)
+        .maybeSingle();
+      const entryState = (entryProfile as any)?.entry_state || null;
+      
+      if (entryState === "DISCOVER" && (mentorType === "creative_visionary" || mentorType === "creator_mentor")) {
+        entryStateForMentor = `
+=== ENTRY STATE: DISCOVER (SYNTHESIS MODE) ===
+This user is discovering their purpose. They came through onboarding with no clear direction.
+YOUR SPECIAL MISSION: Connect their biography + skills + emotional signals. Identify leverage intersections.
+- Propose 1 strong project direction OR 2-3 coherent options (max 3)
+- Each proposal MUST reference specific user details from their onboarding answers and foundation story
+- Show clear dot-connection logic (why these elements combine into this direction)
+- Make it feel personalized and surprising
+- After proposal, you MUST ask: "Does this resonate? Is this something meaningful enough for you to build?"
+- If user says yes → trigger project creation immediately
+=== END ENTRY STATE ===
+`;
+      } else if (entryState === "DISCOVER") {
+        entryStateForMentor = `
+=== ENTRY STATE: DISCOVER ===
+This user is discovering their purpose. After 4-6 exchanges, suggest handoff to Creative Visionary for project synthesis.
+=== END ENTRY STATE ===
+`;
+      } else if (entryState === "GROW" && (mentorType === "creative_visionary" || mentorType === "strategist_mentor")) {
+        entryStateForMentor = `
+=== ENTRY STATE: GROW (REFINEMENT MODE) ===
+This user has an emerging purpose and wants to grow it.
+YOUR MISSION: Sharpen their direction. Elevate scope. Possibly offer one stretch direction.
+- After proposal, ask: "Does this feel aligned for you to build?"
+- If yes → project created or updated → move to execution
+=== END ENTRY STATE ===
+`;
+      } else if (entryState === "BUILD" && mentorType === "strategist_mentor") {
+        entryStateForMentor = `
+=== ENTRY STATE: BUILD (EXECUTION MODE) ===
+This user is already working on something. They need execution support, not exploration.
+YOUR MISSION: Detect stage. Define next milestone. Propose short time-bound project.
+- Avoid feature deep dives unless escalated to Builders Team
+- Example: MVP almost ready → define 5-day completion sprint
+- After proposal, ask: "Are you ready to commit to this next step?"
+- If yes → project updated → action phase begins
+=== END ENTRY STATE ===
+`;
+      } else if (entryState === "BUILD") {
+        entryStateForMentor = `
+=== ENTRY STATE: BUILD ===
+This user is already building something. After initial exchanges, suggest handoff to Strategist Mentor for execution planning.
+=== END ENTRY STATE ===
+`;
+      }
+    } catch (e) {
+      console.log("Entry state fetch failed (non-fatal):", e);
+    }
+
     // === MODE-SPECIFIC PROMPT GUARDRAILS ===
     if (currentMode === 'PROJECT') {
       systemPrompt += `
@@ -2087,6 +2147,7 @@ DO NOT mention "Value Map" or "blocks" - just ask questions that naturally uncov
 You are in PROJECT MODE. Your purpose is to help the user build, create, or refine a project.
 
 TONE: Business-focused, action-oriented, future-directed.
+${entryStateForMentor}
 
 If the user shares emotional or personal content:
 1. Acknowledge it briefly (1 sentence max)
