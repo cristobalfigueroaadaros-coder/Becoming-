@@ -3,61 +3,74 @@ import { useNavigate } from "react-router-dom";
 import { Button } from "@/components/ui/button";
 import { Card, CardHeader, CardTitle } from "@/components/ui/card";
 import { toast } from "sonner";
-import { Target, TrendingUp, Rocket, CloudFog, HelpCircle } from "lucide-react";
+import { Target, TrendingUp, Rocket } from "lucide-react";
 import { cn } from "@/lib/utils";
+import { supabase } from "@/integrations/supabase/client";
 
-// PDR-aligned options
 const options = [
   {
     id: "discover_purpose",
     title: "I want to discover my purpose",
     icon: Target,
     color: "bg-primary",
+    entryState: "DISCOVER",
   },
   {
     id: "grow_purpose",
     title: "I have a sense of my purpose and want to grow it",
     icon: TrendingUp,
     color: "bg-mentor-quantum",
+    entryState: "GROW",
   },
   {
     id: "already_working",
     title: "I have something I'm already working on",
     icon: Rocket,
     color: "bg-mentor-mamba",
+    entryState: "BUILD",
   },
-  {
-    id: "stuck_unclear",
-    title: "I feel stuck and unclear",
-    icon: CloudFog,
-    color: "bg-mentor-sage",
-  },
-  {
-    id: "dont_know",
-    title: "I don't know yet",
-    icon: HelpCircle,
-    color: "bg-muted-foreground",
-  }
 ];
 
 const OnboardingStep2 = () => {
   const navigate = useNavigate();
   const [selectedOption, setSelectedOption] = useState<string | null>(null);
+  const [saving, setSaving] = useState(false);
 
   const handleOptionSelect = (optionId: string) => {
     setSelectedOption(optionId);
   };
 
-  const handleContinue = () => {
+  const handleContinue = async () => {
     if (!selectedOption) {
       toast.error("Please select an option");
       return;
     }
-    
-    // Store selection for Step 3 (adaptive questions) and Step 4 (mentor suggestions)
-    localStorage.setItem("onboarding_focus", selectedOption);
-    
-    navigate("/onboarding/step3");
+
+    const selected = options.find(o => o.id === selectedOption);
+    if (!selected) return;
+
+    setSaving(true);
+    try {
+      // Store in localStorage for immediate frontend use
+      localStorage.setItem("onboarding_focus", selectedOption);
+
+      // Store entry_state in profiles for backend access
+      const { data: { user } } = await supabase.auth.getUser();
+      if (user) {
+        await supabase
+          .from("profiles")
+          .update({ entry_state: selected.entryState } as any)
+          .eq("id", user.id);
+      }
+
+      navigate("/onboarding/step3");
+    } catch (error) {
+      console.error("Failed to save entry state:", error);
+      // Still navigate even if DB save fails
+      navigate("/onboarding/step3");
+    } finally {
+      setSaving(false);
+    }
   };
 
   return (
@@ -97,10 +110,10 @@ const OnboardingStep2 = () => {
 
         <Button
           onClick={handleContinue}
-          disabled={!selectedOption}
+          disabled={!selectedOption || saving}
           className="w-full h-12 text-lg"
         >
-          Continue →
+          {saving ? "Saving..." : "Continue →"}
         </Button>
       </div>
     </div>

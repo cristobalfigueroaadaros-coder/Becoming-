@@ -16,8 +16,6 @@ const mentorSuggestions: Record<string, string[]> = {
   discover_purpose: ["alignment_mentor", "mystic_mentor", "inner_clarity_mentor"],
   grow_purpose: ["business_mentor", "discipline_mentor"],
   already_working: ["business_mentor", "marketing_mentor", "problem_mentor"],
-  stuck_unclear: ["heart_mentor", "alignment_mentor", "problem_mentor"],
-  dont_know: ["ancient_sage", "oracle_mother", "inner_clarity_mentor"],
 };
 
 const mentors = [

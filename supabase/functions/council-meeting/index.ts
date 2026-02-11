@@ -565,8 +565,47 @@ THEIR STORY (in their own words):
 CRITICAL: Reference specific details from their foundation story. Use their actual words when possible. Show that you KNOW them.
 ` : '';
 
-    // Combine foundation + numerology context
-    const fullUserContext = numerologyContext + userFoundationContext;
+    // === ENTRY STATE CONTEXT (Branch-specific council behavior) ===
+    const entryState = (profile as any)?.entry_state || null;
+    let entryStateContext = "";
+    if (entryState === "DISCOVER") {
+      entryStateContext = `
+=== ENTRY STATE: DISCOVER ===
+This user is discovering their purpose. They don't have a clear direction yet.
+YOUR COUNCIL MISSION: Connect their biography, skills, and emotional signals into a surprising project direction. SYNTHESIZE, don't brainstorm.
+- Focus on dot-connection: what intersections exist between their experiences?
+- Look for leverage: where do their skills + passions + observed problems overlap?
+- After 4-6 interactions, you MUST propose a concrete direction
+- Mandatory handoff target: Creative Visionary (for project crystallization)
+=== END ENTRY STATE ===
+`;
+    } else if (entryState === "GROW") {
+      entryStateContext = `
+=== ENTRY STATE: GROW ===
+This user has an emerging sense of purpose and wants to grow it.
+YOUR COUNCIL MISSION: Refine and elevate their emerging direction. Sharpen scope and suggest stretch possibilities.
+- Help them see what's strong about their direction
+- Identify what's unclear or underdeveloped
+- After 4-6 interactions, propose a refined or enhanced version
+- Handoff target: Creative Visionary (if needs creative expansion) or Strategist (if needs structure/positioning)
+=== END ENTRY STATE ===
+`;
+    } else if (entryState === "BUILD") {
+      entryStateContext = `
+=== ENTRY STATE: BUILD ===
+This user is already working on something and wants to advance execution.
+YOUR COUNCIL MISSION: Identify their current stage and define the next milestone. Be concrete and time-bound.
+- Detect stage: idea, MVP, live, revenue
+- Define the next clear milestone
+- Propose a short time-bound sprint
+- Mandatory handoff target: Strategist Mentor (for execution planning)
+- No philosophical exploration. Action only.
+=== END ENTRY STATE ===
+`;
+    }
+
+    // Combine foundation + numerology + entry state context
+    const fullUserContext = numerologyContext + userFoundationContext + entryStateContext;
 
     // === Q2 ONLY: COUNCIL SEEKING CLARITY ===
     if (isQ2 && !lowerQuestion.includes("i'm ready") && !lowerQuestion.includes("what should i do")) {
