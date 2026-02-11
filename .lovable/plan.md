@@ -1,201 +1,103 @@
 
 
-# Console-Based Mode Enforcement: PROJECT vs PATTERN
+# Onboarding Branch Replacement + Mode Redirection Logic
 
 ## Overview
 
-This change enforces strict separation between **Project Mode** (Standard Council, Builders Team, standard 1-to-1 mentors) and **Pattern Mode** (Transmutation Council, Transmutation Console, Storybreaker/Phoenix/Stoic). The system currently mixes behaviors -- project detection logic runs during pattern sessions, and pattern-like reflective loops happen during project sessions.
+This change replaces the internal branching logic of the existing onboarding flow. The Step 2 page ("What brings you here right now?") stays visually unchanged. The changes affect:
+
+1. **Step 2**: Reduce from 5 options to 3 (DISCOVER, GROW, BUILD), map `stuck_unclear` and `dont_know` into DISCOVER
+2. **Step 3**: Replace the two follow-up questions with branch-specific questions designed for synthesis input (not introspection)
+
+4. **Edge functions**: Inject `entry_state` context into the council and mentor prompts so the system knows which branch the user chose and enforces the correct handoff target
+5. **Mentor handoff**: After the council interaction, enforce mandatory handoff to Creative Mentor (DISCOVER), Creative or Strategist (GROW), or Strategist (BUILD)
 
 ---
 
-## Current Problems
+## Current Flow
 
-1. **Project detection runs everywhere**: The coherence/project detection code (engagement analysis, project name extraction, commitment card logic) executes for ALL mentor types, including Storybreaker, Phoenix, and Stoic during transmutation sessions
-2. **No question limit in Project Mode**: Mentors in project conversations can ask unlimited reflective questions without converging toward a proposal
-3. **Pattern extraction can leak into Project Mode**: If a user shares emotional content with a standard mentor, there's no guardrail preventing the mentor from going into deep reflective/pattern territory
-4. **No explicit mode tracking**: The system detects transmutation sessions via handoff records, but has no formal `current_mode` flag that governs behavior
+```text
+Step 2 (5 options) --> Step 3 (2 generic questions + Life Domains) --> Step 4 (Mentor selection) --> Quest --> Gravity flow --> Council
+```
+
+**Problems:**
+- 5 options when only 3 meaningful branches exist
+- Follow-up questions are generic emotional/reflective, not branch-aligned
+- Life Domains slider adds friction without feeding into mentor convergence
+- No `entry_state` is passed to the council/mentor system
+- No branch-specific mentor handoff logic exists
 
 ---
 
 ## Implementation Plan
 
-### 1. Define Mode Constants and Detection
+### 1. Simplify Step 2 to 3 Options
 
-**File**: `supabase/functions/chat-mentor/index.ts`
+**File**: `src/pages/OnboardingStep2.tsx`
 
-Add a formal mode detection right after the `mentorType` is known (around line 1650, after auth):
+Remove `stuck_unclear` and `dont_know` options. Keep only:
+- `discover_purpose` ("I want to discover my purpose")
+- `grow_purpose` ("I have a sense of my purpose and want to grow it")
+- `already_working` ("I have something I'm already working on")
 
-```typescript
-// === MODE ENFORCEMENT ===
-const PATTERN_MENTORS = ['storybreaker_mentor', 'phoenix_mentor', 'stoic_mentor'];
-const PROJECT_MENTORS = [
-  'creative_visionary', 'strategist_mentor', 'business_mentor', 
-  'discipline_mentor', 'marketing_mentor', 'quantum_inventor',
-  'scientific_mentor', 'heart_mentor', 'ancient_sage', 
-  'alignment_mentor', 'oracle_mother', 'future_self',
-  'perspective_mentor', 'challenger_mentor', 
-  'design_thinking_mentor', 'ux_mentor', 'gamification_mentor',
-  'problem_mentor', 'inner_clarity_mentor', 'release_mentor'
-];
+Also store the selection to the database (profiles table) in addition to localStorage, so the backend can access it.
 
-const currentMode = PATTERN_MENTORS.includes(mentorType) ? 'PATTERN' : 'PROJECT';
-console.log("[MODE]", currentMode, "| mentor:", mentorType);
-```
+### 2. Add `entry_state` Column to Profiles
 
----
+**Migration**: Add a nullable `entry_state` text column to the `profiles` table.
 
-### 2. Skip Project Detection Logic in Pattern Mode
+This stores the user's branch selection (DISCOVER / GROW / BUILD) so the council and mentor edge functions can read it.
 
-**File**: `supabase/functions/chat-mentor/index.ts`
+### 3. Replace Step 3 Questions with Branch-Aligned Questions
 
-Wrap the entire project coherence detection section (lines ~2533-3163) with a mode guard:
+**File**: `src/pages/OnboardingStep3.tsx`
 
-```typescript
-// === PDR v2.2: COHERENCE DETECTION ===
-// ONLY run in PROJECT mode - never in PATTERN mode
-let projectCoherence = null;
+Replace the adaptive questions map and remove the Life Domains phase entirely. The page becomes a simple two-question form:
 
-if (currentMode === 'PROJECT') {
-  // ... all existing project detection, engagement analysis,
-  //     mentor-initiated project fast path, coherence prompt, etc.
-}
-```
+| Branch | Question 1 (Direction) | Question 2 (Friction) |
+|--------|----------------------|----------------------|
+| DISCOVER | "What have you spent years learning or doing?" | "What kinds of problems or themes keep showing up in your life?" |
+| GROW | "What is the current idea or direction you're exploring?" | "What feels unclear, underdeveloped, or blocked about it?" |
+| BUILD | "What stage are you in? (idea, MVP, live, revenue)" | "What is currently blocking or missing?" |
 
-This prevents:
-- Project name extraction during Storybreaker sessions
-- Commitment card triggers during transmutation
-- Engagement analysis noise during pattern work
+After answering, save as insight dots with `entry_state`-tagged metadata and navigate directly to Step 4 (skip Life Domains).
 
----
+### 4. Update Step 4 Mentor Suggestions
 
-### 3. Add Question Limit + Convergence Enforcement in Project Mode
+**File**: `src/pages/OnboardingStep4.tsx`
 
-**File**: `supabase/functions/chat-mentor/index.ts`
+Update the `mentorSuggestions` map to remove `stuck_unclear` and `dont_know` entries. Align suggestions with the new branches.
 
-After building the system prompt (around line 2072) and before sending to AI, inject a convergence rule when the conversation is deep enough:
-
-```typescript
-if (currentMode === 'PROJECT' && conversationDepth >= 3 && !isTransmutationSession) {
-  systemPrompt += `
-
-=== PROJECT CONVERGENCE RULE (MANDATORY) ===
-You have asked ${conversationDepth} questions already. You MUST now:
-1. STOP asking open-ended exploratory questions
-2. DO one of the following:
-   a) Propose a clear project idea or direction based on what you've heard
-   b) Restate the user's project/idea clearly and ask for confirmation
-   c) Suggest a concrete next step or action
-
-You may ask ONE more narrowing question MAX, but it must be paired with a proposal.
-
-FORBIDDEN after 3+ exchanges:
-- "Tell me more about..."
-- "What does that mean to you?"
-- Open-ended reflective questions without proposals
-- Staying in exploration mode
-
-The user came here to BUILD something. Guide them toward it.
-=== END CONVERGENCE RULE ===
-`;
-}
-```
-
----
-
-### 4. Add Emotional Content Guardrail in Project Mode
-
-**File**: `supabase/functions/chat-mentor/index.ts`
-
-Add to the PROJECT mode system prompt injection:
-
-```typescript
-if (currentMode === 'PROJECT') {
-  systemPrompt += `
-
-=== PROJECT MODE ACTIVE ===
-You are in PROJECT MODE. Your purpose is to help the user build, create, or refine a project.
-
-TONE: Business-focused, action-oriented, future-directed.
-
-If the user shares emotional or personal content:
-1. Acknowledge it briefly (1 sentence max)
-2. Return to project convergence immediately
-3. Do NOT dive into pattern extraction, trauma work, or deep reflection
-4. If they need deeper emotional work, suggest: "This sounds like something worth exploring in the Transmutation space."
-
-NEVER in Project Mode:
-- Extract patterns, fears, triggers, or old stories
-- Ask about childhood memories or life events
-- Enter reflective loops about emotions
-- Output [PATTERN_READY] or pattern JSON
-=== END PROJECT MODE ===
-`;
-}
-```
-
----
-
-### 5. Enforce Pattern Mode Boundaries
-
-**File**: `supabase/functions/chat-mentor/index.ts`
-
-The existing `TRANSMUTATION FOCUS` block (lines 2117-2203) already handles Pattern Mode well. Add a complementary guard that prevents project logic from leaking in:
-
-```typescript
-if (currentMode === 'PATTERN') {
-  systemPrompt += `
-
-=== PATTERN MODE ACTIVE ===
-You are in PATTERN MODE. Your purpose is to help the user explore a life event, extract a pattern, and complete the transmutation journey.
-
-NEVER in Pattern Mode:
-- Suggest creating a project
-- Discuss business strategy, marketing, or product ideas
-- Trigger commitment cards or project proposals
-- Reference project-related conversations from other mentors
-=== END PATTERN MODE ===
-`;
-}
-```
-
----
-
-### 6. Apply Mode to Council Meeting Edge Function
+### 5. Inject Entry State into Council Meeting
 
 **File**: `supabase/functions/council-meeting/index.ts`
 
-The council already receives `councilType`. Add mode-specific behavior to the council insight and banter generation:
+Before generating mentor perspectives, fetch the user's `entry_state` from profiles. Add branch-specific instructions to the council system prompt:
 
-In the mentor perspective generation (around line 695), add mode-aware instructions:
+- **DISCOVER**: "Focus on connecting the user's biography, skills, and emotional signals into a surprising project direction. Synthesize, don't brainstorm."
+- **GROW**: "Focus on refining and elevating the user's emerging direction. Sharpen scope and suggest stretch possibilities."
+- **BUILD**: "Focus on identifying the user's current stage and defining the next milestone. Be concrete and time-bound."
 
-```typescript
-// For standard council, add convergence instruction
-if (councilType !== 'transmutation') {
-  systemPrompt += `\nYou are in PROJECT MODE. Focus on helping crystallize a project, idea, or action. Be specific and constructive. Avoid open-ended philosophical exploration.`;
-}
-```
-
----
-
-### 7. Skip Handoff Signals and Value Map Detection in Pattern Mode
+### 6. Inject Entry State into Chat Mentor + Enforce Handoff Target
 
 **File**: `supabase/functions/chat-mentor/index.ts`
 
-Wrap handoff signal detection (line 2491) and value map detection (line 2501) with mode guard:
+After fetching user profile data, read `entry_state` and inject it into the PROJECT mode prompt:
 
-```typescript
-// === DETECT HANDOFF SIGNALS ===
-let suggestedHandoff = null;
-if (currentMode === 'PROJECT' && conversationDepth >= 4 && message !== "__HANDOFF_INIT__") {
-  // ... existing handoff logic
-}
+- Add branch-aware convergence rules
+- Add mandatory handoff target:
+  - DISCOVER: Must handoff to `creative_visionary` after 4-6 exchanges
+  - GROW: Must handoff to `creative_visionary` or `strategist_mentor` depending on idea nature
+  - BUILD: Must handoff to `strategist_mentor`
+- The Creative Mentor prompt gets additional instructions for DISCOVER users: "Connect biography + skills + emotional signals. Identify leverage intersection. Propose 1 strong direction or 2-3 coherent options. Each must reference specific user details."
+- The Strategist Mentor prompt gets BUILD-specific instructions: "Detect stage. Define next milestone. Propose short time-bound project."
+- After proposal, mentor MUST ask confirmation: "Does this resonate? Is this something meaningful enough for you to build?"
 
-// === DETECT VALUE MAP INSIGHTS ===
-let valueMapDetection = null;
-if (currentMode === 'PROJECT') {
-  // ... existing value map detection
-}
-```
+### 7. Pass Onboarding Answers as Context to First Council Interaction
+
+**File**: `src/pages/GravityFirstProject.tsx` (or `src/pages/Council.tsx`)
+
+When the user enters the council for the first time, the system should pass the onboarding answers (stored as insight dots) as context so mentors can reference specific user details in their synthesis.
 
 ---
 
@@ -203,19 +105,22 @@ if (currentMode === 'PROJECT') {
 
 | File | Changes |
 |------|---------|
-| `supabase/functions/chat-mentor/index.ts` | Add mode detection, wrap project logic with PROJECT guard, add convergence rule, add emotional guardrail, skip handoff/valuemap in PATTERN mode |
-| `supabase/functions/council-meeting/index.ts` | Add project-focused instruction for standard council mentors |
+| `src/pages/OnboardingStep2.tsx` | Remove 2 options, save entry_state to profiles |
+| `src/pages/OnboardingStep3.tsx` | Replace questions per branch, remove Life Domains phase |
+| `src/pages/OnboardingStep4.tsx` | Remove `stuck_unclear` and `dont_know` from mentor suggestions |
+| `supabase/functions/council-meeting/index.ts` | Fetch entry_state, add branch-specific council instructions |
+| `supabase/functions/chat-mentor/index.ts` | Fetch entry_state, add branch-specific convergence + handoff rules |
+| Database migration | Add `entry_state` text column to profiles |
 
 ---
 
 ## What This Does NOT Change
 
-- The existing transmutation session detection and context isolation (already working)
-- The pattern discovery flow (Storybreaker, `[PATTERN_READY]`, fallback detection)
-- The user confirmation interceptor
-- The Builders Team meeting flow
-- Any frontend components or routing
-- The onboarding/Gravity flow
+- The visual design of any onboarding page
+- The Gravity flow (Orientation, Transition, Council Intro)
+- The mentor selection page (Step 4) layout
+- Pattern Mode / Transmutation logic
+- The existing mode enforcement (PROJECT vs PATTERN)
 
 ---
 
@@ -223,9 +128,10 @@ if (currentMode === 'PROJECT') {
 
 | Scenario | Before | After |
 |----------|--------|-------|
-| User talks to Creative Visionary about ideas | May loop in reflective questions indefinitely | After 3 exchanges, mentor converges toward a project proposal |
-| User shares emotional content with Strategist | Mentor may dive into pattern extraction | Brief acknowledgment, then return to project focus |
-| Storybreaker session active | Project detection logic still runs | Project detection fully skipped |
-| User in Transmutation Council | Value map detection and handoff signals fire | Both skipped entirely |
-| Standard Council Q3 | May suggest open-ended reflection | Pushes toward actionable next step |
+| User selects "Discover" | Generic emotional questions, no mentor targeting | Skills/themes extraction, mandatory Creative Mentor handoff with synthesis |
+| User selects "Grow" | Same generic questions as Discover | Idea + blocker extraction, Creative or Strategist handoff |
+| User selects "Build" | Same generic questions | Stage + blocker extraction, mandatory Strategist handoff with milestone proposal |
+| Life Domains slider | Shown for all users, delays flow | Removed from onboarding (can exist elsewhere) |
+| Council interaction | No branch awareness | Branch-aware prompts with convergence + confirmation triggers |
+| Mentor handoff | No targeting | Branch-determined handoff target with dot-connection synthesis |
 
