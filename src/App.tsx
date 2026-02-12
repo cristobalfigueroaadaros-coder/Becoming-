@@ -60,6 +60,7 @@ import EnergeticDashboard from "./pages/EnergeticDashboard";
 import VibrationalPatternInsights from "./pages/VibrationalPatternInsights";
 import OptimalTimingDashboard from "./pages/OptimalTimingDashboard";
 import PatternMap from "./pages/PatternMap";
+import SuperpowerMap from "./pages/SuperpowerMap";
 
 const queryClient = new QueryClient();
 
@@ -390,6 +391,10 @@ const App = () => {
             <Route
               path="/pattern-map/:patternId"
               element={session ? <PatternMap /> : <Navigate to="/" />}
+            />
+            <Route
+              path="/superpower-map"
+              element={session ? <SuperpowerMap /> : <Navigate to="/" />}
             />
             <Route path="*" element={<NotFound />} />
           </Routes>

@@ -5,11 +5,18 @@ import { Card, CardContent } from "@/components/ui/card";
 import { Sparkles, BookOpen, ArrowRight } from "lucide-react";
 import confetti from "canvas-confetti";
 
+interface SuperpowerBadge {
+  name: string;
+  icon: string;
+  color: string;
+}
+
 interface TransmutationCelebrationProps {
   open: boolean;
   patternName: string;
   goldInsight: string;
   goldenSummary?: string;
+  superpowers?: SuperpowerBadge[];
   onSaveGold: () => void;
   onViewLifetime: () => void;
   onClose: () => void;
@@ -20,6 +27,7 @@ export const TransmutationCelebration = ({
   patternName,
   goldInsight,
   goldenSummary,
+  superpowers = [],
   onSaveGold,
   onViewLifetime,
   onClose,
@@ -63,7 +71,7 @@ export const TransmutationCelebration = ({
           initial={{ opacity: 0 }}
           animate={{ opacity: 1 }}
           exit={{ opacity: 0 }}
-          className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/60 backdrop-blur-sm"
+          className="fixed inset-0 z-[60] flex items-center justify-center p-4 bg-black/60 backdrop-blur-sm"
           onClick={(e) => e.target === e.currentTarget && onClose()}
         >
           <motion.div
@@ -132,11 +140,39 @@ export const TransmutationCelebration = ({
                   )}
                 </motion.div>
 
+                {/* Superpowers */}
+                {superpowers.length > 0 && (
+                  <motion.div
+                    initial={{ opacity: 0 }}
+                    animate={{ opacity: 1 }}
+                    transition={{ delay: 0.6 }}
+                    className="space-y-2"
+                  >
+                    <p className="text-xs text-amber-400 font-medium uppercase tracking-wide">
+                      Superpowers Unlocked
+                    </p>
+                    <div className="flex flex-wrap justify-center gap-2">
+                      {superpowers.map((sp, i) => (
+                        <motion.div
+                          key={i}
+                          initial={{ scale: 0 }}
+                          animate={{ scale: 1 }}
+                          transition={{ delay: 0.7 + i * 0.1, type: "spring" }}
+                          className="flex items-center gap-1.5 px-3 py-1.5 rounded-full bg-amber-500/10 border border-amber-500/20"
+                        >
+                          <span>{sp.icon}</span>
+                          <span className="text-sm font-medium">{sp.name}</span>
+                        </motion.div>
+                      ))}
+                    </div>
+                  </motion.div>
+                )}
+
                 {/* Message */}
                 <motion.p
                   initial={{ opacity: 0 }}
                   animate={{ opacity: 1 }}
-                  transition={{ delay: 0.6 }}
+                  transition={{ delay: 0.8 }}
                   className="text-sm text-muted-foreground"
                 >
                   This is now part of who you are becoming.

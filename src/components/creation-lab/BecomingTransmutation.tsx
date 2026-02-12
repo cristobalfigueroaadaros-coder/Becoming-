@@ -1,7 +1,7 @@
 import { useState, useEffect } from "react";
 import { motion } from "framer-motion";
 import { useNavigate } from "react-router-dom";
-import { Sparkles, Flame, Shield, MessageCircle, Plus } from "lucide-react";
+import { Sparkles, Flame, Shield, MessageCircle, Plus, Zap } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
@@ -16,6 +16,7 @@ import { WhitePhaseWinCard } from "@/components/transmutation-map/WhitePhaseWinC
 import { TransmutationQueue } from "@/components/transmutation-map/TransmutationQueue";
 import { isWhitePhaseComplete, isGoldPhaseComplete, generateGoldenSummary } from "@/lib/goldenSummaryGenerator";
 import { triggerGoldCompleteNotification } from "@/hooks/useTransmutationNotifications";
+import { useSuperpowers } from "@/hooks/useSuperpowers";
 import type { InnerPattern } from "@/hooks/useInnerPatterns";
 import type { LifetimeEvent } from "@/hooks/useLifetimeEvents";
 import { toast } from "sonner";
@@ -41,7 +42,9 @@ export const BecomingTransmutation = ({
   lifetimeEvents = [],
 }: BecomingTransmutationProps) => {
   const navigate = useNavigate();
+  const { extractSuperpowers } = useSuperpowers();
   const [showCelebration, setShowCelebration] = useState(false);
+  const [celebrationSuperpowers, setCelebrationSuperpowers] = useState<Array<{name: string; icon: string; color: string}>>([]);
   const [transmutationData, setTransmutationData] = useState<TransmutationData>({});
   
   // Node edit modal states (RESTORED)
@@ -103,17 +106,25 @@ export const BecomingTransmutation = ({
     return nodeLabels[nodeId] || nodeId;
   };
 
-  // Handle node click - RESTORED to open edit modal
+  // Handle node click - route directly to mentor for White/Gold phases
   const handleNodeClick = (nodeId: string, phase: 'black' | 'white' | 'gold') => {
+    if (phase === 'black') {
+      // Black phase is view-only
+      toast.info("This is your shadow — it's already recorded.");
+      return;
+    }
+    
     if (phase === 'gold' && !whiteComplete) {
       toast.info("Complete the White phase first");
       return;
     }
     
-    // Open the node edit modal with the specific node
-    const label = getNodeLabel(nodeId);
-    setEditingNode({ id: nodeId, label, phase });
-    setShowNodeEditModal(true);
+    // Route directly to the phase-specific mentor
+    if (phase === 'white') {
+      navigateToMentorWithHandoff('phoenix_mentor');
+    } else if (phase === 'gold') {
+      navigateToMentorWithHandoff('stoic_mentor');
+    }
   };
 
   // Handle node save from modal
@@ -140,7 +151,11 @@ export const BecomingTransmutation = ({
       const wouldCompleteGold = isGoldPhaseComplete(updatedData);
       if (wouldCompleteGold && !goldComplete) {
         // Generate golden summary and complete
-        const goldenSummary = generateGoldenSummary(updatedData, selectedPattern.pattern_name);
+        const goldenSummary = generateGoldenSummary(
+          updatedData, 
+          selectedPattern.pattern_name,
+          selectedPattern.primary_emotion || undefined
+        );
         const finalData: TransmutationData = {
           ...updatedData,
           golden_summary: goldenSummary,
@@ -157,6 +172,15 @@ export const BecomingTransmutation = ({
           selectedPattern.pattern_name,
           goldenSummary
         );
+
+        // Extract superpowers
+        const extracted = await extractSuperpowers(
+          selectedPattern.id,
+          selectedPattern.pattern_name,
+          finalData,
+          selectedPattern.primary_emotion || undefined
+        );
+        setCelebrationSuperpowers(extracted.map(sp => ({ name: sp.name, icon: sp.icon, color: sp.color })));
         
         setShowNodeEditModal(false);
         setShowCelebration(true);
@@ -463,6 +487,7 @@ export const BecomingTransmutation = ({
           patternName={selectedPattern.pattern_name}
           goldInsight={transmutationData.gold_insight || ""}
           goldenSummary={transmutationData.golden_summary || ""}
+          superpowers={celebrationSuperpowers}
           onSaveGold={handleCelebrationSaveGold}
           onViewLifetime={handleCelebrationViewLifetime}
           onClose={() => setShowCelebration(false)}
