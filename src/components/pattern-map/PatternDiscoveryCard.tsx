@@ -62,7 +62,7 @@ export const PatternDiscoveryCard = ({
       initial={{ opacity: 0, y: 20, scale: 0.95 }}
       animate={{ opacity: 1, y: 0, scale: 1 }}
       transition={{ duration: 0.5, ease: "easeOut" }}
-      className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-background/80 backdrop-blur-sm"
+      className="fixed inset-0 z-[60] flex items-center justify-center p-4 bg-background/80 backdrop-blur-sm"
     >
       <Card className="max-w-lg w-full border-indigo-500/30 bg-gradient-to-br from-indigo-500/10 via-purple-500/5 to-background overflow-hidden shadow-2xl">
         <CardContent className="pt-8 pb-6">
