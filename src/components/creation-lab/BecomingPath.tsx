@@ -1,10 +1,11 @@
 import { useState, useEffect } from "react";
-import { useSearchParams } from "react-router-dom";
+import { useSearchParams, useNavigate } from "react-router-dom";
 import { motion } from "framer-motion";
 import { Card, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { User, Sparkles } from "lucide-react";
 import { useInnerPatterns } from "@/hooks/useInnerPatterns";
 import { useLifetimeEvents } from "@/hooks/useLifetimeEvents";
+import { useSuperpowers } from "@/hooks/useSuperpowers";
 import { BecomingModeSelector, type BecomingMode } from "./BecomingModeSelector";
 import { BecomingHome } from "./BecomingHome";
 import { BecomingPatternMap } from "./BecomingPatternMap";
@@ -19,6 +20,7 @@ interface BecomingPathProps {
 
 export const BecomingPath = ({ initialMode = "becoming", onModeChange }: BecomingPathProps) => {
   const [searchParams] = useSearchParams();
+  const navigate = useNavigate();
   const [currentMode, setCurrentMode] = useState<BecomingMode>(initialMode);
   const [selectedPatternId, setSelectedPatternId] = useState<string | null>(null);
 
@@ -42,10 +44,13 @@ export const BecomingPath = ({ initialMode = "becoming", onModeChange }: Becomin
     syncGoldOutcome,
   } = useLifetimeEvents();
 
+  // Load superpowers
+  const { superpowers } = useSuperpowers();
+
   // Sync mode with URL param
   useEffect(() => {
     const bmodeParam = searchParams.get("bmode") as BecomingMode | null;
-    if (bmodeParam && ["becoming", "pattern-map", "transmutation", "lifetime"].includes(bmodeParam)) {
+    if (bmodeParam && ["becoming", "pattern-map", "transmutation", "lifetime", "superpowers"].includes(bmodeParam)) {
       setCurrentMode(bmodeParam);
     }
   }, [searchParams]);
@@ -58,6 +63,10 @@ export const BecomingPath = ({ initialMode = "becoming", onModeChange }: Becomin
   }, [patterns, selectedPatternId]);
 
   const handleModeChange = (mode: BecomingMode) => {
+    if (mode === "superpowers") {
+      navigate("/superpower-map");
+      return;
+    }
     setCurrentMode(mode);
     onModeChange?.(mode);
   };
@@ -112,6 +121,7 @@ export const BecomingPath = ({ initialMode = "becoming", onModeChange }: Becomin
         onModeChange={handleModeChange}
         patternCount={patterns.length}
         hasTransmuted={hasTransmuted}
+        superpowerCount={superpowers.length}
       />
 
       {/* Content based on mode */}

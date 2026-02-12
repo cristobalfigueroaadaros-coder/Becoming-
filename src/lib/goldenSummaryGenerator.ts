@@ -4,12 +4,17 @@ import type { TransmutationData } from "@/hooks/useInnerPatterns";
  * Generates a Golden Nugget Summary connecting the full transmutation arc.
  * This is the primary artifact that appears in the Lifetime Map.
  */
-export function generateGoldenSummary(data: TransmutationData, patternName: string): string {
+export function generateGoldenSummary(data: TransmutationData, patternName: string, primaryEmotion?: string, skillGained?: string): string {
   const parts: string[] = [];
 
   // The shadow/what happened
   if (data.shadow || patternName) {
     parts.push(`I went through ${data.shadow || patternName}.`);
+  }
+
+  // The main emotional trigger
+  if (primaryEmotion) {
+    parts.push(`The core emotion was ${primaryEmotion.toLowerCase()}.`);
   }
 
   // The challenge/lesson
@@ -33,6 +38,11 @@ export function generateGoldenSummary(data: TransmutationData, patternName: stri
   // The brave step/creation
   if (data.brave_step) {
     parts.push(`Now I'm taking action: ${data.brave_step}`);
+  }
+
+  // The primary skill gained
+  if (skillGained) {
+    parts.push(`My superpower: ${skillGained}.`);
   }
 
   return parts.join(' ').trim();

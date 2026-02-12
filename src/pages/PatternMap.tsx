@@ -131,8 +131,26 @@ const PatternMap = () => {
     setEditingNode(null);
   };
 
-  const handleTransmutationNodeClick = (nodeId: string) => {
-    setEditingTransmutationNode(nodeId);
+  const handleTransmutationNodeClick = (nodeId: string, phase?: 'black' | 'white' | 'gold') => {
+    const nodePhase = phase || transmutationNodeLabels[nodeId]?.phase || 'white';
+    
+    if (nodePhase === 'black') {
+      return; // View-only
+    }
+    
+    // Check if white is complete for gold access
+    const whiteComplete = !!(transmutationData.shift_moment && transmutationData.lesson_learned);
+    if (nodePhase === 'gold' && !whiteComplete) {
+      toast.info("Complete the White phase first");
+      return;
+    }
+    
+    // Route to mentor
+    if (nodePhase === 'white') {
+      navigate('/council?view=phoenix_mentor');
+    } else if (nodePhase === 'gold') {
+      navigate('/council?view=stoic_mentor');
+    }
   };
 
   const handleTransmutationNodeSave = async (content: string) => {

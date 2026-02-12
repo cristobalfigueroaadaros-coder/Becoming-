@@ -1,15 +1,16 @@
 import { motion } from "framer-motion";
-import { User, Orbit, Sparkles, Clock } from "lucide-react";
+import { User, Orbit, Sparkles, Clock, Zap } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { Badge } from "@/components/ui/badge";
 
-export type BecomingMode = "becoming" | "pattern-map" | "transmutation" | "lifetime";
+export type BecomingMode = "becoming" | "pattern-map" | "transmutation" | "lifetime" | "superpowers";
 
 interface BecomingModeSelectorProps {
   currentMode: BecomingMode;
   onModeChange: (mode: BecomingMode) => void;
   patternCount?: number;
   hasTransmuted?: boolean;
+  superpowerCount?: number;
 }
 
 const modes = [
@@ -41,6 +42,13 @@ const modes = [
     description: "Your life timeline",
     color: "slate",
   },
+  {
+    id: "superpowers" as const,
+    label: "Superpowers",
+    icon: Zap,
+    description: "Your gained powers",
+    color: "amber",
+  },
 ];
 
 export const BecomingModeSelector = ({
@@ -48,9 +56,10 @@ export const BecomingModeSelector = ({
   onModeChange,
   patternCount = 0,
   hasTransmuted = false,
+  superpowerCount = 0,
 }: BecomingModeSelectorProps) => {
   return (
-    <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
+    <div className="grid grid-cols-3 md:grid-cols-5 gap-2">
       {modes.map((mode) => {
         const Icon = mode.icon;
         const isActive = currentMode === mode.id;
@@ -110,6 +119,11 @@ export const BecomingModeSelector = ({
               )}
               {mode.id === "transmutation" && hasTransmuted && (
                 <span className="text-amber-500 text-sm">✨</span>
+              )}
+              {mode.id === "superpowers" && superpowerCount > 0 && (
+                <Badge variant="secondary" className="bg-amber-500/20 text-amber-400 text-xs">
+                  {superpowerCount}
+                </Badge>
               )}
             </div>
 
