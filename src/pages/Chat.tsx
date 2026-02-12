@@ -623,6 +623,16 @@ const Chat = ({ mentorTypeOverride, embedded = false, locationState: propState }
         setShowPatternCard(true);
       }
 
+      // Handle transmutation phase completion - navigate back to transmutation map
+      if (data.transmutationPhaseComplete) {
+        console.log('[Chat] Transmutation phase complete:', data.transmutationPhaseComplete);
+        navigate('/creation-lab?type=becoming&bmode=transmutation', {
+          state: {
+            transmutationComplete: data.transmutationPhaseComplete
+          }
+        });
+      }
+
       // PDR v2.1: Handle project coherence detection (Commitment Card trigger)
       if (data.projectCoherence?.isCoherent) {
         setProjectCoherence(data.projectCoherence);

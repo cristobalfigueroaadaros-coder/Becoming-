@@ -1,6 +1,6 @@
 import { useState, useEffect } from "react";
 import { motion } from "framer-motion";
-import { useNavigate } from "react-router-dom";
+import { useNavigate, useLocation } from "react-router-dom";
 import { Sparkles, Flame, Shield, MessageCircle, Plus, Zap } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -42,6 +42,7 @@ export const BecomingTransmutation = ({
   lifetimeEvents = [],
 }: BecomingTransmutationProps) => {
   const navigate = useNavigate();
+  const location = useLocation();
   const { extractSuperpowers } = useSuperpowers();
   const [showCelebration, setShowCelebration] = useState(false);
   const [celebrationSuperpowers, setCelebrationSuperpowers] = useState<Array<{name: string; icon: string; color: string}>>([]);
@@ -91,6 +92,61 @@ export const BecomingTransmutation = ({
     }
   }, [selectedPattern]);
 
+  // Detect return from mentor chat with transmutation completion data
+  useEffect(() => {
+    const state = location.state as { transmutationComplete?: { phase: string; [key: string]: any } } | null;
+    if (!state?.transmutationComplete || !selectedPattern) return;
+
+    const { phase, ...extractedData } = state.transmutationComplete;
+    console.log('[BecomingTransmutation] Return from mentor detected:', phase, extractedData);
+
+    // Clear the state to prevent re-triggering
+    navigate(location.pathname + location.search, { replace: true, state: {} });
+
+    if (phase === 'white') {
+      const updatedData: TransmutationData = {
+        ...transmutationData,
+        ...extractedData,
+      };
+      setTransmutationData(updatedData);
+      setPendingWhiteData(extractedData);
+      setShowWhiteWinCard(true);
+    } else if (phase === 'gold') {
+      const goldenSummary = generateGoldenSummary(
+        { ...transmutationData, ...extractedData },
+        selectedPattern.pattern_name,
+        selectedPattern.primary_emotion || undefined
+      );
+      const finalData: TransmutationData = {
+        ...transmutationData,
+        ...extractedData,
+        golden_summary: goldenSummary,
+        phase_completed: 'gold',
+        gold_completed_at: new Date().toISOString(),
+        completed_at: new Date().toISOString(),
+      };
+      setTransmutationData(finalData);
+      onUpdateTransmutation(selectedPattern.id, finalData);
+
+      triggerGoldCompleteNotification(
+        selectedPattern.id,
+        selectedPattern.pattern_name,
+        goldenSummary
+      );
+
+      // Extract superpowers
+      extractSuperpowers(
+        selectedPattern.id,
+        selectedPattern.pattern_name,
+        finalData,
+        selectedPattern.primary_emotion || undefined
+      ).then(extracted => {
+        setCelebrationSuperpowers(extracted.map(sp => ({ name: sp.name, icon: sp.icon, color: sp.color })));
+        setShowCelebration(true);
+      });
+    }
+  }, [location.state, selectedPattern]);
+
   // Get node label helper
   const getNodeLabel = (nodeId: string): string => {
     const nodeLabels: Record<string, string> = {
@@ -106,10 +162,9 @@ export const BecomingTransmutation = ({
     return nodeLabels[nodeId] || nodeId;
   };
 
-  // Handle node click - route directly to mentor for White/Gold phases
+  // Handle node click - open modal with dual path for White/Gold phases
   const handleNodeClick = (nodeId: string, phase: 'black' | 'white' | 'gold') => {
     if (phase === 'black') {
-      // Black phase is view-only
       toast.info("This is your shadow — it's already recorded.");
       return;
     }
@@ -119,12 +174,9 @@ export const BecomingTransmutation = ({
       return;
     }
     
-    // Route directly to the phase-specific mentor
-    if (phase === 'white') {
-      navigateToMentorWithHandoff('phoenix_mentor');
-    } else if (phase === 'gold') {
-      navigateToMentorWithHandoff('stoic_mentor');
-    }
+    // Open the edit modal with dual path (self-completion + mentor)
+    setEditingNode({ id: nodeId, label: getNodeLabel(nodeId), phase });
+    setShowNodeEditModal(true);
   };
 
   // Handle node save from modal

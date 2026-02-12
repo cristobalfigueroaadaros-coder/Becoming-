@@ -145,12 +145,8 @@ const PatternMap = () => {
       return;
     }
     
-    // Route to mentor
-    if (nodePhase === 'white') {
-      navigate('/council?view=phoenix_mentor');
-    } else if (nodePhase === 'gold') {
-      navigate('/council?view=stoic_mentor');
-    }
+    // Open the edit modal with dual path (self-completion + mentor)
+    setEditingTransmutationNode(nodeId);
   };
 
   const handleTransmutationNodeSave = async (content: string) => {
