@@ -2,7 +2,7 @@ import { useState, useEffect, useMemo, useCallback } from "react";
 import { useSearchParams, useNavigate, useLocation } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
 import { cn } from "@/lib/utils";
-import { Users, ArrowLeft, Lock, Hammer, Heart, Sparkles } from "lucide-react";
+import { Users, ArrowLeft, Hammer, Heart, Sparkles } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { Button } from "@/components/ui/button";
@@ -393,7 +393,6 @@ const Council = () => {
 
           {/* All Mentors List - showing locked/unlocked state */}
           {allMentorTypes.map((mentorType) => {
-            const isUnlocked = userMentors.includes(mentorType);
             const config = mentorConfig[mentorType] || { 
               name: mentorType, 
               color: "bg-muted", 
@@ -405,46 +404,26 @@ const Council = () => {
             return (
               <button
                 key={mentorType}
-                onClick={() => {
-                  // Strict lock enforcement - locked mentors cannot be interacted with
-                  if (!isUnlocked) {
-                    toast.info("This mentor is locked. Upgrade to unlock more mentors!");
-                    return;
-                  }
-                  handleSelectMentor(mentorType);
-                }}
+                onClick={() => handleSelectMentor(mentorType)}
                 className={cn(
-                  "w-full flex items-center gap-3 p-3 rounded-lg transition-colors text-left",
-                  isUnlocked 
-                    ? (isSelected ? "bg-primary/10 text-primary" : "hover:bg-muted cursor-pointer")
-                    : "opacity-50 cursor-not-allowed"
+                  "w-full flex items-center gap-3 p-3 rounded-lg transition-colors text-left cursor-pointer",
+                  isSelected ? "bg-primary/10 text-primary" : "hover:bg-muted"
                 )}
               >
                 <div className={cn(
                   "w-10 h-10 rounded-full flex items-center justify-center",
-                  isUnlocked ? config.color : "bg-muted"
+                  config.color
                 )}>
-                  {isUnlocked ? (
-                    <span className="text-lg">{config.icon}</span>
-                  ) : (
-                    <Lock className="w-4 h-4 text-muted-foreground" />
-                  )}
+                  <span className="text-lg">{config.icon}</span>
                 </div>
                 <div className="flex-1 min-w-0">
-                  <p className={cn(
-                    "font-medium truncate",
-                    !isUnlocked && "text-muted-foreground"
-                  )}>
+                  <p className="font-medium truncate">
                     {config.name}
                   </p>
-                  {!isUnlocked && (
-                    <p className="text-xs text-muted-foreground truncate">Locked</p>
-                  )}
                 </div>
-                {/* Locked mentors show secondary badge, unlocked show destructive */}
                 {notifications > 0 && (
                   <Badge 
-                    variant={isUnlocked ? "destructive" : "secondary"} 
+                    variant="destructive" 
                     className="rounded-full px-2"
                   >
                     {notifications}

@@ -13,16 +13,16 @@ const STAGE_MENTORS: Record<string, string[]> = {
     "problem_mentor",
     "perspective_mentor",
     "alignment_mentor",
-    "design_thinking_mentor",
+    "challenger_mentor",
   ],
   GROW: [
     "strategist_mentor",
     "creative_visionary",
     "business_mentor",
+    "marketing_mentor",
     "perspective_mentor",
     "challenger_mentor",
     "design_thinking_mentor",
-    "alignment_mentor",
   ],
   BUILD: [
     "strategist_mentor",
