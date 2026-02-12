@@ -1,83 +1,46 @@
 
 
-# Project Council Introduction Page
+# Fix Mentor Compositions + Unlock All Mentors for Chat
 
-## Overview
+## Two Issues to Fix
 
-Insert a new static transitional page between the "One more thing" (Work Context) page and the existing Council Story page (GravityCouncilIntro). This page greets the user by name, explains their stage, shows their 7 auto-assembled mentors, and has a single "Next" button.
+### 1. Wrong Mentor Compositions
 
-## Current Flow
+The stage-based mentor selections in `OnboardingStep4.tsx` (and displayed in `ProjectCouncilIntroduction.tsx`) need correction:
 
-```text
-... -> Quest -> Work Context (/onboarding/work-context) -> Dashboard (redirects via OnboardingRouter to /gravity/transition -> /gravity/council-intro -> ...)
-```
+| Stage | Current (Wrong) | Correct |
+|-------|-----------------|---------|
+| **DISCOVER** | inner_clarity, problem, perspective, alignment, **design_thinking** | inner_clarity, problem, perspective, alignment, **challenger** |
+| **GROW** | business, perspective, challenger, design_thinking, **alignment** | business, **marketing**, perspective, challenger, design_thinking |
+| **BUILD** | No change needed (same 7 mentors) | Same |
 
-## New Flow
+Summary: DISCOVER swaps `design_thinking` for `challenger`. GROW swaps `alignment` for `marketing`.
 
-```text
-... -> Quest -> Work Context -> NEW: Project Council Intro (/gravity/council-introduction) -> Council Story (/gravity/council-intro) -> Council Welcome -> First Project -> Dashboard
-```
+### 2. All Mentors Must Be Chattable
 
-## Changes
+Currently in `Council.tsx`, mentors not in `user_mentors` are locked (grayed out, unclickable, show "Locked" text and a lock icon). The fix: make every mentor clickable and chattable. The `user_mentors` list should only determine which mentors appear in the **Project Council group chat**, not which mentors the user can talk to individually.
 
-### 1. Create New Page: `src/pages/ProjectCouncilIntroduction.tsx`
-
-A static informational page with:
-
-- **Dynamic greeting**: "Hello, {User Name}." fetched from the profiles table (`birth_name`)
-- **Title**: "This is your Project Council."
-- **Stage-aware description**: Reads `entry_state` from the profiles table and renders the appropriate paragraph (DISCOVER / GROW / BUILD)
-- **Mentor roster**: Reads the 7 mentors from `user_mentors` table, displays each with name and a short role descriptor
-- **Closing message**: "We are here to think with you, challenge you, and support you as you move forward. This is not random advice. This is about building something meaningful together."
-- **CTA**: Single "Next" button that navigates to `/gravity/council-intro`
-
-Mentor role descriptors (hardcoded map):
-
-| Mentor ID | Short Descriptor |
-|-----------|-----------------|
-| strategist_mentor | Clarity and structured planning |
-| creative_visionary | Imagination and expansion |
-| business_mentor | Leverage and execution |
-| problem_mentor | Clear problem definition |
-| discipline_mentor | Focus and ownership |
-| perspective_mentor | Systems thinking |
-| challenger_mentor | Exposes blind spots |
-| alignment_mentor | Values and direction alignment |
-| design_thinking_mentor | Iterative experimentation |
-| inner_clarity_mentor | Self-awareness and inner patterns |
-| marketing_mentor | Positioning and reach |
-
-### 2. Update Work Context Navigation
-
-**File**: `src/pages/OnboardingWorkContext.tsx`
-
-Change both `navigate("/dashboard")` calls (continue and skip) to `navigate("/gravity/council-introduction")`.
-
-### 3. Add Route to App.tsx
-
-**File**: `src/App.tsx`
-
-Add a new protected route for `/gravity/council-introduction` pointing to the new `ProjectCouncilIntroduction` component, placed alongside the other gravity routes.
-
-### 4. Update OnboardingRouter
-
-**File**: `src/components/OnboardingRouter.tsx`
-
-No changes needed. The router checks `council_introduction_completed` which is set by the existing GravityCouncilIntro page. The new page sits before that checkpoint and does not set any flags -- it is purely transitional.
-
-## Files Summary
+## Files to Modify
 
 | File | Change |
 |------|--------|
-| `src/pages/ProjectCouncilIntroduction.tsx` | New file: static intro page |
-| `src/pages/OnboardingWorkContext.tsx` | Change navigation target from `/dashboard` to `/gravity/council-introduction` |
-| `src/App.tsx` | Add route for `/gravity/council-introduction` |
+| `src/pages/OnboardingStep4.tsx` | Fix DISCOVER and GROW arrays |
+| `src/pages/Council.tsx` | Remove lock enforcement -- all mentors are always clickable |
 
-## What Does NOT Change
+## Detailed Changes
 
-- OnboardingRouter logic
-- Council interaction system
-- Mentor handoff logic
-- GravityCouncilIntro page (the story page)
-- Database schema
-- Edge functions
+### OnboardingStep4.tsx
+
+**DISCOVER** (line 9-17): Replace `design_thinking_mentor` with `challenger_mentor`
+
+**GROW** (line 18-26): Replace `alignment_mentor` with `marketing_mentor`
+
+### Council.tsx
+
+In the mentor list rendering (lines 395-460):
+
+- Remove the `isUnlocked` check that blocks clicking locked mentors
+- Remove the lock icon, "Locked" text, and opacity reduction
+- All mentors render as fully interactive with their normal icon and color
+- The `userMentors` state is still loaded (used for Project Council group composition) but no longer gates individual chat access
+
