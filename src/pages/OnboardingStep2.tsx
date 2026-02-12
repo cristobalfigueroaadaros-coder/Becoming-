@@ -1,7 +1,7 @@
 import { useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { Button } from "@/components/ui/button";
-import { Card, CardHeader, CardTitle } from "@/components/ui/card";
+import { Card, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { toast } from "sonner";
 import { Target, TrendingUp, Rocket } from "lucide-react";
 import { cn } from "@/lib/utils";
@@ -10,21 +10,24 @@ import { supabase } from "@/integrations/supabase/client";
 const options = [
   {
     id: "discover_purpose",
-    title: "I want to discover my purpose",
+    title: "Discover",
+    description: "I want to discover my meaning or direction. I'm exploring and need help connecting the dots.",
     icon: Target,
     color: "bg-primary",
     entryState: "DISCOVER",
   },
   {
     id: "grow_purpose",
-    title: "I have a sense of my purpose and want to grow it",
+    title: "Grow",
+    description: "I have a sense of my direction and want to develop it. I need clarity, refinement, or expansion.",
     icon: TrendingUp,
     color: "bg-mentor-quantum",
     entryState: "GROW",
   },
   {
     id: "already_working",
-    title: "I have something I'm already working on",
+    title: "Build",
+    description: "I already have a project or business. I want to move it forward and reach the next stage.",
     icon: Rocket,
     color: "bg-mentor-mamba",
     entryState: "BUILD",
@@ -51,10 +54,8 @@ const OnboardingStep2 = () => {
 
     setSaving(true);
     try {
-      // Store in localStorage for immediate frontend use
       localStorage.setItem("onboarding_focus", selectedOption);
 
-      // Store entry_state in profiles for backend access
       const { data: { user } } = await supabase.auth.getUser();
       if (user) {
         await supabase
@@ -66,7 +67,6 @@ const OnboardingStep2 = () => {
       navigate("/onboarding/step3");
     } catch (error) {
       console.error("Failed to save entry state:", error);
-      // Still navigate even if DB save fails
       navigate("/onboarding/step3");
     } finally {
       setSaving(false);
@@ -98,10 +98,13 @@ const OnboardingStep2 = () => {
                 onClick={() => handleOptionSelect(option.id)}
               >
                 <CardHeader className="flex flex-row items-center gap-4">
-                  <div className={cn("w-12 h-12 rounded-xl flex items-center justify-center", option.color)}>
+                  <div className={cn("w-12 h-12 rounded-xl flex items-center justify-center shrink-0", option.color)}>
                     <Icon className="w-6 h-6 text-white" />
                   </div>
-                  <CardTitle className="text-xl">{option.title}</CardTitle>
+                  <div>
+                    <CardTitle className="text-xl">{option.title}</CardTitle>
+                    <CardDescription className="mt-1">{option.description}</CardDescription>
+                  </div>
                 </CardHeader>
               </Card>
             );

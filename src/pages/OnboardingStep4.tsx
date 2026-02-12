@@ -1,266 +1,72 @@
 import { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
-import { Button } from "@/components/ui/button";
-import { Card, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
-import { Badge } from "@/components/ui/badge";
 import { toast } from "sonner";
-import { Brain, Lightbulb, Zap, Trees, Heart, Sparkles, Target, TrendingUp, Megaphone, FlaskConical, Scale, Moon, Lock, Star, Search, Eye, Waves, BookOpen, Flame } from "lucide-react";
-import { cn } from "@/lib/utils";
+import { Sparkles } from "lucide-react";
+import { motion } from "framer-motion";
 
-// Mandatory mentors - always selected and cannot be removed
-const MANDATORY_MENTORS = ["creative_visionary", "strategist_mentor", "inner_clarity_mentor"];
-
-// Mentor suggestions based on user's Step 2 selection
-const mentorSuggestions: Record<string, string[]> = {
-  discover_purpose: ["alignment_mentor", "mystic_mentor", "inner_clarity_mentor"],
-  grow_purpose: ["business_mentor", "discipline_mentor"],
-  already_working: ["business_mentor", "marketing_mentor", "problem_mentor"],
+const STAGE_MENTORS: Record<string, string[]> = {
+  DISCOVER: [
+    "strategist_mentor",
+    "creative_visionary",
+    "inner_clarity_mentor",
+    "problem_mentor",
+    "perspective_mentor",
+    "alignment_mentor",
+    "design_thinking_mentor",
+  ],
+  GROW: [
+    "strategist_mentor",
+    "creative_visionary",
+    "business_mentor",
+    "perspective_mentor",
+    "challenger_mentor",
+    "design_thinking_mentor",
+    "alignment_mentor",
+  ],
+  BUILD: [
+    "strategist_mentor",
+    "creative_visionary",
+    "business_mentor",
+    "discipline_mentor",
+    "marketing_mentor",
+    "problem_mentor",
+    "design_thinking_mentor",
+  ],
 };
-
-const mentors = [
-  // 🔥 Action & Discipline
-  {
-    id: "discipline_mentor",
-    name: "The Discipline Mentor",
-    description: "Relentless focus, ownership, and mastery",
-    icon: Target,
-    color: "bg-mentor-mamba",
-    category: "Action & Discipline",
-  },
-  {
-    id: "strategist_mentor",
-    name: "The Strategist Mentor",
-    description: "Frameworks, clarity, and systematic planning",
-    icon: TrendingUp,
-    color: "bg-mentor-quantum",
-    category: "Action & Discipline",
-    mandatory: true,
-  },
-  {
-    id: "business_mentor",
-    name: "The Business Mentor",
-    description: "Strategy, leverage, and execution",
-    icon: Brain,
-    color: "bg-primary",
-    category: "Action & Discipline",
-  },
-  // 💡 Creativity & Expression
-  {
-    id: "creative_visionary",
-    name: "The Creative Visionary",
-    description: "Imagination, wonder, and creative expansion",
-    icon: Lightbulb,
-    color: "bg-mentor-creative",
-    category: "Creativity & Expression",
-    mandatory: true,
-  },
-  {
-    id: "marketing_mentor",
-    name: "The Marketing Mentor",
-    description: "Storytelling, virality, and message craft",
-    icon: Megaphone,
-    color: "bg-accent",
-    category: "Creativity & Expression",
-  },
-  // 🔬 Knowledge & Insight
-  {
-    id: "quantum_inventor",
-    name: "The Quantum Inventor",
-    description: "Pattern recognition and systems thinking",
-    icon: Zap,
-    color: "bg-mentor-quantum",
-    category: "Knowledge & Insight",
-  },
-  {
-    id: "scientific_mentor",
-    name: "The Scientific Mentor",
-    description: "Evidence-based methods and neuroscience",
-    icon: FlaskConical,
-    color: "bg-blue-600",
-    category: "Knowledge & Insight",
-  },
-  // 💜 Emotional & Spiritual
-  {
-    id: "mystic_mentor",
-    name: "The Mystic Mentor",
-    description: "Spiritual insight and inner truth",
-    icon: Sparkles,
-    color: "bg-secondary",
-    category: "Emotional & Spiritual",
-  },
-  {
-    id: "ancient_sage",
-    name: "The Ancient Sage",
-    description: "Timeless wisdom, patience, and grounding",
-    icon: Trees,
-    color: "bg-mentor-sage",
-    category: "Emotional & Spiritual",
-  },
-  {
-    id: "alignment_mentor",
-    name: "The Alignment Mentor",
-    description: "Internal coherence and resolving inner conflict",
-    icon: Scale,
-    color: "bg-green-600",
-    category: "Emotional & Spiritual",
-  },
-  {
-    id: "oracle_mother",
-    name: "The Oracle Mother",
-    description: "Nurturing wisdom, validation, and deep empathy",
-    icon: Moon,
-    color: "bg-purple-600",
-    category: "Emotional & Spiritual",
-  },
-  {
-    id: "heart_mentor",
-    name: "The Heart Mentor",
-    description: "Emotional truth, connection, and softness",
-    icon: Heart,
-    color: "bg-rose-600",
-    category: "Emotional & Spiritual",
-  },
-  // 🧭 Perspective & Challenge (NEW)
-  {
-    id: "perspective_mentor",
-    name: "The Perspective Mentor",
-    description: "Big picture context, systems view, orientation",
-    icon: Trees, // Using Trees as a compass-like icon
-    color: "bg-sky-500",
-    category: "Perspective & Challenge",
-  },
-  {
-    id: "challenger_mentor",
-    name: "The Challenger Mentor",
-    description: "Exposes assumptions and strengthens thinking",
-    icon: Zap,
-    color: "bg-red-600",
-    category: "Perspective & Challenge",
-  },
-  // 🛠️ Design & Creation (NEW)
-  {
-    id: "design_thinking_mentor",
-    name: "The Design Thinking Mentor",
-    description: "Learning by doing, safe iteration, experiments",
-    icon: FlaskConical,
-    color: "bg-lime-500",
-    category: "Design & Creation",
-  },
-  {
-    id: "ux_mentor",
-    name: "The User Experience Mentor",
-    description: "Emotional journeys, flow, human clarity",
-    icon: Heart,
-    color: "bg-fuchsia-500",
-    category: "Design & Creation",
-  },
-  {
-    id: "gamification_mentor",
-    name: "The Gamification Mentor",
-    description: "Engagement, progression, motivation mechanics",
-    icon: Target,
-    color: "bg-yellow-500",
-    category: "Design & Creation",
-  },
-  // 🔮 Clarity & Understanding (NEW)
-  {
-    id: "problem_mentor",
-    name: "The Problem Mentor",
-    description: "Breaks down confusion into clear problem statements",
-    icon: Search,
-    color: "bg-slate-600",
-    category: "Clarity & Understanding",
-  },
-  {
-    id: "inner_clarity_mentor",
-    name: "The Inner Clarity Mentor",
-    description: "Reveals inner patterns, conflicts, and awareness",
-    icon: Eye,
-    color: "bg-indigo-600",
-    category: "Clarity & Understanding",
-  },
-  {
-    id: "release_mentor",
-    name: "The Release Mentor",
-    description: "Guides emotional release through presence, not fixing",
-    icon: Waves,
-    color: "bg-teal-600",
-    category: "Clarity & Understanding",
-  },
-  // 🔥 Transmutation Council
-  {
-    id: "storybreaker_mentor",
-    name: "The Storybreaker Mentor",
-    description: "Cleans narrative, rewrites beliefs",
-    icon: BookOpen,
-    color: "bg-rose-600",
-    category: "Transmutation",
-  },
-  {
-    id: "phoenix_mentor",
-    name: "The Phoenix Mentor",
-    description: "Turns pain into power",
-    icon: Flame,
-    color: "bg-orange-500",
-    category: "Transmutation",
-  },
-  {
-    id: "stoic_mentor",
-    name: "The Stoic Mentor",
-    description: "Brings grounded action",
-    icon: Scale,
-    color: "bg-stone-600",
-    category: "Transmutation",
-  },
-];
 
 const OnboardingStep4 = () => {
   const navigate = useNavigate();
-  const [selectedMentors, setSelectedMentors] = useState<string[]>(MANDATORY_MENTORS);
-  const [loading, setLoading] = useState(false);
-  const [suggestedMentorIds, setSuggestedMentorIds] = useState<string[]>([]);
+  const [status, setStatus] = useState<"assembling" | "done" | "error">("assembling");
 
-  // Scroll to top on mount
   useEffect(() => {
     window.scrollTo({ top: 0, behavior: "auto" });
+    assembleMentors();
   }, []);
 
-  // Load user's focus from Step 2 and determine suggested mentors
-  useEffect(() => {
-    const userFocus = localStorage.getItem("onboarding_focus");
-    if (userFocus && mentorSuggestions[userFocus]) {
-      const suggested = mentorSuggestions[userFocus];
-      setSuggestedMentorIds(suggested);
-      // Auto-select suggested mentors
-      setSelectedMentors(prev => [...new Set([...prev, ...suggested])]);
-    }
-  }, []);
-
-  const toggleMentor = (mentorId: string) => {
-    // Don't allow deselecting mandatory mentors
-    if (MANDATORY_MENTORS.includes(mentorId)) {
-      toast.info("This mentor is required for your journey");
-      return;
-    }
-
-    if (selectedMentors.includes(mentorId)) {
-      setSelectedMentors(selectedMentors.filter((id) => id !== mentorId));
-    } else {
-      setSelectedMentors([...selectedMentors, mentorId]);
-    }
-  };
-
-  const handleContinue = async () => {
-    setLoading(true);
+  const assembleMentors = async () => {
     try {
       const { data: { user } } = await supabase.auth.getUser();
       if (!user) throw new Error("Not authenticated");
 
+      // Determine entry state
+      const focusKey = localStorage.getItem("onboarding_focus");
+      let entryState = "DISCOVER"; // default
+      if (focusKey === "grow_purpose") entryState = "GROW";
+      else if (focusKey === "already_working") entryState = "BUILD";
+
+      const mentors = STAGE_MENTORS[entryState] || STAGE_MENTORS.DISCOVER;
+
+      // Clear any existing mentors first to avoid duplicates
+      await supabase
+        .from("user_mentors")
+        .delete()
+        .eq("user_id", user.id);
+
       const { error } = await supabase
         .from("user_mentors")
         .insert(
-          selectedMentors.map((mentorType) => ({
+          mentors.map((mentorType) => ({
             user_id: user.id,
             mentor_type: mentorType as any,
           }))
@@ -268,128 +74,57 @@ const OnboardingStep4 = () => {
 
       if (error) throw error;
 
-      toast.success("Mentor Council assembled!");
-      navigate("/onboarding/quest");
+      setStatus("done");
+
+      // Brief pause to show success state, then navigate
+      setTimeout(() => {
+        navigate("/onboarding/quest");
+      }, 1200);
     } catch (error: any) {
-      toast.error(error.message);
-    } finally {
-      setLoading(false);
+      console.error("Failed to assemble council:", error);
+      setStatus("error");
+      toast.error("Something went wrong. Please try again.");
     }
   };
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-primary/5 via-background to-accent/5 p-4 py-12">
-      <div className="max-w-4xl mx-auto space-y-8">
-        <div className="text-center space-y-2">
-          <h1 className="text-4xl font-bold">Choose Your Mentor Council</h1>
-          <p className="text-muted-foreground text-lg">Select the mentors who will guide your journey</p>
-          <p className="text-sm text-accent font-medium">
-            {selectedMentors.length} selected ({MANDATORY_MENTORS.length} required)
+    <div className="min-h-screen bg-gradient-to-br from-primary/5 via-background to-accent/5 flex items-center justify-center p-4">
+      <motion.div
+        initial={{ opacity: 0, scale: 0.9 }}
+        animate={{ opacity: 1, scale: 1 }}
+        transition={{ duration: 0.5 }}
+        className="text-center space-y-6 max-w-md"
+      >
+        <motion.div
+          animate={{ rotate: status === "assembling" ? 360 : 0 }}
+          transition={{ duration: 2, repeat: status === "assembling" ? Infinity : 0, ease: "linear" }}
+          className="w-20 h-20 mx-auto rounded-full bg-primary/20 flex items-center justify-center"
+        >
+          <Sparkles className="w-10 h-10 text-primary" />
+        </motion.div>
+
+        <div className="space-y-2">
+          <h1 className="text-3xl font-bold">
+            {status === "assembling" && "Assembling your Project Council..."}
+            {status === "done" && "Your Council is ready ✨"}
+            {status === "error" && "Something went wrong"}
+          </h1>
+          <p className="text-muted-foreground text-lg">
+            {status === "assembling" && "Selecting the best mentors for your journey"}
+            {status === "done" && "7 mentors matched to your path"}
+            {status === "error" && "Please refresh and try again"}
           </p>
         </div>
 
-        {/* Mandatory Mentors Notice */}
-        <div className="p-4 rounded-xl bg-primary/5 border border-primary/20 text-center">
-          <p className="text-sm text-foreground">
-            <Lock className="w-4 h-4 inline mr-2" />
-            <strong>Creative Visionary</strong>, <strong>Strategist Mentor</strong>, and <strong>Inner Clarity Mentor</strong> are required for your journey.
-            They ensure you take action, create something real, and understand yourself deeply.
-          </p>
-        </div>
-
-        {/* Smart Suggestions Notice */}
-        {suggestedMentorIds.length > 0 && (
-          <div className="p-4 rounded-xl bg-accent/10 border border-accent/30 text-center">
-            <p className="text-sm text-foreground">
-              <Star className="w-4 h-4 inline mr-2 text-accent" />
-              Based on where you are, we've suggested additional mentors that may help.
-              Feel free to adjust!
-            </p>
-          </div>
-        )}
-
-        <div className="space-y-8">
-          {["Action & Discipline", "Creativity & Expression", "Knowledge & Insight", "Emotional & Spiritual", "Perspective & Challenge", "Design & Creation", "Clarity & Understanding", "Transmutation"].map((category) => {
-            const categoryMentors = mentors.filter((m) => m.category === category);
-            return (
-              <div key={category}>
-                <h2 className="text-lg font-semibold mb-3 flex items-center gap-2">
-                  {category === "Action & Discipline" && "🔥"}
-                  {category === "Creativity & Expression" && "💡"}
-                  {category === "Knowledge & Insight" && "🔬"}
-                  {category === "Emotional & Spiritual" && "💜"}
-                  {category === "Perspective & Challenge" && "🧭"}
-                  {category === "Design & Creation" && "🛠️"}
-                  {category === "Clarity & Understanding" && "🔮"}
-                  {category === "Transmutation" && "⚗️"}
-                  {category}
-                </h2>
-                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-                  {categoryMentors.map((mentor) => {
-                    const Icon = mentor.icon;
-                    const isSelected = selectedMentors.includes(mentor.id);
-                    const isMandatory = MANDATORY_MENTORS.includes(mentor.id);
-                    const isSuggested = suggestedMentorIds.includes(mentor.id);
-
-                    return (
-                      <Card
-                        key={mentor.id}
-                        className={cn(
-                          "cursor-pointer transition-all hover:shadow-lg relative",
-                          isSelected && "ring-2 ring-primary shadow-xl",
-                          isMandatory && "bg-primary/5 border-primary/30",
-                          isSuggested && !isMandatory && "bg-accent/5 border-accent/30"
-                        )}
-                        onClick={() => toggleMentor(mentor.id)}
-                      >
-                        {/* Badges */}
-                        <div className="absolute top-2 right-2 flex gap-1">
-                          {isMandatory && (
-                            <Badge variant="default" className="bg-primary text-primary-foreground text-xs">
-                              <Lock className="w-3 h-3 mr-1" />
-                              Required
-                            </Badge>
-                          )}
-                          {isSuggested && !isMandatory && (
-                            <Badge variant="secondary" className="bg-accent text-accent-foreground text-xs">
-                              <Star className="w-3 h-3 mr-1" />
-                              Suggested
-                            </Badge>
-                          )}
-                        </div>
-
-                        <CardHeader className="pt-8">
-                          <div
-                            className={cn(
-                              "w-12 h-12 rounded-xl flex items-center justify-center mb-4",
-                              mentor.color
-                            )}
-                          >
-                            <Icon className="w-6 h-6 text-white" />
-                          </div>
-                          <CardTitle className="text-xl">{mentor.name}</CardTitle>
-                          <CardDescription>{mentor.description}</CardDescription>
-                        </CardHeader>
-                      </Card>
-                    );
-                  })}
-                </div>
-              </div>
-            );
-          })}
-        </div>
-
-        <div className="flex justify-center">
-          <Button
-            size="lg"
-            onClick={handleContinue}
-            disabled={loading}
-            className="px-12"
+        {status === "error" && (
+          <button
+            onClick={() => { setStatus("assembling"); assembleMentors(); }}
+            className="text-primary underline"
           >
-            {loading ? "Assembling Council..." : "Enter Dashboard →"}
-          </Button>
-        </div>
-      </div>
+            Try again
+          </button>
+        )}
+      </motion.div>
     </div>
   );
 };
