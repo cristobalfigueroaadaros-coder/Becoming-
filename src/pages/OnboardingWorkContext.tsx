@@ -31,7 +31,7 @@ const OnboardingWorkContext = () => {
 
       if (error) throw error;
 
-      navigate("/dashboard");
+      navigate("/gravity/council-introduction");
     } catch (error: any) {
       toast.error(error.message);
     } finally {
@@ -40,7 +40,7 @@ const OnboardingWorkContext = () => {
   };
 
   const handleSkip = () => {
-    navigate("/dashboard");
+    navigate("/gravity/council-introduction");
   };
 
   return (
