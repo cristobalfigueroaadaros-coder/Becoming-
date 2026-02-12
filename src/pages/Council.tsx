@@ -323,8 +323,8 @@ const Council = () => {
               <Users className="w-5 h-5 text-primary" />
             </div>
             <div className="flex-1 min-w-0">
-              <p className="font-medium truncate">Council</p>
-              <p className="text-xs text-muted-foreground truncate">Your mentors together</p>
+              <p className="font-medium truncate">Project Council</p>
+              <p className="text-xs text-muted-foreground truncate">Your project mentors</p>
             </div>
             {councilNotifications > 0 && (
               <Badge variant="destructive" className="rounded-full px-2">
