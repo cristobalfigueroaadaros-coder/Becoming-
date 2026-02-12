@@ -127,14 +127,8 @@ Deno.serve(async (req) => {
     const conversationContext = formatConversationHistory(conversationHistory);
     const questionNumber = conversationHistory.filter((m: any) => m.role === 'user').length + 1;
 
-    // Determine stage based on question number
-    // Q1: Discovery - Full response
-    // Q2: Seeking clarity - Compassionate question
-    // Q3+: Momentum - Full response with mentor handoff suggestion
-    let stage = 'complete';
-    if (questionNumber === 2) {
-      stage = 'seeking_clarity';
-    }
+    // All exchanges get full council response - no forced clarity stage
+    const stage = 'complete';
 
     // Build the system prompt for Inner Self Council - LIFE EVENT FIRST approach
     const systemPrompt = `You are the Inner Self Council - five compassionate mentors focused on EMOTIONAL UNDERSTANDING, INNER CLARITY, and GENTLE TRANSFORMATION.
@@ -205,47 +199,7 @@ ${profile.user_foundation_story}
 ===
 ` : ''}`;
 
-    // Stage 2: Seeking Clarity (ask one compassionate question)
-    if (stage === 'seeking_clarity') {
-      const clarityResponse = await fetch("https://ai.gateway.lovable.dev/v1/chat/completions", {
-        method: "POST",
-        headers: {
-          "Authorization": `Bearer ${Deno.env.get("LOVABLE_API_KEY")}`,
-          "Content-Type": "application/json",
-        },
-        body: JSON.stringify({
-          model: "google/gemini-2.5-flash",
-          messages: [
-            { role: "system", content: systemPrompt },
-            { role: "user", content: `The user shared: "${question}"
-
-Generate ONE gentle, clarifying question that helps the Inner Self Council understand:
-- What they are truly feeling underneath the surface
-- Where this feeling might be coming from
-- What part of them needs to be heard right now
-
-Make it feel like a compassionate friend asking to understand, not a therapist interrogating.
-The question should invite deeper self-reflection without pressure.
-Return ONLY the question, nothing else.` }
-          ],
-          temperature: 0.7,
-          max_tokens: 150
-        }),
-      });
-
-      const clarityData = await clarityResponse.json();
-      const clarityQuestion = clarityData.choices?.[0]?.message?.content?.trim() || "What's the feeling underneath this that most wants to be heard?";
-
-      return new Response(JSON.stringify({
-        stage: 'seeking_clarity',
-        questionNumber,
-        clarityQuestion
-      }), {
-        headers: { ...corsHeaders, "Content-Type": "application/json" }
-      });
-    }
-
-    // Complete stage: Full council response with emotional depth
+    // Full council response with emotional depth
     const fullResponse = await fetch("https://ai.gateway.lovable.dev/v1/chat/completions", {
       method: "POST",
       headers: {

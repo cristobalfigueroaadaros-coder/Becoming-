@@ -1746,8 +1746,10 @@ Not what you think you should feel — what actually rises up when you go back t
           const lifeEvents = voiceCtx.lifeEvents || {};
           
           if (phase === 'white' && mentorType === 'phoenix_mentor') {
-            // Phoenix Mentor opening for White Phase - Pattern-aware, emotionally grounded
-            transmutationHandoffResponse = `You've named what you're working through — "${patternName}".
+            // Phoenix Mentor opening for White Phase - with introduction
+            transmutationHandoffResponse = `Hey, I'm the Phoenix Mentor. I help turn pain into power.
+
+You've named what you're working through — "${patternName}".
 
 That takes courage.
 
@@ -1757,11 +1759,13 @@ It's about understanding what this experience shaped in you.
 
 Looking back, what shifted? Was there a moment, a conversation, or a realization that changed how you saw this?`;
           } else if (phase === 'gold' && mentorType === 'stoic_mentor') {
-            // Stoic Mentor opening for Gold Phase
+            // Stoic Mentor opening for Gold Phase - with introduction
             const shiftMoment = existingData.shift_moment || 'the shift you found';
             const lesson = existingData.lesson_learned || 'the lesson you learned';
             
-            transmutationHandoffResponse = `The shift happened: "${shiftMoment}"
+            transmutationHandoffResponse = `Hey, I'm the Stoic Mentor. I help ground insight into real action.
+
+The shift happened: "${shiftMoment}"
 
 The lesson is clear: "${lesson}"
 
@@ -2626,6 +2630,125 @@ IMPORTANT: Continue this conversation naturally. You reached out to the user abo
       }
     }
     // === END USER PATTERN CONFIRMATION DETECTION ===
+
+    // === TRANSMUTATION PHASE COMPLETION DETECTION ===
+    // Detect when Phoenix/Stoic mentor has completed their phase and user confirms
+    if (isTransmutationSession && (mentorType === 'phoenix_mentor' || mentorType === 'stoic_mentor')) {
+      const phaseConfirmationPhrases = [
+        'yes', 'yes!', "i'm ready", "let's go", "let's do it", 'ready',
+        'absolutely', 'definitely', 'for sure', 'yeah', 'yep', 'yea',
+        'si', 'ok', 'okay', 'sure', 'sounds good', 'i am ready',
+        'bring it on', 'next step', "let's move", 'yes please'
+      ];
+      const userMsgLower = message.toLowerCase().trim();
+      
+      const isPhaseConfirmation = phaseConfirmationPhrases.some(phrase => 
+        userMsgLower === phrase || 
+        userMsgLower.startsWith(phrase + ' ') || 
+        userMsgLower.startsWith(phrase + ',') ||
+        userMsgLower.startsWith(phrase + '.')
+      );
+      
+      if (isPhaseConfirmation) {
+        // Check if previous assistant message signals phase completion
+        const previousAssistantMessages = chatHistory?.filter((m: any) => m.role === 'assistant') || [];
+        const lastAssistantMsg = previousAssistantMessages[previousAssistantMessages.length - 1];
+        
+        const completionSignals = [
+          'ready for the next step',
+          'this part of the journey is complete',
+          'phase is complete',
+          'we can take this forward',
+          'ready to move forward',
+          'gold phase',
+          'next phase',
+          'carry forward',
+          'what you carry forward',
+          'brave step',
+          'your gold',
+          'transmutation is complete'
+        ];
+        
+        const hasCompletionSignal = lastAssistantMsg?.content && 
+          completionSignals.some(signal => lastAssistantMsg.content.toLowerCase().includes(signal));
+        
+        if (hasCompletionSignal) {
+          console.log("[chat-mentor] Transmutation phase completion detected for:", mentorType);
+          
+          // Use AI to extract structured data from the conversation
+          const phase = mentorType === 'phoenix_mentor' ? 'white' : 'gold';
+          const extractionPrompt = phase === 'white' 
+            ? `Extract from this conversation the following fields. Return JSON only:
+{
+  "shift_moment": "the key moment of shift/realization the user described",
+  "lesson_learned": "the main lesson or insight the user gained",
+  "protective_purpose": "the protective role this pattern served (if mentioned)"
+}
+
+Conversation:
+${chatHistory?.slice(-10).map((m: any) => `${m.role}: ${m.content}`).join('\n')}`
+            : `Extract from this conversation the following fields. Return JSON only:
+{
+  "gold_insight": "the golden insight or wisdom the user gained",
+  "letter_to_self": "any message to their younger self (if mentioned, otherwise summarize their growth)",
+  "brave_step": "the brave action step or new belief they committed to"
+}
+
+Conversation:
+${chatHistory?.slice(-10).map((m: any) => `${m.role}: ${m.content}`).join('\n')}`;
+
+          try {
+            const extractionResponse = await fetch("https://ai.gateway.lovable.dev/v1/chat/completions", {
+              method: "POST",
+              headers: {
+                "Authorization": `Bearer ${Deno.env.get("LOVABLE_API_KEY")}`,
+                "Content-Type": "application/json",
+              },
+              body: JSON.stringify({
+                model: "google/gemini-2.5-flash",
+                messages: [{ role: "user", content: extractionPrompt }],
+                response_format: { type: "json_object" },
+                temperature: 0.3,
+                max_tokens: 500
+              }),
+            });
+
+            if (extractionResponse.ok) {
+              const extractionData = await extractionResponse.json();
+              let extractedFields = {};
+              try {
+                extractedFields = JSON.parse(extractionData.choices[0].message.content);
+              } catch (e) {
+                console.error("[chat-mentor] Failed to parse extraction:", e);
+              }
+
+              const closingMessage = phase === 'white'
+                ? "Beautiful. The white phase is complete. Your shift, your lesson, your purpose — they're all anchored now. Let's move to gold. 🤍"
+                : "The gold is yours now. Everything you went through shaped something powerful in you. This transmutation is complete. ✨";
+
+              return new Response(
+                JSON.stringify({
+                  response: closingMessage,
+                  transmutationPhaseComplete: {
+                    phase,
+                    ...extractedFields
+                  },
+                  extractedKeywords: [],
+                  suggestedHandoff: null,
+                  valueMapDetection: null,
+                  projectCoherence: null,
+                  conversationDepth: conversationDepth,
+                }),
+                { headers: { ...corsHeaders, "Content-Type": "application/json" } }
+              );
+            }
+          } catch (extractError) {
+            console.error("[chat-mentor] Extraction failed:", extractError);
+          }
+        }
+      }
+    }
+    // === END TRANSMUTATION PHASE COMPLETION DETECTION ===
 
     // Call Lovable AI with full context
     const aiResponse = await fetch("https://ai.gateway.lovable.dev/v1/chat/completions", {

@@ -49,7 +49,7 @@ export const PatternSelector = ({
         <Button
           variant="ghost"
           size="sm"
-          onClick={() => navigate("/inner-self-council")}
+          onClick={() => navigate("/transmutation-council")}
           className="text-indigo-400 hover:text-indigo-300 gap-1"
         >
           <Plus className="w-3 h-3" />
