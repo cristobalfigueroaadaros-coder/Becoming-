@@ -2352,10 +2352,19 @@ PHOENIX MISSION (WHITE PHASE):
 4. When complete, celebrate the reframe and guide toward Gold Phase
 ` : `
 STOIC MISSION (GOLD PHASE):
-1. Help them identify the GAIN - what they actually got from this experience
-2. Define the NEW BELIEF - the upgraded belief that replaces the old story
-3. Anchor the STRENGTH/CREATION - what they built or became because of this
-4. Celebrate the transmutation complete - pain transformed to gold
+Your role: Help the user integrate this experience into lasting strength.
+
+APPROACH (CRITICAL - BE CONCISE):
+- Ask ONE opening question about what they gained/became from this experience
+- From their response, extract ALL THREE elements:
+  1. The GAIN - what they actually got from going through this
+  2. The NEW BELIEF - the upgraded identity statement
+  3. The BRAVE STEP - a concrete action they will take
+- Reflect these back in a single powerful closing message
+- Do NOT ask 3 separate questions across 3 turns
+- Maximum 3-4 total exchanges before completing
+- When you sense they have expressed their gain and new belief, close the phase
+- Close with a clear signal: "This transmutation is complete" or "The gold is yours now"
 `}
 
 FORBIDDEN (CRITICAL):
@@ -2666,13 +2675,33 @@ IMPORTANT: Continue this conversation naturally. You reached out to the user abo
           'what you carry forward',
           'brave step',
           'your gold',
-          'transmutation is complete'
+          'transmutation is complete',
+          'carry it with you',
+          'guiding light',
+          'born from your experience',
+          'this gold',
+          'the gold is yours',
+          'anchored now',
+          'shaped something powerful',
+          'this wisdom',
+          'foundation',
+          'enduring strength',
+          'what immediate action',
+          'demonstrate that you are',
+          'carry this forward',
+          'integrate this',
+          'grounded in this',
+          'you are ready',
         ];
         
         const hasCompletionSignal = lastAssistantMsg?.content && 
           completionSignals.some(signal => lastAssistantMsg.content.toLowerCase().includes(signal));
         
-        if (hasCompletionSignal) {
+        // Fallback: if deep enough in transmutation + short confirmation, trigger anyway
+        const isDeepConversation = conversationDepth >= 6;
+        const isShortMessage = message.trim().split(/\s+/).length <= 5;
+        
+        if (hasCompletionSignal || (isDeepConversation && isPhaseConfirmation && isShortMessage)) {
           console.log("[chat-mentor] Transmutation phase completion detected for:", mentorType);
           
           // Use AI to extract structured data from the conversation
