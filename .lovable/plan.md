@@ -1,99 +1,83 @@
 
-# Rename General Council to Project Council + Stage-Based Auto Assembly
+
+# Project Council Introduction Page
 
 ## Overview
 
-This update makes three structural changes:
+Insert a new static transitional page between the "One more thing" (Work Context) page and the existing Council Story page (GravityCouncilIntro). This page greets the user by name, explains their stage, shows their 7 auto-assembled mentors, and has a single "Next" button.
 
-1. **Rename** "Council" to "Project Council" in the sidebar and UI
-2. **Update Step 2** option text with new descriptions
-3. **Replace Step 4** (manual mentor selection) with automatic mentor assembly based on entry_state, then skip directly to the quest step
-4. **Update CouncilMeeting** to use entry_state-based mentor composition instead of user_mentors table
+## Current Flow
 
----
+```text
+... -> Quest -> Work Context (/onboarding/work-context) -> Dashboard (redirects via OnboardingRouter to /gravity/transition -> /gravity/council-intro -> ...)
+```
+
+## New Flow
+
+```text
+... -> Quest -> Work Context -> NEW: Project Council Intro (/gravity/council-introduction) -> Council Story (/gravity/council-intro) -> Council Welcome -> First Project -> Dashboard
+```
 
 ## Changes
 
-### 1. Update Step 2 Option Text
+### 1. Create New Page: `src/pages/ProjectCouncilIntroduction.tsx`
 
-**File**: `src/pages/OnboardingStep2.tsx`
+A static informational page with:
 
-Replace the three option titles and add subtitle descriptions:
+- **Dynamic greeting**: "Hello, {User Name}." fetched from the profiles table (`birth_name`)
+- **Title**: "This is your Project Council."
+- **Stage-aware description**: Reads `entry_state` from the profiles table and renders the appropriate paragraph (DISCOVER / GROW / BUILD)
+- **Mentor roster**: Reads the 7 mentors from `user_mentors` table, displays each with name and a short role descriptor
+- **Closing message**: "We are here to think with you, challenge you, and support you as you move forward. This is not random advice. This is about building something meaningful together."
+- **CTA**: Single "Next" button that navigates to `/gravity/council-intro`
 
-| Option | Current Title | New Title | New Subtitle |
-|--------|--------------|-----------|-------------|
-| DISCOVER | "I want to discover my purpose" | "Discover" with "I want to discover my meaning or direction. I'm exploring and need help connecting the dots." | Two-line description under the title |
-| GROW | "I have a sense of my purpose and want to grow it" | "Grow" with "I have a sense of my direction and want to develop it. I need clarity, refinement, or expansion." | Two-line description |
-| BUILD | "I have something I'm already working on" | "Build" with "I already have a project or business. I want to move it forward and reach the next stage." | Two-line description |
+Mentor role descriptors (hardcoded map):
 
-Add `CardDescription` to each card to show the subtitle text.
+| Mentor ID | Short Descriptor |
+|-----------|-----------------|
+| strategist_mentor | Clarity and structured planning |
+| creative_visionary | Imagination and expansion |
+| business_mentor | Leverage and execution |
+| problem_mentor | Clear problem definition |
+| discipline_mentor | Focus and ownership |
+| perspective_mentor | Systems thinking |
+| challenger_mentor | Exposes blind spots |
+| alignment_mentor | Values and direction alignment |
+| design_thinking_mentor | Iterative experimentation |
+| inner_clarity_mentor | Self-awareness and inner patterns |
+| marketing_mentor | Positioning and reach |
 
-### 2. Replace Step 4 with Auto-Assembly
+### 2. Update Work Context Navigation
 
-**File**: `src/pages/OnboardingStep4.tsx`
+**File**: `src/pages/OnboardingWorkContext.tsx`
 
-Remove the entire mentor selection UI. Replace with auto-assembly logic:
+Change both `navigate("/dashboard")` calls (continue and skip) to `navigate("/gravity/council-introduction")`.
 
-- Read `entry_state` from localStorage (set in Step 2)
-- Determine the 7 mentors based on entry_state:
+### 3. Add Route to App.tsx
 
-| DISCOVER | GROW | BUILD |
-|----------|------|-------|
-| strategist_mentor | strategist_mentor | strategist_mentor |
-| creative_visionary | creative_visionary | creative_visionary |
-| inner_clarity_mentor | business_mentor | business_mentor |
-| problem_mentor | perspective_mentor | discipline_mentor |
-| perspective_mentor | challenger_mentor | marketing_mentor |
-| alignment_mentor | design_thinking_mentor | problem_mentor |
-| design_thinking_mentor | alignment_mentor | design_thinking_mentor |
+**File**: `src/App.tsx`
 
-- Auto-insert these 7 mentors into `user_mentors` table
-- Show a brief loading/assembly animation instead of the selection grid
-- Navigate to `/onboarding/quest` after insertion
+Add a new protected route for `/gravity/council-introduction` pointing to the new `ProjectCouncilIntroduction` component, placed alongside the other gravity routes.
 
-### 3. Rename Council to Project Council in Sidebar
+### 4. Update OnboardingRouter
 
-**File**: `src/pages/Council.tsx`
+**File**: `src/components/OnboardingRouter.tsx`
 
-In the SidebarContent component (around line 326):
-- Change `"Council"` label to `"Project Council"`
-- Change subtitle from `"Your mentors together"` to `"Your project mentors"`
-- Change the header (line 308) from `"Council"` to `"Council"` (keep as section header since it contains all council types)
+No changes needed. The router checks `council_introduction_completed` which is set by the existing GravityCouncilIntro page. The new page sits before that checkpoint and does not set any flags -- it is purely transitional.
 
-### 4. Update CouncilMeeting to Use Entry-State Mentors
-
-**File**: `src/pages/CouncilMeeting.tsx`
-
-Currently (line 314), the council-meeting call passes mentors from the `user_mentors` table. This stays the same since Step 4 now auto-inserts the correct 7 mentors. No change needed here -- the auto-assembly in Step 4 ensures the right mentors are in `user_mentors`.
-
-### 5. Enforce Transmutation Boundary
-
-The auto-assembly compositions above already exclude Transmutation mentors (storybreaker, phoenix, stoic, release_mentor). No code change needed -- they simply aren't in any of the 3 compositions.
-
----
-
-## Files to Modify
+## Files Summary
 
 | File | Change |
 |------|--------|
-| `src/pages/OnboardingStep2.tsx` | Update option titles + add subtitle descriptions |
-| `src/pages/OnboardingStep4.tsx` | Replace mentor selection with auto-assembly + loading screen |
-| `src/pages/Council.tsx` | Rename "Council" to "Project Council" in sidebar |
+| `src/pages/ProjectCouncilIntroduction.tsx` | New file: static intro page |
+| `src/pages/OnboardingWorkContext.tsx` | Change navigation target from `/dashboard` to `/gravity/council-introduction` |
+| `src/App.tsx` | Add route for `/gravity/council-introduction` |
 
 ## What Does NOT Change
 
-- Onboarding flow structure (Step 1 -> 2 -> 3 -> 4 -> Quest)
-- Council interaction rhythm (perspectives, banter, clarifying question)
-- Individual mentor chats
-- Builders Team, Inner Self Council, Transmutation Council
-- Navigation layout
-- Edge functions (council-meeting, chat-mentor)
-- Database schema (user_mentors table still used, just auto-populated)
-
----
-
-## Technical Notes
-
-- The `user_mentors` table continues to be the source of truth for which mentors are available to the user. Step 4 just changes from manual selection to automatic insertion.
-- The council-meeting edge function already reads from `user_mentors` and enforces mandatory mentors (creative_visionary, strategist_mentor). The 7-mentor auto-assembly includes both, so this works seamlessly.
-- The lock/unlock system in the Council sidebar still reads from `user_mentors`, so only the 7 auto-assembled mentors will be unlocked initially.
+- OnboardingRouter logic
+- Council interaction system
+- Mentor handoff logic
+- GravityCouncilIntro page (the story page)
+- Database schema
+- Edge functions
