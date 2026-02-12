@@ -1,46 +1,18 @@
 
 
-# Fix Mentor Compositions + Unlock All Mentors for Chat
+# Fix PatternDiscoveryCard Being Blocked by Bottom Navigation
 
-## Two Issues to Fix
+## Problem
 
-### 1. Wrong Mentor Compositions
+The PatternDiscoveryCard overlay uses `z-50` (line 65), but the BottomNavigation also uses `z-50` (in `BottomNavigation.tsx` line ~62). Because the bottom nav is rendered later in the DOM tree, it visually sits on top of the card's CTA buttons ("Yes, that's it" / "Not yet"), making them unclickable. The user accidentally taps a nav button and loses the winning card.
 
-The stage-based mentor selections in `OnboardingStep4.tsx` (and displayed in `ProjectCouncilIntroduction.tsx`) need correction:
+## Fix
 
-| Stage | Current (Wrong) | Correct |
-|-------|-----------------|---------|
-| **DISCOVER** | inner_clarity, problem, perspective, alignment, **design_thinking** | inner_clarity, problem, perspective, alignment, **challenger** |
-| **GROW** | business, perspective, challenger, design_thinking, **alignment** | business, **marketing**, perspective, challenger, design_thinking |
-| **BUILD** | No change needed (same 7 mentors) | Same |
+**File**: `src/components/pattern-map/PatternDiscoveryCard.tsx`
 
-Summary: DISCOVER swaps `design_thinking` for `challenger`. GROW swaps `alignment` for `marketing`.
+Change the overlay `z-index` from `z-50` to `z-[60]` so the card reliably renders above the bottom navigation.
 
-### 2. All Mentors Must Be Chattable
+**Line 65**: Change `className="fixed inset-0 z-50 ..."` to `className="fixed inset-0 z-[60] ..."`
 
-Currently in `Council.tsx`, mentors not in `user_mentors` are locked (grayed out, unclickable, show "Locked" text and a lock icon). The fix: make every mentor clickable and chattable. The `user_mentors` list should only determine which mentors appear in the **Project Council group chat**, not which mentors the user can talk to individually.
-
-## Files to Modify
-
-| File | Change |
-|------|--------|
-| `src/pages/OnboardingStep4.tsx` | Fix DISCOVER and GROW arrays |
-| `src/pages/Council.tsx` | Remove lock enforcement -- all mentors are always clickable |
-
-## Detailed Changes
-
-### OnboardingStep4.tsx
-
-**DISCOVER** (line 9-17): Replace `design_thinking_mentor` with `challenger_mentor`
-
-**GROW** (line 18-26): Replace `alignment_mentor` with `marketing_mentor`
-
-### Council.tsx
-
-In the mentor list rendering (lines 395-460):
-
-- Remove the `isUnlocked` check that blocks clicking locked mentors
-- Remove the lock icon, "Locked" text, and opacity reduction
-- All mentors render as fully interactive with their normal icon and color
-- The `userMentors` state is still loaded (used for Project Council group composition) but no longer gates individual chat access
+This is a single-line change. No other files need modification.
 
