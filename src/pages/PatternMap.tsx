@@ -1,5 +1,5 @@
 import { useState, useEffect } from "react";
-import { useParams, useNavigate } from "react-router-dom";
+import { useParams, useNavigate, useLocation } from "react-router-dom";
 import { motion } from "framer-motion";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -8,11 +8,13 @@ import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { ArrowLeft, Orbit, MessageCircle, Sparkles, Clock, Loader2 } from "lucide-react";
 import { useInnerPatterns, type InnerPattern } from "@/hooks/useInnerPatterns";
 import { useLifetimeEvents, type LifetimeEvent, type TimePeriod, type LifetimeEventInput } from "@/hooks/useLifetimeEvents";
+import { useSuperpowers } from "@/hooks/useSuperpowers";
 import { PatternMapCanvas, PatternNodeEditModal } from "@/components/pattern-map";
 import { 
   TransmutationMapCanvas, 
   TransmutationNodeEditModal, 
   TransmutationCelebration,
+  WhitePhaseWinCard,
   type TransmutationData 
 } from "@/components/transmutation-map";
 import {
@@ -21,6 +23,8 @@ import {
   LifetimeEventDetailView,
 } from "@/components/lifetime-map";
 import { toast } from "sonner";
+import { supabase } from "@/integrations/supabase/client";
+import { isWhitePhaseComplete, isGoldPhaseComplete, generateGoldenSummary } from "@/lib/goldenSummaryGenerator";
 import type { Json } from "@/integrations/supabase/types";
 
 interface PatternNodeData {
@@ -56,6 +60,7 @@ const transmutationNodeLabels: Record<string, { label: string; phase: 'black' | 
 const PatternMap = () => {
   const { patternId } = useParams<{ patternId: string }>();
   const navigate = useNavigate();
+  const location = useLocation();
   const { patterns, loading, updatePattern, updateTransmutationData } = useInnerPatterns();
   const { 
     events: lifetimeEvents, 
@@ -66,6 +71,7 @@ const PatternMap = () => {
     getEventsByPeriod,
     syncGoldOutcome,
   } = useLifetimeEvents();
+  const { extractSuperpowers, getSuperpowersByPattern } = useSuperpowers();
   
   const [pattern, setPattern] = useState<InnerPattern | null>(null);
   const [nodeData, setNodeData] = useState<PatternNodeData>({});
@@ -73,6 +79,8 @@ const PatternMap = () => {
   const [editingNode, setEditingNode] = useState<string | null>(null);
   const [editingTransmutationNode, setEditingTransmutationNode] = useState<string | null>(null);
   const [showCelebration, setShowCelebration] = useState(false);
+  const [showWhiteWinCard, setShowWhiteWinCard] = useState(false);
+  const [celebrationSuperpowers, setCelebrationSuperpowers] = useState<Array<{ name: string; icon: string; color: string }>>([]);
   const [activeTab, setActiveTab] = useState("pattern-map");
 
   // Lifetime map state
@@ -88,16 +96,13 @@ const PatternMap = () => {
       const found = patterns.find(p => p.id === patternId);
       if (found) {
         setPattern(found);
-        // Parse life_events as node data
         const lifeEvents = found.life_events;
         if (lifeEvents && typeof lifeEvents === 'object' && !Array.isArray(lifeEvents)) {
           setNodeData(lifeEvents as PatternNodeData);
         }
-        // Parse transmutation_data
         const transData = (found as any).transmutation_data;
         if (transData && typeof transData === 'object') {
           setTransmutationData(transData as TransmutationData);
-          // Auto-populate from pattern map data if transmutation is empty
           if (!transData.protective_purpose && lifeEvents && (lifeEvents as PatternNodeData).protective_role) {
             setTransmutationData(prev => ({
               ...prev,
@@ -109,6 +114,89 @@ const PatternMap = () => {
     }
   }, [patterns, patternId]);
 
+  // Handle return from mentor chat
+  useEffect(() => {
+    const state = location.state as any;
+    if (!state?.transmutationComplete || !pattern) return;
+
+    const { phase, extractedData } = state.transmutationComplete;
+    if (!extractedData) return;
+
+    // Clear location state to prevent re-processing
+    window.history.replaceState({}, document.title);
+
+    const updatedData = { ...transmutationData, ...extractedData };
+
+    if (phase === 'white') {
+      updatedData.phase_completed = 'white';
+      setTransmutationData(updatedData);
+      updateTransmutationData(pattern.id, updatedData);
+      setShowWhiteWinCard(true);
+    } else if (phase === 'gold') {
+      const goldenSummary = generateGoldenSummary(updatedData, pattern.pattern_name, pattern.primary_emotion || undefined);
+      updatedData.golden_summary = goldenSummary;
+      updatedData.phase_completed = 'gold';
+      updatedData.completed_at = new Date().toISOString();
+      setTransmutationData(updatedData);
+      updateTransmutationData(pattern.id, updatedData);
+      updatePattern(pattern.id, { status: 'transformed' });
+
+      // Extract superpowers
+      extractSuperpowers(pattern.id, pattern.pattern_name, updatedData, pattern.primary_emotion || undefined)
+        .then(sps => {
+          setCelebrationSuperpowers(sps.map(sp => ({ name: sp.name, icon: sp.icon, color: sp.color })));
+          setShowCelebration(true);
+        });
+    }
+
+    setActiveTab("transmutation");
+  }, [location.state, pattern]);
+
+  const whiteComplete = isWhitePhaseComplete(transmutationData);
+  const goldComplete = isGoldPhaseComplete(transmutationData);
+
+  // Navigate to mentor with handoff
+  const navigateToMentorWithHandoff = async (mentorType: string) => {
+    const { data: { user } } = await supabase.auth.getUser();
+    if (!user || !pattern) return;
+
+    const { data: recentMessages } = await supabase
+      .from("chats")
+      .select("role, content, mentor_type")
+      .eq("user_id", user.id)
+      .order("created_at", { ascending: false })
+      .limit(20);
+
+    const phase = whiteComplete ? 'gold' : 'white';
+    const transmutationContext = {
+      phase,
+      patternId: pattern.id,
+      patternName: pattern.pattern_name,
+      shadow: transmutationData.shadow || pattern.pattern_description,
+      existingTransmutationData: transmutationData,
+    };
+
+    const { data: handoff } = await supabase
+      .from("conversation_handoffs")
+      .insert({
+        user_id: user.id,
+        source_mentor_type: "transmutation_map",
+        target_mentor_type: mentorType,
+        source_messages: (recentMessages?.reverse() || []) as unknown as Json,
+        journey_topic: `Transmutation ${phase} Phase: ${pattern.pattern_name}`,
+        voice_context: transmutationContext as unknown as Json,
+        processed: false,
+      })
+      .select()
+      .single();
+
+    if (handoff) {
+      navigate(`/council?view=${mentorType}`, {
+        state: { handoffId: handoff.id, transmutationContext }
+      });
+    }
+  };
+
   const handleNodeClick = (nodeType: string) => {
     setEditingNode(nodeType);
   };
@@ -119,7 +207,6 @@ const PatternMap = () => {
     const updatedNodeData = { ...nodeData, [editingNode!]: content };
     setNodeData(updatedNodeData);
     
-    // Save to database
     const success = await updatePattern(pattern.id, { 
       life_events: updatedNodeData as unknown as Json 
     });
@@ -135,17 +222,14 @@ const PatternMap = () => {
     const nodePhase = phase || transmutationNodeLabels[nodeId]?.phase || 'white';
     
     if (nodePhase === 'black') {
-      return; // View-only
+      return;
     }
     
-    // Check if white is complete for gold access
-    const whiteComplete = !!(transmutationData.shift_moment && transmutationData.lesson_learned);
     if (nodePhase === 'gold' && !whiteComplete) {
       toast.info("Complete the White phase first");
       return;
     }
     
-    // Open the edit modal with dual path (self-completion + mentor)
     setEditingTransmutationNode(nodeId);
   };
 
@@ -155,38 +239,71 @@ const PatternMap = () => {
     const updatedData = { ...transmutationData, [editingTransmutationNode]: content };
     setTransmutationData(updatedData);
     
-    // Check if gold phase is complete
-    const isGoldComplete = !!(
-      updatedData.gold_insight && 
-      updatedData.letter_to_self
-    );
-    
-    if (isGoldComplete && !transmutationData.phase_completed) {
-      updatedData.phase_completed = 'gold';
-      updatedData.completed_at = new Date().toISOString();
+    const nodePhase = transmutationNodeLabels[editingTransmutationNode]?.phase;
+
+    // Check white phase completion
+    if (nodePhase === 'white') {
+      const wouldCompleteWhite = isWhitePhaseComplete(updatedData);
+      if (wouldCompleteWhite && transmutationData.phase_completed !== 'white' && transmutationData.phase_completed !== 'gold') {
+        updatedData.phase_completed = 'white';
+        const success = await updateTransmutationData(pattern.id, updatedData);
+        if (success) {
+          setEditingTransmutationNode(null);
+          setShowWhiteWinCard(true);
+          return;
+        }
+      }
+    }
+
+    // Check gold phase completion
+    if (nodePhase === 'gold') {
+      const wouldCompleteGold = isGoldPhaseComplete(updatedData);
+      if (wouldCompleteGold && transmutationData.phase_completed !== 'gold') {
+        const goldenSummary = generateGoldenSummary(updatedData, pattern.pattern_name, pattern.primary_emotion || undefined);
+        updatedData.golden_summary = goldenSummary;
+        updatedData.phase_completed = 'gold';
+        updatedData.completed_at = new Date().toISOString();
+        
+        const success = await updateTransmutationData(pattern.id, updatedData);
+        if (success) {
+          await updatePattern(pattern.id, { status: 'transformed' });
+          
+          // Extract superpowers
+          try {
+            const sps = await extractSuperpowers(pattern.id, pattern.pattern_name, updatedData, pattern.primary_emotion || undefined);
+            setCelebrationSuperpowers(sps.map(sp => ({ name: sp.name, icon: sp.icon, color: sp.color })));
+          } catch (e) {
+            console.error("Superpower extraction failed:", e);
+          }
+          
+          setEditingTransmutationNode(null);
+          setShowCelebration(true);
+          return;
+        }
+      }
     }
     
     const success = await updateTransmutationData(pattern.id, updatedData);
-    
     if (success) {
       toast.success("Transmutation map updated");
-      // Show celebration if gold phase just completed
-      if (isGoldComplete && !transmutationData.phase_completed) {
-        setShowCelebration(true);
-      }
     }
     
     setEditingTransmutationNode(null);
   };
 
+  const handleWhiteWinConfirm = async () => {
+    setShowWhiteWinCard(false);
+    toast.success("White Phase complete! Gold Phase unlocked ✨");
+  };
+
   const handleCelebrationSaveGold = () => {
     setShowCelebration(false);
     toast.success("Gold insight saved to your journey");
+    navigate('/superpower-map');
   };
 
   const handleCelebrationViewLifetime = async () => {
     setShowCelebration(false);
-    // Sync gold outcome to lifetime events
     if (pattern && transmutationData.gold_insight) {
       await syncGoldOutcome(pattern.id, transmutationData.gold_insight);
     }
@@ -215,7 +332,6 @@ const PatternMap = () => {
       await updateEvent(editingLifetimeEvent.id, data);
       toast.success("Event updated");
     } else {
-      // Link to current pattern if we're viewing one
       const eventData = pattern 
         ? { ...data, pattern_id: pattern.id, pattern_name: pattern.pattern_name }
         : data;
@@ -386,6 +502,27 @@ const PatternMap = () => {
                 />
               </CardContent>
             </Card>
+
+            {/* Golden Summary Display */}
+            {transmutationData.golden_summary && pattern.status === 'transformed' && (
+              <motion.div
+                initial={{ opacity: 0 }}
+                animate={{ opacity: 1 }}
+                transition={{ delay: 0.3 }}
+                className="mt-4"
+              >
+                <Card className="border-amber-500/30 bg-gradient-to-br from-amber-500/10 to-transparent">
+                  <CardContent className="pt-4">
+                    <p className="text-xs text-amber-500 font-medium uppercase tracking-wide mb-2">
+                      ✨ Your Journey Summary
+                    </p>
+                    <p className="text-sm text-foreground/90 leading-relaxed">
+                      {transmutationData.golden_summary}
+                    </p>
+                  </CardContent>
+                </Card>
+              </motion.div>
+            )}
           </motion.div>
         )}
 
@@ -487,6 +624,8 @@ const PatternMap = () => {
           phase={transmutationNodeLabels[editingTransmutationNode]?.phase || 'white'}
           currentContent={transmutationData[editingTransmutationNode as keyof TransmutationData] as string || null}
           onSave={handleTransmutationNodeSave}
+          patternName={pattern?.pattern_name}
+          onNavigateToMentor={navigateToMentorWithHandoff}
         />
       )}
 
@@ -517,11 +656,23 @@ const PatternMap = () => {
         onEdit={handleEditLifetimeEvent}
       />
 
+      {/* White Phase Win Card */}
+      <WhitePhaseWinCard
+        open={showWhiteWinCard}
+        patternName={pattern?.pattern_name || ""}
+        shiftMoment={transmutationData.shift_moment || ""}
+        lesson={transmutationData.lesson_learned || ""}
+        onConfirm={handleWhiteWinConfirm}
+        onNotNow={() => setShowWhiteWinCard(false)}
+      />
+
       {/* Transmutation Celebration */}
       <TransmutationCelebration
         open={showCelebration}
         patternName={pattern?.pattern_name || ''}
         goldInsight={transmutationData.gold_insight || ''}
+        goldenSummary={transmutationData.golden_summary || ''}
+        superpowers={celebrationSuperpowers}
         onSaveGold={handleCelebrationSaveGold}
         onViewLifetime={handleCelebrationViewLifetime}
         onClose={() => setShowCelebration(false)}
