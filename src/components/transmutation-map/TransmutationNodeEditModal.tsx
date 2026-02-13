@@ -1,10 +1,17 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogFooter } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
 import { Badge } from "@/components/ui/badge";
 import { MessageCircle, Sparkles, Flame, Shield } from "lucide-react";
 
+// Define the structure for node prompts and examples
+interface NodePrompt {
+  prompt: string;
+  examples: string[];
+}
+
+// Define the structure for the props of the TransmutationNodeEditModal component
 interface TransmutationNodeEditModalProps {
   open: boolean;
   onClose: () => void;
@@ -13,7 +20,6 @@ interface TransmutationNodeEditModalProps {
   phase: 'black' | 'white' | 'gold';
   currentContent: string | null;
   onSave: (content: string) => void;
-  // NEW props for handoff context
   patternName?: string;
   patternContext?: string;
   onNavigateToMentor?: (mentorType: string) => void;
@@ -135,6 +141,11 @@ export const TransmutationNodeEditModal = ({
   const nodeConfig = NODE_PROMPTS[nodeId] || { prompt: "Share your thoughts...", examples: [] };
   const style = getPhaseStyle(phase);
 
+  // Sync content when currentContent changes (e.g. auto-populated from mentor)
+  useEffect(() => {
+    setContent(currentContent || "");
+  }, [currentContent, open]);
+
   const handleSave = () => {
     if (content.trim()) {
       onSave(content.trim());
@@ -177,6 +188,31 @@ export const TransmutationNodeEditModal = ({
         </DialogHeader>
 
         <div className="space-y-4 py-2">
+          {/* Mentor CTA - prominent placement at top */}
+          {(phase === 'white' || phase === 'gold') && onNavigateToMentor && (
+            <Button 
+              onClick={handleTalkToMentor}
+              variant="outline"
+              className={`w-full ${
+                phase === 'white' 
+                  ? 'border-orange-500/30 text-orange-400 hover:bg-orange-500/10' 
+                  : 'border-amber-500/30 text-amber-400 hover:bg-amber-500/10'
+              }`}
+            >
+              {getMentorIcon()}
+              {getMentorCTAText()}
+            </Button>
+          )}
+
+          {/* Divider */}
+          {(phase === 'white' || phase === 'gold') && onNavigateToMentor && (
+            <div className="flex items-center gap-3">
+              <div className="flex-1 h-px bg-border" />
+              <span className="text-xs text-muted-foreground">or write it yourself</span>
+              <div className="flex-1 h-px bg-border" />
+            </div>
+          )}
+
           {/* Example guidance */}
           <div className="text-xs text-muted-foreground space-y-1">
             {nodeConfig.examples.map((example, index) => (
@@ -211,18 +247,6 @@ export const TransmutationNodeEditModal = ({
               Save
             </Button>
           </div>
-          
-          {/* Mentor CTA - only show for white and gold phases */}
-          {(phase === 'white' || phase === 'gold') && onNavigateToMentor && (
-            <Button 
-              variant="ghost" 
-              onClick={handleTalkToMentor}
-              className="w-full text-muted-foreground hover:text-foreground"
-            >
-              {getMentorIcon()}
-              {getMentorCTAText()}
-            </Button>
-          )}
         </DialogFooter>
       </DialogContent>
     </Dialog>
