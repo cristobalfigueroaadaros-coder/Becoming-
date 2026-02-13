@@ -1,148 +1,139 @@
 
 
-# Fix: Transmutation Celebration, Superpower Map, and Phase Flow Issues
+# Fix: Superpowers, Mentor Buttons, and Win Cards
 
-## Issues Identified
+## Root Cause Analysis
 
-1. **Gold Winning Card (TransmutationCelebration) -- Unreadable text and unclickable button**
-   - The card uses `text-amber-100/90` for summary text on a dark amber gradient -- low contrast
-   - The card is scrollable content inside a fixed overlay but the Card itself can overflow the viewport on mobile, making the bottom buttons unreachable
-   - The "Save Gold Insight" and "View in Lifetime Map" buttons get cut off
+There are TWO places where the Transmutation Map is rendered:
+1. **`BecomingTransmutation.tsx`** (inside the Creation Lab) -- has all the fixes (mentor buttons, superpowers, win cards)
+2. **`PatternMap.tsx`** (standalone page) -- is MISSING all of these features
 
-2. **Gold Phase remains locked after completion**
-   - In `TransmutationMapCanvas`, Gold nodes show a Lock overlay when `!whiteComplete`. After the White phase is completed and data is saved, the `transmutationData` state updates, but the canvas checks `isWhitePhaseComplete(transmutationData)` which should work -- the issue is that when returning from mentor chat, the `phase_completed: 'white'` is set but the actual field data (shift_moment, lesson_learned) may not be populated if the WhitePhaseWinCard was shown but the extracted fields were stored in `pendingWhiteData` rather than merged immediately.
-
-3. **White Phase node edit modal -- no "Talk to Phoenix Mentor" button**
-   - The `TransmutationNodeEditModal` receives `onNavigateToMentor` prop and shows the mentor CTA only when `(phase === 'white' || phase === 'gold') && onNavigateToMentor`. This should work since `onNavigateToMentor={navigateToMentorWithHandoff}` is passed. Need to verify the condition isn't broken.
-
-4. **White Phase self-completion does not trigger Winning Card**
-   - In `handleNodeSave`, when `editingNode.phase === 'white'` and `wouldCompleteWhite && !whiteComplete`, it triggers the WhitePhaseWinCard. But `isWhitePhaseComplete` checks the `updatedData` object which includes the new content. The issue: `whiteComplete` is derived from the current `transmutationData` state (line 62), and if the user previously filled one field via mentor and is now filling the second field manually, the `transmutationData` state may already have 2 fields -- making `whiteComplete` already true, so the condition `!whiteComplete` fails and the Win Card never shows.
-
-5. **White Phase placeholder not auto-populated from mentor conversation**
-   - When returning from mentor chat, the extracted data is merged into `transmutationData` state (line 107-111), but only if the WhitePhaseWinCard is shown. The node edit modal reads `currentContent` from `transmutationData[editingNode.id]` -- this should work if the data was properly merged.
-
-6. **Superpowers not showing on Superpower Map**
-   - The `useSuperpowers` hook loads superpowers correctly, but the extraction in `BecomingTransmutation` calls `extractSuperpowers` which invokes the edge function. The edge function stores superpowers in DB. The Superpower Map page loads from DB via `useSuperpowers`. If the edge function fails silently (e.g., missing API key), no superpowers are stored.
-
-7. **Superpower Map dark background is unappealing**
-   - Currently uses `from-slate-950 via-background to-slate-900` -- very dark and not uplifting.
-
-8. **Journey summary not visible under the pattern in Transmutation Map**
-   - After gold completion, the golden summary is stored in `transmutationData.golden_summary` but is never displayed on the map itself.
+The user is likely interacting via `PatternMap.tsx`, which was never updated with the new logic. This explains all three broken behaviors.
 
 ---
 
-## Fix 1: TransmutationCelebration -- Readable Text and Scrollable Card
+## Fix 1: Add Mentor Button to PatternMap.tsx TransmutationNodeEditModal
 
-**File**: `src/components/transmutation-map/TransmutationCelebration.tsx`
+**File**: `src/pages/PatternMap.tsx`
 
-**Changes**:
-- Wrap the card in a `ScrollArea` or add `overflow-y-auto max-h-[90vh]` to make the modal scrollable when content overflows
-- Change text colors for better contrast: use `text-foreground` instead of `text-amber-100/90`
-- Ensure buttons are always visible by adding proper padding and scroll behavior
-- Truncate the golden summary to a reasonable length with "read more" option
+The `TransmutationNodeEditModal` at line 482-491 does NOT pass `onNavigateToMentor`. Add the prop so the "Talk to Phoenix Mentor" / "Talk to Stoic Mentor" button appears.
+
+This requires adding a `navigateToMentorWithHandoff` function to PatternMap.tsx (similar to the one in BecomingTransmutation.tsx) that creates a handoff record and navigates to the mentor chat.
 
 ---
 
-## Fix 2: Gold Phase Locking Logic
+## Fix 2: Add Superpower Extraction to PatternMap.tsx Gold Completion
 
-**File**: `src/components/transmutation-map/TransmutationMapCanvas.tsx`
+**File**: `src/pages/PatternMap.tsx`
 
-**Changes**:
-- The `isLocked` check on line 273 uses `!whiteComplete` which checks `isWhitePhaseComplete(transmutationData)`. This should be correct IF the data is properly passed. The issue is that `phase_completed` field is set to `'white'` after confirmation.
-- Add a secondary check: `const isLocked = node.phase === 'gold' && !whiteComplete && transmutationData.phase_completed !== 'white' && transmutationData.phase_completed !== 'gold'`
-- This ensures that even if field-level checks fail, the explicit phase_completed flag unlocks gold.
+The `handleTransmutationNodeSave` (line 152-180) completes the gold phase but never calls `extractSuperpowers`. The `TransmutationCelebration` at line 521-528 is rendered without `superpowers` or `goldenSummary` props.
 
-**File**: `src/lib/goldenSummaryGenerator.ts`
-
-**Changes**:
-- Update `isWhitePhaseComplete` to also check `data.phase_completed === 'white' || data.phase_completed === 'gold'` as a fallback
+Changes:
+- Import and use `useSuperpowers` hook
+- Call `extractSuperpowers` when gold phase completes
+- Pass `superpowers` and `goldenSummary` to the `TransmutationCelebration` component
+- Generate the golden summary using `generateGoldenSummary` before saving
 
 ---
 
-## Fix 3: White Phase Self-Completion Win Card Fix
+## Fix 3: Add White Phase Win Card to PatternMap.tsx
 
-**File**: `src/components/creation-lab/BecomingTransmutation.tsx`
+**File**: `src/pages/PatternMap.tsx`
 
-**Changes**:
-- In `handleNodeSave` (line 192-199), the condition `!whiteComplete` prevents triggering if 2 fields were already filled. Fix: track if the Win Card has already been shown for this pattern (check `transmutationData.phase_completed !== 'white'` instead of `!whiteComplete`)
-- Change condition to: `wouldCompleteWhite && transmutationData.phase_completed !== 'white' && transmutationData.phase_completed !== 'gold'`
-
----
-
-## Fix 4: TransmutationNodeEditModal -- Ensure Mentor Button Always Shows
-
-**File**: `src/components/transmutation-map/TransmutationNodeEditModal.tsx`
-
-**Changes**:
-- The mentor CTA button condition on line 216 is correct: `(phase === 'white' || phase === 'gold') && onNavigateToMentor`
-- Verify the prop is being passed. In `BecomingTransmutation.tsx` line 520, `onNavigateToMentor={navigateToMentorWithHandoff}` is passed -- this should work.
-- Make the mentor button more prominent: change from `variant="ghost"` to a proper styled button so it's not easy to miss.
+Currently, completing the white phase in PatternMap just shows a toast. Add:
+- Import `WhitePhaseWinCard`
+- Track `showWhiteWinCard` state
+- Detect white phase completion in `handleTransmutationNodeSave` and show the win card
+- On confirm, set `phase_completed: 'white'` and unlock Gold
 
 ---
 
-## Fix 5: Auto-Populate White Phase Fields from Mentor Data
+## Fix 4: Add Superpower Map Navigation After Celebration
 
-**File**: `src/components/creation-lab/BecomingTransmutation.tsx`
+**File**: `src/pages/PatternMap.tsx`
 
-**Changes**:
-- When the return-from-mentor `useEffect` fires for `phase === 'white'` (line 106-113), it already merges data into `transmutationData`. Ensure the `setTransmutationData(updatedData)` happens before showing the Win Card, so when the user opens a node after, the content is pre-filled.
-- The issue may be that `handleConfirmWhite` (line 314) merges `pendingWhiteData` but doesn't call `setTransmutationData` with the full merged data properly. Fix: ensure `handleConfirmWhite` also persists all extracted fields.
+After the gold celebration is dismissed ("Save Gold Insight"), optionally navigate to the Superpower Map so the user can see their new badges.
 
 ---
 
-## Fix 6: Superpower Map Visual Redesign
+## Fix 5: Handle Return from Mentor Chat in PatternMap.tsx
 
-**File**: `src/pages/SuperpowerMap.tsx`
+**File**: `src/pages/PatternMap.tsx`
 
-**Changes**:
-- Replace dark background `from-slate-950 via-background to-slate-900` with an uplifting gradient: `from-amber-50/30 via-background to-purple-50/20` (light mode friendly) or a warm dark gradient `from-amber-950/20 via-background to-purple-950/10`
-- Improve the center avatar: use a warm gradient instead of cold slate
-- Make empty slots more visible with warmer colors
-- Add motivational text/heading
+Add the same `useEffect` for detecting `location.state?.transmutationComplete` that exists in `BecomingTransmutation.tsx`, so when a user finishes with Phoenix/Stoic and returns, the data is merged and the win card triggers.
 
 ---
 
-## Fix 7: Golden Summary Display Under Pattern in Transmutation Map
+## Technical Details
 
-**File**: `src/components/creation-lab/BecomingTransmutation.tsx`
+### navigateToMentorWithHandoff function (PatternMap.tsx)
+```typescript
+const navigateToMentorWithHandoff = async (mentorType: string) => {
+  const { data: { user } } = await supabase.auth.getUser();
+  if (!user || !pattern) return;
 
-**Changes**:
-- After the `TransmutationMapCanvas` in the CardContent (line 452-458), add a section that displays `transmutationData.golden_summary` when the pattern status is "transformed"
-- Style as a card with a gold border showing the full journey summary text
+  const { data: recentMessages } = await supabase
+    .from("chats")
+    .select("role, content, mentor_type")
+    .eq("user_id", user.id)
+    .order("created_at", { ascending: false })
+    .limit(20);
+
+  const phase = whiteComplete ? 'gold' : 'white';
+  const transmutationContext = {
+    phase,
+    patternId: pattern.id,
+    patternName: pattern.pattern_name,
+    shadow: transmutationData.shadow || pattern.pattern_description,
+    existingTransmutationData: transmutationData,
+  };
+
+  const { data: handoff } = await supabase
+    .from("conversation_handoffs")
+    .insert({
+      user_id: user.id,
+      source_mentor_type: "transmutation_map",
+      target_mentor_type: mentorType,
+      source_messages: recentMessages?.reverse() || [],
+      journey_topic: `Transmutation ${phase} Phase: ${pattern.pattern_name}`,
+      voice_context: transmutationContext,
+      processed: false,
+    })
+    .select()
+    .single();
+
+  if (handoff) {
+    navigate(`/council?view=${mentorType}`, {
+      state: { handoffId: handoff.id, transmutationContext }
+    });
+  }
+};
+```
+
+### Updated TransmutationNodeEditModal in PatternMap.tsx
+```tsx
+<TransmutationNodeEditModal
+  ...existing props...
+  onNavigateToMentor={navigateToMentorWithHandoff}  // ADD THIS
+/>
+```
+
+### Updated TransmutationCelebration in PatternMap.tsx
+```tsx
+<TransmutationCelebration
+  ...existing props...
+  goldenSummary={transmutationData.golden_summary || ''}
+  superpowers={celebrationSuperpowers}  // ADD THIS
+/>
+```
 
 ---
-
-## Fix 8: Superpowers Auto-Population After Gold Win Card
-
-**File**: `src/components/creation-lab/BecomingTransmutation.tsx`
-
-**Changes**:
-- Ensure the `extractSuperpowers` call happens reliably. Currently it's called in both the return-from-mentor flow (line 138) and the self-completion flow (line 229).
-- Add error handling and a toast notification if extraction fails.
-- After the celebration closes (`handleCelebrationSaveGold`), navigate to the Superpower Map if superpowers were extracted.
-
----
-
-## Implementation Order
-
-1. Fix TransmutationCelebration readability and scrollability
-2. Fix Gold Phase locking logic (isWhitePhaseComplete fallback)
-3. Fix White Phase self-completion Win Card trigger
-4. Make mentor button more prominent in node edit modal
-5. Ensure White Phase fields auto-populate from mentor data
-6. Redesign Superpower Map background
-7. Add golden summary display under pattern in map
-8. Ensure superpowers auto-populate after gold completion
 
 ## Files Summary
 
 | File | Change |
 |------|--------|
-| `src/components/transmutation-map/TransmutationCelebration.tsx` | Fix text contrast, add scroll, ensure buttons reachable |
-| `src/lib/goldenSummaryGenerator.ts` | Add phase_completed fallback to isWhitePhaseComplete and isGoldPhaseComplete |
-| `src/components/transmutation-map/TransmutationMapCanvas.tsx` | Fix Gold phase lock check to use phase_completed fallback |
-| `src/components/creation-lab/BecomingTransmutation.tsx` | Fix Win Card trigger conditions, add golden summary display, auto-populate fields |
-| `src/components/transmutation-map/TransmutationNodeEditModal.tsx` | Make mentor button more prominent |
-| `src/pages/SuperpowerMap.tsx` | Redesign background to be uplifting and warm |
+| `src/pages/PatternMap.tsx` | Add mentor handoff, superpower extraction, white win card, golden summary, return-from-mentor detection |
+
+Only one file needs changes since all the component infrastructure already exists.
 
