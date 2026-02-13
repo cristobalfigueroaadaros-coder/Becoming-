@@ -49,9 +49,13 @@ export function generateGoldenSummary(data: TransmutationData, patternName: stri
 }
 
 /**
- * Check if White phase is complete (minimum 2 of 3 required fields)
+ * Check if White phase is complete (minimum 2 of 3 required fields OR phase_completed flag)
  */
 export function isWhitePhaseComplete(data: TransmutationData): boolean {
+  // Fallback: explicit phase_completed flag
+  if (data.phase_completed === 'white' || data.phase_completed === 'gold') {
+    return true;
+  }
   let count = 0;
   if (data.shift_moment) count++;
   if (data.protective_purpose) count++;
@@ -60,9 +64,13 @@ export function isWhitePhaseComplete(data: TransmutationData): boolean {
 }
 
 /**
- * Check if Gold phase is complete (minimum 2 of 3 required fields)
+ * Check if Gold phase is complete (minimum 2 of 3 required fields OR phase_completed flag)
  */
 export function isGoldPhaseComplete(data: TransmutationData): boolean {
+  // Fallback: explicit phase_completed flag
+  if (data.phase_completed === 'gold') {
+    return true;
+  }
   let count = 0;
   if (data.gold_insight) count++;
   if (data.letter_to_self) count++;

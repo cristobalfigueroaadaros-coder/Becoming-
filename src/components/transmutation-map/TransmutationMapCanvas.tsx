@@ -66,7 +66,8 @@ export const TransmutationMapCanvas = ({
     }
     
     // Gold phase is locked until White is complete
-    if (phase === 'gold' && !whiteComplete) {
+    const phaseFlag = transmutationData.phase_completed;
+    if (phase === 'gold' && !whiteComplete && phaseFlag !== 'white' && phaseFlag !== 'gold') {
       toast.info("Complete the White phase first to unlock Gold");
       return;
     }
@@ -270,7 +271,7 @@ export const TransmutationMapCanvas = ({
         {/* Nodes */}
         {NODE_DEFINITIONS.map((node, index) => {
           const pos = getNodePosition(node.row, node.col);
-          const isLocked = node.phase === 'gold' && !whiteComplete;
+          const isLocked = node.phase === 'gold' && !whiteComplete && transmutationData.phase_completed !== 'white' && transmutationData.phase_completed !== 'gold';
           
           return (
             <g key={node.id}>

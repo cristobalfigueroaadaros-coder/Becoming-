@@ -191,7 +191,8 @@ export const BecomingTransmutation = ({
     // Check if this completes a phase
     if (editingNode.phase === 'white') {
       const wouldCompleteWhite = isWhitePhaseComplete(updatedData);
-      if (wouldCompleteWhite && !whiteComplete) {
+      const alreadyConfirmedWhite = transmutationData.phase_completed === 'white' || transmutationData.phase_completed === 'gold';
+      if (wouldCompleteWhite && !alreadyConfirmedWhite) {
         setPendingWhiteData({ [editingNode.id]: content });
         setShowNodeEditModal(false);
         setShowWhiteWinCard(true);
@@ -457,6 +458,14 @@ export const BecomingTransmutation = ({
               isCompleted={selectedPattern.status === "transformed"}
             />
           </CardContent>
+
+          {/* Golden Summary Display */}
+          {selectedPattern.status === "transformed" && transmutationData.golden_summary && (
+            <div className="mx-6 mb-6 p-4 rounded-lg border border-amber-500/30 bg-amber-500/5">
+              <p className="text-xs text-amber-400 font-medium uppercase tracking-wide mb-2">Your Journey Summary</p>
+              <p className="text-sm text-foreground/90 leading-relaxed">{transmutationData.golden_summary}</p>
+            </div>
+          )}
         </Card>
       )}
 

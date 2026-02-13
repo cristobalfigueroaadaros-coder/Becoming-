@@ -48,7 +48,7 @@ const SuperpowerMap = () => {
   const emptySlots = totalSlots - superpowers.length;
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-slate-950 via-background to-slate-900 p-4 pb-28">
+    <div className="min-h-screen bg-gradient-to-br from-amber-500/10 via-background to-purple-500/10 p-4 pb-28">
       <div className="max-w-2xl mx-auto space-y-6">
         {/* Header */}
         <div className="flex items-center gap-4">
@@ -70,13 +70,26 @@ const SuperpowerMap = () => {
           </div>
         </div>
 
+        {/* Motivational banner */}
+        {superpowers.length > 0 && (
+          <motion.div
+            initial={{ opacity: 0, y: -10 }}
+            animate={{ opacity: 1, y: 0 }}
+            className="text-center py-2"
+          >
+            <p className="text-sm text-amber-500 font-medium">
+              Every challenge you overcome becomes your strength ✨
+            </p>
+          </motion.div>
+        )}
+
         {/* Visual Map */}
         <div className="relative w-full aspect-square max-w-[400px] mx-auto">
           {/* Radial background rings */}
           {[1, 2, 3].map((ring) => (
             <div
               key={ring}
-              className="absolute rounded-full border border-white/5"
+              className="absolute rounded-full border border-amber-500/10"
               style={{
                 width: `${ring * 33}%`,
                 height: `${ring * 33}%`,
@@ -91,9 +104,9 @@ const SuperpowerMap = () => {
             initial={{ scale: 0 }}
             animate={{ scale: 1 }}
             transition={{ type: "spring", delay: 0.2 }}
-            className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-20 h-20 rounded-full bg-gradient-to-br from-slate-700 to-slate-800 border-2 border-slate-600 flex items-center justify-center shadow-lg shadow-slate-900/50 z-10"
+            className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-20 h-20 rounded-full bg-gradient-to-br from-amber-400/80 to-purple-500/80 border-2 border-amber-400/40 flex items-center justify-center shadow-lg shadow-amber-500/20 z-10"
           >
-            <User className="w-10 h-10 text-slate-300" />
+            <User className="w-10 h-10 text-white" />
           </motion.div>
 
           {/* Superpower Badges */}
@@ -101,7 +114,7 @@ const SuperpowerMap = () => {
             const ringIndex = Math.floor(index / maxPerRing);
             const posInRing = index % maxPerRing;
             const ringTotal = Math.min(maxPerRing, superpowers.length - ringIndex * maxPerRing);
-            const radius = 28 + ringIndex * 20; // % from center
+            const radius = 28 + ringIndex * 20;
             const angle = getAngle(posInRing, ringTotal);
             const x = 50 + radius * Math.cos(angle);
             const y = 50 + radius * Math.sin(angle);
@@ -142,10 +155,10 @@ const SuperpowerMap = () => {
             return (
               <div
                 key={`empty-${index}`}
-                className="absolute -translate-x-1/2 -translate-y-1/2 w-10 h-10 rounded-full border-2 border-dashed border-white/10 flex items-center justify-center"
+                className="absolute -translate-x-1/2 -translate-y-1/2 w-10 h-10 rounded-full border-2 border-dashed border-amber-500/15 flex items-center justify-center"
                 style={{ left: `${x}%`, top: `${y}%` }}
               >
-                <Zap className="w-4 h-4 text-white/10" />
+                <Zap className="w-4 h-4 text-amber-500/20" />
               </div>
             );
           })}
