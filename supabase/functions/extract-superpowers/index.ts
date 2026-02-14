@@ -52,8 +52,9 @@ Deno.serve(async (req) => {
       );
     }
 
-    const apiKey = Deno.env.get("chatgpt");
+    const apiKey = Deno.env.get("LOVABLE_API_KEY");
     if (!apiKey) {
+      console.error("LOVABLE_API_KEY not configured");
       return new Response(JSON.stringify({ error: "API key not configured" }), {
         status: 500,
         headers: { ...corsHeaders, "Content-Type": "application/json" },
@@ -118,22 +119,28 @@ Use these color mappings:
 - Behavioral Strength → violet
 - Identity Upgrade → amber`;
 
-    const response = await fetch("https://api.openai.com/v1/chat/completions", {
+    const response = await fetch("https://ai.gateway.lovable.dev/v1/chat/completions", {
       method: "POST",
       headers: {
         Authorization: `Bearer ${apiKey}`,
         "Content-Type": "application/json",
       },
       body: JSON.stringify({
-        model: "gpt-4o-mini",
+        model: "google/gemini-2.5-flash",
         messages: [{ role: "user", content: prompt }],
         temperature: 0.7,
         max_tokens: 500,
       }),
     });
 
+    if (!response.ok) {
+      console.error("AI gateway error:", response.status, await response.text());
+    }
+
     const aiData = await response.json();
+    console.log("AI response status:", response.status);
     const content = aiData.choices?.[0]?.message?.content || "[]";
+    console.log("AI content:", content);
 
     let superpowers: Array<{
       name: string;
@@ -147,14 +154,20 @@ Use these color mappings:
       if (jsonMatch) {
         superpowers = JSON.parse(jsonMatch[0]);
       }
-    } catch {
-      console.error("Failed to parse superpowers:", content);
+    } catch (e) {
+      console.error("Failed to parse superpowers:", content, e);
+    }
+
+    // Guaranteed fallback: if empty, create a default from the pattern
+    if (!superpowers || superpowers.length === 0) {
+      console.log("No superpowers extracted, using fallback for pattern:", patternName);
+      const fallbackName = (patternName || "Inner Growth").split(" ").slice(0, 3).map(w => w.charAt(0).toUpperCase() + w.slice(1)).join(" ");
       superpowers = [
         {
-          name: "Inner Warrior",
-          category: "Psychological Strength",
-          description: "Gained strength through adversity",
-          icon: "⚔️",
+          name: fallbackName.toUpperCase(),
+          category: "Identity Upgrade",
+          description: `Gained through transmuting the pattern of ${patternName || "adversity"}`,
+          icon: "⚡",
           color: "amber",
         },
       ];
