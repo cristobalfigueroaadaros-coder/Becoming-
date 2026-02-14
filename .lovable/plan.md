@@ -1,139 +1,84 @@
 
 
-# Fix: Superpowers, Mentor Buttons, and Win Cards
+# Transmutation Completion + Superpower Identity System
 
-## Root Cause Analysis
+## Problems Found
 
-There are TWO places where the Transmutation Map is rendered:
-1. **`BecomingTransmutation.tsx`** (inside the Creation Lab) -- has all the fixes (mentor buttons, superpowers, win cards)
-2. **`PatternMap.tsx`** (standalone page) -- is MISSING all of these features
+### 1. Gold Winning Card Not Triggering (Root Cause)
+When the user chats with the Stoic via the **PatternMap page** (`/pattern-map/:id`), the completion handler in `Chat.tsx` (line 629) always navigates back to `/creation-lab?type=becoming&bmode=transmutation` -- but the user's transmutation state lives in `PatternMap.tsx`. The `location.state.transmutationComplete` is never picked up because the user is routed to the wrong page.
 
-The user is likely interacting via `PatternMap.tsx`, which was never updated with the new logic. This explains all three broken behaviors.
+**Fix**: Update `Chat.tsx` to detect the originating page and route back accordingly. The `transmutationContext` already contains `patternId`, so we can navigate to `/pattern-map/:patternId` when the handoff came from the standalone page.
 
----
+### 2. Superpowers Table Missing `category` Column
+The `superpowers` table has no `category` column, so the 5-domain system (Emotional Mastery, Psychological Strength, Cognitive Strength, Behavioral Strength, Identity Upgrade) cannot be stored or filtered.
 
-## Fix 1: Add Mentor Button to PatternMap.tsx TransmutationNodeEditModal
+**Fix**: Add a `category` column to the `superpowers` table via migration.
 
-**File**: `src/pages/PatternMap.tsx`
+### 3. Superpower Extraction Prompt Does Not Match PDR
+The current `extract-superpowers` edge function uses a generic prompt that asks for "positive skill labels" with no domain categorization, no formatting rules (medal-style, 1-3 words, no sentences), and no max-1-per-category constraint.
 
-The `TransmutationNodeEditModal` at line 482-491 does NOT pass `onNavigateToMentor`. Add the prop so the "Talk to Phoenix Mentor" / "Talk to Stoic Mentor" button appears.
+**Fix**: Rewrite the prompt to implement the 5-domain extraction logic, medal formatting, and category constraints from the PDR.
 
-This requires adding a `navigateToMentorWithHandoff` function to PatternMap.tsx (similar to the one in BecomingTransmutation.tsx) that creates a handoff record and navigates to the mentor chat.
+### 4. Superpower Map Needs Category Grouping
+The current map shows badges in a flat radial layout with no domain labels or grouping.
 
----
-
-## Fix 2: Add Superpower Extraction to PatternMap.tsx Gold Completion
-
-**File**: `src/pages/PatternMap.tsx`
-
-The `handleTransmutationNodeSave` (line 152-180) completes the gold phase but never calls `extractSuperpowers`. The `TransmutationCelebration` at line 521-528 is rendered without `superpowers` or `goldenSummary` props.
-
-Changes:
-- Import and use `useSuperpowers` hook
-- Call `extractSuperpowers` when gold phase completes
-- Pass `superpowers` and `goldenSummary` to the `TransmutationCelebration` component
-- Generate the golden summary using `generateGoldenSummary` before saving
+**Fix**: Group superpowers by category with section labels; keep the radial avatar layout but add a categorized list below.
 
 ---
 
-## Fix 3: Add White Phase Win Card to PatternMap.tsx
+## Technical Changes
 
-**File**: `src/pages/PatternMap.tsx`
+### A. Database Migration
+Add `category` column to `superpowers` table:
+```sql
+ALTER TABLE public.superpowers ADD COLUMN category text;
+```
 
-Currently, completing the white phase in PatternMap just shows a toast. Add:
-- Import `WhitePhaseWinCard`
-- Track `showWhiteWinCard` state
-- Detect white phase completion in `handleTransmutationNodeSave` and show the win card
-- On confirm, set `phase_completed: 'white'` and unlock Gold
-
----
-
-## Fix 4: Add Superpower Map Navigation After Celebration
-
-**File**: `src/pages/PatternMap.tsx`
-
-After the gold celebration is dismissed ("Save Gold Insight"), optionally navigate to the Superpower Map so the user can see their new badges.
-
----
-
-## Fix 5: Handle Return from Mentor Chat in PatternMap.tsx
-
-**File**: `src/pages/PatternMap.tsx`
-
-Add the same `useEffect` for detecting `location.state?.transmutationComplete` that exists in `BecomingTransmutation.tsx`, so when a user finishes with Phoenix/Stoic and returns, the data is merged and the win card triggers.
-
----
-
-## Technical Details
-
-### navigateToMentorWithHandoff function (PatternMap.tsx)
+### B. Chat.tsx -- Fix Return Navigation (lines 627-634)
+Currently:
 ```typescript
-const navigateToMentorWithHandoff = async (mentorType: string) => {
-  const { data: { user } } = await supabase.auth.getUser();
-  if (!user || !pattern) return;
-
-  const { data: recentMessages } = await supabase
-    .from("chats")
-    .select("role, content, mentor_type")
-    .eq("user_id", user.id)
-    .order("created_at", { ascending: false })
-    .limit(20);
-
-  const phase = whiteComplete ? 'gold' : 'white';
-  const transmutationContext = {
-    phase,
-    patternId: pattern.id,
-    patternName: pattern.pattern_name,
-    shadow: transmutationData.shadow || pattern.pattern_description,
-    existingTransmutationData: transmutationData,
-  };
-
-  const { data: handoff } = await supabase
-    .from("conversation_handoffs")
-    .insert({
-      user_id: user.id,
-      source_mentor_type: "transmutation_map",
-      target_mentor_type: mentorType,
-      source_messages: recentMessages?.reverse() || [],
-      journey_topic: `Transmutation ${phase} Phase: ${pattern.pattern_name}`,
-      voice_context: transmutationContext,
-      processed: false,
-    })
-    .select()
-    .single();
-
-  if (handoff) {
-    navigate(`/council?view=${mentorType}`, {
-      state: { handoffId: handoff.id, transmutationContext }
-    });
-  }
-};
+navigate('/creation-lab?type=becoming&bmode=transmutation', {
+  state: { transmutationComplete: data.transmutationPhaseComplete }
+});
 ```
-
-### Updated TransmutationNodeEditModal in PatternMap.tsx
-```tsx
-<TransmutationNodeEditModal
-  ...existing props...
-  onNavigateToMentor={navigateToMentorWithHandoff}  // ADD THIS
-/>
+Change to detect origin and route accordingly:
+```typescript
+const patternId = transmutationContext?.patternId;
+const returnPath = patternId 
+  ? `/pattern-map/${patternId}`
+  : '/creation-lab?type=becoming&bmode=transmutation';
+navigate(returnPath, {
+  state: { transmutationComplete: data.transmutationPhaseComplete }
+});
 ```
+This requires storing the `transmutationContext` from the location state when Chat.tsx mounts (it's already available in `location.state.transmutationContext`).
 
-### Updated TransmutationCelebration in PatternMap.tsx
-```tsx
-<TransmutationCelebration
-  ...existing props...
-  goldenSummary={transmutationData.golden_summary || ''}
-  superpowers={celebrationSuperpowers}  // ADD THIS
-/>
-```
+### C. Edge Function: `extract-superpowers/index.ts` -- New 5-Domain Prompt
+Replace the current generic prompt with:
+
+- Define the 5 categories: Emotional Mastery, Psychological Strength, Cognitive Strength, Behavioral Strength, Identity Upgrade
+- Instruct the AI to extract up to 4 superpowers, max 1 per category
+- Enforce medal-style formatting: 1-3 capitalized words, no punctuation, no sentences
+- Include category field in the JSON output
+- Store category in the database insert
+
+### D. Superpower Map Visual Updates (`SuperpowerMap.tsx`)
+- Add category grouping in the list view below the radial map
+- Show category labels (e.g., "Emotional Mastery", "Identity Upgrade") as section headers
+- Keep the radial visual map as-is for the badge positions
+
+### E. Hook Update (`useSuperpowers.tsx`)
+- Add `category` to the `Superpower` interface
 
 ---
 
-## Files Summary
+## File-by-File Changes
 
 | File | Change |
 |------|--------|
-| `src/pages/PatternMap.tsx` | Add mentor handoff, superpower extraction, white win card, golden summary, return-from-mentor detection |
-
-Only one file needs changes since all the component infrastructure already exists.
+| Migration SQL | Add `category` text column to `superpowers` table |
+| `src/pages/Chat.tsx` (lines 627-634) | Fix return navigation to route back to originating page (PatternMap or CreationLab) |
+| `supabase/functions/extract-superpowers/index.ts` | Rewrite prompt with 5-domain categories, medal formatting, max-1-per-category; store category in DB |
+| `src/hooks/useSuperpowers.tsx` | Add `category` field to `Superpower` interface |
+| `src/pages/SuperpowerMap.tsx` | Add category grouping in list view; add domain labels |
 
