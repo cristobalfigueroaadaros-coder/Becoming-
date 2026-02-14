@@ -10,6 +10,7 @@ export interface Superpower {
   description: string;
   icon: string;
   color: string;
+  category: string;
   created_at: string;
 }
 

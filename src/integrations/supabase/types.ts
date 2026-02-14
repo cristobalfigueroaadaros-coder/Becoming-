@@ -2904,6 +2904,7 @@ export type Database = {
       }
       superpowers: {
         Row: {
+          category: string | null
           color: string
           created_at: string
           description: string
@@ -2914,6 +2915,7 @@ export type Database = {
           user_id: string
         }
         Insert: {
+          category?: string | null
           color?: string
           created_at?: string
           description: string
@@ -2924,6 +2926,7 @@ export type Database = {
           user_id: string
         }
         Update: {
+          category?: string | null
           color?: string
           created_at?: string
           description?: string

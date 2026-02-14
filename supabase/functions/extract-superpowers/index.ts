@@ -60,7 +60,31 @@ Deno.serve(async (req) => {
       });
     }
 
-    const prompt = `You are analyzing a completed personal transmutation journey. Extract 1-4 "Superpowers" — positive skill labels that the person gained through this experience.
+    const prompt = `You are an identity evolution analyst. After a completed transmutation journey, extract 1-4 Superpowers — stable identity traits developed through adversity.
+
+A Superpower follows the logic: Event → Adaptation → Trait
+Example: Business collapse → Refocused on money generation → Revenue-Focused Strategist
+
+A Superpower is NOT: a lesson, a reflection, a sentence, therapy phrasing, or a vague improvement.
+
+## The 5 Superpower Categories
+
+1. **Emotional Mastery** — How the user now relates to emotions.
+   Examples: Emotionally Regulated, Self-Compassionate, Boundary-Aware, Calm Communicator
+
+2. **Psychological Strength** — Internal stability under pressure.
+   Examples: Resilient, Grounded, Adaptive, Fear-Conscious, Self-Reliant
+
+3. **Cognitive Strength** — How they think differently now.
+   Examples: Strategic Thinker, Pattern Recognizer, Long-Term Oriented, Systems Thinker
+
+4. **Behavioral Strength** — How they act differently.
+   Examples: Courageous Initiator, Disciplined Builder, Action-Oriented, Boundary Setter
+
+5. **Identity Upgrade** — Who they became.
+   Examples: Self-Trusting Leader, Independent Provider, Purpose-Driven Builder
+
+## Transmutation Data
 
 Pattern: "${patternName || "Unknown"}"
 Primary Emotion: "${primaryEmotion || "Unknown"}"
@@ -71,21 +95,28 @@ Protective Purpose: "${transmutationData.protective_purpose || ""}"
 Gold Insight: "${transmutationData.gold_insight || ""}"
 Brave Step: "${transmutationData.brave_step || ""}"
 
-Rules:
+## Extraction Rules
+
 - Extract 1 to 4 superpowers maximum
-- Each must be POSITIVE (a strength, not a weakness)
-- Each must be DERIVED from this specific event (not generic)
+- Maximum 1 per category
+- Only extract if clearly derived from this specific journey
 - No duplicates
-- Short labels (1-3 words each)
+- Each name must be 1-3 CAPITALIZED words — like a medal title
+- No punctuation, no full sentences
 - Include an emoji icon for each
-- Include a one-sentence description tied to the event
+- Include a one-sentence description tied to the specific event
 
-Examples of good superpowers: "Resilient", "Emotional Regulator", "Courageous Decision Maker", "Adaptive Leader", "Strategic Builder", "Positive Thinker"
+## Format
 
-Respond with a JSON array:
-[{"name": "Superpower Name", "description": "One sentence about how this was gained", "icon": "🔥", "color": "amber"}]
+Respond ONLY with a JSON array:
+[{"name": "Superpower Name", "category": "Emotional Mastery", "description": "One sentence about how this was gained from this event", "icon": "🔥", "color": "amber"}]
 
-Use these colors: amber, emerald, violet, blue, rose, indigo. Match the color to the superpower's theme.`;
+Use these color mappings:
+- Emotional Mastery → rose
+- Psychological Strength → emerald
+- Cognitive Strength → blue
+- Behavioral Strength → violet
+- Identity Upgrade → amber`;
 
     const response = await fetch("https://api.openai.com/v1/chat/completions", {
       method: "POST",
@@ -104,9 +135,9 @@ Use these colors: amber, emerald, violet, blue, rose, indigo. Match the color to
     const aiData = await response.json();
     const content = aiData.choices?.[0]?.message?.content || "[]";
 
-    // Parse JSON from response
     let superpowers: Array<{
       name: string;
+      category: string;
       description: string;
       icon: string;
       color: string;
@@ -121,6 +152,7 @@ Use these colors: amber, emerald, violet, blue, rose, indigo. Match the color to
       superpowers = [
         {
           name: "Inner Warrior",
+          category: "Psychological Strength",
           description: "Gained strength through adversity",
           icon: "⚔️",
           color: "amber",
@@ -128,8 +160,17 @@ Use these colors: amber, emerald, violet, blue, rose, indigo. Match the color to
       ];
     }
 
-    // Limit to 4
-    superpowers = superpowers.slice(0, 4);
+    // Limit to 4 and enforce max 1 per category
+    const seenCategories = new Set<string>();
+    const filtered: typeof superpowers = [];
+    for (const sp of superpowers) {
+      if (filtered.length >= 4) break;
+      const cat = sp.category || "Identity Upgrade";
+      if (seenCategories.has(cat)) continue;
+      seenCategories.add(cat);
+      filtered.push(sp);
+    }
+    superpowers = filtered;
 
     // Store in database
     const insertData = superpowers.map((sp) => ({
@@ -139,6 +180,7 @@ Use these colors: amber, emerald, violet, blue, rose, indigo. Match the color to
       description: sp.description,
       icon: sp.icon || "⚡",
       color: sp.color || "amber",
+      category: sp.category || "Identity Upgrade",
     }));
 
     const { data: inserted, error: insertError } = await supabase

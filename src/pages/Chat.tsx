@@ -623,10 +623,16 @@ const Chat = ({ mentorTypeOverride, embedded = false, locationState: propState }
         setShowPatternCard(true);
       }
 
-      // Handle transmutation phase completion - navigate back to transmutation map
+      // Handle transmutation phase completion - navigate back to originating page
       if (data.transmutationPhaseComplete) {
         console.log('[Chat] Transmutation phase complete:', data.transmutationPhaseComplete);
-        navigate('/creation-lab?type=becoming&bmode=transmutation', {
+        const locState = propState || location.state;
+        const txContext = locState?.transmutationContext;
+        const patternId = txContext?.patternId;
+        const returnPath = patternId 
+          ? `/pattern-map/${patternId}`
+          : '/creation-lab?type=becoming&bmode=transmutation';
+        navigate(returnPath, {
           state: {
             transmutationComplete: data.transmutationPhaseComplete
           }
