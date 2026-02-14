@@ -15,6 +15,14 @@ const colorMap: Record<string, string> = {
   indigo: "from-indigo-400 to-indigo-600 shadow-indigo-500/30 border-indigo-500/40",
 };
 
+const categoryLabels: Record<string, { label: string; icon: string }> = {
+  "Emotional Mastery": { label: "Emotional Mastery", icon: "💗" },
+  "Psychological Strength": { label: "Psychological Strength", icon: "🛡️" },
+  "Cognitive Strength": { label: "Cognitive Strength", icon: "🧠" },
+  "Behavioral Strength": { label: "Behavioral Strength", icon: "⚡" },
+  "Identity Upgrade": { label: "Identity Upgrade", icon: "👑" },
+};
+
 const getAngle = (index: number, total: number) => {
   return (index / Math.max(total, 1)) * 2 * Math.PI - Math.PI / 2;
 };
@@ -36,16 +44,17 @@ const SuperpowerMap = () => {
     }
   }, [superpowers, hasAnimated]);
 
-  // Arrange badges in concentric rings
   const maxPerRing = 6;
-  const rings: Superpower[][] = [];
-  for (let i = 0; i < superpowers.length; i += maxPerRing) {
-    rings.push(superpowers.slice(i, i + maxPerRing));
-  }
-
-  // Generate empty slots to encourage completion
   const totalSlots = Math.max(8, superpowers.length + 3);
   const emptySlots = totalSlots - superpowers.length;
+
+  // Group superpowers by category for the list view
+  const grouped = superpowers.reduce<Record<string, Superpower[]>>((acc, sp) => {
+    const cat = sp.category || "Identity Upgrade";
+    if (!acc[cat]) acc[cat] = [];
+    acc[cat].push(sp);
+    return acc;
+  }, {});
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-amber-500/10 via-background to-purple-500/10 p-4 pb-28">
@@ -85,7 +94,6 @@ const SuperpowerMap = () => {
 
         {/* Visual Map */}
         <div className="relative w-full aspect-square max-w-[400px] mx-auto">
-          {/* Radial background rings */}
           {[1, 2, 3].map((ring) => (
             <div
               key={ring}
@@ -146,9 +154,8 @@ const SuperpowerMap = () => {
             const totalIndex = superpowers.length + index;
             const ringIndex = Math.floor(totalIndex / maxPerRing);
             const posInRing = totalIndex % maxPerRing;
-            const ringTotal = maxPerRing;
             const radius = 28 + ringIndex * 20;
-            const angle = getAngle(posInRing, ringTotal);
+            const angle = getAngle(posInRing, maxPerRing);
             const x = 50 + radius * Math.cos(angle);
             const y = 50 + radius * Math.sin(angle);
 
@@ -164,29 +171,40 @@ const SuperpowerMap = () => {
           })}
         </div>
 
-        {/* Superpower List */}
+        {/* Categorized Superpower List */}
         {superpowers.length > 0 && (
-          <div className="space-y-2">
-            <h3 className="text-sm font-medium text-muted-foreground">Your Superpowers</h3>
-            {superpowers.map((sp) => {
-              const colors = colorMap[sp.color] || colorMap.amber;
+          <div className="space-y-4">
+            {Object.entries(categoryLabels).map(([catKey, catMeta]) => {
+              const items = grouped[catKey];
+              if (!items || items.length === 0) return null;
               return (
-                <motion.div
-                  key={sp.id}
-                  initial={{ opacity: 0, x: -20 }}
-                  animate={{ opacity: 1, x: 0 }}
-                  className="flex items-center gap-3 p-3 rounded-lg bg-card/50 border border-border/50"
-                >
-                  <div
-                    className={`w-10 h-10 rounded-full bg-gradient-to-br ${colors} flex items-center justify-center text-lg shadow-md border`}
-                  >
-                    {sp.icon}
-                  </div>
-                  <div className="flex-1 min-w-0">
-                    <p className="font-medium text-sm">{sp.name}</p>
-                    <p className="text-xs text-muted-foreground truncate">{sp.description}</p>
-                  </div>
-                </motion.div>
+                <div key={catKey} className="space-y-2">
+                  <h3 className="text-xs font-semibold text-muted-foreground uppercase tracking-wider flex items-center gap-1.5">
+                    <span>{catMeta.icon}</span>
+                    {catMeta.label}
+                  </h3>
+                  {items.map((sp) => {
+                    const colors = colorMap[sp.color] || colorMap.amber;
+                    return (
+                      <motion.div
+                        key={sp.id}
+                        initial={{ opacity: 0, x: -20 }}
+                        animate={{ opacity: 1, x: 0 }}
+                        className="flex items-center gap-3 p-3 rounded-lg bg-card/50 border border-border/50"
+                      >
+                        <div
+                          className={`w-10 h-10 rounded-full bg-gradient-to-br ${colors} flex items-center justify-center text-lg shadow-md border`}
+                        >
+                          {sp.icon}
+                        </div>
+                        <div className="flex-1 min-w-0">
+                          <p className="font-medium text-sm">{sp.name}</p>
+                          <p className="text-xs text-muted-foreground truncate">{sp.description}</p>
+                        </div>
+                      </motion.div>
+                    );
+                  })}
+                </div>
               );
             })}
           </div>
