@@ -2647,16 +2647,24 @@ IMPORTANT: Continue this conversation naturally. You reached out to the user abo
         'yes', 'yes!', "i'm ready", "let's go", "let's do it", 'ready',
         'absolutely', 'definitely', 'for sure', 'yeah', 'yep', 'yea',
         'si', 'ok', 'okay', 'sure', 'sounds good', 'i am ready',
-        'bring it on', 'next step', "let's move", 'yes please'
+        'bring it on', 'next step', "let's move", 'yes please',
+        'great', 'great!', 'awesome', 'awesome!', 'perfect', 'perfect!',
+        'amazing', 'amazing!', 'wonderful', 'wonderful!', 'beautiful',
+        'thanks', 'thank you', 'thank you!', 'thanks!', 'got it',
+        'done', 'cool', 'cool!', 'nice', 'nice!', 'love it',
+        'i understand', 'understood', 'noted', 'will do',
+        'i agree', 'agreed', 'exactly', 'right', 'correct',
+        'continue', 'move forward', 'go ahead', 'proceed'
       ];
-      const userMsgLower = message.toLowerCase().trim();
+      const userMsgLower = message.toLowerCase().trim().replace(/[!.,]+$/, '');
       
-      const isPhaseConfirmation = phaseConfirmationPhrases.some(phrase => 
-        userMsgLower === phrase || 
-        userMsgLower.startsWith(phrase + ' ') || 
-        userMsgLower.startsWith(phrase + ',') ||
-        userMsgLower.startsWith(phrase + '.')
-      );
+      const isPhaseConfirmation = phaseConfirmationPhrases.some(phrase => {
+        const cleanPhrase = phrase.replace(/[!.,]+$/, '');
+        return userMsgLower === cleanPhrase || 
+          userMsgLower.startsWith(cleanPhrase + ' ') || 
+          userMsgLower.startsWith(cleanPhrase + ',') ||
+          userMsgLower.startsWith(cleanPhrase + '.');
+      });
       
       if (isPhaseConfirmation) {
         // Check if previous assistant message signals phase completion
@@ -2692,13 +2700,19 @@ IMPORTANT: Continue this conversation naturally. You reached out to the user abo
           'integrate this',
           'grounded in this',
           'you are ready',
+          'solidify this transmutation',
+          'engrave this',
+          'living principle',
+          'clarity',
+          'strength you cultivated',
         ];
         
         const hasCompletionSignal = lastAssistantMsg?.content && 
           completionSignals.some(signal => lastAssistantMsg.content.toLowerCase().includes(signal));
         
-        // Fallback: if deep enough in transmutation + short confirmation, trigger anyway
-        const isDeepConversation = conversationDepth >= 6;
+        // Fallback: lower threshold for gold phase since Stoic completes in 3-4 exchanges
+        const goldPhaseMinDepth = mentorType === 'stoic_mentor' ? 3 : 6;
+        const isDeepConversation = conversationDepth >= goldPhaseMinDepth;
         const isShortMessage = message.trim().split(/\s+/).length <= 5;
         
         if (hasCompletionSignal || (isDeepConversation && isPhaseConfirmation && isShortMessage)) {
