@@ -38,16 +38,16 @@ export const WhitePhaseWinCard = ({
             exit={{ scale: 0.9, opacity: 0, y: 20 }}
             transition={{ type: "spring", damping: 20, stiffness: 300 }}
           >
-            <Card className="w-full max-w-md border-slate-300 bg-gradient-to-br from-slate-50 via-white to-slate-100 shadow-xl">
-              <CardContent className="pt-6 pb-6 text-center space-y-5">
+    <Card className="w-full max-w-md border-slate-300 bg-gradient-to-br from-slate-50 via-white to-slate-100 shadow-xl max-h-[85vh] flex flex-col">
+              <CardContent className="pt-6 pb-6 text-center space-y-4 overflow-y-auto flex-1">
                 {/* Icon */}
                 <motion.div
                   initial={{ scale: 0 }}
                   animate={{ scale: 1 }}
                   transition={{ delay: 0.2, type: "spring" }}
-                  className="mx-auto w-16 h-16 rounded-full bg-gradient-to-br from-slate-200 to-slate-300 flex items-center justify-center shadow-lg"
+                  className="mx-auto w-14 h-14 rounded-full bg-gradient-to-br from-slate-200 to-slate-300 flex items-center justify-center shadow-lg"
                 >
-                  <Sparkles className="w-8 h-8 text-slate-600" />
+                  <Sparkles className="w-7 h-7 text-slate-600" />
                 </motion.div>
 
                 {/* Title */}
@@ -57,10 +57,10 @@ export const WhitePhaseWinCard = ({
                   transition={{ delay: 0.3 }}
                   className="space-y-1"
                 >
-                  <h2 className="text-xl font-bold text-slate-800">
+                  <h2 className="text-lg font-bold text-slate-800">
                     The Shift Happened ✨
                   </h2>
-                  <p className="text-sm text-slate-500">
+                  <p className="text-xs text-slate-500">
                     You're seeing clearly now
                   </p>
                 </motion.div>
@@ -70,12 +70,12 @@ export const WhitePhaseWinCard = ({
                   initial={{ opacity: 0 }}
                   animate={{ opacity: 1 }}
                   transition={{ delay: 0.4 }}
-                  className="bg-slate-100 rounded-lg px-4 py-2"
+                  className="bg-slate-100 rounded-lg px-3 py-2"
                 >
                   <p className="text-xs text-slate-500 font-medium uppercase tracking-wide">
                     Pattern
                   </p>
-                  <p className="font-semibold text-slate-700">{patternName}</p>
+                  <p className="font-semibold text-slate-700 text-sm">{patternName}</p>
                 </motion.div>
 
                 {/* Extracted insights */}
@@ -83,7 +83,7 @@ export const WhitePhaseWinCard = ({
                   initial={{ opacity: 0 }}
                   animate={{ opacity: 1 }}
                   transition={{ delay: 0.5 }}
-                  className="space-y-3 text-left"
+                  className="space-y-2 text-left"
                 >
                   <div className="bg-white/80 border border-slate-200 rounded-lg p-3">
                     <p className="text-xs text-slate-500 mb-1 font-medium">The Shift</p>
@@ -108,18 +108,15 @@ export const WhitePhaseWinCard = ({
                   initial={{ opacity: 0 }}
                   animate={{ opacity: 1 }}
                   transition={{ delay: 0.6 }}
-                  className="text-sm text-slate-500"
+                  className="text-xs text-slate-500"
                 >
                   The Gold Phase is now unlocked.
                 </motion.p>
+              </CardContent>
 
-                {/* Actions */}
-                <motion.div
-                  initial={{ opacity: 0, y: 10 }}
-                  animate={{ opacity: 1, y: 0 }}
-                  transition={{ delay: 0.7 }}
-                  className="flex gap-3 pt-2"
-                >
+              {/* Sticky actions at bottom */}
+              <div className="px-6 pb-6 pt-2 border-t border-slate-200/50 bg-white/90">
+                <div className="flex gap-3">
                   <Button
                     onClick={onNotNow}
                     variant="outline"
@@ -135,8 +132,8 @@ export const WhitePhaseWinCard = ({
                     <Check className="w-4 h-4 mr-2" />
                     Confirm White
                   </Button>
-                </motion.div>
-              </CardContent>
+                </div>
+              </div>
             </Card>
           </motion.div>
         </motion.div>

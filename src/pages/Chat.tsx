@@ -629,6 +629,56 @@ const Chat = ({ mentorTypeOverride, embedded = false, locationState: propState }
         const locState = propState || location.state;
         const txContext = locState?.transmutationContext;
         const patternId = txContext?.patternId;
+
+        // Auto-populate lifetime event when gold phase completes
+        if (data.transmutationPhaseComplete.phase === 'gold' && patternId) {
+          try {
+            // Get pattern data to create lifetime event
+            const { data: patternData } = await supabase
+              .from("inner_patterns")
+              .select("pattern_name, pattern_type, trigger_context, life_events, transmutation_data")
+              .eq("id", patternId)
+              .single();
+
+            if (patternData) {
+              const lifeEvents = patternData.life_events as any;
+              const txData = patternData.transmutation_data as any;
+              const eventLabel = patternData.trigger_context || patternData.pattern_name || "Transmuted experience";
+              const goldOutcome = data.transmutationPhaseComplete.gold_insight || txData?.gold_insight || "";
+              
+              // Check if a lifetime event already exists for this pattern
+              const { data: existingEvent } = await supabase
+                .from("lifetime_events")
+                .select("id")
+                .eq("user_id", user.id)
+                .eq("pattern_id", patternId)
+                .maybeSingle();
+
+              if (!existingEvent) {
+                // Determine time period from life_events data or default to current
+                const timePeriod = lifeEvents?.timePeriod || lifeEvents?.age_category || 'current';
+                const validPeriods = ['childhood', 'teen', 'early_20s', 'mid_20s', 'late_20s', '30s', 'current'];
+                const safePeriod = validPeriods.includes(timePeriod) ? timePeriod : 'current';
+
+                await supabase.from("lifetime_events").insert({
+                  user_id: user.id,
+                  time_period: safePeriod,
+                  event_label: eventLabel,
+                  event_description: `${patternData.pattern_name}: ${goldOutcome}`.substring(0, 500),
+                  event_type: 'identity',
+                  pattern_id: patternId,
+                  pattern_name: patternData.pattern_name,
+                  gold_outcome: goldOutcome,
+                  is_transmuted: true,
+                });
+                console.log('[Chat] Auto-created lifetime event for transmuted pattern:', patternId);
+              }
+            }
+          } catch (err) {
+            console.error('[Chat] Failed to auto-create lifetime event:', err);
+          }
+        }
+
         const returnPath = patternId 
           ? `/pattern-map/${patternId}`
           : '/creation-lab?type=becoming&bmode=transmutation';

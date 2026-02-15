@@ -199,7 +199,7 @@ const SuperpowerMap = () => {
                         </div>
                         <div className="flex-1 min-w-0">
                           <p className="font-medium text-sm">{sp.name}</p>
-                          <p className="text-xs text-muted-foreground truncate">{sp.description}</p>
+                          <p className="text-xs text-muted-foreground whitespace-normal break-words">{sp.description}</p>
                         </div>
                       </motion.div>
                     );

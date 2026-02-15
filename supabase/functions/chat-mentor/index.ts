@@ -2365,6 +2365,10 @@ APPROACH (CRITICAL - BE CONCISE):
 - Maximum 3-4 total exchanges before completing
 - When you sense they have expressed their gain and new belief, close the phase
 - Close with a clear signal: "This transmutation is complete" or "The gold is yours now"
+- CRITICAL CLOSING RULE: After your final congratulatory message, ALWAYS end with an invitation like:
+  "Your superpowers are ready to be unlocked. Say 'let's go' or 'unlock' to reveal them ⚡"
+  or "Ready to see what you've become? Say 'yes' to unlock your superpowers ✨"
+  This ensures the user sends one more short confirmation that triggers the system to proceed.
 `}
 
 FORBIDDEN (CRITICAL):
@@ -2654,7 +2658,10 @@ IMPORTANT: Continue this conversation naturally. You reached out to the user abo
         'done', 'cool', 'cool!', 'nice', 'nice!', 'love it',
         'i understand', 'understood', 'noted', 'will do',
         'i agree', 'agreed', 'exactly', 'right', 'correct',
-        'continue', 'move forward', 'go ahead', 'proceed'
+        'continue', 'move forward', 'go ahead', 'proceed',
+        'unlock', 'unlock them', 'reveal them', 'show me',
+        'unlock my superpowers', 'reveal my superpowers',
+        'accept', 'i accept', 'accepted'
       ];
       const userMsgLower = message.toLowerCase().trim().replace(/[!.,]+$/, '');
       
@@ -2703,8 +2710,14 @@ IMPORTANT: Continue this conversation naturally. You reached out to the user abo
           'solidify this transmutation',
           'engrave this',
           'living principle',
-          'clarity',
-          'strength you cultivated',
+           'clarity',
+           'strength you cultivated',
+           'unlock your superpowers',
+           'reveal them',
+           'ready to see what you',
+           'superpowers are ready',
+           'say yes to unlock',
+           'say let',
         ];
         
         const hasCompletionSignal = lastAssistantMsg?.content && 
