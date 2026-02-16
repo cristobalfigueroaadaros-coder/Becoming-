@@ -9,10 +9,14 @@ export interface TransmutationData {
   shift_moment?: string;
   protective_purpose?: string;
   lesson_learned?: string;
+  release_burden?: string;
+  release_belief?: string;
+  release_cost?: string;
+  red_completed_at?: string;
   gold_insight?: string;
   letter_to_self?: string;
   brave_step?: string;
-  phase_completed?: 'black' | 'white' | 'gold';
+  phase_completed?: 'black' | 'white' | 'red' | 'gold';
   white_completed_at?: string;
   gold_completed_at?: string;
   golden_summary?: string;
@@ -289,10 +293,11 @@ export function useInnerPatterns() {
 
   // Helper to get transmutation phase status
   const getTransmutationStatus = (data: TransmutationData | undefined) => {
-    if (!data) return { black: false, white: false, gold: false };
+    if (!data) return { black: false, white: false, red: false, gold: false };
     return {
       black: !!data.shadow,
       white: !!(data.shift_moment && data.protective_purpose && data.lesson_learned),
+      red: !!(data.release_burden || data.release_belief || data.release_cost),
       gold: !!(data.gold_insight && data.letter_to_self),
     };
   };

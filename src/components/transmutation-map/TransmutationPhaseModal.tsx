@@ -1,6 +1,6 @@
 import { useState, useRef, useEffect } from "react";
 import { motion, AnimatePresence } from "framer-motion";
-import { X, Send, Flame, Shield, Loader2 } from "lucide-react";
+import { X, Send, Flame, Shield, Loader2, Heart } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
 import { Avatar, AvatarFallback } from "@/components/ui/avatar";
@@ -10,7 +10,7 @@ import type { TransmutationData } from "@/hooks/useInnerPatterns";
 interface TransmutationPhaseModalProps {
   open: boolean;
   onClose: () => void;
-  phase: 'white' | 'gold';
+  phase: 'white' | 'red' | 'gold';
   patternName: string;
   patternContext: string; // Shadow from Black phase
   existingData: TransmutationData;
@@ -38,9 +38,9 @@ export const TransmutationPhaseModal = ({
   const [extractedData, setExtractedData] = useState<Partial<TransmutationData>>({});
   const messagesEndRef = useRef<HTMLDivElement>(null);
 
-  const mentorType = phase === 'white' ? 'phoenix_mentor' : 'stoic_mentor';
-  const mentorName = phase === 'white' ? 'Phoenix' : 'Stoic';
-  const mentorIcon = phase === 'white' ? Flame : Shield;
+  const mentorType = phase === 'white' ? 'phoenix_mentor' : phase === 'red' ? 'release_mentor' : 'stoic_mentor';
+  const mentorName = phase === 'white' ? 'Phoenix' : phase === 'red' ? 'Release' : 'Stoic';
+  const mentorIcon = phase === 'white' ? Flame : phase === 'red' ? Heart : Shield;
   const MentorIcon = mentorIcon;
 
   // Send initial mentor message when modal opens
@@ -83,20 +83,41 @@ During the conversation, naturally explore:
 
 When you detect 2+ of these are clearly expressed, propose completion with marker [WHITE_PHASE_READY] and include extracted data in this JSON format at the end:
 {"shift_moment": "...", "protective_purpose": "...", "lesson_learned": "..."}`
-        : `You are now guiding the user through the GOLD PHASE of transmutation for their pattern "${patternName}".
+        : phase === 'red'
+        ? `You are now guiding the user through the RED PHASE of transmutation for their pattern "${patternName}".
 
 The shift and lesson from White phase:
 - Shift: "${existingData.shift_moment || 'Not captured'}"
 - Lesson: "${existingData.lesson_learned || 'Not captured'}"
 
+RED PHASE TRANSMUTATION MODE:
+1. You are guiding them through Release → Letting Go
+2. White phase (shift, lesson) has been captured
+3. Your job: Extract what they're ready to stop carrying, what belief to release, and the cost of staying
+
+Your opening: "You've gained clarity. Now it's time to decide what you're done carrying. What weight are you ready to put down?"
+
+During the conversation, naturally explore:
+1. What are you ready to stop carrying?
+2. What belief are you ready to let go of?
+3. If you keep living this pattern, what will it cost you?
+
+When you detect 2+ of these are clearly expressed, propose completion with marker [RED_PHASE_READY] and include extracted data in this JSON format at the end:
+{"release_burden": "...", "release_belief": "...", "release_cost": "..."}`
+        : `You are now guiding the user through the GOLD PHASE of transmutation for their pattern "${patternName}".
+
+The release from Red phase:
+- Burden released: "${existingData.release_burden || 'Not captured'}"
+- Belief released: "${existingData.release_belief || 'Not captured'}"
+
 GOLD PHASE TRANSMUTATION MODE:
 1. You are guiding them through Integration → Power
-2. White phase (shift, lesson) has been captured
+2. Red phase (release) has been captured
 3. Your job: Extract Gain, New Belief, and Strength/Creation
 
 Start grounded and lead them to name their gains clearly.
 
-Your opening: "The shift happened. The lesson is clear. Now let's turn this into something you carry forward. What did you actually gain from going through this? What's different about you now?"
+Your opening: "The shift happened. The release is done. Now let's turn this into something you carry forward. What did you actually gain from going through this? What's different about you now?"
 
 During the conversation, naturally explore:
 - What did you gain from this experience?
@@ -134,11 +155,11 @@ When you detect clarity on at least 2 of these, propose completion with marker [
 
   const cleanExtractedData = (text: string): string => {
     // Remove JSON extraction blocks from display
-    return text.replace(/\{[\s\S]*?"(shift_moment|gold_insight)"[\s\S]*?\}/g, '').trim();
+    return text.replace(/\{[\s\S]*?"(shift_moment|gold_insight|release_burden)"[\s\S]*?\}/g, '').trim();
   };
 
   const parseExtractedData = (text: string): Partial<TransmutationData> | null => {
-    const jsonMatch = text.match(/\{[\s\S]*?"(shift_moment|gold_insight)"[\s\S]*?\}/);
+    const jsonMatch = text.match(/\{[\s\S]*?"(shift_moment|gold_insight|release_burden)"[\s\S]*?\}/);
     if (jsonMatch) {
       try {
         return JSON.parse(jsonMatch[0]);
@@ -163,6 +184,8 @@ When you detect clarity on at least 2 of these, propose completion with marker [
 
       const phaseContext = phase === 'white'
         ? `Continue WHITE PHASE transmutation for "${patternName}". Look for shift moment, protective purpose, lesson learned. When 2+ are present, include [WHITE_PHASE_READY] and JSON extraction.`
+        : phase === 'red'
+        ? `Continue RED PHASE transmutation for "${patternName}". Look for what they're stopping carrying, belief to release, cost of staying. When 2+ are present, include [RED_PHASE_READY] and JSON extraction.`
         : `Continue GOLD PHASE transmutation for "${patternName}". Look for gain, new belief, strength/creation. When 2+ are present, include [GOLD_PHASE_READY] and JSON extraction.`;
 
       const response = await supabase.functions.invoke('chat-mentor', {
@@ -188,9 +211,10 @@ When you detect clarity on at least 2 of these, propose completion with marker [
         
         // Check for phase ready markers
         const whiteReady = fullResponse.includes('[WHITE_PHASE_READY]');
+        const redReady = fullResponse.includes('[RED_PHASE_READY]');
         const goldReady = fullResponse.includes('[GOLD_PHASE_READY]');
         
-        if (whiteReady || goldReady) {
+        if (whiteReady || redReady || goldReady) {
           setIsPhaseReady(true);
           const extracted = parseExtractedData(fullResponse);
           if (extracted) {
@@ -199,7 +223,7 @@ When you detect clarity on at least 2 of these, propose completion with marker [
         }
 
         const cleanResponse = cleanExtractedData(
-          fullResponse.replace('[WHITE_PHASE_READY]', '').replace('[GOLD_PHASE_READY]', '')
+          fullResponse.replace('[WHITE_PHASE_READY]', '').replace('[RED_PHASE_READY]', '').replace('[GOLD_PHASE_READY]', '')
         );
         setMessages(prev => [...prev, { role: 'assistant', content: cleanResponse }]);
       }
@@ -232,26 +256,28 @@ When you detect clarity on at least 2 of these, propose completion with marker [
           className={`w-full max-w-lg max-h-[80vh] rounded-xl border shadow-2xl flex flex-col ${
             phase === 'white' 
               ? 'bg-gradient-to-br from-slate-50/95 to-white border-slate-300'
+              : phase === 'red'
+              ? 'bg-gradient-to-br from-red-50/95 to-white border-red-300'
               : 'bg-gradient-to-br from-amber-50/95 to-white border-amber-300'
           }`}
         >
           {/* Header */}
           <div className={`flex items-center justify-between p-4 border-b ${
-            phase === 'white' ? 'border-slate-200' : 'border-amber-200'
+            phase === 'white' ? 'border-slate-200' : phase === 'red' ? 'border-red-200' : 'border-amber-200'
           }`}>
             <div className="flex items-center gap-3">
               <Avatar className={`w-10 h-10 ${
-                phase === 'white' ? 'bg-slate-200' : 'bg-amber-200'
+                phase === 'white' ? 'bg-slate-200' : phase === 'red' ? 'bg-red-200' : 'bg-amber-200'
               }`}>
                 <AvatarFallback>
                   <MentorIcon className={`w-5 h-5 ${
-                    phase === 'white' ? 'text-slate-600' : 'text-amber-600'
+                    phase === 'white' ? 'text-slate-600' : phase === 'red' ? 'text-red-600' : 'text-amber-600'
                   }`} />
                 </AvatarFallback>
               </Avatar>
               <div>
                 <h3 className="font-semibold text-slate-900">
-                  {phase === 'white' ? 'White Phase' : 'Gold Phase'} with {mentorName}
+                  {phase === 'white' ? 'White Phase' : phase === 'red' ? 'Red Phase' : 'Gold Phase'} with {mentorName}
                 </h3>
                 <p className="text-xs text-slate-500">{patternName}</p>
               </div>
@@ -273,7 +299,9 @@ When you detect clarity on at least 2 of these, propose completion with marker [
                     message.role === 'user'
                       ? 'bg-primary text-primary-foreground'
                       : phase === 'white'
-                        ? 'bg-slate-100 text-slate-900'
+                      ? 'bg-slate-100 text-slate-900'
+                      : phase === 'red'
+                        ? 'bg-red-100 text-red-900'
                         : 'bg-amber-100 text-amber-900'
                   }`}
                 >
@@ -284,7 +312,7 @@ When you detect clarity on at least 2 of these, propose completion with marker [
             {isLoading && (
               <div className="flex justify-start">
                 <div className={`rounded-lg px-4 py-2 ${
-                  phase === 'white' ? 'bg-slate-100' : 'bg-amber-100'
+                  phase === 'white' ? 'bg-slate-100' : phase === 'red' ? 'bg-red-100' : 'bg-amber-100'
                 }`}>
                   <Loader2 className="w-4 h-4 animate-spin" />
                 </div>
@@ -296,17 +324,19 @@ When you detect clarity on at least 2 of these, propose completion with marker [
           {/* Phase Ready Confirmation */}
           {isPhaseReady && (
             <div className={`p-4 border-t ${
-              phase === 'white' ? 'bg-slate-50 border-slate-200' : 'bg-amber-50 border-amber-200'
+              phase === 'white' ? 'bg-slate-50 border-slate-200' : phase === 'red' ? 'bg-red-50 border-red-200' : 'bg-amber-50 border-amber-200'
             }`}>
               <Button
                 onClick={handleConfirmPhase}
                 className={`w-full ${
                   phase === 'white'
                     ? 'bg-slate-600 hover:bg-slate-700'
+                    : phase === 'red'
+                    ? 'bg-red-600 hover:bg-red-500'
                     : 'bg-gradient-to-r from-amber-500 to-amber-600 hover:from-amber-400 hover:to-amber-500'
                 }`}
               >
-                {phase === 'white' ? 'Confirm White Transmutation' : 'Finalize Gold Transmutation'}
+                {phase === 'white' ? 'Confirm White Transmutation' : phase === 'red' ? 'Confirm Red Release' : 'Finalize Gold Transmutation'}
               </Button>
             </div>
           )}
@@ -314,7 +344,7 @@ When you detect clarity on at least 2 of these, propose completion with marker [
           {/* Input */}
           {!isPhaseReady && (
             <div className={`p-4 border-t ${
-              phase === 'white' ? 'border-slate-200' : 'border-amber-200'
+              phase === 'white' ? 'border-slate-200' : phase === 'red' ? 'border-red-200' : 'border-amber-200'
             }`}>
               <div className="flex gap-2">
                 <Textarea
@@ -333,7 +363,7 @@ When you detect clarity on at least 2 of these, propose completion with marker [
                   onClick={handleSend}
                   disabled={!input.trim() || isLoading}
                   size="icon"
-                  className={phase === 'white' ? 'bg-slate-600' : 'bg-amber-500'}
+                  className={phase === 'white' ? 'bg-slate-600' : phase === 'red' ? 'bg-red-600' : 'bg-amber-500'}
                 >
                   <Send className="w-4 h-4" />
                 </Button>

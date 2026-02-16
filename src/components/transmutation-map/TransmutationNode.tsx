@@ -5,7 +5,7 @@ interface TransmutationNodeProps {
   id: string;
   label: string;
   content: string | null;
-  phase: 'black' | 'white' | 'gold';
+  phase: 'black' | 'white' | 'red' | 'gold';
   x: number;
   y: number;
   size: number;
@@ -17,7 +17,7 @@ interface TransmutationNodeProps {
   delay?: number;
 }
 
-const getPhaseColors = (phase: 'black' | 'white' | 'gold', hasContent: boolean, isCompleted: boolean) => {
+const getPhaseColors = (phase: 'black' | 'white' | 'red' | 'gold', hasContent: boolean, isCompleted: boolean) => {
   if (isCompleted) {
     return {
       fill: 'url(#goldGradientComplete)',
@@ -41,6 +41,13 @@ const getPhaseColors = (phase: 'black' | 'white' | 'gold', hasContent: boolean, 
         stroke: hasContent ? '#94a3b8' : '#cbd5e1',
         glow: hasContent ? 'rgba(148, 163, 184, 0.4)' : 'rgba(203, 213, 225, 0.2)',
         text: '#1e293b',
+      };
+    case 'red':
+      return {
+        fill: hasContent ? 'url(#redGradient)' : '#fca5a5',
+        stroke: hasContent ? '#dc2626' : '#ef4444',
+        glow: hasContent ? 'rgba(220, 38, 38, 0.5)' : 'rgba(252, 165, 165, 0.2)',
+        text: hasContent ? '#fef2f2' : '#991b1b',
       };
     case 'gold':
       return {

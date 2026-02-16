@@ -17,7 +17,7 @@ interface TransmutationNodeEditModalProps {
   onClose: () => void;
   nodeId: string;
   nodeLabel: string;
-  phase: 'black' | 'white' | 'gold';
+  phase: 'black' | 'white' | 'red' | 'gold';
   currentContent: string | null;
   onSave: (content: string) => void;
   patternName?: string;
@@ -100,9 +100,36 @@ const NODE_PROMPTS: Record<string, { prompt: string; examples: string[] }> = {
       "Choose myself once...",
     ],
   },
+  release_burden: {
+    prompt: "What are you ready to stop carrying?",
+    examples: [
+      "The weight of trying to be perfect...",
+      "Responsibility for someone else's feelings...",
+      "The guilt of past decisions...",
+      "Proving myself to people who don't care...",
+    ],
+  },
+  release_belief: {
+    prompt: "What belief are you ready to let go of?",
+    examples: [
+      "I'm not good enough...",
+      "I need to earn love...",
+      "If I rest, I'll fall behind...",
+      "I always have to be strong...",
+    ],
+  },
+  release_cost: {
+    prompt: "If you keep living this pattern, what will it cost you?",
+    examples: [
+      "My peace of mind...",
+      "Real connection with people I love...",
+      "My health and energy...",
+      "The life I actually want to live...",
+    ],
+  },
 };
 
-const getPhaseStyle = (phase: 'black' | 'white' | 'gold') => {
+const getPhaseStyle = (phase: 'black' | 'white' | 'red' | 'gold') => {
   switch (phase) {
     case 'black':
       return {
@@ -115,6 +142,12 @@ const getPhaseStyle = (phase: 'black' | 'white' | 'gold') => {
         badge: "bg-slate-200 text-slate-700",
         border: "border-slate-300/30",
         bg: "from-slate-100/10 to-transparent",
+      };
+    case 'red':
+      return {
+        badge: "bg-red-500/20 text-red-400",
+        border: "border-red-500/30",
+        bg: "from-red-500/10 to-transparent",
       };
     case 'gold':
       return {
@@ -153,12 +186,14 @@ export const TransmutationNodeEditModal = ({
   };
 
   const getMentorCTAText = () => {
+    if (phase === 'red') return "Talk to Release Mentor";
     if (phase === 'white') return "Talk to Phoenix Mentor";
     if (phase === 'gold') return "Talk to Stoic Mentor";
     return "Talk to Inner Clarity Mentor";
   };
 
   const getMentorIcon = () => {
+    if (phase === 'red') return <Flame className="w-4 h-4 mr-2" />;
     if (phase === 'white') return <Flame className="w-4 h-4 mr-2" />;
     if (phase === 'gold') return <Shield className="w-4 h-4 mr-2" />;
     return <MessageCircle className="w-4 h-4 mr-2" />;
@@ -167,7 +202,7 @@ export const TransmutationNodeEditModal = ({
   const handleTalkToMentor = () => {
     if (!onNavigateToMentor) return;
     
-    const mentorType = phase === 'white' ? 'phoenix_mentor' : phase === 'gold' ? 'stoic_mentor' : 'inner_clarity_mentor';
+    const mentorType = phase === 'red' ? 'release_mentor' : phase === 'white' ? 'phoenix_mentor' : phase === 'gold' ? 'stoic_mentor' : 'inner_clarity_mentor';
     onClose();
     onNavigateToMentor(mentorType);
   };
@@ -189,14 +224,16 @@ export const TransmutationNodeEditModal = ({
 
         <div className="space-y-4 py-2">
           {/* Mentor CTA - prominent placement at top */}
-          {(phase === 'white' || phase === 'gold') && onNavigateToMentor && (
+          {(phase === 'white' || phase === 'red' || phase === 'gold') && onNavigateToMentor && (
             <Button 
               onClick={handleTalkToMentor}
               variant="outline"
               className={`w-full ${
-                phase === 'white' 
-                  ? 'border-orange-500/30 text-orange-400 hover:bg-orange-500/10' 
-                  : 'border-amber-500/30 text-amber-400 hover:bg-amber-500/10'
+                phase === 'red'
+                  ? 'border-red-500/30 text-red-400 hover:bg-red-500/10'
+                  : phase === 'white' 
+                    ? 'border-orange-500/30 text-orange-400 hover:bg-orange-500/10' 
+                    : 'border-amber-500/30 text-amber-400 hover:bg-amber-500/10'
               }`}
             >
               {getMentorIcon()}
@@ -205,7 +242,7 @@ export const TransmutationNodeEditModal = ({
           )}
 
           {/* Divider */}
-          {(phase === 'white' || phase === 'gold') && onNavigateToMentor && (
+          {(phase === 'white' || phase === 'red' || phase === 'gold') && onNavigateToMentor && (
             <div className="flex items-center gap-3">
               <div className="flex-1 h-px bg-border" />
               <span className="text-xs text-muted-foreground">or write it yourself</span>
@@ -241,7 +278,7 @@ export const TransmutationNodeEditModal = ({
             <Button 
               onClick={handleSave} 
               disabled={!content.trim()}
-              className={`flex-1 ${phase === 'gold' ? 'bg-amber-600 hover:bg-amber-500' : ''}`}
+              className={`flex-1 ${phase === 'gold' ? 'bg-amber-600 hover:bg-amber-500' : phase === 'red' ? 'bg-red-600 hover:bg-red-500' : ''}`}
             >
               <Sparkles className="w-4 h-4 mr-2" />
               Save

@@ -15,6 +15,7 @@ import {
   TransmutationNodeEditModal, 
   TransmutationCelebration,
   WhitePhaseWinCard,
+  RedPhaseWinCard,
   type TransmutationData 
 } from "@/components/transmutation-map";
 import {
@@ -24,7 +25,7 @@ import {
 } from "@/components/lifetime-map";
 import { toast } from "sonner";
 import { supabase } from "@/integrations/supabase/client";
-import { isWhitePhaseComplete, isGoldPhaseComplete, generateGoldenSummary } from "@/lib/goldenSummaryGenerator";
+import { isWhitePhaseComplete, isRedPhaseComplete, isGoldPhaseComplete, generateGoldenSummary } from "@/lib/goldenSummaryGenerator";
 import type { Json } from "@/integrations/supabase/types";
 
 interface PatternNodeData {
@@ -46,12 +47,15 @@ const nodeLabels: Record<string, string> = {
   life_event: "Life Event",
 };
 
-const transmutationNodeLabels: Record<string, { label: string; phase: 'black' | 'white' | 'gold' }> = {
+const transmutationNodeLabels: Record<string, { label: string; phase: 'black' | 'white' | 'red' | 'gold' }> = {
   shadow: { label: "The Shadow", phase: 'black' },
   dark_night: { label: "Dark Night", phase: 'black' },
   shift_moment: { label: "The Shift", phase: 'white' },
   protective_purpose: { label: "Protective Role", phase: 'white' },
   lesson_learned: { label: "The Lesson", phase: 'white' },
+  release_burden: { label: "Stop Carrying", phase: 'red' },
+  release_belief: { label: "Let Go", phase: 'red' },
+  release_cost: { label: "The Cost", phase: 'red' },
   gold_insight: { label: "The Gold", phase: 'gold' },
   letter_to_self: { label: "To Younger Me", phase: 'gold' },
   brave_step: { label: "Brave Step", phase: 'gold' },
@@ -80,6 +84,7 @@ const PatternMap = () => {
   const [editingTransmutationNode, setEditingTransmutationNode] = useState<string | null>(null);
   const [showCelebration, setShowCelebration] = useState(false);
   const [showWhiteWinCard, setShowWhiteWinCard] = useState(false);
+  const [showRedWinCard, setShowRedWinCard] = useState(false);
   const [celebrationSuperpowers, setCelebrationSuperpowers] = useState<Array<{ name: string; icon: string; color: string }>>([]);
   const [activeTab, setActiveTab] = useState("pattern-map");
 
@@ -132,6 +137,12 @@ const PatternMap = () => {
       setTransmutationData(updatedData);
       updateTransmutationData(pattern.id, updatedData);
       setShowWhiteWinCard(true);
+    } else if (phase === 'red') {
+      updatedData.phase_completed = 'red';
+      updatedData.red_completed_at = new Date().toISOString();
+      setTransmutationData(updatedData);
+      updateTransmutationData(pattern.id, updatedData);
+      setShowRedWinCard(true);
     } else if (phase === 'gold') {
       const goldenSummary = generateGoldenSummary(updatedData, pattern.pattern_name, pattern.primary_emotion || undefined);
       updatedData.golden_summary = goldenSummary;
@@ -153,6 +164,7 @@ const PatternMap = () => {
   }, [location.state, pattern]);
 
   const whiteComplete = isWhitePhaseComplete(transmutationData);
+  const redComplete = isRedPhaseComplete(transmutationData);
   const goldComplete = isGoldPhaseComplete(transmutationData);
 
   // Navigate to mentor with handoff
@@ -167,7 +179,7 @@ const PatternMap = () => {
       .order("created_at", { ascending: false })
       .limit(20);
 
-    const phase = whiteComplete ? 'gold' : 'white';
+    const phase = redComplete ? 'gold' : whiteComplete ? 'red' : 'white';
     const transmutationContext = {
       phase,
       patternId: pattern.id,
@@ -218,15 +230,20 @@ const PatternMap = () => {
     setEditingNode(null);
   };
 
-  const handleTransmutationNodeClick = (nodeId: string, phase?: 'black' | 'white' | 'gold') => {
+  const handleTransmutationNodeClick = (nodeId: string, phase?: 'black' | 'white' | 'red' | 'gold') => {
     const nodePhase = phase || transmutationNodeLabels[nodeId]?.phase || 'white';
     
     if (nodePhase === 'black') {
       return;
     }
     
-    if (nodePhase === 'gold' && !whiteComplete) {
+    if (nodePhase === 'red' && !whiteComplete) {
       toast.info("Complete the White phase first");
+      return;
+    }
+    
+    if (nodePhase === 'gold' && !redComplete) {
+      toast.info("Complete the Red phase first");
       return;
     }
     
@@ -250,6 +267,21 @@ const PatternMap = () => {
         if (success) {
           setEditingTransmutationNode(null);
           setShowWhiteWinCard(true);
+          return;
+        }
+      }
+    }
+
+    // Check red phase completion
+    if (nodePhase === 'red') {
+      const wouldCompleteRed = isRedPhaseComplete(updatedData);
+      if (wouldCompleteRed && transmutationData.phase_completed !== 'red' && transmutationData.phase_completed !== 'gold') {
+        updatedData.phase_completed = 'red';
+        updatedData.red_completed_at = new Date().toISOString();
+        const success = await updateTransmutationData(pattern.id, updatedData);
+        if (success) {
+          setEditingTransmutationNode(null);
+          setShowRedWinCard(true);
           return;
         }
       }
@@ -293,7 +325,12 @@ const PatternMap = () => {
 
   const handleWhiteWinConfirm = async () => {
     setShowWhiteWinCard(false);
-    toast.success("White Phase complete! Gold Phase unlocked ✨");
+    toast.success("White Phase complete! Red Phase unlocked 🔥");
+  };
+
+  const handleRedWinConfirm = async () => {
+    setShowRedWinCard(false);
+    toast.success("Red Phase complete! Gold Phase unlocked ✨");
   };
 
   const handleCelebrationSaveGold = () => {
@@ -489,7 +526,7 @@ const PatternMap = () => {
                   <Sparkles className={`w-4 h-4 ${pattern.status === 'transformed' ? 'text-amber-500' : 'text-slate-400'}`} />
                   {pattern.status === 'transformed' 
                     ? 'Transmutation Complete — Your wisdom is now gold'
-                    : 'Black → White → Gold — Tap nodes to begin your transmutation'
+                    : 'Black → White → Red → Gold — Tap nodes to begin your transmutation'
                   }
                 </CardTitle>
               </CardHeader>
@@ -664,6 +701,17 @@ const PatternMap = () => {
         lesson={transmutationData.lesson_learned || ""}
         onConfirm={handleWhiteWinConfirm}
         onNotNow={() => setShowWhiteWinCard(false)}
+      />
+
+      {/* Red Phase Win Card */}
+      <RedPhaseWinCard
+        open={showRedWinCard}
+        patternName={pattern?.pattern_name || ""}
+        releaseBurden={transmutationData.release_burden || ""}
+        releaseBelief={transmutationData.release_belief || ""}
+        releaseCost={transmutationData.release_cost || ""}
+        onConfirm={handleRedWinConfirm}
+        onNotNow={() => setShowRedWinCard(false)}
       />
 
       {/* Transmutation Celebration */}
