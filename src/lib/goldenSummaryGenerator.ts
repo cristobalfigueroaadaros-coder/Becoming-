@@ -27,6 +27,14 @@ export function generateGoldenSummary(data: TransmutationData, patternName: stri
     parts.push(`Then something shifted: ${data.shift_moment}`);
   }
 
+  // The release (Red Phase)
+  if (data.release_burden) {
+    parts.push(`I stopped carrying: ${data.release_burden}.`);
+  }
+  if (data.release_belief) {
+    parts.push(`I let go of: ${data.release_belief}.`);
+  }
+
   // What I became/gained
   if (data.gold_insight) {
     const gainText = data.gold_insight.endsWith('.') 
@@ -64,10 +72,23 @@ export function isWhitePhaseComplete(data: TransmutationData): boolean {
 }
 
 /**
+ * Check if Red phase is complete (minimum 2 of 3 required fields OR phase_completed flag)
+ */
+export function isRedPhaseComplete(data: TransmutationData): boolean {
+  if (data.phase_completed === 'red' || data.phase_completed === 'gold') {
+    return true;
+  }
+  let count = 0;
+  if (data.release_burden) count++;
+  if (data.release_belief) count++;
+  if (data.release_cost) count++;
+  return count >= 2;
+}
+
+/**
  * Check if Gold phase is complete (minimum 2 of 3 required fields OR phase_completed flag)
  */
 export function isGoldPhaseComplete(data: TransmutationData): boolean {
-  // Fallback: explicit phase_completed flag
   if (data.phase_completed === 'gold') {
     return true;
   }
@@ -75,5 +96,5 @@ export function isGoldPhaseComplete(data: TransmutationData): boolean {
   if (data.gold_insight) count++;
   if (data.letter_to_self) count++;
   if (data.brave_step) count++;
-  return count >= 2; // Minimum 2 of 3 required
+  return count >= 2;
 }

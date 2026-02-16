@@ -94,7 +94,7 @@ interface ChatProps {
     projectId?: string;
     projectName?: string;
     transmutationContext?: {
-      phase: 'white' | 'gold';
+      phase: 'white' | 'red' | 'gold';
       patternId: string;
       patternName: string;
       patternDescription?: string;
@@ -633,7 +633,6 @@ const Chat = ({ mentorTypeOverride, embedded = false, locationState: propState }
         // Auto-populate lifetime event when gold phase completes
         if (data.transmutationPhaseComplete.phase === 'gold' && patternId) {
           try {
-            // Get pattern data to create lifetime event
             const { data: patternData } = await supabase
               .from("inner_patterns")
               .select("pattern_name, pattern_type, trigger_context, life_events, transmutation_data")
@@ -646,7 +645,6 @@ const Chat = ({ mentorTypeOverride, embedded = false, locationState: propState }
               const eventLabel = patternData.trigger_context || patternData.pattern_name || "Transmuted experience";
               const goldOutcome = data.transmutationPhaseComplete.gold_insight || txData?.gold_insight || "";
               
-              // Check if a lifetime event already exists for this pattern
               const { data: existingEvent } = await supabase
                 .from("lifetime_events")
                 .select("id")
@@ -655,7 +653,6 @@ const Chat = ({ mentorTypeOverride, embedded = false, locationState: propState }
                 .maybeSingle();
 
               if (!existingEvent) {
-                // Determine time period from life_events data or default to current
                 const timePeriod = lifeEvents?.timePeriod || lifeEvents?.age_category || 'current';
                 const validPeriods = ['childhood', 'teen', 'early_20s', 'mid_20s', 'late_20s', '30s', 'current'];
                 const safePeriod = validPeriods.includes(timePeriod) ? timePeriod : 'current';

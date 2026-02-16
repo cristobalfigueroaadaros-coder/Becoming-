@@ -1736,7 +1736,7 @@ Not what you think you should feel — what actually rises up when you go back t
         
         // ========== TRANSMUTATION MAP HANDOFF DETECTION ==========
         // Check if this is a transmutation map handoff (voice_context contains phase)
-        if (voiceCtx && voiceCtx.phase && (voiceCtx.phase === 'white' || voiceCtx.phase === 'gold')) {
+        if (voiceCtx && voiceCtx.phase && (voiceCtx.phase === 'white' || voiceCtx.phase === 'red' || voiceCtx.phase === 'gold')) {
           console.log("Transmutation handoff detected:", voiceCtx.phase, voiceCtx.patternName);
           
           const phase = voiceCtx.phase;
@@ -1746,7 +1746,6 @@ Not what you think you should feel — what actually rises up when you go back t
           const lifeEvents = voiceCtx.lifeEvents || {};
           
           if (phase === 'white' && mentorType === 'phoenix_mentor') {
-            // Phoenix Mentor opening for White Phase - with introduction
             transmutationHandoffResponse = `Hey, I'm the Phoenix Mentor. I help turn pain into power.
 
 You've named what you're working through — "${patternName}".
@@ -1758,10 +1757,25 @@ This isn't about finding silver linings or pretending it was "good."
 It's about understanding what this experience shaped in you.
 
 Looking back, what shifted? Was there a moment, a conversation, or a realization that changed how you saw this?`;
-          } else if (phase === 'gold' && mentorType === 'stoic_mentor') {
-            // Stoic Mentor opening for Gold Phase - with introduction
+          } else if (phase === 'red' && mentorType === 'release_mentor') {
             const shiftMoment = existingData.shift_moment || 'the shift you found';
             const lesson = existingData.lesson_learned || 'the lesson you learned';
+            
+            transmutationHandoffResponse = `You've gained clarity. Now it's time to decide what you're done carrying.
+
+You've named your pattern — "${patternName}".
+You found the shift: "${shiftMoment}"
+You learned the lesson: "${lesson}"
+
+Now the question is simple:
+
+**What are you ready to stop carrying?**
+
+Not what you think you should stop — what your body and soul are actually done with.`;
+          } else if (phase === 'gold' && mentorType === 'stoic_mentor') {
+            const shiftMoment = existingData.shift_moment || 'the shift you found';
+            const lesson = existingData.lesson_learned || 'the lesson you learned';
+            const releaseBurden = existingData.release_burden || 'what you released';
             
             transmutationHandoffResponse = `Hey, I'm the Stoic Mentor. I help ground insight into real action.
 
@@ -1769,12 +1783,13 @@ The shift happened: "${shiftMoment}"
 
 The lesson is clear: "${lesson}"
 
+You released: "${releaseBurden}"
+
 Now let's turn "${patternName}" into something you carry forward.
 
 What did you actually gain from going through this? What's different about you now?`;
           }
           
-          // If we have a transmutation-specific response, mark as processed and return early
           if (transmutationHandoffResponse) {
             await supabaseClient
               .from("conversation_handoffs")
@@ -1866,7 +1881,7 @@ Example: "I see you've been building on this idea from ${journeyPath[0]?.replace
     let transmutationLifeEvent: string | null = null;
     let transmutationCouncilContext: string | null = null;
     
-    if (mentorType === 'storybreaker_mentor' || mentorType === 'phoenix_mentor' || mentorType === 'stoic_mentor') {
+    if (mentorType === 'storybreaker_mentor' || mentorType === 'phoenix_mentor' || mentorType === 'stoic_mentor' || mentorType === 'release_mentor') {
       // Check for recent transmutation handoff (within last 2 hours)
       const { data: recentHandoff } = await supabaseClient
         .from("conversation_handoffs")
@@ -1879,7 +1894,7 @@ Example: "I see you've been building on this idea from ${journeyPath[0]?.replace
         .limit(1);
       
       const voiceCtx = recentHandoff?.[0]?.voice_context as any;
-      if (voiceCtx?.flow === 'transmutation_pattern_discovery' || voiceCtx?.phase === 'white' || voiceCtx?.phase === 'gold') {
+      if (voiceCtx?.flow === 'transmutation_pattern_discovery' || voiceCtx?.phase === 'white' || voiceCtx?.phase === 'red' || voiceCtx?.phase === 'gold') {
         isTransmutationSession = true;
         transmutationSessionStart = new Date(recentHandoff[0].created_at);
         transmutationLifeEvent = voiceCtx.userInput || voiceCtx.patternName || null;
@@ -2286,7 +2301,9 @@ Generate a welcoming, proactive opening message that shows you understand their 
         ? 'extracting the pattern (Emotion, Fear/Old Story, Trigger, Life Moment)' 
         : mentorType === 'phoenix_mentor' 
           ? 'completing the White Phase (Shift Moment, Lesson, Protective Purpose)' 
-          : 'completing the Gold Phase (Gain, New Belief, Strength/Creation)';
+          : mentorType === 'release_mentor'
+            ? 'completing the Red Phase (What to stop carrying, belief to release, cost of staying)'
+            : 'completing the Gold Phase (Gain, New Belief, Strength/Creation)';
       
       systemPrompt += `
 
@@ -2349,7 +2366,26 @@ PHOENIX MISSION (WHITE PHASE):
 1. Help them find the SHIFT - the moment or realization that changed perspective
 2. Extract the LESSON - what wisdom came from this experience
 3. Identify the PROTECTIVE PURPOSE - what this pattern was trying to protect
-4. When complete, celebrate the reframe and guide toward Gold Phase
+4. When complete, celebrate the reframe and guide toward Red Phase
+` : mentorType === 'release_mentor' ? `
+RELEASE MENTOR MISSION (RED PHASE):
+Your role: Help the user decide what they're done carrying.
+
+APPROACH:
+- Opening: "You've gained clarity. Now it's time to decide what you're done carrying."
+- Guide through three questions naturally:
+  1. What are you ready to stop carrying?
+  2. What belief are you ready to let go of?
+  3. If you keep living this pattern, what will it cost you?
+
+- After all 3 are answered, acknowledge: "You're ready for the next phase."
+- Keep it direct. Short. No long emotional processing.
+- When complete, say: "Say 'let's go' to proceed to the Gold Phase."
+
+FORBIDDEN:
+- Do NOT do deep emotional processing (that's White Phase work)
+- Do NOT suggest actions or next steps (that's Gold Phase work)
+- Keep focus on RELEASE, DROPPING, LETTING GO
 ` : `
 STOIC MISSION (GOLD PHASE):
 Your role: Help the user integrate this experience into lasting strength.
@@ -2646,7 +2682,7 @@ IMPORTANT: Continue this conversation naturally. You reached out to the user abo
 
     // === TRANSMUTATION PHASE COMPLETION DETECTION ===
     // Detect when Phoenix/Stoic mentor has completed their phase and user confirms
-    if (isTransmutationSession && (mentorType === 'phoenix_mentor' || mentorType === 'stoic_mentor')) {
+    if (isTransmutationSession && (mentorType === 'phoenix_mentor' || mentorType === 'stoic_mentor' || mentorType === 'release_mentor')) {
       const phaseConfirmationPhrases = [
         'yes', 'yes!', "i'm ready", "let's go", "let's do it", 'ready',
         'absolutely', 'definitely', 'for sure', 'yeah', 'yep', 'yea',
@@ -2724,7 +2760,7 @@ IMPORTANT: Continue this conversation naturally. You reached out to the user abo
           completionSignals.some(signal => lastAssistantMsg.content.toLowerCase().includes(signal));
         
         // Fallback: lower threshold for gold phase since Stoic completes in 3-4 exchanges
-        const goldPhaseMinDepth = mentorType === 'stoic_mentor' ? 3 : 6;
+        const goldPhaseMinDepth = (mentorType === 'stoic_mentor' || mentorType === 'release_mentor') ? 3 : 6;
         const isDeepConversation = conversationDepth >= goldPhaseMinDepth;
         const isShortMessage = message.trim().split(/\s+/).length <= 5;
         
@@ -2732,13 +2768,23 @@ IMPORTANT: Continue this conversation naturally. You reached out to the user abo
           console.log("[chat-mentor] Transmutation phase completion detected for:", mentorType);
           
           // Use AI to extract structured data from the conversation
-          const phase = mentorType === 'phoenix_mentor' ? 'white' : 'gold';
+          const phase = mentorType === 'phoenix_mentor' ? 'white' : mentorType === 'release_mentor' ? 'red' : 'gold';
           const extractionPrompt = phase === 'white' 
             ? `Extract from this conversation the following fields. Return JSON only:
 {
   "shift_moment": "the key moment of shift/realization the user described",
   "lesson_learned": "the main lesson or insight the user gained",
   "protective_purpose": "the protective role this pattern served (if mentioned)"
+}
+
+Conversation:
+${chatHistory?.slice(-10).map((m: any) => `${m.role}: ${m.content}`).join('\n')}`
+            : phase === 'red'
+            ? `Extract from this conversation the following fields. Return JSON only:
+{
+  "release_burden": "what the user is ready to stop carrying",
+  "release_belief": "what belief the user is ready to let go of",
+  "release_cost": "what it will cost them if they keep living this pattern"
 }
 
 Conversation:
@@ -2779,7 +2825,9 @@ ${chatHistory?.slice(-10).map((m: any) => `${m.role}: ${m.content}`).join('\n')}
               }
 
               const closingMessage = phase === 'white'
-                ? "Beautiful. The white phase is complete. Your shift, your lesson, your purpose — they're all anchored now. Let's move to gold. 🤍"
+                ? "Beautiful. The white phase is complete. Your shift, your lesson, your purpose — they're all anchored now. Let's move to release. 🤍"
+                : phase === 'red'
+                ? "The release is done. You've decided what you're no longer carrying. Time for gold. 🔥"
                 : "The gold is yours now. Everything you went through shaped something powerful in you. This transmutation is complete. ✨";
 
               return new Response(

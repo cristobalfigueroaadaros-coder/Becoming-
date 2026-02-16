@@ -5,4 +5,5 @@ export { TransmutationNodeEditModal } from "./TransmutationNodeEditModal";
 export { TransmutationCelebration } from "./TransmutationCelebration";
 export { TransmutationPhaseModal } from "./TransmutationPhaseModal";
 export { WhitePhaseWinCard } from "./WhitePhaseWinCard";
+export { RedPhaseWinCard } from "./RedPhaseWinCard";
 export { TransmutationQueue } from "./TransmutationQueue";

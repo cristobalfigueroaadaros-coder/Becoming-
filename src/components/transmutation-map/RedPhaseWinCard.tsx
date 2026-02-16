@@ -1,27 +1,27 @@
 import { motion, AnimatePresence } from "framer-motion";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
-import { Sparkles, Check, X } from "lucide-react";
+import { Flame, Check, X } from "lucide-react";
 
-interface WhitePhaseWinCardProps {
+interface RedPhaseWinCardProps {
   open: boolean;
   patternName: string;
-  shiftMoment: string;
-  lesson: string;
-  protectivePurpose?: string;
+  releaseBurden: string;
+  releaseBelief: string;
+  releaseCost: string;
   onConfirm: () => void;
   onNotNow: () => void;
 }
 
-export const WhitePhaseWinCard = ({
+export const RedPhaseWinCard = ({
   open,
   patternName,
-  shiftMoment,
-  lesson,
-  protectivePurpose,
+  releaseBurden,
+  releaseBelief,
+  releaseCost,
   onConfirm,
   onNotNow,
-}: WhitePhaseWinCardProps) => {
+}: RedPhaseWinCardProps) => {
   return (
     <AnimatePresence>
       {open && (
@@ -38,16 +38,16 @@ export const WhitePhaseWinCard = ({
             exit={{ scale: 0.9, opacity: 0, y: 20 }}
             transition={{ type: "spring", damping: 20, stiffness: 300 }}
           >
-    <Card className="w-full max-w-md border-slate-300 bg-gradient-to-br from-slate-50 via-white to-slate-100 shadow-xl max-h-[85vh] flex flex-col">
+            <Card className="w-full max-w-md border-red-300 bg-gradient-to-br from-red-50 via-white to-red-100 shadow-xl max-h-[85vh] flex flex-col">
               <CardContent className="pt-6 pb-6 text-center space-y-4 overflow-y-auto flex-1">
                 {/* Icon */}
                 <motion.div
                   initial={{ scale: 0 }}
                   animate={{ scale: 1 }}
                   transition={{ delay: 0.2, type: "spring" }}
-                  className="mx-auto w-14 h-14 rounded-full bg-gradient-to-br from-slate-200 to-slate-300 flex items-center justify-center shadow-lg"
+                  className="mx-auto w-14 h-14 rounded-full bg-gradient-to-br from-red-200 to-red-400 flex items-center justify-center shadow-lg"
                 >
-                  <Sparkles className="w-7 h-7 text-slate-600" />
+                  <Flame className="w-7 h-7 text-white" />
                 </motion.div>
 
                 {/* Title */}
@@ -57,11 +57,11 @@ export const WhitePhaseWinCard = ({
                   transition={{ delay: 0.3 }}
                   className="space-y-1"
                 >
-                  <h2 className="text-lg font-bold text-slate-800">
-                    The Shift Happened ✨
+                  <h2 className="text-lg font-bold text-red-800">
+                    Release Complete 🔥
                   </h2>
-                  <p className="text-xs text-slate-500">
-                    You're seeing clearly now
+                  <p className="text-xs text-red-500">
+                    You've decided what you're done carrying
                   </p>
                 </motion.div>
 
@@ -70,35 +70,37 @@ export const WhitePhaseWinCard = ({
                   initial={{ opacity: 0 }}
                   animate={{ opacity: 1 }}
                   transition={{ delay: 0.4 }}
-                  className="bg-slate-100 rounded-lg px-3 py-2"
+                  className="bg-red-100 rounded-lg px-3 py-2"
                 >
-                  <p className="text-xs text-slate-500 font-medium uppercase tracking-wide">
-                    Pattern
-                  </p>
-                  <p className="font-semibold text-slate-700 text-sm">{patternName}</p>
+                  <p className="text-xs text-red-500 font-medium uppercase tracking-wide">Pattern</p>
+                  <p className="font-semibold text-red-700 text-sm">{patternName}</p>
                 </motion.div>
 
-                {/* Extracted insights */}
+                {/* Release answers */}
                 <motion.div
                   initial={{ opacity: 0 }}
                   animate={{ opacity: 1 }}
                   transition={{ delay: 0.5 }}
                   className="space-y-2 text-left"
                 >
-                  <div className="bg-white/80 border border-slate-200 rounded-lg p-3">
-                    <p className="text-xs text-slate-500 mb-1 font-medium">The Shift</p>
-                    <p className="text-sm text-slate-700">{shiftMoment}</p>
-                  </div>
+                  {releaseBurden && (
+                    <div className="bg-white/80 border border-red-200 rounded-lg p-3">
+                      <p className="text-xs text-red-500 mb-1 font-medium">What You're Letting Go Of</p>
+                      <p className="text-sm text-red-900">{releaseBurden}</p>
+                    </div>
+                  )}
                   
-                  <div className="bg-white/80 border border-slate-200 rounded-lg p-3">
-                    <p className="text-xs text-slate-500 mb-1 font-medium">The Lesson</p>
-                    <p className="text-sm text-slate-700">{lesson}</p>
-                  </div>
+                  {releaseBelief && (
+                    <div className="bg-white/80 border border-red-200 rounded-lg p-3">
+                      <p className="text-xs text-red-500 mb-1 font-medium">Belief Released</p>
+                      <p className="text-sm text-red-900">{releaseBelief}</p>
+                    </div>
+                  )}
 
-                  {protectivePurpose && (
-                    <div className="bg-white/80 border border-slate-200 rounded-lg p-3">
-                      <p className="text-xs text-slate-500 mb-1 font-medium">Protective Role</p>
-                      <p className="text-sm text-slate-700">{protectivePurpose}</p>
+                  {releaseCost && (
+                    <div className="bg-white/80 border border-red-200 rounded-lg p-3">
+                      <p className="text-xs text-red-500 mb-1 font-medium">Cost Recognized</p>
+                      <p className="text-sm text-red-900">{releaseCost}</p>
                     </div>
                   )}
                 </motion.div>
@@ -108,29 +110,29 @@ export const WhitePhaseWinCard = ({
                   initial={{ opacity: 0 }}
                   animate={{ opacity: 1 }}
                   transition={{ delay: 0.6 }}
-                  className="text-xs text-slate-500"
+                  className="text-xs text-red-500"
                 >
-                  The Red Phase is now unlocked.
+                  The Gold Phase is now unlocked.
                 </motion.p>
               </CardContent>
 
               {/* Sticky actions at bottom */}
-              <div className="px-6 pb-6 pt-2 border-t border-slate-200/50 bg-white/90">
+              <div className="px-6 pb-6 pt-2 border-t border-red-200/50 bg-white/90">
                 <div className="flex gap-3">
                   <Button
                     onClick={onNotNow}
                     variant="outline"
-                    className="flex-1 border-slate-300"
+                    className="flex-1 border-red-300"
                   >
                     <X className="w-4 h-4 mr-2" />
                     Not now
                   </Button>
                   <Button
                     onClick={onConfirm}
-                    className="flex-1 bg-slate-700 hover:bg-slate-600"
+                    className="flex-1 bg-red-600 hover:bg-red-500"
                   >
                     <Check className="w-4 h-4 mr-2" />
-                    Confirm White
+                    Confirm Release
                   </Button>
                 </div>
               </div>
