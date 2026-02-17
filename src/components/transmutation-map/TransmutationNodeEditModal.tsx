@@ -101,11 +101,11 @@ const NODE_PROMPTS: Record<string, { prompt: string; examples: string[] }> = {
     ],
   },
   release_burden: {
-    prompt: "What are you ready to stop carrying?",
+    prompt: "What part of this pattern are you tired of repeating?",
     examples: [
-      "The weight of trying to be perfect...",
-      "Responsibility for someone else's feelings...",
-      "The guilt of past decisions...",
+      "Always trying to be perfect before I start...",
+      "Taking responsibility for everyone else's feelings...",
+      "Replaying the same guilt cycle...",
       "Proving myself to people who don't care...",
     ],
   },

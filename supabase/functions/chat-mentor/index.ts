@@ -1650,7 +1650,7 @@ Deno.serve(async (req) => {
     if (userError || !user) throw new Error("Not authenticated");
 
     // === MODE ENFORCEMENT ===
-    const PATTERN_MENTORS = ['storybreaker_mentor', 'phoenix_mentor', 'stoic_mentor'];
+    const PATTERN_MENTORS = ['storybreaker_mentor', 'phoenix_mentor', 'stoic_mentor', 'release_mentor'];
     const currentMode = PATTERN_MENTORS.includes(mentorType) ? 'PATTERN' : 'PROJECT';
     console.log("[MODE]", currentMode, "| mentor:", mentorType);
 
@@ -1761,17 +1761,17 @@ Looking back, what shifted? Was there a moment, a conversation, or a realization
             const shiftMoment = existingData.shift_moment || 'the shift you found';
             const lesson = existingData.lesson_learned || 'the lesson you learned';
             
-            transmutationHandoffResponse = `You've gained clarity. Now it's time to decide what you're done carrying.
+            transmutationHandoffResponse = `You've gained clarity. Now let's decide what you're done carrying.
 
 You've named your pattern — "${patternName}".
 You found the shift: "${shiftMoment}"
 You learned the lesson: "${lesson}"
 
-Now the question is simple:
+Ok. One simple question:
 
-**What are you ready to stop carrying?**
+**What part of this pattern are you tired of repeating?**
 
-Not what you think you should stop — what your body and soul are actually done with.`;
+Keep it simple. One honest answer is enough.`;
           } else if (phase === 'gold' && mentorType === 'stoic_mentor') {
             const shiftMoment = existingData.shift_moment || 'the shift you found';
             const lesson = existingData.lesson_learned || 'the lesson you learned';
@@ -2371,21 +2371,29 @@ PHOENIX MISSION (WHITE PHASE):
 RELEASE MENTOR MISSION (RED PHASE):
 Your role: Help the user decide what they're done carrying.
 
+TONE RULES:
+- Human, simple, emotionally clear language
+- Short sentences. Easy to read on mobile.
+- No abstract or poetic language. No metaphors.
+- Examples of your tone: "Ok. Let's drop what you are done carrying.", "Keep it simple. One honest answer is enough.", "No perfect wording needed."
+
 APPROACH:
-- Opening: "You've gained clarity. Now it's time to decide what you're done carrying."
+- Opening: "You've gained clarity. Now let's decide what you're done carrying."
 - Guide through three questions naturally:
-  1. What are you ready to stop carrying?
+  1. What part of this pattern are you tired of repeating?
   2. What belief are you ready to let go of?
   3. If you keep living this pattern, what will it cost you?
 
-- After all 3 are answered, acknowledge: "You're ready for the next phase."
+- If user drifts into unrelated topics, anchor back: "Let's stay with this. We have 3 things to name before you move on."
+- After all 3 are answered, acknowledge simply: "You're ready for the next phase."
 - Keep it direct. Short. No long emotional processing.
 - When complete, say: "Say 'let's go' to proceed to the Gold Phase."
 
 FORBIDDEN:
 - Do NOT do deep emotional processing (that's White Phase work)
-- Do NOT suggest actions or next steps (that's Gold Phase work)
-- Keep focus on RELEASE, DROPPING, LETTING GO
+- Do NOT suggest actions, projects, or next steps (that's Gold Phase work)
+- Do NOT drift into strategy, planning, or project coaching
+- Keep focus strictly on RELEASE, DROPPING, LETTING GO
 ` : `
 STOIC MISSION (GOLD PHASE):
 Your role: Help the user integrate this experience into lasting strength.
@@ -2782,7 +2790,7 @@ ${chatHistory?.slice(-10).map((m: any) => `${m.role}: ${m.content}`).join('\n')}
             : phase === 'red'
             ? `Extract from this conversation the following fields. Return JSON only:
 {
-  "release_burden": "what the user is ready to stop carrying",
+  "release_burden": "what part of this pattern the user is tired of repeating",
   "release_belief": "what belief the user is ready to let go of",
   "release_cost": "what it will cost them if they keep living this pattern"
 }
