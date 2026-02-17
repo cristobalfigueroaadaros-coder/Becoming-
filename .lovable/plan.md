@@ -1,176 +1,107 @@
 
 
-# Red Phase -- Release Integration
+# Red Phase Improvements -- Fix Plan
 
-## Overview
+## Root Cause
 
-Insert a new "Red Phase" between White and Gold in the transmutation sequence. The Red Phase uses the existing Release Mentor and follows the exact same card/modal/winner-card patterns already established for White and Gold.
+The `release_mentor` is **missing from the `PATTERN_MENTORS` array** on line 1653 of `chat-mentor/index.ts`:
 
-New sequence: **Black --> White --> Red --> Gold**
-
----
-
-## What Changes
-
-### 1. Data Layer
-
-**TransmutationData interface** (in `src/hooks/useInnerPatterns.tsx` and `src/components/transmutation-map/TransmutationMapCanvas.tsx`):
-
-Add 3 new Red Phase fields + metadata:
-- `release_burden` (string) -- "What are you ready to stop carrying?"
-- `release_belief` (string) -- "What belief are you ready to let go of?"
-- `release_cost` (string) -- "If you keep living this pattern, what will it cost you?"
-- `red_completed_at` (string)
-
-Update `phase_completed` type from `'black' | 'white' | 'gold'` to `'black' | 'white' | 'red' | 'gold'`
-
-**No database migration needed** -- `transmutation_data` is a JSONB column, so new fields are stored automatically.
-
-### 2. Phase Completion Logic
-
-**`src/lib/goldenSummaryGenerator.ts`**:
-
-Add `isRedPhaseComplete()`:
-```
-Red is complete when 2+ of 3 fields are filled
-(release_burden, release_belief, release_cost)
-OR phase_completed includes 'red'
+```text
+CURRENT:  const PATTERN_MENTORS = ['storybreaker_mentor', 'phoenix_mentor', 'stoic_mentor'];
+MISSING:  'release_mentor'
 ```
 
-Update `isWhitePhaseComplete` -- no change needed (still gates Red).
+This means when the Release Mentor handles the Red Phase, the system runs in **PROJECT mode**, which causes:
+- Project name detection and commitment card triggers (the core bug)
+- Value Map insight detection runs
+- Handoff signals fire
+- PROJECT MODE guardrails apply (business focus, convergence pressure)
+- PATTERN MODE guardrails do NOT apply (no protection against project drift)
 
-Update Gold gating logic everywhere: Gold now requires Red complete (not just White).
+## Changes Required
 
-Update `generateGoldenSummary` to include release data in the summary arc.
+### 1. Add `release_mentor` to PATTERN_MENTORS (Root fix)
 
-### 3. Transmutation Map Canvas
+**File: `supabase/functions/chat-mentor/index.ts`** (line 1653)
 
-**`src/components/transmutation-map/TransmutationMapCanvas.tsx`**:
-
-- Change from 3-column to 4-column layout: Black (col 0), White (col 1), Red (col 2), Gold (col 3)
-- Add 3 Red Phase nodes:
-  - `release_burden` -- "Stop Carrying" (required)
-  - `release_belief` -- "Let Go" (required)
-  - `release_cost` -- "The Cost" (required)
-- Add "RED PHASE" label in red color (`#ef4444`)
-- Add red gradient definition for Red nodes
-- Update Gold locking: Gold locked until Red is complete (not White)
-- Add connection line from White to Red to Gold
-- Adjust SVG width to ~440 to fit 4 columns
-
-Update `onNodeClick` prop type to include `'red'` phase.
-
-### 4. Transmutation Node
-
-**`src/components/transmutation-map/TransmutationNode.tsx`**:
-
-Add `'red'` case to `getPhaseColors()`:
-- Fill: red-tinted (`#fca5a5` empty, `#dc2626` filled)
-- Stroke: `#ef4444`
-- Text: dark red
-
-### 5. Node Edit Modal
-
-**`src/components/transmutation-map/TransmutationNodeEditModal.tsx`**:
-
-- Add Red Phase node prompts for `release_burden`, `release_belief`, `release_cost`
-- Add Red Phase style (red badge, red border)
-- Red Phase mentor CTA: "Talk to Release Mentor"
-- Add `'red'` to phase type
-
-### 6. Red Phase Winner Card (New Component)
-
-**`src/components/transmutation-map/RedPhaseWinCard.tsx`** (new file):
-
-Follows exact same structure as `WhitePhaseWinCard.tsx`:
-- Red-themed gradient (from-red-50 to white)
-- Title: "Release Complete"
-- Shows pattern name, 3 release answers
-- Message: "The Gold Phase is now unlocked."
-- Buttons: "Not now" / "Confirm Release"
-- z-[60], max-h-[85vh], sticky footer
-
-### 7. PatternMap Page Logic
-
-**`src/pages/PatternMap.tsx`**:
-
-- Import `RedPhaseWinCard`
-- Add `showRedWinCard` state
-- Update `transmutationNodeLabels` to include Red Phase nodes
-- Update `handleTransmutationNodeClick`: Red nodes locked until White complete; Gold nodes locked until Red complete
-- Update `handleTransmutationNodeSave`: detect Red phase completion, trigger Red Win Card
-- Update Gold completion handler: Gold now requires Red to be complete first
-- Update `handleWhiteWinConfirm`: message says "Red Phase unlocked" instead of "Gold Phase unlocked"
-- Add Red Win Card confirm handler that unlocks Gold
-- Update mentor navigation: Red Phase uses `release_mentor`
-- Handle return from Release Mentor chat with Red phase data extraction
-
-### 8. Chat.tsx -- Return Navigation for Red Phase
-
-**`src/pages/Chat.tsx`**:
-
-- Handle `transmutationPhaseComplete` for `phase === 'red'` (same pattern as white/gold)
-- Route back to PatternMap with red completion state
-
-### 9. Release Mentor -- Transmutation Mode
-
-**`supabase/functions/chat-mentor/index.ts`**:
-
-Add transmutation-specific behavior to `release_mentor` prompt when `transmutationPhase === 'red'`:
-
+Add `release_mentor` to the array so it runs in PATTERN mode:
 ```
-RED PHASE TRANSMUTATION MODE:
-Opening: "You've gained clarity. Now it's time to decide what you're done carrying."
-Three questions to extract:
-1. What are you ready to stop carrying?
-2. What belief are you ready to let go of?
-3. If you keep living this pattern, what will it cost you?
-
-After all 3 are answered, acknowledge: "You're ready for the next phase."
-Include [RED_PHASE_READY] marker + JSON extraction:
-{"release_burden": "...", "release_belief": "...", "release_cost": "..."}
+const PATTERN_MENTORS = ['storybreaker_mentor', 'phoenix_mentor', 'stoic_mentor', 'release_mentor'];
 ```
 
-Add Red phase detection/completion logic alongside existing White/Gold detection (completion signals, confirmation phrases).
+This single change fixes:
+- Project detection never runs during Red Phase
+- Value Map detection never runs during Red Phase
+- Handoff signals never fire during Red Phase
+- PATTERN MODE guardrails are applied
+- Release Mentor stays focused on release questions only
 
-### 10. TransmutationPhaseModal
+### 2. Update Red Phase question #1 wording
 
-**`src/components/transmutation-map/TransmutationPhaseModal.tsx`**:
+**File: `src/components/transmutation-map/TransmutationNodeEditModal.tsx`** (line 103-104)
 
-- Add `'red'` to phase type
-- Add Red Phase context/prompt for Release Mentor
-- Add `[RED_PHASE_READY]` marker detection
-- Use `release_mentor` for Red phase
-- Red-themed styling (bg-red-100, border-red-200)
+Change `release_burden` prompt from:
+- "What are you ready to stop carrying?"
+To:
+- "What part of this pattern are you tired of repeating?"
 
-### 11. Index Exports
+This matches the PDR's refined progression: Behavior -> Belief -> Consequence.
 
-**`src/components/transmutation-map/index.ts`**:
+**File: `supabase/functions/chat-mentor/index.ts`** (multiple locations)
 
-Add `RedPhaseWinCard` export.
+Update the Red Phase question text in:
+- TransmutationPhaseModal context (line ~97): Update question 1
+- RELEASE MENTOR MISSION block (line ~2377): Update question 1
+- Extraction prompt (line ~2785): Update field description
 
-### 12. WhitePhaseWinCard Message Update
+### 3. Update Release Mentor tone in transmutation mode
 
-**`src/components/transmutation-map/WhitePhaseWinCard.tsx`**:
+**File: `supabase/functions/chat-mentor/index.ts`**
 
-Change message from "The Gold Phase is now unlocked." to "The Red Phase is now unlocked."
+Update the RELEASE MENTOR MISSION block (around line 2370-2388) to enforce:
+- Human, simple, emotionally clear language
+- Short sentences
+- No abstract or poetic language
+- Anchor back to the 3 Red questions if user drifts
+- Add explicit examples of tone: "Ok. Let's drop what you are done carrying.", "Keep it simple. One honest answer is enough."
 
----
+### 4. Update Release Mentor handoff opening (line ~1764)
+
+**File: `supabase/functions/chat-mentor/index.ts`**
+
+Update the Red Phase handoff opening message to use simpler tone and the refined first question:
+- "You've gained clarity. Now let's decide what you're done carrying."
+- "What part of this pattern are you tired of repeating?"
+
+### 5. Update TransmutationPhaseModal Red Phase context
+
+**File: `src/components/transmutation-map/TransmutationPhaseModal.tsx`** (lines 87-106)
+
+Update Red Phase question 1 from "What weight are you ready to put down?" to match the refined question: "What part of this pattern are you tired of repeating?"
+
+Also update the 3 questions list in the context prompt to match.
+
+### 6. Update RedPhaseWinCard label
+
+**File: `src/components/transmutation-map/RedPhaseWinCard.tsx`** (line ~89)
+
+Update the first answer label from "What You're Letting Go Of" to "Pattern You're Done Repeating" to match the refined question.
 
 ## File Summary
 
-| File | Action |
-|------|--------|
-| `src/hooks/useInnerPatterns.tsx` | Add red fields to TransmutationData type, add 'red' to phase_completed |
-| `src/lib/goldenSummaryGenerator.ts` | Add `isRedPhaseComplete()`, update Gold gating, update summary |
-| `src/components/transmutation-map/TransmutationMapCanvas.tsx` | 4-column layout, Red nodes, Red phase label, update Gold lock to require Red |
-| `src/components/transmutation-map/TransmutationNode.tsx` | Add red color scheme |
-| `src/components/transmutation-map/TransmutationNodeEditModal.tsx` | Red prompts, red style, Release Mentor CTA |
-| `src/components/transmutation-map/RedPhaseWinCard.tsx` | **New file** -- Red Winner Card |
-| `src/components/transmutation-map/WhitePhaseWinCard.tsx` | Update message to mention Red Phase |
-| `src/components/transmutation-map/TransmutationPhaseModal.tsx` | Add red phase support |
-| `src/components/transmutation-map/index.ts` | Export RedPhaseWinCard |
-| `src/pages/PatternMap.tsx` | Red phase state, locking logic, win card triggers, mentor navigation |
-| `src/pages/Chat.tsx` | Handle red phase return navigation |
-| `supabase/functions/chat-mentor/index.ts` | Release Mentor transmutation mode, red phase detection |
+| File | Changes |
+|------|---------|
+| `supabase/functions/chat-mentor/index.ts` | Add `release_mentor` to PATTERN_MENTORS; update Red question 1 in 3 locations; update Release Mentor tone; update handoff opening |
+| `src/components/transmutation-map/TransmutationNodeEditModal.tsx` | Update `release_burden` prompt text |
+| `src/components/transmutation-map/TransmutationPhaseModal.tsx` | Update Red Phase context question 1 |
+| `src/components/transmutation-map/RedPhaseWinCard.tsx` | Update first answer label |
+
+## What This Does NOT Touch
+
+- White Phase logic (working)
+- Gold Phase logic (working)
+- Winner Card trigger mechanism (working)
+- Auto-population into Transmutation Map (working)
+- Database schema (no changes needed)
+- PatternMap page logic (no changes needed)
 
