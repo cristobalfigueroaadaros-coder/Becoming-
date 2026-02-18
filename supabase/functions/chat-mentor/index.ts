@@ -2503,9 +2503,10 @@ IMPORTANT: Reference their specific struggles and aspirations naturally in your 
       }
     }
 
-    // 3. Add council meeting context if available (only if no handoff)
+    // 3. Add council meeting context if available (only if no handoff, only at session start)
     let councilContext = "";
-    if (!handoffContext && privateMessage?.council_meetings && Array.isArray(privateMessage.council_meetings) && privateMessage.council_meetings.length > 0) {
+    const isTransmutationConfirmation = ['let\'s go', 'lets go', 'yes', 'ready', 'ok', 'sure'].includes(message.trim().toLowerCase());
+    if (!handoffContext && conversationDepth === 0 && !isTransmutationConfirmation && privateMessage?.council_meetings && Array.isArray(privateMessage.council_meetings) && privateMessage.council_meetings.length > 0) {
       const meeting = privateMessage.council_meetings[0];
       councilContext = `
 
@@ -2525,7 +2526,7 @@ ${meeting.emotional_tone ? `EMOTIONAL TONE: ${meeting.emotional_tone}` : ''}
 YOUR PRIVATE MESSAGE TO THE USER:
 "${privateMessage.message}"
 
-IMPORTANT: Continue this conversation naturally. You reached out to the user about this specific topic from the council meeting. Help them dig deeper into this insight, explore practical next steps, and leverage your unique perspective to expand their understanding.
+IMPORTANT: If this council insight feels genuinely relevant to what the user just raised, you may briefly reference it. If not, let it go and respond to what they actually said. Do not force this context into every reply.
 === END COUNCIL CONTEXT ===
 `;
     }
@@ -2723,6 +2724,7 @@ IMPORTANT: Continue this conversation naturally. You reached out to the user abo
         const lastAssistantMsg = previousAssistantMessages[previousAssistantMessages.length - 1];
         
         const completionSignals = [
+          // Gold Phase (Stoic Mentor) signals
           'ready for the next step',
           'this part of the journey is complete',
           'phase is complete',
@@ -2754,21 +2756,35 @@ IMPORTANT: Continue this conversation naturally. You reached out to the user abo
           'solidify this transmutation',
           'engrave this',
           'living principle',
-           'clarity',
-           'strength you cultivated',
-           'unlock your superpowers',
-           'reveal them',
-           'ready to see what you',
-           'superpowers are ready',
-           'say yes to unlock',
-           'say let',
+          'clarity',
+          'strength you cultivated',
+          'unlock your superpowers',
+          'reveal them',
+          'ready to see what you',
+          'superpowers are ready',
+          'say yes to unlock',
+          'say let',
+          // Red Phase (Release Mentor) specific signals
+          'proceed to the gold phase',
+          'ready for the next phase',
+          'decided what you are done carrying',
+          'done carrying',
+          'no longer carrying',
+          'time for gold',
+          'gold phase is next',
+          'you are ready for the next phase',
+          'what you\'re done carrying',
+          'release is done',
+          'you\'ve named',
+          'you\'ve clearly defined',
+          'let\'s go to',
         ];
         
         const hasCompletionSignal = lastAssistantMsg?.content && 
           completionSignals.some(signal => lastAssistantMsg.content.toLowerCase().includes(signal));
         
         // Fallback: lower threshold for gold phase since Stoic completes in 3-4 exchanges
-        const goldPhaseMinDepth = (mentorType === 'stoic_mentor' || mentorType === 'release_mentor') ? 3 : 6;
+        const goldPhaseMinDepth = mentorType === 'stoic_mentor' ? 3 : mentorType === 'release_mentor' ? 2 : 6;
         const isDeepConversation = conversationDepth >= goldPhaseMinDepth;
         const isShortMessage = message.trim().split(/\s+/).length <= 5;
         

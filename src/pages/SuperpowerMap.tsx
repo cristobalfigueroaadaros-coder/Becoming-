@@ -1,10 +1,11 @@
 import { useEffect, useState } from "react";
-import { useNavigate } from "react-router-dom";
+import { useNavigate, useLocation } from "react-router-dom";
 import { motion, AnimatePresence } from "framer-motion";
 import { Button } from "@/components/ui/button";
 import { ArrowLeft, User, Zap } from "lucide-react";
 import { useSuperpowers, type Superpower } from "@/hooks/useSuperpowers";
 import confetti from "canvas-confetti";
+import { toast } from "sonner";
 
 const colorMap: Record<string, string> = {
   amber: "from-amber-400 to-amber-600 shadow-amber-500/30 border-amber-500/40",
@@ -29,8 +30,18 @@ const getAngle = (index: number, total: number) => {
 
 const SuperpowerMap = () => {
   const navigate = useNavigate();
+  const location = useLocation();
   const { superpowers, loading } = useSuperpowers();
   const [hasAnimated, setHasAnimated] = useState(false);
+
+  useEffect(() => {
+    const state = location.state as { fromTransmutation?: boolean; patternName?: string } | null;
+    if (state?.fromTransmutation) {
+      const patternName = state.patternName ? ` from "${state.patternName}"` : '';
+      toast.success(`New superpowers unlocked${patternName}! Scroll to discover them. ⚡`);
+      window.history.replaceState({}, document.title);
+    }
+  }, []);
 
   useEffect(() => {
     if (superpowers.length > 0 && !hasAnimated) {
@@ -47,6 +58,7 @@ const SuperpowerMap = () => {
   const maxPerRing = 6;
   const totalSlots = Math.max(8, superpowers.length + 3);
   const emptySlots = totalSlots - superpowers.length;
+
 
   // Group superpowers by category for the list view
   const grouped = superpowers.reduce<Record<string, Superpower[]>>((acc, sp) => {

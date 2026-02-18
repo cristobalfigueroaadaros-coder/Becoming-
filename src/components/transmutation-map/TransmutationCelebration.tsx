@@ -1,9 +1,10 @@
 import { useEffect } from "react";
+import { useNavigate } from "react-router-dom";
 import { motion, AnimatePresence } from "framer-motion";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import { ScrollArea } from "@/components/ui/scroll-area";
-import { Sparkles, BookOpen, ArrowRight } from "lucide-react";
+import { Sparkles, BookOpen, ArrowRight, Zap } from "lucide-react";
 import confetti from "canvas-confetti";
 
 interface SuperpowerBadge {
@@ -33,6 +34,7 @@ export const TransmutationCelebration = ({
   onViewLifetime,
   onClose,
 }: TransmutationCelebrationProps) => {
+  const navigate = useNavigate();
   useEffect(() => {
     if (open) {
       const goldColors = ['#fbbf24', '#f59e0b', '#d97706', '#fcd34d', '#fef3c7'];
@@ -141,39 +143,11 @@ export const TransmutationCelebration = ({
                     )}
                   </motion.div>
 
-                  {/* Superpowers */}
-                  {superpowers.length > 0 && (
-                    <motion.div
-                      initial={{ opacity: 0 }}
-                      animate={{ opacity: 1 }}
-                      transition={{ delay: 0.6 }}
-                      className="space-y-2"
-                    >
-                      <p className="text-xs text-amber-400 font-medium uppercase tracking-wide">
-                        Superpowers Unlocked
-                      </p>
-                      <div className="flex flex-wrap justify-center gap-2">
-                        {superpowers.map((sp, i) => (
-                          <motion.div
-                            key={i}
-                            initial={{ scale: 0 }}
-                            animate={{ scale: 1 }}
-                            transition={{ delay: 0.7 + i * 0.1, type: "spring" }}
-                            className="flex items-center gap-1.5 px-3 py-1.5 rounded-full bg-amber-500/10 border border-amber-500/20"
-                          >
-                            <span>{sp.icon}</span>
-                            <span className="text-sm font-medium text-foreground">{sp.name}</span>
-                          </motion.div>
-                        ))}
-                      </div>
-                    </motion.div>
-                  )}
-
                   {/* Message */}
                   <motion.p
                     initial={{ opacity: 0 }}
                     animate={{ opacity: 1 }}
-                    transition={{ delay: 0.8 }}
+                    transition={{ delay: 0.6 }}
                     className="text-sm text-muted-foreground"
                   >
                     This is now part of who you are becoming.
@@ -191,19 +165,18 @@ export const TransmutationCelebration = ({
                       className="w-full bg-gradient-to-r from-amber-500 to-amber-600 hover:from-amber-400 hover:to-amber-500 text-white"
                       size="lg"
                     >
-                      <Sparkles className="w-4 h-4 mr-2" />
-                      Save Gold Insight
+                      <Zap className="w-4 h-4 mr-2" />
+                      Discover Your Superpowers ⚡
                     </Button>
                     
-                    <Button
+                    <button
                       onClick={onViewLifetime}
-                      variant="outline"
-                      className="w-full border-amber-500/30 text-amber-400 hover:bg-amber-500/10"
+                      className="w-full text-sm text-amber-400/70 hover:text-amber-400 flex items-center justify-center gap-1 transition-colors"
                     >
-                      <BookOpen className="w-4 h-4 mr-2" />
+                      <BookOpen className="w-3 h-3" />
                       View in Lifetime Map
-                      <ArrowRight className="w-4 h-4 ml-2" />
-                    </Button>
+                      <ArrowRight className="w-3 h-3" />
+                    </button>
                   </motion.div>
                 </CardContent>
               </ScrollArea>
