@@ -85,7 +85,7 @@ export const RedPhaseWinCard = ({
                 >
                   {releaseBurden && (
                     <div className="bg-white/80 border border-red-200 rounded-lg p-3">
-                      <p className="text-xs text-red-500 mb-1 font-medium">Pattern You're Done Repeating</p>
+                      <p className="text-xs text-red-500 mb-1 font-medium">What You're Tired of Repeating</p>
                       <p className="text-sm text-red-900">{releaseBurden}</p>
                     </div>
                   )}

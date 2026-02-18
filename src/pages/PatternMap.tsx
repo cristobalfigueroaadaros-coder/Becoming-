@@ -335,8 +335,7 @@ const PatternMap = () => {
 
   const handleCelebrationSaveGold = () => {
     setShowCelebration(false);
-    toast.success("Gold insight saved to your journey");
-    navigate('/superpower-map');
+    navigate('/superpower-map', { state: { fromTransmutation: true, patternName: pattern?.pattern_name } });
   };
 
   const handleCelebrationViewLifetime = async () => {
