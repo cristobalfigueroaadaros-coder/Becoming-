@@ -274,18 +274,19 @@ Return ONLY the question, nothing else.` }
 
 Respond as the Builders Team. Provide:
 
-1. **councilInsight**: A unified team insight (2-3 sentences) that synthesizes the builders' perspective on what to build or test next.
+1. **councilInsight**: A unified team insight (2-3 sentences) that synthesizes the builders' perspective on what to build or test next. This must ADD something new — not just summarize what the mentors said.
 
-2. **mentorPerspectives**: Each builder's unique take (2-3 sentences each):
-   - design_thinking_mentor: Focus on experimentation and iteration
-   - ux_mentor: Focus on emotional journey and user feeling
-   - gamification_mentor: Focus on engagement and progression
+2. **mentorPerspectives**: Each builder's unique take — they must NOT overlap in lens:
+   - design_thinking_mentor: DIMENSION = experiment_design — the fastest way to test this idea. Push for speed, prototypes, learning. May challenge the others if they're overthinking.
+   - ux_mentor: DIMENSION = user_emotional_journey — how will the end user feel at each stage? If design_thinking is rushing, push back: "Speed doesn't matter if the emotional journey is wrong."
+   - gamification_mentor: DIMENSION = engagement_mechanics — what keeps people coming back? Find the bridge between the other two when they disagree.
 
-3. **banterLines**: 3-4 short exchanges between the builders (like a design meeting). Each line should be 1-2 sentences. Show them:
-   - Building on each other's ideas
-   - Playfully disagreeing or challenging
-   - Finding common ground
-   - Making the conversation feel alive
+3. **banterLines**: 3-4 lines from a real design meeting where people have opinions.
+   - Design Thinking might push for speed: "We're overthinking this. Build it."
+   - UX might push back: "But if the emotional journey is wrong, speed doesn't matter."
+   - Gamification finds the bridge: "Make the first interaction a 30-second win, then build from there."
+   At least one line must reference the user's specific situation — not generic design advice.
+   Disagreement is healthy. Construction, not harmony.
 
 4. **emotionalReflection**: A brief observation about where the user might be in their creative process.
 
