@@ -65,6 +65,33 @@ const KEYWORD_HIGHLIGHTING_RULES = `
 === END RULES ===
 `;
 
+// === COUNCIL DIFFERENTIATION: DIMENSION POOLS ===
+const DIMENSION_POOLS: Record<string, string[]> = {
+  project: [
+    'identity — who this person is being in this moment',
+    'behavior — what they are actually doing vs. what they say',
+    'system — the structural or process gap creating friction',
+    'blind_spot — what they cannot see that others can',
+    'risk — what could go wrong if this continues',
+    'leverage — where one move unlocks the most',
+    'market_reality — what the market or people actually want',
+    'long_term_consequence — where this leads if nothing changes in 3-5 years',
+    'short_term_action — the one concrete thing to move the needle this week',
+    'leadership_maturity — what level of thinking or leadership this requires',
+    'accountability — who is responsible and what is the honest measure',
+    'narrative_distortion — the story they are telling themselves that may not be true',
+  ],
+};
+
+function assignMentorDimensions(mentors: string[]): Record<string, string> {
+  const pool = [...DIMENSION_POOLS.project].sort(() => Math.random() - 0.5);
+  const assignments: Record<string, string> = {};
+  mentors.forEach((m, i) => {
+    assignments[m] = pool[i % pool.length];
+  });
+  return assignments;
+}
+
 // 12+ mentor system with updated personalities
 const mentorNames: Record<string, string> = {
   discipline_mentor: "Discipline Mentor",
@@ -701,10 +728,12 @@ CRITICAL RULES:
 - Show that you've been listening and remembering
 - Use their actual words from their foundation story when relevant
 
-Generate 2-3 sentences that:
-${isQ1 ? '- Light, welcoming, inspiring\n- Establish understanding of their intention\n- Show you know their background' : ''}
-${isQ3 ? '- Acknowledge their full journey so far\n- Synthesize all they have shared including their foundation\n- Point toward action based on EVERYTHING discussed' : ''}
+IMPORTANT: Do NOT repeat any theme already covered in the mentor perspectives or banter.
+The Council Insight must add something NEW — a synthesis, a north star, or an observation that none of the individual mentors captured.
+${isQ1 ? 'Q1: Show the Council sees the PERSON, not just the idea. 1-2 observational sentences that are warm and grounding, not motivational-poster generic.' : ''}
+${isQ3 ? 'Q3: Name what has shifted or clarified across the full conversation. Point toward the north star. Make it feel earned.' : ''}
 
+Generate 2-3 sentences that are specific to this person and this moment.
 Just the insight, no labels.`;
 
       const insightResponse = await fetch("https://ai.gateway.lovable.dev/v1/chat/completions", {
@@ -752,6 +781,13 @@ Just the insight, no labels.`;
     console.log(`Selected ${selectedMentors.length} mentors for ${councilType} (mandatory: ${MANDATORY_MENTORS.join(', ')}):`, selectedMentors);
     
     const mentorPerspectives: Record<string, string> = {};
+
+    // Assign unique dimensions to each mentor to prevent overlap
+    const mentorDimensionMap = assignMentorDimensions(selectedMentors);
+    const userName = profile?.display_name || null;
+    const nameInstruction = userName
+      ? `The user's name is ${userName}. Use it naturally once if it fits — not in every sentence.`
+      : '';
 
     for (const mentorType of selectedMentors) {
       const mentorConfig = mentorPrompts[mentorType];
@@ -969,7 +1005,7 @@ Generate EXACTLY 1-2 sentences. No more. Sharp, clear, directional.
 ${KEYWORD_HIGHLIGHTING_RULES}`;
 
       } else {
-        // Standard prompt for other mentors
+        // Standard prompt for other mentors — with DIMENSION LOCK for non-echo-chamber differentiation
         const conversationContext = formatConversationHistory(safeConversationHistory);
         
         systemPrompt = `You are ${mentorNames[mentorType]}.
@@ -981,18 +1017,21 @@ ${conversationContext}
 CURRENT Question: "${question}"
 Question phase: ${isQ1 ? 'Q1 Discovery' : isQ2 ? 'Q2 Depth' : 'Q3 Momentum'}
 Hidden tags: ${extractedTags.join(', ')}
+${nameInstruction}
 
-CRITICAL: 
-- Build upon what the user has already shared in previous messages
+YOUR ASSIGNED DIMENSION FOR THIS ROUND: ${mentorDimensionMap[mentorType]}
+You must respond EXCLUSIVELY through this lens.
+Do not give emotional validation if your dimension is 'risk' or 'system'.
+Do not give strategy if your dimension is 'emotional_root' or 'identity'.
+Do not repeat what another mentor would say — your job is to bring something structurally different.
+
+CRITICAL:
+- Build upon what the user has already shared
 - Reference their specific goals, ideas, or problems by name
 - Do NOT ask about things they already told you
 - Show you've been paying attention throughout the conversation
 
-Generate 1-2 sentences ONLY in your unique voice.
-${isQ1 ? 'Keep it punchy and mobile-friendly.' : ''}
-${isQ2 ? 'Slightly deeper, but still concise.' : ''}
-${isQ3 ? 'Acknowledge readiness, build momentum.' : ''}
-
+Generate 1-2 sentences ONLY through your assigned dimension lens.
 Strong personality. Sharp. Clear. No fluff.
 Just your perspective, no labels or format.
 
@@ -1052,100 +1091,41 @@ Mission: ${profile.main_mission}`;
 
     const conversationContextBanter = formatConversationHistory(safeConversationHistory);
 
-    const banterPrompt = `Generate authentic WhatsApp-style group chat banter between these mentors:
+    const banterPrompt = `Generate authentic advisory room conversation between these mentors discussing the user's question.
 ${conversationContextBanter}
 
-${selectedMentors.map((type: string) => {
-  const mentor = mentorPrompts[type];
-  return `${mentorNames[type]}: ${mentor?.personality || 'wise'} (Flaw: ${mentor?.flaw || 'none'})`;
-}).join('\n')}
+They are NOT a motivational panel. They are a real team with different minds, occasionally disagreeing, building on each other — not just validating.
 
-Their perspectives on the CURRENT question:
+EACH MENTOR'S ASSIGNED DIMENSION FOR THIS ROUND (they must stay in their lane):
+${selectedMentors.map((type: string) => `- ${mentorNames[type]}: ${mentorDimensionMap[type]}`).join('\n')}
+
+THE USER'S QUESTION: "${question}"
+${userName ? `THE USER'S NAME: ${userName}` : ''}
+
+Their individual perspectives already given:
 ${Object.entries(mentorPerspectives).map(([type, persp]) => `${mentorNames[type]}: ${persp}`).join('\n')}
 
-🎯 THE USER'S CURRENT QUESTION:
-"${question}"
+DETECTED USER THEMES: ${extractedTags.length > 0 ? extractedTags.join(', ') : 'general exploration'}
 
-CRITICAL CONTEXT RULES:
-- The mentors have been following this ENTIRE conversation
-- They KNOW what the user has already shared (goals, ideas, problems, feelings)
-- They should REFERENCE specific things from earlier in the conversation
-- They should NOT ask "what is your goal?" if the user already stated it
-- Build on the momentum of the full conversation
-- Show the user feels HEARD and UNDERSTOOD
+LIVING CONVERSATION RULES:
+1. Mentors refer to the user by name if known — naturally, once
+2. At least ONE mentor must challenge or push back on what another mentor said
+3. At least ONE mentor must express genuine belief in the user
+4. At least ONE line must connect to concrete action or consequence
+5. Each line must come from a DIFFERENT dimensional lens — no two mentors make the same type of comment
+6. No generic praise. No "this is exciting." Only specific, earned responses to what the user actually shared
+7. Mentors may express skepticism, disagreement, or confidence — not just support
+8. Reference the user's SPECIFIC idea/goal/problem, not generic advice
 
-The mentors must discuss THIS specific idea/purpose/problem - not generic philosophy.
+EXAMPLE DYNAMIC (when user says "I want to start a meditation app"):
+[Business Mentor — market_reality]: "Anxiety apps are crowded. What's going to make this one worth switching to?"
+[Heart Mentor — emotional_root]: "Wait — is this about the app or the fact that they struggled themselves and want to help?"
+[Discipline Mentor — behavior]: "I'm watching whether they actually meditate daily. You can't teach what you don't live."
+[Quantum Inventor — identity]: "The frequency of someone building to heal others is completely different from building to make money. Which is it?"
+[Creative Visionary — short_term_action]: "Stop debating the market. Build one guided session. Share it with 5 people this week."
 
-🔍 DETECTED USER THEMES (reference these naturally): ${extractedTags.length > 0 ? extractedTags.join(', ') : 'general exploration'}
-
-🎯 FREQUENCY ELEVATION DETECTION:
-Analyze if user is moving UP the consciousness scale:
-- From Fear/Shame (20-150) → Courage (200+) = "They're breaking through fear"
-- From Anger/Pride (150-200) → Acceptance (350+) = "They're letting go of control"  
-- From Willingness (310) → Love/Joy (540-600) = "Their frequency is rising fast"
-- Stuck in lower state = "Still operating from [emotion]"
-
-Create ${banterLength === 'SHORT' ? '3-4' : banterLength === 'MEDIUM' ? '5-6' : '7-9'} lines where mentors:
-
-✅ REQUIRED - DISCUSS BOTH THE USER AND THEIR IDEA:
-
-REACT TO THE IDEA/PURPOSE/PROBLEM:
-- What do they think of the idea itself?
-- Is it viable? Is it meaningful? Is it unique?
-- What potential does this idea have?
-- What are the challenges with this specific goal?
-
-CHALLENGE THE USER'S COMMITMENT:
-- Do they think the user will actually follow through?
-- Is this just talk or real intention?
-- What would prove they're serious?
-
-ROOT FOR THE USER:
-- Express belief in their potential
-- See something special in them
-- Want them to succeed
-
-CHALLENGE TO ACTION:
-- Demand they prove it
-- Ask for the first step
-- Say they want to see results
-
-🎭 EXAMPLE BANTER FLOW:
-
-If user says "I want to start a meditation app to help people with anxiety":
-
-[Business Mentor]: "A meditation app? That market is crowded. But anxiety... that's real pain. What's going to make theirs different?"
-[Heart Mentor]: "I felt it when they said it - this isn't about money for them. They genuinely want to help people."
-[Discipline Mentor]: "Wanting to help is beautiful. But have they even meditated consistently themselves? You can't teach what you don't live."
-[Quantum Inventor]: "Their field is resonating with service. This idea didn't come from the mind - it came from something deeper."
-[Business Mentor]: "Okay, I'm intrigued. But they need to build ONE feature, not dream about the whole app. What's step one?"
-[Heart Mentor]: "We're rooting for you! Now show us you can do the work. Come back with progress."
-
-🎭 TONE RULES:
-- PLAYFUL: Like coaches who believe in you but won't let you off easy
-- PUNCHY: Short, direct statements (1-2 sentences max per message)
-- SPECIFIC: Reference the actual idea/goal, not generic advice
-- WARM: Never mean - they WANT the user to succeed
-- CHALLENGING: Push them to prove themselves
-
-❌ NEVER:
-- Generic philosophy without mentioning the user's specific idea
-- Being mean, dismissive, or discouraging
-- Only talking about the user without discussing their idea
-- Only talking about the idea without challenging the user
-- Long paragraphs or lectures
-
-✅ ALWAYS:
-- Reference the SPECIFIC idea/purpose/problem the user mentioned
-- Include debate about the idea's potential/challenges
-- Include at least ONE challenge to the user ("prove it", "show us")
-- Include at least ONE vote of confidence
-- Make it feel like a real conversation about a real person with a real idea
-
-Format: [Name]: "quote" (10-15 words max per line)
-${banterLength === 'SHORT' ? 'Keep it light and brief.' : ''}
-${banterLength === 'MEDIUM' ? 'More back-and-forth, deeper insights about user state.' : ''}
-${banterLength === 'FULL' ? 'Full round table, all mentors speak, deep analysis of user frequency and readiness.' : ''}`;
+Format: [Name]: "quote" (10-20 words max per line)
+Generate ${banterLength === 'SHORT' ? '3-4' : banterLength === 'MEDIUM' ? '5-6' : '7-9'} lines.`;
 
     const banterResponse = await fetch("https://ai.gateway.lovable.dev/v1/chat/completions", {
       method: "POST",
