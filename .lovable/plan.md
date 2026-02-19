@@ -1,190 +1,255 @@
 
-# Fix Plan: Red Phase Win Card Trigger + Gold Phase Superpower Flow + Completion Signal Reliability
+# Council Differentiation & Living Conversation Architecture — Implementation Plan
 
-## Summary of Issues Found
+## Confirmation: Yes, Project Council is Fully Included
 
-After reading the codebase thoroughly, here are the 5 distinct problems:
-
----
-
-### Problem 1 — Red Phase Win Card NOT Triggering After "Let's Go"
-
-**Root cause:** The `completionSignals` array (lines 2725–2764 in `chat-mentor/index.ts`) does **not** contain any phrases specific to the Release Mentor's Red Phase closing message.
-
-The Release Mentor ends with:
-> "Say 'let's go' to proceed to the Gold Phase."
-
-But the `completionSignals` list has entries like `'gold phase'`, `'next phase'`, `'you are ready'`, etc. — these are all tuned for **Gold Phase (Stoic)** language, not the Red Phase closing.
-
-**The check logic works like this:**
-1. User says "let's go" → matches `phaseConfirmationPhrases` ✅
-2. System checks if the **previous assistant message** contains a `completionSignal` → ❌ the last Release Mentor message says things like "You've decided what you're done carrying. Time for gold. 🔥" — but the **actual closing phrase** from the Release Mentor persona is: *"Say 'let's go' to proceed to the Gold Phase."* — and `'proceed to the gold phase'` is not in the signals list.
-
-So `hasCompletionSignal = false`, and the fallback fires only if `conversationDepth >= 3 AND isShortMessage`. "Let's go" is 2 words → qualifies as short. But the depth check might fail if the conversation went quickly.
-
-**Fix:** Add Red Phase-specific completion signals to the list:
-```
-'proceed to the gold phase',
-'you are ready for the next phase',
-'ready for the next phase',
-'decided what you are done carrying',
-'done carrying',
-'no longer carrying',
-'time for gold',
-'gold phase is next',
-```
-
-Also lower the depth threshold for `release_mentor` further — set it to **2** (currently 3, same as Stoic). Red Phase is by design short (3 direct questions).
+The approved PDR covers all four functions. The user's question confirms: make sure `council-meeting/index.ts` (Project Council) receives the full treatment, not just Inner Self and Builders Team.
 
 ---
 
-### Problem 2 — Red Phase Question Mismatch Between Card and Chat
+## Current State (What Exists Today)
 
-**Root cause:** The `TransmutationNodeEditModal.tsx` and `RedPhaseWinCard.tsx` show the label `"Pattern You're Done Repeating"` (matching the old question "What are you ready to stop carrying?"), but the actual mentor now asks **"What part of this pattern are you tired of repeating?"**
+### Project Council (`council-meeting/index.ts`)
+- Mentor perspectives are generated in a loop with an **identical generic template** for all non-special mentors (lines 971–999). Only Quantum, Creative Visionary, and Strategist have custom prompts.
+- The standard template has zero dimension assignment. All mentors get: `"Generate 1-2 sentences ONLY in your unique voice."` — no lens constraint, no differentiation rule.
+- The banter prompt (lines 1055–1148) asks mentors to: "Root for the user", "Challenge commitment", "React to the idea". This produces the predictable validation + one challenge cycle.
+- Council Insight runs at Q1 and Q3, no guard against repeating banter themes.
+- No user name injection.
+- No "non-echo-chamber" rules anywhere.
 
-This is a labeling inconsistency, not a functional bug, but it confuses users.
+### Builders Team (`builders-team-meeting/index.ts`)
+- Uses a single JSON prompt asking all 3 mentors simultaneously. Role names are distinct but the banter instruction says: "Playfully disagreeing or challenging" — still warm and low-friction by default.
+- No dimension constraints in the JSON prompt.
 
-**Fix:** Update the `release_burden` label in:
-- `TransmutationNodeEditModal.tsx`: input placeholder + label
-- `RedPhaseWinCard.tsx`: section title label
+### Inner Self Council (`inner-self-council/index.ts`)
+- Uses a single JSON prompt for all 5 mentors. Banter instruction: "NOT debating or challenging each other harshly" — intentionally soft. This is appropriate for emotional work but produces uniform warmth.
+- No dimension constraints preventing overlap.
 
-Also update `TransmutationPhaseModal.tsx` — its Red Phase context block still shows slightly different question phrasing.
-
----
-
-### Problem 3 — Gold Phase: Superpowers Show Inside Chat Instead of as Notification
-
-**Current behavior:** When the Gold Phase completes in the mentor chat (`Chat.tsx`), the system:
-1. Returns `transmutationPhaseComplete` object with gold data
-2. Navigates back to `PatternMap` via `navigate(returnPath, { state: { transmutationComplete: ... } })`
-3. `PatternMap` detects the Gold completion, calls `extractSuperpowers()`, then shows `TransmutationCelebration` which **displays superpowers inside the celebration card** directly
-
-**Desired behavior:** Gold phase closing message in chat should invite user to unlock superpowers. User says "yes" or "let's go" → triggers **Gold Phase Win Card** (which is actually `TransmutationCelebration`). After confirming, instead of showing superpowers in the card, navigate to Superpower Map with a toast notification saying "Your superpowers are waiting — discover them."
-
-**Fix plan:**
-
-1. **In `TransmutationCelebration.tsx`:** Remove the "Superpowers Unlocked" section (lines 144–170) that shows `sp.name/icon` badges inside the card. Replace the "Save Gold Insight" button with "Discover Your Superpowers →" which navigates to `/superpower-map`.
-
-2. **Add a "new superpowers" notification badge** to the Superpower Map — when the user lands there after transmutation, show a pulsing notification or toast: "You've unlocked new superpowers from [Pattern Name]. Scroll down to discover them."
-
-3. **In `PatternMap.tsx`:** After `extractSuperpowers()` completes on Gold return, still show `TransmutationCelebration` but without displaying the superpowers. Button navigates to `/superpower-map`.
-
-4. **In `Chat.tsx`:** The Gold closing message from the Stoic Mentor already says "say 'let's go' to unlock your superpowers." This is correct. No change needed here — the navigate back to PatternMap still triggers the celebration card.
+### None of the three functions have:**
+- `DIMENSION_POOLS` constants
+- Dimension assignment logic
+- "Living Conversation Architecture" banter rules
+- User name injection
+- Anti-echo-chamber constraints
 
 ---
 
-### Problem 4 — Council Insight Repetition / Predictability
+## What Gets Implemented (All 4 Files)
 
-**Current behavior:** The council context is injected into the system prompt every single time, causing the mentor to repeatedly reference the same council insight even when it's not relevant.
+### File 1: `supabase/functions/council-meeting/index.ts` — Project Council (PRIMARY)
 
-**Root cause:** In `chat-mentor/index.ts` lines 2506–2534, the council context is added unconditionally to the system prompt when `privateMessage.council_meetings` exists (and there's no handoff).
+**Change 1a — Add DIMENSION_POOLS constant** (insert after line 66, before `mentorNames`):
 
-**Fix:** Add a guard: only inject council context if `conversationDepth === 0` (the very first message in a session) AND the `message` is not a transmutation confirmation phrase. This prevents the council insight from bleeding into every subsequent message.
-
-Additionally, update the council context instruction from "Continue this conversation naturally" to "If this council insight feels relevant to what the user just raised, you may briefly reference it. If not, let it go and respond to what they actually said."
-
----
-
-### Problem 5 — "Let's Go" After Red Phase Triggers Gold Phase Marker, Not Red
-
-**Potential issue:** When user says "let's go" after Release Mentor says "Say 'let's go' to proceed to the Gold Phase," the extraction prompt correctly maps `release_mentor → 'red'` (line 2779: `mentorType === 'release_mentor' ? 'red'`). This mapping is **correct** already.
-
-However, the closing message returned by the system for Red phase is:
-> `"The release is done. You've decided what you're no longer carrying. Time for gold. 🔥"`
-
-This message is shown in the chat AND the `transmutationPhaseComplete` fires. But `Chat.tsx` only handles `phase === 'red'` by navigating back to PatternMap with the extracted data — which then triggers `setShowRedWinCard(true)`. This flow is **correct**.
-
-The real bug is Problem 1 above: `hasCompletionSignal` returns false, so the whole block never fires.
-
----
-
-## Files to Change
-
-| File | Change |
-|------|--------|
-| `supabase/functions/chat-mentor/index.ts` | Add Red Phase completion signals; lower `release_mentor` depth threshold to 2; fix council context injection guard |
-| `src/components/transmutation-map/TransmutationCelebration.tsx` | Remove inline superpower badges display; change "Save Gold Insight" button to "Discover Your Superpowers" navigating to `/superpower-map` |
-| `src/components/transmutation-map/RedPhaseWinCard.tsx` | Update label from "Pattern You're Done Repeating" to match question wording |
-| `src/pages/SuperpowerMap.tsx` | Add detection for "just unlocked" state (via location.state or toast) and show a welcome notification |
-| `src/pages/PatternMap.tsx` | On Gold celebration confirm, navigate to `/superpower-map` instead of staying on page |
-
----
-
-## Detailed Changes
-
-### `supabase/functions/chat-mentor/index.ts`
-
-**Change 1 — Add Red Phase completion signals** (after line 2764):
 ```typescript
-// Red Phase (Release Mentor) specific signals
-'proceed to the gold phase',
-'ready for the next phase',
-'decided what you are done carrying',
-'done carrying',
-'no longer carrying',
-'time for gold',
-'gold phase is next',
-'you are ready for the next phase',
+const DIMENSION_POOLS: Record<string, string[]> = {
+  project: [
+    'identity — who this person is being in this moment',
+    'behavior — what they are actually doing vs. what they say',
+    'system — the structural or process gap creating friction',
+    'blind_spot — what they cannot see that others can',
+    'risk — what could go wrong if this continues',
+    'leverage — where one move unlocks the most',
+    'market_reality — what the market or people actually want',
+    'long_term_consequence — where this leads if nothing changes in 3-5 years',
+    'short_term_action — the one concrete thing to move the needle this week',
+    'leadership_maturity — what level of thinking or leadership this requires',
+    'accountability — who is responsible and what is the honest measure',
+    'narrative_distortion — the story they are telling themselves that may not be true',
+  ],
+};
+
+function assignMentorDimensions(mentors: string[]): Record<string, string> {
+  const pool = [...DIMENSION_POOLS.project].sort(() => Math.random() - 0.5);
+  const assignments: Record<string, string> = {};
+  mentors.forEach((m, i) => {
+    assignments[m] = pool[i % pool.length];
+  });
+  return assignments;
+}
 ```
 
-**Change 2 — Lower depth threshold for release_mentor** (line 2771):
+**Change 1b — Assign dimensions before the mentor loop** (insert after line 754, `const mentorPerspectives: Record<string, string> = {};`):
+
 ```typescript
-// BEFORE:
-const goldPhaseMinDepth = (mentorType === 'stoic_mentor' || mentorType === 'release_mentor') ? 3 : 6;
-
-// AFTER:
-const goldPhaseMinDepth = mentorType === 'stoic_mentor' ? 3 : mentorType === 'release_mentor' ? 2 : 6;
+const mentorDimensionMap = assignMentorDimensions(selectedMentors);
+const userName = profile?.display_name || null;
+const nameInstruction = userName
+  ? `The user's name is ${userName}. Use it naturally once if it fits — not in every sentence.`
+  : '';
 ```
 
-**Change 3 — Council context injection guard** (around line 2508):
+**Change 1c — Update the standard mentor template** (lines 975–999, the `else` block):
+
+Replace the generic prompt with a dimension-locked version:
+
 ```typescript
-// BEFORE:
-if (!handoffContext && privateMessage?.council_meetings ...) {
+systemPrompt = `You are ${mentorNames[mentorType]}.
 
-// AFTER:
-if (!handoffContext && conversationDepth === 0 && privateMessage?.council_meetings ...) {
-```
-And update the injection instruction to make the council context optional/situational rather than mandatory.
+PERSONALITY: ${mentorConfig.personality}
+ROLE: ${mentorConfig.role}
+${conversationContext}
 
-### `src/components/transmutation-map/TransmutationCelebration.tsx`
+CURRENT Question: "${question}"
+Question phase: ${isQ1 ? 'Q1 Discovery' : isQ2 ? 'Q2 Depth' : 'Q3 Momentum'}
+Hidden tags: ${extractedTags.join(', ')}
+${nameInstruction}
 
-Remove the superpowers badges section (lines 144–170). Replace the two action buttons with a single prominent one:
-```tsx
-<Button onClick={() => navigate('/superpower-map')} ...>
-  Discover Your Superpowers ⚡
-</Button>
-```
-Keep the "View in Lifetime Map" as a secondary text link below it.
+YOUR ASSIGNED DIMENSION FOR THIS ROUND: ${mentorDimensionMap[mentorType]}
+You must respond EXCLUSIVELY through this lens.
+Do not give emotional validation if your dimension is 'risk' or 'system'.
+Do not give strategy if your dimension is 'emotional_root'.
+Do not repeat what another mentor would say — your job is to bring something structurally different.
 
-### `src/pages/SuperpowerMap.tsx`
+CRITICAL:
+- Build upon what the user has already shared
+- Reference their specific goals, ideas, or problems by name
+- Do NOT ask about things they already told you
+- Show you've been paying attention throughout the conversation
 
-Add a `useEffect` that checks `location.state?.fromTransmutation` and shows a toast:
-```typescript
-useEffect(() => {
-  if (location.state?.fromTransmutation) {
-    toast.success("New superpowers unlocked! Scroll to discover them.");
-    window.history.replaceState({}, document.title);
-  }
-}, []);
-```
+Generate 1-2 sentences ONLY through your assigned dimension lens.
+Strong personality. Sharp. Clear. No fluff.
+Just your perspective, no labels or format.
 
-### `src/pages/PatternMap.tsx`
-
-In `handleCelebrationSaveGold` (line 336–340), pass the state flag:
-```typescript
-navigate('/superpower-map', { state: { fromTransmutation: true } });
+${KEYWORD_HIGHLIGHTING_RULES}`;
 ```
 
-### `src/components/transmutation-map/RedPhaseWinCard.tsx`
+**Change 1d — Rewrite the banter prompt** (lines 1055–1148) to implement Living Conversation Architecture:
 
-Update line 88: change label from `"Pattern You're Done Repeating"` to `"What You're Tired of Repeating"` to better match the exact question.
+Replace the entire banter prompt content with:
+
+```
+Generate authentic advisory room conversation between these mentors.
+They are NOT a motivational panel. They are a real team with different minds, 
+occasionally disagreeing, building on each other — not just validating.
+
+EACH MENTOR'S DIMENSION FOR THIS ROUND (they must stay in their lane):
+${selectedMentors.map(m => `- ${mentorNames[m]}: ${mentorDimensionMap[m]}`).join('\n')}
+
+THE USER'S QUESTION: "${question}"
+${userName ? `THE USER'S NAME: ${userName}` : ''}
+
+LIVING CONVERSATION RULES:
+1. Mentors refer to the user by name if known — naturally, once
+2. At least ONE mentor must challenge or push back on what another mentor said
+3. At least ONE mentor must express genuine belief in the user
+4. At least ONE line must connect to concrete action or consequence
+5. Each line must come from a DIFFERENT dimensional lens — no two mentors make the same type of comment
+6. No generic praise. No "this is exciting." Only specific, earned responses to what the user actually shared
+7. Mentors may express skepticism, disagreement, or confidence — not just support
+
+EXAMPLE DYNAMIC (when user says "I want to start a meditation app"):
+[Business Mentor — market_reality]: "Anxiety apps are crowded. What's going to make this one worth switching to?"
+[Heart Mentor — emotional_root]: "Wait — is this about the app or the fact that they struggled themselves and want to help?"
+[Discipline Mentor — behavior]: "I'm watching whether they actually meditate daily. You can't teach what you don't live."
+[Quantum Inventor — identity]: "The frequency of someone building to heal others is completely different from building to make money. Which is it?"
+[Creative Visionary — short_term_action]: "Stop debating the market. Build one guided session. Share it with 5 people this week."
+
+Format: [Name]: "quote" (10-20 words per line)
+Generate ${banterLength === 'SHORT' ? '3-4' : banterLength === 'MEDIUM' ? '5-6' : '7-9'} lines.
+```
+
+**Change 1e — Update Council Insight prompt** (around lines 688–708) to prevent repeating banter themes:
+
+Add to the insight prompt:
+```
+IMPORTANT: Do NOT repeat any theme already covered in the mentor perspectives or banter.
+The Council Insight must add something NEW — a synthesis, a north star, or an observation 
+that none of the individual mentors captured.
+${isQ1 ? 'Q1: Show the Council sees the person, not just the idea. 1-2 observational sentences.' : ''}
+${isQ3 ? 'Q3: Name what has shifted or clarified across the full conversation. Point toward the north star.' : ''}
+```
 
 ---
 
-## What This Does NOT Touch
-- White Phase logic (working)
-- Storybreaker / Pattern card trigger (working)
-- Gold Phase data extraction (working)
-- Database schema (no changes needed)
-- The navigation flow from Chat → PatternMap (working correctly)
-- The `isTransmutationSession` detection (working)
+### File 2: `supabase/functions/builders-team-meeting/index.ts` — Builders Team
+
+**Change 2a — Add dimension constraints to the JSON prompt** (lines 275–316):
+
+Update the perspectives instruction:
+
+```
+2. **mentorPerspectives**: Each builder's unique take — they must NOT overlap in lens:
+   - design_thinking_mentor: DIMENSION = experiment_design — the fastest way to test this idea. Push for speed, prototypes, learning. May challenge the others if they're overthinking.
+   - ux_mentor: DIMENSION = user_emotional_journey — how will the end user feel at each stage? If design_thinking is rushing, push back: "Speed doesn't matter if the emotional journey is wrong."
+   - gamification_mentor: DIMENSION = engagement_mechanics — what keeps people coming back? Find the bridge between the other two when they disagree.
+```
+
+**Change 2b — Update banter instruction** (lines 284–288):
+
+Replace: `"Playfully disagreeing or challenging"` with:
+
+```
+3. **banterLines**: 3-4 lines from a real design meeting where people have opinions.
+   - Design Thinking might push for speed: "We're overthinking this. Build it."
+   - UX might push back: "But if the emotional journey is wrong, speed doesn't matter."
+   - Gamification finds the bridge: "Make the first interaction a 30-second win, then build from there."
+   At least one line must reference the user's specific situation, not generic design advice.
+   Disagreement is healthy. Construction, not harmony.
+```
+
+---
+
+### File 3: `supabase/functions/inner-self-council/index.ts` — Inner Self Council
+
+**Change 3a — Add fixed dimension assignment per mentor** into the system prompt (after the 5 mentors block, around line 162):
+
+```
+=== DIMENSION LOCK ===
+Each mentor responds from ONLY their assigned dimension. There must be no overlap:
+- Alignment Mentor → self_reflection: what feels true vs forced right now
+- Perspective Mentor → meaning_making: the broader context and what this is teaching
+- Inner Clarity Mentor → psychological_pattern: the repeating dynamic being activated
+- Quantum Mentor → internal_state_reading: the identity shift or energetic possibility available
+- Release Mentor → emotional_root: the feeling underneath that wants to be felt first
+
+Do not let two mentors occupy the same emotional territory in the same response.
+```
+
+**Change 3b — Update banter instruction** (lines 226–229):
+
+Replace: `"NOT debating or challenging each other harshly"` with:
+
+```
+3. **banterLines**: 3-4 lines from wise observers who see different truths simultaneously.
+   This is NOT group therapy where everyone validates.
+   
+   Example dynamic (user says they keep avoiding something):
+   [Inner Clarity]: "This avoidance — how old is it? It doesn't feel new."
+   [Release]: "There's something underneath that needs to be felt before it can be released."
+   [Alignment]: "Part of them already knows what to do. That's what makes the avoidance so exhausting."
+   [Perspective]: "Avoidance is protection. Worth asking: what is it still protecting them from?"
+   
+   They see the user with care. But they are not a cheering section. Each brings a distinct observation.
+```
+
+---
+
+### File 4: `supabase/functions/chat-mentor/index.ts` — 1-on-1 Mentor Sessions
+
+**Add to `HUMAN_CONVERSATION_RULES`** (after line 19):
+
+```
+LENGTH RULE BY CONTEXT:
+- In GROUP COUNCIL (perspectives and banter): length is acceptable. Depth matters.
+- In 1-to-1 sessions (this context): be direct, short, clear. Maximum 4-5 sentences per response.
+- In Transmutation/emotional processing stages: even shorter. 2-3 sentences. Let the silence work.
+- NEVER pad. NEVER repeat what you just said in different words. Say it once, clearly.
+```
+
+---
+
+## What Does NOT Change
+
+- Frontend components (zero UI changes)
+- Database schema (no migrations)
+- Mentor routing, handoff, or session logic
+- Red/White/Gold phase completion triggers
+- Winner card logic
+- Council type detection (project / transmutation / inner_self / builders)
+- The emotional reflection step in Project Council (it stays; it just no longer repeats banter themes)
+
+---
+
+## Deployment
+
+All 4 edge functions deployed simultaneously after changes are applied.
