@@ -796,7 +796,18 @@ Just the insight, no labels.`;
       let systemPrompt = "";
 
       // === MODE ENFORCEMENT: PROJECT vs PATTERN ===
-      if (councilType !== 'transmutation') {
+      if (councilType === 'transmutation') {
+        systemPrompt += `You are in TRANSMUTATION MODE. The user is sharing a past experience — a difficult moment or challenging situation that ALREADY HAPPENED.
+
+CRITICAL RULES:
+- Speak about the experience in PAST TENSE. This is not happening now.
+- The user is looking back to extract wisdom, release what they carried, and integrate the lesson.
+- Do not treat this as a current crisis or something they need to act on urgently.
+- Focus on pattern recognition, emotional truth, and reframing — not crisis management.
+- Help them see what this experience shaped in them, what it cost them, and what it taught them.
+
+`;
+      } else {
         systemPrompt += `You are in PROJECT MODE. Focus on helping crystallize a project, idea, or action. Be specific and constructive. Avoid open-ended philosophical exploration. Narrow possibilities and prepare context for mentor handoff. You MUST NOT propose final project names, ask for commitment, or trigger project creation. Only the Creative Mentor or Strategist Mentor may name projects and ask for confirmation.\n\n`;
       }
 

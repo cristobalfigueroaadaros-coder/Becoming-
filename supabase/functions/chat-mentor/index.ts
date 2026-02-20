@@ -522,6 +522,35 @@ Your interaction succeeds when:
 
 If the user says: "I can actually build this." — you've done your job.
 
+=== CREATIVE RECOMBINATION ENGINE (v3) ===
+When analyzing a user's idea, ALWAYS:
+
+1. IDENTIFY THE EMOTIONAL TENSION — not the feature, the emotional tension.
+   Ask yourself: What feeling is this person trying to create, solve, or transform?
+   Example: "The real tension here is not 'selling art' — it's 'making invisible children feel seen.'"
+
+2. REFERENCE REAL-WORLD ARCHETYPES — connect to at least one working model:
+   Subscription box, print-on-demand, gifting ritual, unboxing experience,
+   community challenge, creator marketplace, licensing model, corporate sponsorship,
+   ritual-based product, symbolic artifact, membership structure, transformation framework.
+   These are starting points, not limits.
+
+3. CROSS-DOMAIN RECOMBINATION — combine their idea with an unexpected but relevant domain:
+   Daily rituals, corporate culture, mental health, education, travel, family systems,
+   social belonging, ceremonies, collective experience.
+   The surprise comes from unexpected but plausible connections.
+
+4. PROPOSE A SURPRISING ENGAGEMENT MECHANISM:
+   Hidden message revealed after use, collectible progression, story card attached to product,
+   ritual sequence, emotional arc, before/after transformation artifact, personalization layer.
+
+CONSTRAINTS:
+- Maximum 2-3 strong reframes. Never overwhelm.
+- Each reframe must feel specific and plausible, not abstract.
+- Do NOT add more questions or extend the flow.
+- The user should think: "Wow, I wouldn't have thought about that."
+=== END CREATIVE RECOMBINATION ===
+
 ${DISCOVERY_QUESTIONS}`,
 
   creator_mentor: `You are The Creative Mentor — a human-centered creator who helps users turn ideas into concrete, testable expressions.
@@ -725,6 +754,34 @@ ${HUMAN_CONVERSATION_RULES}
 ${PROACTIVE_PROJECT_RULES}
 
 PERSONALITY: Structured. Methodical. "Here's the roadmap..." "Framework: ..."
+
+=== STRATEGIC GROUNDING ENGINE (v3) ===
+When analyzing a user's direction, ALWAYS:
+
+1. RECOGNIZE THE MODEL — identify which existing business model this resembles.
+   Examples: subscription, marketplace, licensing, agency, SaaS, productized service,
+   community membership, course/program, consulting, print-on-demand, affiliate.
+
+2. BREAK DOWN THE MECHANISM — explain WHY that model works.
+   Example: "This resembles print-on-demand emotional brands. Mechanism: low inventory,
+   story differentiation, everyday object attachment."
+
+3. ADAPT TO THEIR CONTEXT — fit the mechanism to what the user already has.
+   If they have a business: expand it.
+   If they have an idea: strengthen it.
+   If they are early stage: simplify it.
+
+4. SUGGEST REALISTIC IMPLEMENTATION — based on what exists.
+   Distribution shortcuts, monetization logic, feasible first version.
+   Example: "You could start with one object category and integrate a narrative card,
+   using existing print platforms."
+
+CONSTRAINTS:
+- Do NOT add complexity or new flow steps
+- Do NOT default to "validate first" — ground them in structure
+- Complement the Creative Visionary's direction, don't restart it
+- The user should think: "This is actually doable."
+=== END STRATEGIC GROUNDING ===
 
 EMOTIONAL: Transform overwhelm into clarity. Create mental space.
 PRACTICAL: Clear framework. Prioritization method. Decision system.
@@ -2884,18 +2941,44 @@ ${chatHistory?.slice(-10).map((m: any) => `${m.role}: ${m.content}`).join('\n')}
     }
     // === END TRANSMUTATION PHASE COMPLETION DETECTION ===
 
-    // Call Lovable AI with full context
-    const aiResponse = await fetch("https://ai.gateway.lovable.dev/v1/chat/completions", {
-      method: "POST",
-      headers: {
-        "Authorization": `Bearer ${Deno.env.get("LOVABLE_API_KEY")}`,
-        "Content-Type": "application/json",
-      },
-      body: JSON.stringify({
-        model: "google/gemini-2.5-flash",
-        messages: messages,
-      }),
-    });
+    // Call Lovable AI with full context — with timeout protection
+    const controller = new AbortController();
+    const timeoutId = setTimeout(() => controller.abort(), 25000); // 25s timeout
+
+    let aiResponse;
+    try {
+      aiResponse = await fetch("https://ai.gateway.lovable.dev/v1/chat/completions", {
+        method: "POST",
+        headers: {
+          "Authorization": `Bearer ${Deno.env.get("LOVABLE_API_KEY")}`,
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({
+          model: "google/gemini-2.5-flash",
+          messages: messages,
+          max_tokens: 1024,
+        }),
+        signal: controller.signal,
+      });
+    } catch (fetchError: any) {
+      clearTimeout(timeoutId);
+      if (fetchError.name === 'AbortError') {
+        console.error("[chat-mentor] AI gateway timeout after 25s");
+        return new Response(
+          JSON.stringify({
+            response: "I need a moment to gather my thoughts. Could you repeat what you just said?",
+            extractedKeywords: [],
+            suggestedHandoff: null,
+            valueMapDetection: null,
+            projectCoherence: null,
+            conversationDepth: conversationDepth,
+          }),
+          { headers: { ...corsHeaders, "Content-Type": "application/json" } }
+        );
+      }
+      throw fetchError;
+    }
+    clearTimeout(timeoutId);
 
     if (!aiResponse.ok) {
       const errorText = await aiResponse.text();
@@ -2904,7 +2987,12 @@ ${chatHistory?.slice(-10).map((m: any) => `${m.role}: ${m.content}`).join('\n')}
     }
 
     const aiData = await aiResponse.json();
-    let response = aiData.choices[0].message.content;
+    let response = aiData?.choices?.[0]?.message?.content;
+
+    if (!response) {
+      console.error("[chat-mentor] AI returned empty response. Choices:", JSON.stringify(aiData?.choices));
+      response = "I'm here. Could you share that again? I want to make sure I give you my full attention.";
+    }
 
     // === DETECT HANDOFF SIGNALS (PROJECT MODE ONLY) ===
     let suggestedHandoff = null;
