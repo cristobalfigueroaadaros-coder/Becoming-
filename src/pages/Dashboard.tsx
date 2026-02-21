@@ -12,6 +12,7 @@ import { VoiceOfSystemModal } from "@/components/voice/VoiceOfSystemModal";
 import DashboardHeader from "@/components/dashboard/DashboardHeader";
 import FutureSelfSpaceCard from "@/components/dashboard/FutureSelfSpaceCard";
 import NarrativeSystemCard from "@/components/dashboard/NarrativeSystemCard";
+import MomentumCard from "@/components/dashboard/MomentumCard";
 import TodaysFocusCard from "@/components/dashboard/TodaysFocusCard";
 import DailyRitualCard from "@/components/dashboard/DailyRitualCard";
 import ComingSoonSection from "@/components/dashboard/ComingSoonSection";
@@ -255,6 +256,9 @@ const Dashboard = () => {
 
         {/* Narrative System - Connection between values and actions */}
         <NarrativeSystemCard />
+
+        {/* Momentum Dashboard */}
+        <MomentumCard />
 
         {/* Today's Focus - PRIMARY ANCHOR */}
         <TodaysFocusCard onOpenVoice={() => setShowVoiceModal(true)} />

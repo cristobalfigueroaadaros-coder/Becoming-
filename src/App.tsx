@@ -61,6 +61,7 @@ import VibrationalPatternInsights from "./pages/VibrationalPatternInsights";
 import OptimalTimingDashboard from "./pages/OptimalTimingDashboard";
 import PatternMap from "./pages/PatternMap";
 import SuperpowerMap from "./pages/SuperpowerMap";
+import MomentumDashboard from "./pages/MomentumDashboard";
 
 const queryClient = new QueryClient();
 
@@ -395,6 +396,10 @@ const App = () => {
             <Route
               path="/superpower-map"
               element={session ? <SuperpowerMap /> : <Navigate to="/" />}
+            />
+            <Route
+              path="/momentum"
+              element={session ? <AppLayout><MomentumDashboard /></AppLayout> : <Navigate to="/" />}
             />
             <Route path="*" element={<NotFound />} />
           </Routes>
