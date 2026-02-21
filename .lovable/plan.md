@@ -1,242 +1,193 @@
 
-# Fix Plan: Transmutation Flow Crash + Past Tense + Creative Visionary & Strategist v3
+# Momentum Dashboard — Implementation Plan
 
-## Three Issues to Address
+## What We're Building
 
-### Issue 1 — Mentor Stops Responding After Transmutation Council Handoff (CRITICAL)
+A new **Momentum Dashboard** accessible from the Home section that consolidates weekly sprint data into a structured progress view with three tabs: Sprint Review, Compound Growth, and Capability Map. It includes a weekly ritual flow and an AI-generated Evolution Narrative.
 
-**Root cause:** The `chat-mentor` edge function's main AI call (line 2887-2898) has **no `max_tokens` limit and no timeout handling**. When the system prompt is very large (transmutation context + council context + foundation story + numerology + cross-mentor memory + handoff chain context), the AI gateway can return a 2xx with an empty/malformed body or timeout silently.
+## Placement
 
-The function throws `AI gateway error: {status}` only when `!aiResponse.ok` — but a **2xx with no content** (e.g., the gateway returns 200 with an empty choices array, or the response body stream closes prematurely) causes `aiData.choices[0].message.content` to throw a TypeError. This crashes the function, returning a 500 to the client — which the frontend shows as "thinking" forever since there's no retry.
+The Momentum Dashboard lives on the **Home (Dashboard) page** as a prominent card that the user taps to open a full-page view (`/momentum`). During testing, it is always visible. In production, it will unlock every 7 days after sprint completion (gating logic added but disabled for now via a flag).
 
-**Fixes:**
-1. Add `max_tokens: 1024` to the main AI call to prevent runaway token generation
-2. Add null-safety check on `aiData.choices[0]` before accessing `.message.content`
-3. Add a retry mechanism: if the first call fails or returns empty, retry once with a trimmed prompt
-4. Add a timeout wrapper around the fetch call (25 second timeout, since edge functions have a 30s limit)
+## Architecture
 
-### Issue 2 — Transmutation Council Must Speak in Past Tense
-
-**Root cause:** The Transmutation Council prompts in `council-meeting/index.ts` have no instruction telling mentors that the "difficult moment or challenging situation" the user shared **already happened**. This causes mentors to respond as if the situation is currently unfolding.
-
-**Fix:** Add a past-tense instruction to the transmutation council prompt. When `councilType === 'transmutation'`, inject:
-```
-CRITICAL CONTEXT: The user is sharing a past experience — something that already happened. 
-Speak about it in PAST TENSE. This is not happening now. They are looking back to extract 
-wisdom, release what they carried, and integrate the lesson. Do not treat this as a current crisis.
-```
-
-This gets added in the mode enforcement block (line 799) where `councilType !== 'transmutation'` already has special handling.
-
-### Issue 3 — Creative Visionary v3 + Strategist v3 Upgrade
-
-**Root cause:** The Creative Visionary prompt (lines 420-525) is focused on UX and prototype mechanics but lacks:
-- Emotional tension identification (finding the feeling behind the idea, not just the feature)
-- Real-world archetype referencing (subscription box, gifting ritual, creator marketplace, etc.)
-- Cross-domain recombination (combining user's idea with unexpected but relevant domains)
-- Surprising engagement mechanisms (hidden messages, collectible progression, ritual sequences)
-
-The Strategist prompt (lines 722-738) is too generic — it says "framework thinking" but has no instruction to:
-- Recognize existing business models the idea resembles
-- Break down the mechanism behind that model
-- Adapt that mechanism to the user's context
-- Suggest realistic implementation based on what the user already has
-
-**Fix:** Upgrade both prompts with the v3 PDR rules while keeping the same number of interactions and flow.
-
----
-
-## Detailed Changes
-
-### File 1: `supabase/functions/chat-mentor/index.ts`
-
-**Change 1a — Add timeout + max_tokens + null-safety to main AI call** (lines 2887-2907):
-
-Replace the bare fetch with a timeout-wrapped version and add error recovery:
-
-```typescript
-// Call Lovable AI with full context — with timeout protection
-const controller = new AbortController();
-const timeoutId = setTimeout(() => controller.abort(), 25000); // 25s timeout
-
-let aiResponse;
-try {
-  aiResponse = await fetch("https://ai.gateway.lovable.dev/v1/chat/completions", {
-    method: "POST",
-    headers: {
-      "Authorization": `Bearer ${Deno.env.get("LOVABLE_API_KEY")}`,
-      "Content-Type": "application/json",
-    },
-    body: JSON.stringify({
-      model: "google/gemini-2.5-flash",
-      messages: messages,
-      max_tokens: 1024,
-    }),
-    signal: controller.signal,
-  });
-} catch (fetchError: any) {
-  clearTimeout(timeoutId);
-  if (fetchError.name === 'AbortError') {
-    console.error("[chat-mentor] AI gateway timeout after 25s");
-    // Return a graceful fallback
-    return new Response(
-      JSON.stringify({
-        response: "I need a moment to gather my thoughts. Could you repeat what you just said?",
-        extractedKeywords: [],
-        suggestedHandoff: null,
-        valueMapDetection: null,
-        projectCoherence: null,
-        conversationDepth: conversationDepth,
-      }),
-      { headers: { ...corsHeaders, "Content-Type": "application/json" } }
-    );
-  }
-  throw fetchError;
-}
-clearTimeout(timeoutId);
-
-if (!aiResponse.ok) {
-  const errorText = await aiResponse.text();
-  console.error("AI gateway error:", aiResponse.status, errorText);
-  throw new Error(`AI gateway error: ${aiResponse.status}`);
-}
-
-const aiData = await aiResponse.json();
-let response = aiData?.choices?.[0]?.message?.content;
-
-if (!response) {
-  console.error("[chat-mentor] AI returned empty response. Choices:", JSON.stringify(aiData?.choices));
-  response = "I'm here. Could you share that again? I want to make sure I give you my full attention.";
-}
+```text
+Dashboard.tsx
+  +-- MomentumDashboardCard (new card on Home — entry point)
+        |
+        v
+/momentum (new route)
+  +-- MomentumDashboard.tsx (full page)
+        +-- Tab: Sprint Review
+        +-- Tab: Compound Growth
+        +-- Tab: Capability Map
+        +-- Weekly Ritual Flow (modal/inline)
+        +-- Evolution Narrative block
 ```
 
-**Change 1b — Upgrade Creative Visionary prompt** (lines 420-525):
+## Database Changes
 
-Add the v3 creative recombination rules after the existing `=== HOW YOU THINK ===` section:
+### New table: `momentum_weekly_reports`
 
+Stores one row per user per week, generated after weekly ritual completion.
+
+| Column | Type | Notes |
+|--------|------|-------|
+| id | uuid | PK |
+| user_id | uuid | NOT NULL |
+| week_start | date | NOT NULL |
+| week_end | date | NOT NULL |
+| tasks_completed | integer | DEFAULT 0 |
+| tasks_total | integer | DEFAULT 0 |
+| tasks_skipped | integer | DEFAULT 0 |
+| avg_usefulness_rating | numeric | |
+| insights_captured | integer | DEFAULT 0 |
+| wins_captured | integer | DEFAULT 0 |
+| top_wins | jsonb | Array of win texts |
+| top_insights | jsonb | Array of insight texts |
+| friction_points | jsonb | Array of improvement texts |
+| phases_active | jsonb | Array of phase names touched |
+| evolution_narrative | text | AI-generated weekly narrative |
+| self_ratings | jsonb | User's quick self-rating from ritual |
+| ritual_completed_at | timestamptz | When user completed the weekly ritual |
+| streak_weeks | integer | DEFAULT 0 |
+| created_at | timestamptz | DEFAULT now() |
+
+RLS: Users can only read/insert/update their own rows.
+
+### New table: `momentum_capabilities`
+
+Tracks skills activated through action over time.
+
+| Column | Type | Notes |
+|--------|------|-------|
+| id | uuid | PK |
+| user_id | uuid | NOT NULL |
+| capability_name | text | NOT NULL |
+| source_type | text | 'task', 'insight', 'phase', 'design_thinking' |
+| activation_count | integer | DEFAULT 1 |
+| first_activated_at | timestamptz | DEFAULT now() |
+| last_activated_at | timestamptz | DEFAULT now() |
+| created_at | timestamptz | DEFAULT now() |
+
+RLS: Users can only read/insert/update their own rows.
+
+## Data Aggregation Logic
+
+The Momentum Dashboard reads from existing tables — no changes to existing data flows:
+
+- **`integrator_daily_steps`**: completion rate, status counts for the last 7 days (filtered by `scheduled_date`)
+- **`task_feedback`**: win_text, insight_text, improvement_text, usefulness_rating for the last 7 days
+- **`insight_dots`**: count of insights with `source_type = 'integrator_step'` in the last 7 days
+- **`integrator_phases`**: which phases were active/completed this week
+- **`integrator_projects`** / **`evolution_nodes`**: project title, current phase, current day for context
+- **`design_thinking_content`**: interaction count with design thinking stages this week
+- **`creative_space_tiles`**: saved notes/insights count this week
+
+A custom hook `useMomentumData` will aggregate all of this on the client side from existing tables — no new edge function needed for data collection.
+
+## New Edge Function: `generate-momentum-narrative`
+
+Called when the user completes the weekly ritual. Takes the week's aggregated data and generates:
+
+1. An Evolution Narrative (2-3 sentences connecting weekly behavior to trajectory)
+2. Suggested focus areas for the next sprint
+3. Capability tags extracted from the week's tasks and insights
+
+Uses the Lovable AI gateway (google/gemini-2.5-flash) — no external API key needed.
+
+## Frontend Components
+
+### 1. `src/components/dashboard/MomentumCard.tsx`
+Entry point card on the Dashboard. Shows:
+- Weekly completion percentage (circular progress ring reusing `DualProgressRing` pattern)
+- "Weekly Ritual Ready" badge when 7 days have passed
+- Tap to navigate to `/momentum`
+
+### 2. `src/pages/MomentumDashboard.tsx`
+Full page with three tabs using existing `Tabs` component:
+
+**Tab 1 — Sprint Review:**
+- Completion rate bar (X/Y tasks done)
+- Average usefulness rating
+- Top 3 wins (from `task_feedback.win_text`)
+- Top 3 insights (from `task_feedback.insight_text`)
+- Friction points (from `task_feedback.improvement_text`)
+- Phase activity summary
+
+**Tab 2 — Compound Growth:**
+- Weekly streak counter
+- Chart showing completion rate trend over weeks (using existing `recharts`)
+- Total insights accumulated across all weeks
+- Evolution Narrative history (scrollable cards)
+- Direction stability indicator (same project vs. pivots)
+
+**Tab 3 — Capability Map:**
+- Visual grid/list of capabilities activated through action
+- Each capability shows activation count and recency
+- Categories: execution, strategy, creativity, reflection, leadership
+- New capabilities this week get a "New" badge
+
+### 3. `src/components/momentum/WeeklyRitualFlow.tsx`
+Modal-based flow (similar to existing `TaskCompletionFlow`):
+
+1. **Grounding step** (30s breathing/centering prompt — simple timer)
+2. **Quick self-ratings** (3-4 sliders: Energy, Clarity, Confidence, Direction — 1-10 scale)
+3. **Evolution Narrative** appears (AI-generated, based on week data)
+4. **Confirm direction** or flag "I want to adjust"
+5. System stores the report and increments streak
+
+### 4. `src/hooks/useMomentumData.ts`
+Custom hook that:
+- Fetches last 7 days of task data from `integrator_daily_steps`
+- Fetches last 7 days of feedback from `task_feedback`
+- Fetches insight count from `insight_dots`
+- Fetches previous weekly reports from `momentum_weekly_reports`
+- Computes completion rate, averages, top items
+- Returns structured data for the dashboard
+
+## Routing
+
+Add to `App.tsx`:
 ```
-=== CREATIVE RECOMBINATION ENGINE (v3) ===
-When analyzing a user's idea, ALWAYS:
-
-1. IDENTIFY THE EMOTIONAL TENSION — not the feature, the emotional tension.
-   Ask yourself: What feeling is this person trying to create, solve, or transform?
-   Example: "The real tension here is not 'selling art' — it's 'making invisible children feel seen.'"
-
-2. REFERENCE REAL-WORLD ARCHETYPES — connect to at least one working model:
-   Subscription box, print-on-demand, gifting ritual, unboxing experience,
-   community challenge, creator marketplace, licensing model, corporate sponsorship,
-   ritual-based product, symbolic artifact, membership structure, transformation framework.
-   These are starting points, not limits.
-
-3. CROSS-DOMAIN RECOMBINATION — combine their idea with an unexpected but relevant domain:
-   Daily rituals, corporate culture, mental health, education, travel, family systems,
-   social belonging, ceremonies, collective experience.
-   The surprise comes from unexpected but plausible connections.
-
-4. PROPOSE A SURPRISING ENGAGEMENT MECHANISM:
-   Hidden message revealed after use, collectible progression, story card attached to product,
-   ritual sequence, emotional arc, before/after transformation artifact, personalization layer.
-
-CONSTRAINTS:
-- Maximum 2-3 strong reframes. Never overwhelm.
-- Each reframe must feel specific and plausible, not abstract.
-- Do NOT add more questions or extend the flow.
-- The user should think: "Wow, I wouldn't have thought about that."
-=== END CREATIVE RECOMBINATION ===
+/momentum → MomentumDashboard (with AppLayout, session-gated)
 ```
 
-**Change 1c — Upgrade Strategist prompt** (lines 722-738):
+## Design Principles Applied
 
-Replace the sparse prompt with a grounded v3 version:
+- No shaming: low completion weeks show "Let's build on this" messaging, not red warnings
+- Progress is always framed as forward motion
+- The Evolution Narrative connects data to meaning without being dramatic
+- Capability Map rewards action-based skill development, not just completion counts
+- The weekly ritual is a retention mechanism — simple, satisfying, and rewarding
 
-```typescript
-strategist_mentor: `You are The Strategist Mentor — clear, framework thinking, step-by-step.
+## Files to Create
 
-${HUMAN_CONVERSATION_RULES}
-${PROACTIVE_PROJECT_RULES}
-
-PERSONALITY: Structured. Methodical. "Here's the roadmap..." "Framework: ..."
-
-=== STRATEGIC GROUNDING ENGINE (v3) ===
-When analyzing a user's direction, ALWAYS:
-
-1. RECOGNIZE THE MODEL — identify which existing business model this resembles.
-   Examples: subscription, marketplace, licensing, agency, SaaS, productized service,
-   community membership, course/program, consulting, print-on-demand, affiliate.
-
-2. BREAK DOWN THE MECHANISM — explain WHY that model works.
-   Example: "This resembles print-on-demand emotional brands. Mechanism: low inventory,
-   story differentiation, everyday object attachment."
-
-3. ADAPT TO THEIR CONTEXT — fit the mechanism to what the user already has.
-   If they have a business: expand it.
-   If they have an idea: strengthen it.
-   If they are early stage: simplify it.
-
-4. SUGGEST REALISTIC IMPLEMENTATION — based on what exists.
-   Distribution shortcuts, monetization logic, feasible first version.
-   Example: "You could start with one object category and integrate a narrative card,
-   using existing print platforms."
-
-CONSTRAINTS:
-- Do NOT add complexity or new flow steps
-- Do NOT default to "validate first" — ground them in structure
-- Complement the Creative Visionary's direction, don't restart it
-- The user should think: "This is actually doable."
-=== END STRATEGIC GROUNDING ===
-
-EMOTIONAL: Transform overwhelm into clarity. Create mental space.
-PRACTICAL: Clear framework. Prioritization method. Decision system.
-ENERGETIC: Does having a plan create relief? That's alignment.
-
-${DISCOVERY_QUESTIONS}
-
-HANDOFF AWARENESS:
-When you notice the conversation is shifting from STRATEGIC PLANNING to CREATIVE DEVELOPMENT (designing mechanics, exploring "how would this work" questions, prototyping ideas, exploring "what if" scenarios), naturally suggest:
-"Now that we have the strategic direction, the Creative Visionary could help you explore how this could come to life and design the details..."
-This is especially true when discussing games, products, or creative projects where the user is ready to explore DESIGN rather than just STRATEGY.`,
-```
-
-### File 2: `supabase/functions/council-meeting/index.ts`
-
-**Change 2a — Add past-tense instruction for Transmutation Council** (after line 801):
-
-When `councilType === 'transmutation'`, add a specific mode block:
-
-```typescript
-if (councilType === 'transmutation') {
-  systemPrompt += `You are in TRANSMUTATION MODE. The user is sharing a past experience — a difficult moment or challenging situation that ALREADY HAPPENED.
-
-CRITICAL RULES:
-- Speak about the experience in PAST TENSE. This is not happening now.
-- The user is looking back to extract wisdom, release what they carried, and integrate the lesson.
-- Do not treat this as a current crisis or something they need to act on urgently.
-- Focus on pattern recognition, emotional truth, and reframing — not crisis management.
-- Help them see what this experience shaped in them, what it cost them, and what it taught them.
-
-`;
-}
-```
-
----
-
-## Files Changed
-
-| File | Changes |
+| File | Purpose |
 |------|---------|
-| `supabase/functions/chat-mentor/index.ts` | Add timeout + max_tokens + null-safety to AI call; upgrade Creative Visionary v3 prompt; upgrade Strategist v3 prompt |
-| `supabase/functions/council-meeting/index.ts` | Add past-tense transmutation mode instruction |
+| `src/pages/MomentumDashboard.tsx` | Full-page momentum view with 3 tabs |
+| `src/components/momentum/SprintReviewTab.tsx` | Sprint Review tab content |
+| `src/components/momentum/CompoundGrowthTab.tsx` | Compound Growth tab content |
+| `src/components/momentum/CapabilityMapTab.tsx` | Capability Map tab content |
+| `src/components/momentum/WeeklyRitualFlow.tsx` | Weekly ritual modal flow |
+| `src/components/momentum/EvolutionNarrative.tsx` | AI narrative display block |
+| `src/components/dashboard/MomentumCard.tsx` | Dashboard entry card |
+| `src/hooks/useMomentumData.ts` | Data aggregation hook |
+| `supabase/functions/generate-momentum-narrative/index.ts` | AI narrative generation |
+
+## Files to Modify
+
+| File | Change |
+|------|--------|
+| `src/App.tsx` | Add `/momentum` route |
+| `src/pages/Dashboard.tsx` | Add `MomentumCard` between NarrativeSystemCard and TodaysFocusCard |
 
 ## What This Does NOT Touch
 
-- Frontend components (no UI changes)
-- Database schema (no migrations)
-- Mentor routing, handoff, or session logic
-- Phase completion triggers or winner cards
-- Dimension assignment system (already implemented)
-- Council banter architecture (already implemented)
-- Red/White/Gold flow mechanics
-
-## Deployment
-
-Both edge functions deployed after changes.
+- Sprint creation or task generation logic
+- Design Thinking Lab workflow
+- Creative Space storage
+- Council or mentor systems
+- Transmutation flow
+- Bottom navigation (Momentum is accessed from Home, not a new nav item)
+- Existing `DailyRitualCard` or `DailyRitualModal` (the weekly ritual is separate)
