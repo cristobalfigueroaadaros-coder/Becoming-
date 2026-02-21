@@ -2080,6 +2080,105 @@ export type Database = {
         }
         Relationships: []
       }
+      momentum_capabilities: {
+        Row: {
+          activation_count: number | null
+          capability_name: string
+          created_at: string
+          first_activated_at: string
+          id: string
+          last_activated_at: string
+          source_type: string | null
+          user_id: string
+        }
+        Insert: {
+          activation_count?: number | null
+          capability_name: string
+          created_at?: string
+          first_activated_at?: string
+          id?: string
+          last_activated_at?: string
+          source_type?: string | null
+          user_id: string
+        }
+        Update: {
+          activation_count?: number | null
+          capability_name?: string
+          created_at?: string
+          first_activated_at?: string
+          id?: string
+          last_activated_at?: string
+          source_type?: string | null
+          user_id?: string
+        }
+        Relationships: []
+      }
+      momentum_weekly_reports: {
+        Row: {
+          avg_usefulness_rating: number | null
+          created_at: string
+          evolution_narrative: string | null
+          friction_points: Json | null
+          id: string
+          insights_captured: number | null
+          phases_active: Json | null
+          ritual_completed_at: string | null
+          self_ratings: Json | null
+          streak_weeks: number | null
+          tasks_completed: number | null
+          tasks_skipped: number | null
+          tasks_total: number | null
+          top_insights: Json | null
+          top_wins: Json | null
+          user_id: string
+          week_end: string
+          week_start: string
+          wins_captured: number | null
+        }
+        Insert: {
+          avg_usefulness_rating?: number | null
+          created_at?: string
+          evolution_narrative?: string | null
+          friction_points?: Json | null
+          id?: string
+          insights_captured?: number | null
+          phases_active?: Json | null
+          ritual_completed_at?: string | null
+          self_ratings?: Json | null
+          streak_weeks?: number | null
+          tasks_completed?: number | null
+          tasks_skipped?: number | null
+          tasks_total?: number | null
+          top_insights?: Json | null
+          top_wins?: Json | null
+          user_id: string
+          week_end: string
+          week_start: string
+          wins_captured?: number | null
+        }
+        Update: {
+          avg_usefulness_rating?: number | null
+          created_at?: string
+          evolution_narrative?: string | null
+          friction_points?: Json | null
+          id?: string
+          insights_captured?: number | null
+          phases_active?: Json | null
+          ritual_completed_at?: string | null
+          self_ratings?: Json | null
+          streak_weeks?: number | null
+          tasks_completed?: number | null
+          tasks_skipped?: number | null
+          tasks_total?: number | null
+          top_insights?: Json | null
+          top_wins?: Json | null
+          user_id?: string
+          week_end?: string
+          week_start?: string
+          wins_captured?: number | null
+        }
+        Relationships: []
+      }
       monthly_goals: {
         Row: {
           completed: boolean
