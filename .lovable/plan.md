@@ -1,193 +1,239 @@
 
-# Momentum Dashboard — Implementation Plan
 
-## What We're Building
+# PDR 2 — Sprint Review Tab: Full Implementation Plan
 
-A new **Momentum Dashboard** accessible from the Home section that consolidates weekly sprint data into a structured progress view with three tabs: Sprint Review, Compound Growth, and Capability Map. It includes a weekly ritual flow and an AI-generated Evolution Narrative.
+## What Exists Today
 
-## Placement
+The Sprint Review Tab is currently a **static stats display** showing task completion, usefulness rating, wins, insights, and friction points. The Weekly Ritual Flow is a simple modal with a grounding timer, 4 sliders, and an AI narrative. There is no Momentum Score, no System Insight, no structured reflection questions, no Project Console integration, and no winner card trigger.
 
-The Momentum Dashboard lives on the **Home (Dashboard) page** as a prominent card that the user taps to open a full-page view (`/momentum`). During testing, it is always visible. In production, it will unlock every 7 days after sprint completion (gating logic added but disabled for now via a flag).
+## What Gets Built
+
+The Sprint Review Tab becomes a full **weekly performance engine** with:
+
+1. A computed Momentum Score as the primary visual metric
+2. An AI-generated System Insight summary (auto-loaded, not requiring ritual)
+3. A redesigned Weekly Ritual Flow with structured questions before the console
+4. Project Console integration within the ritual for sprint direction refinement
+5. Sprint direction logic (continue/narrow/simplify/adjust/pivot)
+6. Next 7-day sprint task generation after direction is confirmed
+7. A winner card celebration upon ritual completion
+
+---
 
 ## Architecture
 
 ```text
-Dashboard.tsx
-  +-- MomentumDashboardCard (new card on Home — entry point)
+SprintReviewTab (pre-ritual view)
+  +-- Momentum Score (computed metric)
+  +-- Weekly Performance Summary (stats)
+  +-- System Insight Summary (AI auto-generated)
+  +-- "Continue to Weekly Ritual" button
         |
         v
-/momentum (new route)
-  +-- MomentumDashboard.tsx (full page)
-        +-- Tab: Sprint Review
-        +-- Tab: Compound Growth
-        +-- Tab: Capability Map
-        +-- Weekly Ritual Flow (modal/inline)
-        +-- Evolution Narrative block
+WeeklyRitualFlow (modal, redesigned steps)
+  Step 1: Grounding (30s timer — unchanged)
+  Step 2: Structured Questions (new)
+    - Task Usefulness (multiple choice)
+    - Main Friction Type (multiple choice)
+    - Biggest Win (multiple choice)
+    - Direction Confidence (slider 1-10)
+  Step 3: Evolution Narrative (AI-generated — existing)
+  Step 4: Console Interaction (new — calls council-meeting with sprint context)
+    - 3-5 exchanges max
+    - Sprint direction decided (continue/narrow/simplify/adjust/pivot)
+  Step 5: Sprint Confirmation + Winner Card (new)
+    - Direction confirmed
+    - New 7-day sprint generated
+    - Winner card celebration triggered
 ```
+
+---
+
+## Detailed Changes
+
+### 1. Momentum Score Computation
+
+Added to `useMomentumData.ts` as a derived value in the `WeeklyData` interface.
+
+Formula:
+- Completion weight: 40% (tasksCompleted / tasksTotal)
+- Consistency weight: 25% (active days / 7)
+- Reflection weight: 20% (feedback entries with insights / total tasks)
+- Engagement weight: 15% (design thinking + creative space interactions > 0)
+
+Returns a 0-100 score. Displayed as a large circular indicator in the Sprint Review Tab.
+
+**New field in WeeklyData:**
+- `momentumScore: number`
+- `activeDays: number`
+- `reflectionRate: number`
+
+The hook already fetches all needed data; computation is added client-side.
+
+### 2. System Insight Summary (Auto-Generated)
+
+A new edge function `generate-sprint-insight` that takes the same weekly data and produces a 1-2 sentence neutral, intelligent observation. Called automatically when the Sprint Review Tab loads (not part of the ritual).
+
+Examples the AI should produce:
+- "You were consistent but hesitant mid-week."
+- "Execution was strong, but task usefulness dropped."
+- "Your clarity increased across the week."
+
+This replaces the current static "empty state" text. The SprintReviewTab component will call this function on mount and display the result in a highlighted card above the stats.
+
+### 3. SprintReviewTab Redesign
+
+The tab gets restructured to show:
+
+**Section A — Momentum Score** (new)
+- Large circular progress indicator (0-100)
+- Color-coded: green (70+), amber (40-69), neutral (<40)
+
+**Section B — Performance Summary** (enhanced from existing)
+- Tasks completed / total with progress bar (existing)
+- Active days count (new)
+- Reflection rate (new)
+- Average usefulness (existing)
+- Completion % (existing)
+
+**Section C — System Insight** (new)
+- AI-generated 1-2 sentence observation
+- Neutral styling, no icons suggesting good/bad
+
+**Section D — Wins, Insights, Friction** (existing, unchanged)
+
+**Section E — CTA Button** (new)
+- "Continue to Weekly Ritual" button at the bottom
+- Opens the WeeklyRitualFlow modal
+
+### 4. WeeklyRitualFlow Expansion
+
+The current 4-step flow (`grounding -> ratings -> narrative -> confirm`) becomes a 6-step flow:
+
+**Step 1 — Grounding** (unchanged, 30s timer with skip)
+
+**Step 2 — Structured Questions** (new, replaces the sliders step)
+- **Task Usefulness**: radio group with 5 options (Extremely useful / Useful / Neutral / Not very useful / Misaligned)
+- **Main Friction Type**: radio group with 7 options (Lack of clarity / Overwhelm / Low motivation / External distractions / Task too complex / Doubt about direction / Nothing significant)
+- **Biggest Win**: radio group with 7 options (Completed key milestone / Gained clarity / Tested something new / Improved structure / Built consistency / Learned something important / Other)
+- **Direction Confidence**: slider 1-10 (kept from current)
+
+All stored as structured data in `self_ratings` jsonb column.
+
+**Step 3 — Evolution Narrative** (existing, calls `generate-momentum-narrative`)
+
+**Step 4 — Console Interaction** (new)
+- Embedded mini-console within the modal (scrollable chat area)
+- Calls `council-meeting` edge function with `councilType: 'project'` and sprint review context
+- Passes: momentum score, completion rate, friction type, confidence slider, usefulness rating, structured question answers
+- Limited to 3-5 exchanges
+- Console determines sprint direction: Continue and deepen / Narrow scope / Adjust intensity / Simplify structure / Test adjacent variation / Pivot (only if strongly justified)
+- The direction appears as a selectable card once the console proposes it
+
+**Step 5 — Sprint Confirmation** (enhanced from current "confirm")
+- Shows the proposed sprint direction
+- User confirms or adjusts
+- On confirm: saves the weekly report (existing logic) + triggers next sprint generation
+
+**Step 6 — Winner Card** (new)
+- Confetti animation
+- "Weekly Review Complete" celebration card
+- Shows streak count
+- Shows next sprint focus theme
+- Dismiss navigates back to Momentum Dashboard
+
+### 5. Sprint Direction Logic in Console
+
+The `council-meeting` edge function already handles project council sessions. The sprint review will invoke it with additional context in the body:
+
+```typescript
+{
+  question: "Sprint Review Check-in",
+  councilType: "project",
+  sprintReviewContext: {
+    momentumScore,
+    completionRate,
+    frictionType,
+    directionConfidence,
+    usefulnessRating,
+    biggestWin,
+    topWins,
+    frictionPoints,
+    weekNumber: streak + 1
+  }
+}
+```
+
+The council-meeting function will detect `sprintReviewContext` in the body and inject sprint-specific instructions into the system prompt, telling mentors to:
+- Acknowledge performance based on data
+- Reflect friction intelligently
+- Determine sprint strategy (continue/narrow/simplify/adjust/pivot)
+- Only suggest pivot if confidence is extremely low AND usefulness is declining
+
+### 6. Next Sprint Task Generation
+
+After direction is confirmed, the system calls `integrator-setup` (existing edge function) with the chosen direction to generate the next 7-day sprint tasks. This reuses the existing sprint generation infrastructure.
+
+### 7. Winner Card Component
+
+A new `SprintWinnerCard.tsx` component using framer-motion animations and confetti (already installed). Shows:
+- Celebration animation
+- Streak count
+- Next sprint focus
+- Dismiss button
+
+---
 
 ## Database Changes
 
-### New table: `momentum_weekly_reports`
+**No new tables needed.** The existing `momentum_weekly_reports` table already has:
+- `self_ratings` (jsonb) — will now store structured question answers + direction confidence
+- `evolution_narrative` (text) — unchanged
 
-Stores one row per user per week, generated after weekly ritual completion.
+**New columns on `momentum_weekly_reports`:**
+- `momentum_score` (integer, nullable) — computed score for the week
+- `sprint_direction` (text, nullable) — chosen direction (continue/narrow/simplify/adjust/pivot)
+- `system_insight` (text, nullable) — auto-generated insight text
+- `friction_type` (text, nullable) — main friction answer
+- `biggest_win_type` (text, nullable) — biggest win answer
+- `usefulness_answer` (text, nullable) — usefulness answer
 
-| Column | Type | Notes |
-|--------|------|-------|
-| id | uuid | PK |
-| user_id | uuid | NOT NULL |
-| week_start | date | NOT NULL |
-| week_end | date | NOT NULL |
-| tasks_completed | integer | DEFAULT 0 |
-| tasks_total | integer | DEFAULT 0 |
-| tasks_skipped | integer | DEFAULT 0 |
-| avg_usefulness_rating | numeric | |
-| insights_captured | integer | DEFAULT 0 |
-| wins_captured | integer | DEFAULT 0 |
-| top_wins | jsonb | Array of win texts |
-| top_insights | jsonb | Array of insight texts |
-| friction_points | jsonb | Array of improvement texts |
-| phases_active | jsonb | Array of phase names touched |
-| evolution_narrative | text | AI-generated weekly narrative |
-| self_ratings | jsonb | User's quick self-rating from ritual |
-| ritual_completed_at | timestamptz | When user completed the weekly ritual |
-| streak_weeks | integer | DEFAULT 0 |
-| created_at | timestamptz | DEFAULT now() |
+---
 
-RLS: Users can only read/insert/update their own rows.
+## New Edge Function: `generate-sprint-insight`
 
-### New table: `momentum_capabilities`
+Lightweight AI call (Gemini 2.5 Flash) that takes weekly stats and returns 1-2 sentences of neutral pattern observation. Similar to `generate-momentum-narrative` but shorter, auto-triggered, and focused on diagnostic observation rather than trajectory narrative.
 
-Tracks skills activated through action over time.
-
-| Column | Type | Notes |
-|--------|------|-------|
-| id | uuid | PK |
-| user_id | uuid | NOT NULL |
-| capability_name | text | NOT NULL |
-| source_type | text | 'task', 'insight', 'phase', 'design_thinking' |
-| activation_count | integer | DEFAULT 1 |
-| first_activated_at | timestamptz | DEFAULT now() |
-| last_activated_at | timestamptz | DEFAULT now() |
-| created_at | timestamptz | DEFAULT now() |
-
-RLS: Users can only read/insert/update their own rows.
-
-## Data Aggregation Logic
-
-The Momentum Dashboard reads from existing tables — no changes to existing data flows:
-
-- **`integrator_daily_steps`**: completion rate, status counts for the last 7 days (filtered by `scheduled_date`)
-- **`task_feedback`**: win_text, insight_text, improvement_text, usefulness_rating for the last 7 days
-- **`insight_dots`**: count of insights with `source_type = 'integrator_step'` in the last 7 days
-- **`integrator_phases`**: which phases were active/completed this week
-- **`integrator_projects`** / **`evolution_nodes`**: project title, current phase, current day for context
-- **`design_thinking_content`**: interaction count with design thinking stages this week
-- **`creative_space_tiles`**: saved notes/insights count this week
-
-A custom hook `useMomentumData` will aggregate all of this on the client side from existing tables — no new edge function needed for data collection.
-
-## New Edge Function: `generate-momentum-narrative`
-
-Called when the user completes the weekly ritual. Takes the week's aggregated data and generates:
-
-1. An Evolution Narrative (2-3 sentences connecting weekly behavior to trajectory)
-2. Suggested focus areas for the next sprint
-3. Capability tags extracted from the week's tasks and insights
-
-Uses the Lovable AI gateway (google/gemini-2.5-flash) — no external API key needed.
-
-## Frontend Components
-
-### 1. `src/components/dashboard/MomentumCard.tsx`
-Entry point card on the Dashboard. Shows:
-- Weekly completion percentage (circular progress ring reusing `DualProgressRing` pattern)
-- "Weekly Ritual Ready" badge when 7 days have passed
-- Tap to navigate to `/momentum`
-
-### 2. `src/pages/MomentumDashboard.tsx`
-Full page with three tabs using existing `Tabs` component:
-
-**Tab 1 — Sprint Review:**
-- Completion rate bar (X/Y tasks done)
-- Average usefulness rating
-- Top 3 wins (from `task_feedback.win_text`)
-- Top 3 insights (from `task_feedback.insight_text`)
-- Friction points (from `task_feedback.improvement_text`)
-- Phase activity summary
-
-**Tab 2 — Compound Growth:**
-- Weekly streak counter
-- Chart showing completion rate trend over weeks (using existing `recharts`)
-- Total insights accumulated across all weeks
-- Evolution Narrative history (scrollable cards)
-- Direction stability indicator (same project vs. pivots)
-
-**Tab 3 — Capability Map:**
-- Visual grid/list of capabilities activated through action
-- Each capability shows activation count and recency
-- Categories: execution, strategy, creativity, reflection, leadership
-- New capabilities this week get a "New" badge
-
-### 3. `src/components/momentum/WeeklyRitualFlow.tsx`
-Modal-based flow (similar to existing `TaskCompletionFlow`):
-
-1. **Grounding step** (30s breathing/centering prompt — simple timer)
-2. **Quick self-ratings** (3-4 sliders: Energy, Clarity, Confidence, Direction — 1-10 scale)
-3. **Evolution Narrative** appears (AI-generated, based on week data)
-4. **Confirm direction** or flag "I want to adjust"
-5. System stores the report and increments streak
-
-### 4. `src/hooks/useMomentumData.ts`
-Custom hook that:
-- Fetches last 7 days of task data from `integrator_daily_steps`
-- Fetches last 7 days of feedback from `task_feedback`
-- Fetches insight count from `insight_dots`
-- Fetches previous weekly reports from `momentum_weekly_reports`
-- Computes completion rate, averages, top items
-- Returns structured data for the dashboard
-
-## Routing
-
-Add to `App.tsx`:
-```
-/momentum → MomentumDashboard (with AppLayout, session-gated)
-```
-
-## Design Principles Applied
-
-- No shaming: low completion weeks show "Let's build on this" messaging, not red warnings
-- Progress is always framed as forward motion
-- The Evolution Narrative connects data to meaning without being dramatic
-- Capability Map rewards action-based skill development, not just completion counts
-- The weekly ritual is a retention mechanism — simple, satisfying, and rewarding
+---
 
 ## Files to Create
 
 | File | Purpose |
 |------|---------|
-| `src/pages/MomentumDashboard.tsx` | Full-page momentum view with 3 tabs |
-| `src/components/momentum/SprintReviewTab.tsx` | Sprint Review tab content |
-| `src/components/momentum/CompoundGrowthTab.tsx` | Compound Growth tab content |
-| `src/components/momentum/CapabilityMapTab.tsx` | Capability Map tab content |
-| `src/components/momentum/WeeklyRitualFlow.tsx` | Weekly ritual modal flow |
-| `src/components/momentum/EvolutionNarrative.tsx` | AI narrative display block |
-| `src/components/dashboard/MomentumCard.tsx` | Dashboard entry card |
-| `src/hooks/useMomentumData.ts` | Data aggregation hook |
-| `supabase/functions/generate-momentum-narrative/index.ts` | AI narrative generation |
+| `src/components/momentum/SprintWinnerCard.tsx` | Winner card celebration after ritual |
+| `src/components/momentum/StructuredQuestions.tsx` | Step 2 structured question inputs |
+| `src/components/momentum/SprintConsole.tsx` | Step 4 mini-console chat within ritual |
+| `supabase/functions/generate-sprint-insight/index.ts` | Auto-generated system insight |
 
 ## Files to Modify
 
 | File | Change |
 |------|--------|
-| `src/App.tsx` | Add `/momentum` route |
-| `src/pages/Dashboard.tsx` | Add `MomentumCard` between NarrativeSystemCard and TodaysFocusCard |
+| `src/components/momentum/SprintReviewTab.tsx` | Add Momentum Score, System Insight, active days, reflection rate, CTA button |
+| `src/components/momentum/WeeklyRitualFlow.tsx` | Expand to 6 steps: add structured questions, console, winner card |
+| `src/hooks/useMomentumData.ts` | Add momentumScore, activeDays, reflectionRate computation; add systemInsight fetch |
+| `supabase/functions/council-meeting/index.ts` | Detect `sprintReviewContext` and inject sprint direction instructions |
+| `supabase/functions/generate-momentum-narrative/index.ts` | Pass structured question data into narrative prompt |
+| Database migration | Add 5 new nullable columns to `momentum_weekly_reports` |
+| `supabase/config.toml` | Add `generate-sprint-insight` function entry |
 
 ## What This Does NOT Touch
 
-- Sprint creation or task generation logic
-- Design Thinking Lab workflow
-- Creative Space storage
-- Council or mentor systems
+- Existing sprint creation/task generation infrastructure (reused)
+- Council system architecture (reused, context-extended)
+- Compound Growth tab
+- Capability Map tab
+- Bottom navigation
+- Mentor routing or handoff logic
 - Transmutation flow
-- Bottom navigation (Momentum is accessed from Home, not a new nav item)
-- Existing `DailyRitualCard` or `DailyRitualModal` (the weekly ritual is separate)
+- Design Thinking Lab
