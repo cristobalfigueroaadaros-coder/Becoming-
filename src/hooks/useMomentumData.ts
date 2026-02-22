@@ -15,6 +15,9 @@ export interface WeeklyData {
   phasesActive: string[];
   designThinkingInteractions: number;
   creativeSpaceTiles: number;
+  momentumScore: number;
+  activeDays: number;
+  reflectionRate: number;
 }
 
 export interface WeeklyReport {
@@ -29,6 +32,9 @@ export interface WeeklyReport {
   streak_weeks: number;
   ritual_completed_at: string | null;
   created_at: string;
+  momentum_score: number | null;
+  sprint_direction: string | null;
+  system_insight: string | null;
 }
 
 export interface Capability {
@@ -44,6 +50,8 @@ export function useMomentumData() {
   const [weeklyData, setWeeklyData] = useState<WeeklyData | null>(null);
   const [pastReports, setPastReports] = useState<WeeklyReport[]>([]);
   const [capabilities, setCapabilities] = useState<Capability[]>([]);
+  const [systemInsight, setSystemInsight] = useState<string | null>(null);
+  const [insightLoading, setInsightLoading] = useState(false);
   const [loading, setLoading] = useState(true);
 
   const fetchData = async () => {
@@ -54,60 +62,44 @@ export function useMomentumData() {
       const sevenDaysAgo = format(startOfDay(subDays(new Date(), 7)), "yyyy-MM-dd");
       const today = format(new Date(), "yyyy-MM-dd");
 
-      // Parallel fetches
       const [stepsRes, feedbackRes, insightsRes, phasesRes, dtRes, csRes, reportsRes, capsRes] = await Promise.all([
-        // 1. integrator_daily_steps last 7 days
         supabase
           .from("integrator_daily_steps")
           .select("id, status, scheduled_date")
           .eq("user_id", user.id)
           .gte("scheduled_date", sevenDaysAgo)
           .lte("scheduled_date", today),
-
-        // 2. task_feedback last 7 days
         supabase
           .from("task_feedback" as any)
           .select("win_text, insight_text, improvement_text, usefulness_rating, created_at")
           .eq("user_id", user.id)
           .gte("created_at", new Date(sevenDaysAgo).toISOString()),
-
-        // 3. insight_dots count
         supabase
           .from("insight_dots")
           .select("id", { count: "exact" })
           .eq("user_id", user.id)
           .gte("created_at", new Date(sevenDaysAgo).toISOString()),
-
-        // 4. integrator_phases active
         supabase
           .from("integrator_phases")
           .select("phase_name, started_at, completed_at")
           .eq("user_id", user.id)
           .not("started_at", "is", null),
-
-        // 5. design_thinking_content interactions
         supabase
           .from("design_thinking_content")
           .select("id", { count: "exact" })
           .eq("user_id", user.id)
           .gte("created_at", new Date(sevenDaysAgo).toISOString()),
-
-        // 6. creative_space_tiles count
         supabase
           .from("creative_space_tiles")
           .select("id", { count: "exact" })
           .eq("user_id", user.id)
           .gte("created_at", new Date(sevenDaysAgo).toISOString()),
-
-        // 7. past weekly reports
         supabase
           .from("momentum_weekly_reports")
           .select("*")
           .eq("user_id", user.id)
           .order("week_start", { ascending: false })
           .limit(12),
-
-        // 8. capabilities
         supabase
           .from("momentum_capabilities")
           .select("*")
@@ -121,6 +113,11 @@ export function useMomentumData() {
       const skipped = steps.filter((s) => s.status === "skipped").length;
       const total = steps.length;
 
+      // Active days = unique scheduled_dates with completed tasks
+      const activeDays = new Set(
+        steps.filter((s) => s.status === "completed").map((s) => s.scheduled_date)
+      ).size;
+
       // Process feedback
       const feedback = (feedbackRes.data as any[]) || [];
       const wins = feedback.map((f: any) => f.win_text).filter(Boolean).slice(0, 3);
@@ -131,11 +128,30 @@ export function useMomentumData() {
         ? ratings.reduce((a: number, b: number) => a + b, 0) / ratings.length
         : null;
 
+      // Reflection rate = feedback entries with insight_text / total tasks
+      const feedbackWithInsights = feedback.filter((f: any) => f.insight_text).length;
+      const reflectionRate = total > 0 ? Math.round((feedbackWithInsights / total) * 100) : 0;
+
       // Process phases
       const phases = phasesRes.data || [];
       const activePhases = phases
         .filter((p) => p.started_at && !p.completed_at)
         .map((p) => p.phase_name);
+
+      // Compute Momentum Score (0-100)
+      const completionScore = total > 0 ? (completed / total) : 0; // 40%
+      const consistencyScore = activeDays / 7; // 25%
+      const reflectionScore = reflectionRate / 100; // 20%
+      const dtCount = dtRes.count || 0;
+      const csCount = csRes.count || 0;
+      const engagementScore = (dtCount > 0 || csCount > 0) ? 1 : 0; // 15%
+
+      const momentumScore = Math.round(
+        completionScore * 40 +
+        consistencyScore * 25 +
+        reflectionScore * 20 +
+        engagementScore * 15
+      );
 
       setWeeklyData({
         tasksCompleted: completed,
@@ -148,8 +164,11 @@ export function useMomentumData() {
         frictionPoints: friction,
         insightsCaptured: insightsRes.count || 0,
         phasesActive: activePhases,
-        designThinkingInteractions: dtRes.count || 0,
-        creativeSpaceTiles: csRes.count || 0,
+        designThinkingInteractions: dtCount,
+        creativeSpaceTiles: csCount,
+        momentumScore,
+        activeDays,
+        reflectionRate,
       });
 
       setPastReports(
@@ -169,9 +188,32 @@ export function useMomentumData() {
     }
   };
 
+  const fetchSystemInsight = async (data: WeeklyData) => {
+    if (data.tasksTotal === 0) return;
+    setInsightLoading(true);
+    try {
+      const { data: result, error } = await supabase.functions.invoke("generate-sprint-insight", {
+        body: { weeklyData: data },
+      });
+      if (!error && result?.insight) {
+        setSystemInsight(result.insight);
+      }
+    } catch (err) {
+      console.error("System insight fetch failed:", err);
+    } finally {
+      setInsightLoading(false);
+    }
+  };
+
   useEffect(() => {
     fetchData();
   }, []);
 
-  return { weeklyData, pastReports, capabilities, loading, refetch: fetchData };
+  useEffect(() => {
+    if (weeklyData && weeklyData.tasksTotal > 0) {
+      fetchSystemInsight(weeklyData);
+    }
+  }, [weeklyData?.tasksTotal]);
+
+  return { weeklyData, pastReports, capabilities, systemInsight, insightLoading, loading, refetch: fetchData };
 }

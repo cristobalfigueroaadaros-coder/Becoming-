@@ -11,7 +11,7 @@ import { WeeklyRitualFlow } from "@/components/momentum/WeeklyRitualFlow";
 
 const MomentumDashboard = () => {
   const navigate = useNavigate();
-  const { weeklyData, pastReports, capabilities, loading, refetch } = useMomentumData();
+  const { weeklyData, pastReports, capabilities, systemInsight, insightLoading, loading, refetch } = useMomentumData();
   const [ritualOpen, setRitualOpen] = useState(false);
 
   const currentStreak = pastReports.length > 0 ? pastReports[0].streak_weeks : 0;
@@ -51,7 +51,14 @@ const MomentumDashboard = () => {
           </TabsList>
 
           <TabsContent value="sprint">
-            {weeklyData && <SprintReviewTab data={weeklyData} />}
+            {weeklyData && (
+              <SprintReviewTab
+                data={weeklyData}
+                systemInsight={systemInsight}
+                insightLoading={insightLoading}
+                onStartRitual={() => setRitualOpen(true)}
+              />
+            )}
           </TabsContent>
           <TabsContent value="growth">
             <CompoundGrowthTab pastReports={pastReports} currentStreak={currentStreak} />

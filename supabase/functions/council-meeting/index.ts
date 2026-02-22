@@ -392,6 +392,7 @@ Deno.serve(async (req) => {
       openerType,
       generateOpenerOnly = false,
       councilType = 'default',
+      sprintReviewContext,
     } = await req.json();
 
     // Defensive: conversationHistory is user-provided and can contain null/undefined
@@ -805,6 +806,31 @@ CRITICAL RULES:
 - Do not treat this as a current crisis or something they need to act on urgently.
 - Focus on pattern recognition, emotional truth, and reframing — not crisis management.
 - Help them see what this experience shaped in them, what it cost them, and what it taught them.
+
+`;
+      } else if (sprintReviewContext) {
+        systemPrompt += `You are in SPRINT REVIEW MODE. The user is completing their weekly momentum ritual.
+
+SPRINT DATA:
+- Momentum Score: ${sprintReviewContext.momentumScore}/100
+- Completion Rate: ${sprintReviewContext.completionRate}%
+- Active Days: ${sprintReviewContext.activeDays}/7
+- Reflection Rate: ${sprintReviewContext.reflectionRate}%
+- Friction Type: ${sprintReviewContext.frictionType || 'Not specified'}
+- Direction Confidence: ${sprintReviewContext.directionConfidence}/10
+- Usefulness Rating: ${sprintReviewContext.usefulnessRating || 'Not specified'}
+- Biggest Win: ${sprintReviewContext.biggestWin || 'Not specified'}
+- Top Wins: ${sprintReviewContext.topWins?.join('; ') || 'None'}
+- Friction Points: ${sprintReviewContext.frictionPoints?.join('; ') || 'None'}
+
+YOUR MISSION:
+1. Acknowledge their performance based on the data above
+2. Reflect friction intelligently — do NOT shame
+3. Determine sprint strategy for next 7 days
+4. Choose between: Continue and deepen / Narrow scope / Adjust intensity / Simplify structure / Test adjacent variation / Pivot
+5. ONLY suggest Pivot if confidence is extremely low (<=3) AND usefulness is declining
+6. Keep exchanges focused (3-5 max). This is a decision engine, not therapy.
+7. End with a clear directional recommendation.
 
 `;
       } else {
