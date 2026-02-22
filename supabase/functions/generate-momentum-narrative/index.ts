@@ -11,9 +11,17 @@ serve(async (req) => {
   }
 
   try {
-    const { weeklyData, selfRatings } = await req.json();
+    const { weeklyData, selfRatings, structuredAnswers } = await req.json();
     const LOVABLE_API_KEY = Deno.env.get("LOVABLE_API_KEY");
     if (!LOVABLE_API_KEY) throw new Error("LOVABLE_API_KEY not configured");
+
+    const structuredBlock = structuredAnswers ? `
+STRUCTURED REFLECTION:
+- Task Usefulness: ${structuredAnswers.usefulness || 'N/A'}
+- Main Friction: ${structuredAnswers.frictionType || 'N/A'}
+- Biggest Win: ${structuredAnswers.biggestWin || 'N/A'}
+- Direction Confidence: ${structuredAnswers.directionConfidence || 'N/A'}/10
+` : '';
 
     const prompt = `You are a strategic momentum coach for an entrepreneur. Based on their week's data, write a concise Evolution Narrative (2-3 sentences max) that:
 1. Connects what they did this week to their larger trajectory
@@ -25,6 +33,9 @@ Be grounded, intelligent, non-dramatic. No fluff. No spiritual language. Think l
 WEEKLY DATA:
 - Tasks completed: ${weeklyData.tasksCompleted}/${weeklyData.tasksTotal} (${weeklyData.completionRate}%)
 - Tasks skipped: ${weeklyData.tasksSkipped}
+- Momentum Score: ${weeklyData.momentumScore ?? 'N/A'}/100
+- Active Days: ${weeklyData.activeDays ?? 'N/A'}/7
+- Reflection Rate: ${weeklyData.reflectionRate ?? 'N/A'}%
 - Average usefulness rating: ${weeklyData.avgUsefulnessRating ?? "N/A"}/5
 - Insights captured: ${weeklyData.insightsCaptured}
 - Top wins: ${weeklyData.topWins?.join("; ") || "None reported"}
@@ -33,7 +44,7 @@ WEEKLY DATA:
 - Active phases: ${weeklyData.phasesActive?.join(", ") || "None"}
 - Design thinking interactions: ${weeklyData.designThinkingInteractions}
 - Creative space tiles: ${weeklyData.creativeSpaceTiles}
-
+${structuredBlock}
 SELF RATINGS (1-10):
 - Energy: ${selfRatings.energy}
 - Clarity: ${selfRatings.clarity}

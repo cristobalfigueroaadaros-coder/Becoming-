@@ -2116,20 +2116,26 @@ export type Database = {
       momentum_weekly_reports: {
         Row: {
           avg_usefulness_rating: number | null
+          biggest_win_type: string | null
           created_at: string
           evolution_narrative: string | null
           friction_points: Json | null
+          friction_type: string | null
           id: string
           insights_captured: number | null
+          momentum_score: number | null
           phases_active: Json | null
           ritual_completed_at: string | null
           self_ratings: Json | null
+          sprint_direction: string | null
           streak_weeks: number | null
+          system_insight: string | null
           tasks_completed: number | null
           tasks_skipped: number | null
           tasks_total: number | null
           top_insights: Json | null
           top_wins: Json | null
+          usefulness_answer: string | null
           user_id: string
           week_end: string
           week_start: string
@@ -2137,20 +2143,26 @@ export type Database = {
         }
         Insert: {
           avg_usefulness_rating?: number | null
+          biggest_win_type?: string | null
           created_at?: string
           evolution_narrative?: string | null
           friction_points?: Json | null
+          friction_type?: string | null
           id?: string
           insights_captured?: number | null
+          momentum_score?: number | null
           phases_active?: Json | null
           ritual_completed_at?: string | null
           self_ratings?: Json | null
+          sprint_direction?: string | null
           streak_weeks?: number | null
+          system_insight?: string | null
           tasks_completed?: number | null
           tasks_skipped?: number | null
           tasks_total?: number | null
           top_insights?: Json | null
           top_wins?: Json | null
+          usefulness_answer?: string | null
           user_id: string
           week_end: string
           week_start: string
@@ -2158,20 +2170,26 @@ export type Database = {
         }
         Update: {
           avg_usefulness_rating?: number | null
+          biggest_win_type?: string | null
           created_at?: string
           evolution_narrative?: string | null
           friction_points?: Json | null
+          friction_type?: string | null
           id?: string
           insights_captured?: number | null
+          momentum_score?: number | null
           phases_active?: Json | null
           ritual_completed_at?: string | null
           self_ratings?: Json | null
+          sprint_direction?: string | null
           streak_weeks?: number | null
+          system_insight?: string | null
           tasks_completed?: number | null
           tasks_skipped?: number | null
           tasks_total?: number | null
           top_insights?: Json | null
           top_wins?: Json | null
+          usefulness_answer?: string | null
           user_id?: string
           week_end?: string
           week_start?: string

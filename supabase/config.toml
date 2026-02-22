@@ -134,3 +134,6 @@ verify_jwt = true
 
 [functions.generate-momentum-narrative]
 verify_jwt = true
+
+[functions.generate-sprint-insight]
+verify_jwt = true
