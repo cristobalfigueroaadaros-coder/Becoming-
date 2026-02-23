@@ -853,26 +853,20 @@ const TransmutationCouncil = () => {
               </motion.div>
             )}
 
-            {/* Action Buttons */}
-            <div className="flex flex-col sm:flex-row gap-3 pt-4">
-              <Button
-                onClick={() => continueAsking()}
-                className="flex-1 bg-amber-600 hover:bg-amber-700"
-                size="lg"
-              >
-                <MessageCircle className="w-4 h-4 mr-2" />
-                Continue Exploring
-              </Button>
-              <Button
-                onClick={resetConversation}
-                variant="outline"
-                className="flex-1"
-                size="lg"
-              >
-                <RefreshCw className="w-4 h-4 mr-2" />
-                Start New Topic
-              </Button>
-            </div>
+            {/* Action Buttons - Only show reset when no suggested question */}
+            {!suggestedNextQuestion && (
+              <div className="flex justify-center pt-4">
+                <Button
+                  onClick={resetConversation}
+                  variant="ghost"
+                  size="sm"
+                  className="text-muted-foreground"
+                >
+                  <RefreshCw className="w-3 h-3 mr-2" />
+                  Start New Topic
+                </Button>
+              </div>
+            )}
           </div>
         )}
       </div>

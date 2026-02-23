@@ -59,23 +59,23 @@ const OnboardingWorkContext = () => {
             <div>
               <CardTitle className="text-2xl">One more thing...</CardTitle>
               <CardDescription className="text-base mt-2">
-                This helps your mentors understand your world
+                This helps us understand your professional background
               </CardDescription>
             </div>
           </CardHeader>
           <CardContent className="space-y-6 pt-4">
             <div className="space-y-3">
               <label className="text-sm font-medium text-foreground">
-                What are you currently working on, or what kind of work have you done that feels most relevant now?
+                What kind of work have you done? Do you have any degrees, certifications, or specialized training?
               </label>
               <Textarea
                 value={workContext}
                 onChange={(e) => setWorkContext(e.target.value)}
-                placeholder="e.g., I'm a freelance designer exploring how to build a personal brand, or I've worked in tech for 10 years and I'm considering a career pivot..."
+                placeholder="e.g., I've worked in marketing for 5 years. I have a degree in engineering. I've built and launched SaaS products. I've taken courses in UX design or coaching."
                 className="min-h-[120px] resize-none"
               />
               <p className="text-xs text-muted-foreground">
-                1–2 lines is enough. No need to explain everything.
+                This isn't about your current project. It's about your experience and skills.
               </p>
             </div>
 

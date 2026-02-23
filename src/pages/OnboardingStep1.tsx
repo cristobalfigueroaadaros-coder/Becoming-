@@ -7,17 +7,20 @@ import { supabase } from "@/integrations/supabase/client";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
-import { Textarea } from "@/components/ui/textarea";
 import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from "@/components/ui/form";
+import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
+import { Command, CommandEmpty, CommandGroup, CommandInput, CommandItem, CommandList } from "@/components/ui/command";
 import { toast } from "sonner";
-import { Sparkles, Loader2 } from "lucide-react";
+import { Sparkles, Loader2, Check, ChevronsUpDown } from "lucide-react";
 import { format } from "date-fns";
+import { cn } from "@/lib/utils";
+import { countries } from "@/data/countries";
 
 const profileSchema = z.object({
-  // Pattern Profile (required)
   birth_name: z.string().min(2, "Birth name is required"),
   birth_date: z.date({ required_error: "Birth date is required" }),
-  birth_location: z.string().min(1, "Birth location is required"),
+  birth_city: z.string().min(1, "City is required"),
+  birth_country: z.string().min(1, "Country is required"),
   birth_time: z.string().optional(),
   birth_time_unknown: z.boolean().optional(),
 });
@@ -28,14 +31,16 @@ const OnboardingStep1 = () => {
   const navigate = useNavigate();
   const [loading, setLoading] = useState(false);
   const [analyzingNumerology, setAnalyzingNumerology] = useState(false);
+  const [countryOpen, setCountryOpen] = useState(false);
 
   const form = useForm<ProfileFormData>({
     resolver: zodResolver(profileSchema),
     defaultValues: {
       birth_name: "",
+      birth_city: "",
+      birth_country: "",
       birth_time: "",
       birth_time_unknown: false,
-      birth_location: "",
     },
   });
 
@@ -46,8 +51,8 @@ const OnboardingStep1 = () => {
       if (!user) throw new Error("Not authenticated");
 
       const birthDateFormatted = format(data.birth_date, "yyyy-MM-dd");
+      const birthLocation = `${data.birth_city}, ${data.birth_country}`;
 
-      // Save profile
       const { error: profileError } = await supabase
         .from("profiles")
         .upsert({
@@ -56,8 +61,8 @@ const OnboardingStep1 = () => {
           birth_date: birthDateFormatted,
           birth_time: data.birth_time_unknown ? null : (data.birth_time || null),
           birth_time_unknown: data.birth_time_unknown || false,
-          birth_location: data.birth_location,
-          display_name: data.birth_name.split(' ')[0], // Use first name as display name
+          birth_location: birthLocation,
+          display_name: data.birth_name.split(' ')[0],
         });
 
       if (profileError) throw profileError;
@@ -72,7 +77,6 @@ const OnboardingStep1 = () => {
 
       if (progressError) throw progressError;
 
-      // Auto-run numerology analysis
       setAnalyzingNumerology(true);
       try {
         const { data: numerologyData, error: numerologyError } = await supabase.functions.invoke(
@@ -86,7 +90,6 @@ const OnboardingStep1 = () => {
         );
 
         if (!numerologyError && numerologyData) {
-          // Save numerology results to profile
           await supabase
             .from("profiles")
             .update({
@@ -97,7 +100,6 @@ const OnboardingStep1 = () => {
         }
       } catch (numError) {
         console.error("Numerology analysis failed (non-blocking):", numError);
-        // Don't block onboarding if numerology fails
       }
 
       toast.success("Profile created!");
@@ -173,22 +175,81 @@ const OnboardingStep1 = () => {
                   )}
                 />
 
-                <FormField
-                  control={form.control}
-                  name="birth_location"
-                  render={({ field }) => (
-                    <FormItem>
-                      <FormLabel>Birth Location</FormLabel>
-                      <FormControl>
-                        <Input 
-                          placeholder="City, Country where you were born" 
-                          {...field} 
-                        />
-                      </FormControl>
-                      <FormMessage />
-                    </FormItem>
-                  )}
-                />
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                  <FormField
+                    control={form.control}
+                    name="birth_country"
+                    render={({ field }) => (
+                      <FormItem className="flex flex-col">
+                        <FormLabel>Birth Country</FormLabel>
+                        <Popover open={countryOpen} onOpenChange={setCountryOpen}>
+                          <PopoverTrigger asChild>
+                            <FormControl>
+                              <Button
+                                variant="outline"
+                                role="combobox"
+                                aria-expanded={countryOpen}
+                                className={cn(
+                                  "w-full justify-between font-normal",
+                                  !field.value && "text-muted-foreground"
+                                )}
+                              >
+                                {field.value || "Select country"}
+                                <ChevronsUpDown className="ml-2 h-4 w-4 shrink-0 opacity-50" />
+                              </Button>
+                            </FormControl>
+                          </PopoverTrigger>
+                          <PopoverContent className="w-[--radix-popover-trigger-width] p-0 z-50 bg-popover" align="start">
+                            <Command>
+                              <CommandInput placeholder="Search country..." />
+                              <CommandList>
+                                <CommandEmpty>No country found.</CommandEmpty>
+                                <CommandGroup>
+                                  {countries.map((country) => (
+                                    <CommandItem
+                                      key={country}
+                                      value={country}
+                                      onSelect={() => {
+                                        field.onChange(country);
+                                        setCountryOpen(false);
+                                      }}
+                                    >
+                                      <Check
+                                        className={cn(
+                                          "mr-2 h-4 w-4",
+                                          field.value === country ? "opacity-100" : "opacity-0"
+                                        )}
+                                      />
+                                      {country}
+                                    </CommandItem>
+                                  ))}
+                                </CommandGroup>
+                              </CommandList>
+                            </Command>
+                          </PopoverContent>
+                        </Popover>
+                        <FormMessage />
+                      </FormItem>
+                    )}
+                  />
+
+                  <FormField
+                    control={form.control}
+                    name="birth_city"
+                    render={({ field }) => (
+                      <FormItem>
+                        <FormLabel>Birth City</FormLabel>
+                        <FormControl>
+                          <Input 
+                            placeholder="e.g. London, New York" 
+                            {...field} 
+                          />
+                        </FormControl>
+                        <FormMessage />
+                      </FormItem>
+                    )}
+                  />
+                </div>
 
                 <div className="space-y-3">
                   <FormField
