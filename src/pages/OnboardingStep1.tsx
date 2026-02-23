@@ -15,6 +15,7 @@ import { Sparkles, Loader2, Check, ChevronsUpDown } from "lucide-react";
 import { format } from "date-fns";
 import { cn } from "@/lib/utils";
 import { countries } from "@/data/countries";
+import { citiesByCountry } from "@/data/cities";
 
 const profileSchema = z.object({
   birth_name: z.string().min(2, "Birth name is required"),
@@ -32,7 +33,8 @@ const OnboardingStep1 = () => {
   const [loading, setLoading] = useState(false);
   const [analyzingNumerology, setAnalyzingNumerology] = useState(false);
   const [countryOpen, setCountryOpen] = useState(false);
-
+  const [cityOpen, setCityOpen] = useState(false);
+  const [customCityMode, setCustomCityMode] = useState(false);
   const form = useForm<ProfileFormData>({
     resolver: zodResolver(profileSchema),
     defaultValues: {
@@ -209,9 +211,12 @@ const OnboardingStep1 = () => {
                                     <CommandItem
                                       key={country}
                                       value={country}
-                                      onSelect={() => {
+                                    onSelect={() => {
                                         field.onChange(country);
                                         setCountryOpen(false);
+                                        // Reset city when country changes
+                                        form.setValue("birth_city", "");
+                                        setCustomCityMode(false);
                                       }}
                                     >
                                       <Check
@@ -236,18 +241,101 @@ const OnboardingStep1 = () => {
                   <FormField
                     control={form.control}
                     name="birth_city"
-                    render={({ field }) => (
-                      <FormItem>
-                        <FormLabel>Birth City</FormLabel>
-                        <FormControl>
-                          <Input 
-                            placeholder="e.g. London, New York" 
-                            {...field} 
-                          />
-                        </FormControl>
-                        <FormMessage />
-                      </FormItem>
-                    )}
+                    render={({ field }) => {
+                      const selectedCountry = form.watch("birth_country");
+                      const availableCities = selectedCountry ? (citiesByCountry[selectedCountry] || []) : [];
+                      const showCombobox = !customCityMode && availableCities.length > 0;
+
+                      return (
+                        <FormItem className="flex flex-col">
+                          <FormLabel>Birth City</FormLabel>
+                          {showCombobox ? (
+                            <>
+                              <Popover open={cityOpen} onOpenChange={setCityOpen}>
+                                <PopoverTrigger asChild>
+                                  <FormControl>
+                                    <Button
+                                      variant="outline"
+                                      role="combobox"
+                                      aria-expanded={cityOpen}
+                                      className={cn(
+                                        "w-full justify-between font-normal",
+                                        !field.value && "text-muted-foreground"
+                                      )}
+                                    >
+                                      {field.value || "Select city"}
+                                      <ChevronsUpDown className="ml-2 h-4 w-4 shrink-0 opacity-50" />
+                                    </Button>
+                                  </FormControl>
+                                </PopoverTrigger>
+                                <PopoverContent className="w-[--radix-popover-trigger-width] p-0 z-50 bg-popover" align="start">
+                                  <Command>
+                                    <CommandInput placeholder="Search city..." />
+                                    <CommandList>
+                                      <CommandEmpty>No city found.</CommandEmpty>
+                                      <CommandGroup>
+                                        {availableCities.map((city) => (
+                                          <CommandItem
+                                            key={city}
+                                            value={city}
+                                            onSelect={() => {
+                                              field.onChange(city);
+                                              setCityOpen(false);
+                                            }}
+                                          >
+                                            <Check
+                                              className={cn(
+                                                "mr-2 h-4 w-4",
+                                                field.value === city ? "opacity-100" : "opacity-0"
+                                              )}
+                                            />
+                                            {city}
+                                          </CommandItem>
+                                        ))}
+                                      </CommandGroup>
+                                      <CommandGroup>
+                                        <CommandItem
+                                          onSelect={() => {
+                                            setCustomCityMode(true);
+                                            setCityOpen(false);
+                                            field.onChange("");
+                                          }}
+                                          className="text-muted-foreground"
+                                        >
+                                          My city isn't listed...
+                                        </CommandItem>
+                                      </CommandGroup>
+                                    </CommandList>
+                                  </Command>
+                                </PopoverContent>
+                              </Popover>
+                            </>
+                          ) : (
+                            <FormControl>
+                              <div className="space-y-1">
+                                <Input
+                                  placeholder={selectedCountry ? "Type your city name" : "Select a country first"}
+                                  {...field}
+                                />
+                                {customCityMode && availableCities.length > 0 && (
+                                  <button
+                                    type="button"
+                                    onClick={() => {
+                                      setCustomCityMode(false);
+                                      field.onChange("");
+                                    }}
+                                    className="text-xs text-primary hover:underline"
+                                  >
+                                    ← Back to city list
+                                  </button>
+                                )}
+                              </div>
+                            </FormControl>
+                          )}
+                          <FormMessage />
+                        </FormItem>
+                      );
+                    }}
                   />
                 </div>
 
