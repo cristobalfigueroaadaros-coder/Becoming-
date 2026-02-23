@@ -540,8 +540,8 @@ Just the message, no labels or quotes.`;
     // (safeConversationHistory is sanitized above)
     const questionNumber = safeConversationHistory.filter((msg: any) => msg.role === 'user').length + 1;
     const isQ1 = questionNumber === 1;
-    const isQ2 = questionNumber === 2;
-    const isQ3 = questionNumber >= 3;
+    const isQ2 = questionNumber >= 2; // Q2 is now the FINAL round (max 2 questions)
+    const isQ3 = questionNumber >= 2; // Alias: Q2 acts as Q3 for guidance/mentor/DM
     
     console.log(`Council Meeting - Q${questionNumber}: ${question.substring(0, 50)}...`);
 
@@ -657,51 +657,8 @@ YOUR COUNCIL MISSION: Identify their current stage and define the next milestone
     // Combine foundation + numerology + entry state + life domains context
     const fullUserContext = numerologyContext + userFoundationContext + entryStateContext + lifeDomainContext;
 
-    // === Q2 ONLY: COUNCIL SEEKING CLARITY ===
-    if (isQ2 && !lowerQuestion.includes("i'm ready") && !lowerQuestion.includes("what should i do")) {
-    const conversationContext = formatConversationHistory(safeConversationHistory);
-      
-      const clarityPrompt = `You are the Council. Generate ONE very simple question to understand the user better.
-${userFoundationContext}
-${conversationContext}
-
-User's CURRENT message: "${question}"
-
-IMPORTANT: 
-- Do NOT ask about anything the user has already shared (including their foundation story)
-- Ask about something NEW that would help deepen understanding
-- Build upon what you already know about them
-- Reference their background/struggles/aspirations when relevant
-
-Generate ONE simple question (not philosophical, not complex):
-Max 10 words.`;
-
-      const clarityResponse = await fetch("https://ai.gateway.lovable.dev/v1/chat/completions", {
-        method: "POST",
-        headers: {
-          "Authorization": `Bearer ${Deno.env.get("LOVABLE_API_KEY")}`,
-          "Content-Type": "application/json",
-        },
-        body: JSON.stringify({
-          model: "google/gemini-2.5-flash",
-          messages: [{ role: "user", content: clarityPrompt }],
-        }),
-      });
-
-      if (clarityResponse.ok) {
-        const clarityData = await clarityResponse.json();
-        const clarityQuestion = clarityData.choices[0].message.content;
-        
-        return new Response(
-          JSON.stringify({
-            stage: 'seeking_clarity',
-            clarityQuestion,
-            questionNumber
-          }),
-          { headers: { ...corsHeaders, "Content-Type": "application/json" } }
-        );
-      }
-    }
+    // === Q2 CLARITY SEEKING REMOVED — Max 2 questions rule ===
+    // Q2 now goes straight to full council response (acts as final round)
 
     // === GENERATE COUNCIL INSIGHT (Q1 and Q3 ONLY - skip Q2 to reduce repetition) ===
     const conversationContext = formatConversationHistory(conversationHistory);
@@ -1122,9 +1079,9 @@ Mission: ${profile.main_mission}`;
     }
 
     // === GENERATE COUNCIL BANTER (WhatsApp-style group chat) ===
-    let banterLength = 'SHORT'; // Q1
-    if (isQ2) banterLength = 'MEDIUM';
-    if (isQ3) banterLength = 'FULL';
+    // BANTER REDUCTION: Only show banter on Q1 (once per intake)
+    const shouldGenerateBanter = isQ1;
+    let banterLength = 'SHORT';
 
     const conversationContextBanter = formatConversationHistory(safeConversationHistory);
 
@@ -1164,22 +1121,25 @@ EXAMPLE DYNAMIC (when user says "I want to start a meditation app"):
 Format: [Name]: "quote" (10-20 words max per line)
 Generate ${banterLength === 'SHORT' ? '3-4' : banterLength === 'MEDIUM' ? '5-6' : '7-9'} lines.`;
 
-    const banterResponse = await fetch("https://ai.gateway.lovable.dev/v1/chat/completions", {
-      method: "POST",
-      headers: {
-        "Authorization": `Bearer ${Deno.env.get("LOVABLE_API_KEY")}`,
-        "Content-Type": "application/json",
-      },
-      body: JSON.stringify({
-        model: "google/gemini-2.5-flash",
-        messages: [{ role: "user", content: banterPrompt }],
-      }),
-    });
+    let banterResponse: Response | null = null;
+    if (shouldGenerateBanter) {
+      banterResponse = await fetch("https://ai.gateway.lovable.dev/v1/chat/completions", {
+        method: "POST",
+        headers: {
+          "Authorization": `Bearer ${Deno.env.get("LOVABLE_API_KEY")}`,
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({
+          model: "google/gemini-2.5-flash",
+          messages: [{ role: "user", content: banterPrompt }],
+        }),
+      });
+    }
 
     let banter = "";
     const banterLines: Array<{mentor: string, text: string, color: string}> = [];
     
-    if (banterResponse.ok) {
+    if (banterResponse && banterResponse.ok) {
       const banterData = await banterResponse.json();
       banter = banterData.choices[0].message.content;
       
@@ -1244,10 +1204,10 @@ Keep it under 25 words. Just the reflection, no labels.`;
       emotionalReflection = data.choices[0].message.content;
     }
 
-    // === SUGGESTED NEXT QUESTION (optional Q1, recommended Q2, NEVER Q3) ===
+    // === SUGGESTED NEXT QUESTION (Q1 ONLY — max 2 questions rule) ===
     let suggestedNextQuestion = null;
     
-    if ((isQ1 || isQ2) && !lowerQuestion.includes("i'm ready")) {
+    if (isQ1 && !lowerQuestion.includes("i'm ready")) {
       // === STEP 1: Detect user's JOURNEY STAGE ===
       const journeyStagePrompt = `Analyze this conversation to detect the user's current JOURNEY STAGE.
 
