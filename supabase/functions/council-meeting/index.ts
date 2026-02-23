@@ -688,10 +688,11 @@ CRITICAL RULES:
 
 IMPORTANT: Do NOT repeat any theme already covered in the mentor perspectives or banter.
 The Council Insight must add something NEW — a synthesis, a north star, or an observation that none of the individual mentors captured.
-${isQ1 ? 'Q1: Show the Council sees the PERSON, not just the idea. 1-2 observational sentences that are warm and grounding, not motivational-poster generic.' : ''}
+Do NOT restate what the user already said. Add new perspective only.
+${isQ1 ? 'Q1: Show the Council sees the PERSON, not just the idea. 1 observational sentence that is warm and grounding, not motivational-poster generic.' : ''}
 ${isQ3 ? 'Q3: Name what has shifted or clarified across the full conversation. Point toward the north star. Make it feel earned.' : ''}
 
-Generate 2-3 sentences that are specific to this person and this moment.
+Generate 1-2 sentences MAX. No restatement. New perspective only. Specific to this person and this moment.
 Just the insight, no labels.`;
 
       const insightResponse = await fetch("https://ai.gateway.lovable.dev/v1/chat/completions", {
@@ -1026,8 +1027,8 @@ CRITICAL:
 - Show you've been paying attention throughout the conversation
 
 Generate 1-2 sentences ONLY through your assigned dimension lens.
-Strong personality. Sharp. Clear. No fluff.
-Just your perspective, no labels or format.
+Strong personality. Sharp. Clear. No fluff. No restating what the user said.
+Add NEW perspective only. Just your perspective, no labels or format.
 
 ${KEYWORD_HIGHLIGHTING_RULES}`;
       }
@@ -1060,7 +1061,7 @@ Mission: ${profile.main_mission}`;
         let perspective = aiData.choices[0].message.content;
         
         // Post-processing: enforce max length for council perspectives (safety net)
-        const maxPerspectiveLength = 350; // characters
+        const maxPerspectiveLength = 280; // characters — reduced for density control
         if (perspective.length > maxPerspectiveLength) {
           // Truncate at last complete sentence within limit
           const truncated = perspective.substring(0, maxPerspectiveLength);
