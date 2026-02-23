@@ -2199,13 +2199,14 @@ DO NOT mention "Value Map" or "blocks" - just ask questions that naturally uncov
     // === FETCH ENTRY STATE + LIFE DOMAINS FOR BRANCH-SPECIFIC BEHAVIOR ===
     let entryStateForMentor = "";
     let lifeDomainContextMentor = "";
+    let entryState: string | null = null;
     try {
       const { data: entryProfile } = await supabaseClient
         .from("profiles")
         .select("entry_state")
         .eq("id", user.id)
         .maybeSingle();
-      const entryState = (entryProfile as any)?.entry_state || null;
+      entryState = (entryProfile as any)?.entry_state || null;
 
       // Fetch Life Domains as silent context
       try {
