@@ -81,10 +81,33 @@ const DIMENSION_POOLS: Record<string, string[]> = {
     'accountability — who is responsible and what is the honest measure',
     'narrative_distortion — the story they are telling themselves that may not be true',
   ],
+  transmutation: [
+    'emotional_truth — what emotion is the user actually carrying',
+    'identity_impact — how this shaped who they became',
+    'protective_pattern — what this behavior was trying to protect',
+    'hidden_cost — what staying in this pattern costs them',
+    'grief_or_loss — what was lost or mourned in this experience',
+    'strength_gained — what resilience or skill emerged from this',
+    'narrative_shift — the story they told themselves vs what actually happened',
+    'attachment — what they were holding onto and why',
+    'permission — what they haven\'t given themselves permission to feel or do',
+    'integration — how this experience connects to their larger life arc',
+  ],
 };
 
-function assignMentorDimensions(mentors: string[]): Record<string, string> {
-  const pool = [...DIMENSION_POOLS.project].sort(() => Math.random() - 0.5);
+// Transmutation tone guardrails — injected into all transmutation prompts
+const TRANSMUTATION_TONE_RULES = `
+TRANSMUTATION TONE RULES (MANDATORY):
+- This is emotional processing, NOT a strategy session.
+- FORBIDDEN WORDS (never use in any form): product, market, leverage, audience, scaling, positioning, value proposition, profitable, revenue, SaaS, framework, system, tool, business model, competitive, monetize, client, customer, offer, pricing, launch, MVP, funnel, conversion, growth hack.
+- Stay in: emotion, identity, grief, attachment, protection, courage, loss, meaning, wound, strength, integration.
+- Speak as if holding space for someone processing a life-defining moment.
+- Maximum 1-2 sentences. Warm. Grounded. Human.
+`;
+
+function assignMentorDimensions(mentors: string[], councilType: string = 'default'): Record<string, string> {
+  const poolKey = councilType === 'transmutation' ? 'transmutation' : 'project';
+  const pool = [...DIMENSION_POOLS[poolKey]].sort(() => Math.random() - 0.5);
   const assignments: Record<string, string> = {};
   mentors.forEach((m, i) => {
     assignments[m] = pool[i % pool.length];
@@ -686,6 +709,8 @@ CRITICAL RULES:
 - Show that you've been listening and remembering
 - Use their actual words from their foundation story when relevant
 
+${councilType === 'transmutation' ? TRANSMUTATION_TONE_RULES : ''}
+
 IMPORTANT: Do NOT repeat any theme already covered in the mentor perspectives or banter.
 The Council Insight must add something NEW — a synthesis, a north star, or an observation that none of the individual mentors captured.
 Do NOT restate what the user already said. Add new perspective only.
@@ -742,7 +767,7 @@ Just the insight, no labels.`;
     const mentorPerspectives: Record<string, string> = {};
 
     // Assign unique dimensions to each mentor to prevent overlap
-    const mentorDimensionMap = assignMentorDimensions(selectedMentors);
+    const mentorDimensionMap = assignMentorDimensions(selectedMentors, councilType);
     const userName = profile?.display_name || null;
     const nameInstruction = userName
       ? `The user's name is ${userName}. Use it naturally once if it fits — not in every sentence.`
@@ -764,6 +789,8 @@ CRITICAL RULES:
 - Do not treat this as a current crisis or something they need to act on urgently.
 - Focus on pattern recognition, emotional truth, and reframing — not crisis management.
 - Help them see what this experience shaped in them, what it cost them, and what it taught them.
+
+${TRANSMUTATION_TONE_RULES}
 
 `;
       } else if (sprintReviewContext) {
@@ -1090,6 +1117,8 @@ Mission: ${profile.main_mission}`;
 ${conversationContextBanter}
 
 They are NOT a motivational panel. They are a real team with different minds, occasionally disagreeing, building on each other — not just validating.
+
+${councilType === 'transmutation' ? TRANSMUTATION_TONE_RULES : ''}
 
 EACH MENTOR'S ASSIGNED DIMENSION FOR THIS ROUND (they must stay in their lane):
 ${selectedMentors.map((type: string) => `- ${mentorNames[type]}: ${mentorDimensionMap[type]}`).join('\n')}
