@@ -13,8 +13,9 @@ import {
   type TransmutationData,
 } from "@/components/transmutation-map";
 import { WhitePhaseWinCard } from "@/components/transmutation-map/WhitePhaseWinCard";
+import { RedPhaseWinCard } from "@/components/transmutation-map/RedPhaseWinCard";
 import { TransmutationQueue } from "@/components/transmutation-map/TransmutationQueue";
-import { isWhitePhaseComplete, isGoldPhaseComplete, generateGoldenSummary } from "@/lib/goldenSummaryGenerator";
+import { isWhitePhaseComplete, isRedPhaseComplete, isGoldPhaseComplete, generateGoldenSummary } from "@/lib/goldenSummaryGenerator";
 import { triggerGoldCompleteNotification } from "@/hooks/useTransmutationNotifications";
 import { useSuperpowers } from "@/hooks/useSuperpowers";
 import type { InnerPattern } from "@/hooks/useInnerPatterns";
@@ -55,11 +56,15 @@ export const BecomingTransmutation = ({
   // White win card state
   const [showWhiteWinCard, setShowWhiteWinCard] = useState(false);
   const [pendingWhiteData, setPendingWhiteData] = useState<Partial<TransmutationData>>({});
+  
+  // Red win card state
+  const [showRedWinCard, setShowRedWinCard] = useState(false);
 
   const selectedPattern = patterns.find((p) => p.id === selectedPatternId);
 
   // Derived states for phase completion
   const whiteComplete = isWhitePhaseComplete(transmutationData);
+  const redComplete = isRedPhaseComplete(transmutationData);
   const goldComplete = isGoldPhaseComplete(transmutationData);
 
   // Load transmutation data from pattern
@@ -111,6 +116,16 @@ export const BecomingTransmutation = ({
       setTransmutationData(updatedData);
       setPendingWhiteData(extractedData);
       setShowWhiteWinCard(true);
+    } else if (phase === 'red') {
+      const updatedData: TransmutationData = {
+        ...transmutationData,
+        ...extractedData,
+        phase_completed: 'red',
+        red_completed_at: new Date().toISOString(),
+      };
+      setTransmutationData(updatedData);
+      onUpdateTransmutation(selectedPattern.id, updatedData);
+      setShowRedWinCard(true);
     } else if (phase === 'gold') {
       const goldenSummary = generateGoldenSummary(
         { ...transmutationData, ...extractedData },
@@ -162,15 +177,26 @@ export const BecomingTransmutation = ({
     return nodeLabels[nodeId] || nodeId;
   };
 
-  // Handle node click - open modal with dual path for White/Gold phases
-  const handleNodeClick = (nodeId: string, phase: 'black' | 'white' | 'gold') => {
+  // Handle node click - open modal with dual path for White/Red/Gold phases
+  const handleNodeClick = (nodeId: string, phase: 'black' | 'white' | 'red' | 'gold') => {
     if (phase === 'black') {
       toast.info("This is your shadow — it's already recorded.");
       return;
     }
     
-    if (phase === 'gold' && !whiteComplete) {
+    if (phase === 'red' && !whiteComplete) {
       toast.info("Complete the White phase first");
+      return;
+    }
+    
+    if (phase === 'gold' && !redComplete) {
+      toast.info("Complete the Red phase first");
+      return;
+    }
+
+    // Red phase is mentor-only (Release Mentor)
+    if (phase === 'red') {
+      navigateToMentorWithHandoff('release_mentor');
       return;
     }
     
@@ -266,7 +292,7 @@ export const BecomingTransmutation = ({
         .limit(20);
 
       // Build transmutation context
-      const phase = !whiteComplete ? 'white' : 'gold';
+      const phase = !whiteComplete ? 'white' : !redComplete ? 'red' : 'gold';
       const transmutationContext = {
         phase,
         patternId: selectedPattern.id,
@@ -283,7 +309,7 @@ export const BecomingTransmutation = ({
         source_mentor_type: "transmutation_map",
         target_mentor_type: mentorType,
         source_messages: recentMessages?.reverse() || [],
-        journey_topic: `Transmutation ${phase === 'white' ? 'White' : 'Gold'} Phase for pattern: ${selectedPattern.pattern_name}`,
+        journey_topic: `Transmutation ${phase === 'white' ? 'White' : phase === 'red' ? 'Red' : 'Gold'} Phase for pattern: ${selectedPattern.pattern_name}`,
         voice_context: transmutationContext as any,
         processed: false,
       };
@@ -327,7 +353,13 @@ export const BecomingTransmutation = ({
     
     setShowWhiteWinCard(false);
     setPendingWhiteData({});
-    toast.success("White phase complete! Gold phase is now unlocked.");
+    toast.success("White phase complete! Red phase is now unlocked.");
+  };
+
+  // Confirm Red phase
+  const handleConfirmRed = () => {
+    setShowRedWinCard(false);
+    toast.success("Red Phase complete! Gold Phase unlocked ✨");
   };
 
   const handleCelebrationSaveGold = () => {
@@ -435,9 +467,13 @@ export const BecomingTransmutation = ({
                   >
                     {selectedPattern.status === "transformed"
                       ? "Transmutation Complete ✨"
-                      : whiteComplete
-                        ? "Gold Phase Ready"
-                        : "White Phase"}
+                      : goldComplete
+                        ? "Gold Phase Complete"
+                        : redComplete
+                          ? "Gold Phase Ready"
+                          : whiteComplete
+                            ? "Red Phase Ready"
+                            : "White Phase"}
                   </Badge>
                 </div>
               </div>
@@ -445,9 +481,11 @@ export const BecomingTransmutation = ({
             <p className="text-sm text-muted-foreground mt-3">
               {selectedPattern.status === "transformed"
                 ? "Your wisdom is now gold"
-                : whiteComplete
+                : redComplete
                   ? "Click any Gold node to complete your transmutation"
-                  : "Click any White node to begin the shift with Phoenix"}
+                  : whiteComplete
+                    ? "Click any Red node to release what no longer serves you"
+                    : "Click any White node to begin the shift with Phoenix"}
             </p>
           </CardHeader>
           <CardContent className="pt-0">
@@ -482,7 +520,18 @@ export const BecomingTransmutation = ({
           </Button>
         )}
 
-        {whiteComplete && !goldComplete && selectedPattern && (
+        {whiteComplete && !redComplete && selectedPattern && (
+          <Button
+            onClick={() => navigateToMentorWithHandoff('release_mentor')}
+            className="w-full bg-gradient-to-r from-red-500 to-red-600 hover:from-red-400 hover:to-red-500"
+            size="lg"
+          >
+            <Flame className="w-4 h-4 mr-2" />
+            Talk to Release Mentor
+          </Button>
+        )}
+
+        {redComplete && !goldComplete && selectedPattern && (
           <Button
             onClick={() => navigateToMentorWithHandoff('stoic_mentor')}
             className="w-full bg-gradient-to-r from-amber-500 to-amber-600 hover:from-amber-400 hover:to-amber-500"
@@ -539,6 +588,17 @@ export const BecomingTransmutation = ({
         protectivePurpose={pendingWhiteData.protective_purpose}
         onConfirm={handleConfirmWhite}
         onNotNow={() => setShowWhiteWinCard(false)}
+      />
+
+      {/* Red Phase Win Card */}
+      <RedPhaseWinCard
+        open={showRedWinCard}
+        patternName={selectedPattern?.pattern_name || ""}
+        releaseBurden={transmutationData.release_burden || ""}
+        releaseBelief={transmutationData.release_belief || ""}
+        releaseCost={transmutationData.release_cost || ""}
+        onConfirm={handleConfirmRed}
+        onNotNow={() => setShowRedWinCard(false)}
       />
 
       {/* Transmutation Celebration */}
