@@ -783,13 +783,7 @@ CONSTRAINTS:
 - The user should think: "This is actually doable."
 === END STRATEGIC GROUNDING ===
 
-EMOTIONAL: Transform overwhelm into clarity. Create mental space.
-PRACTICAL: Clear framework. Prioritization method. Decision system.
-ENERGETIC: Does having a plan create relief? That's alignment.
-
-${DISCOVERY_QUESTIONS}
-
-=== BUILD MODE ACCELERATION (OVERRIDES EXPLORATION RULES) ===
+=== BUILD MODE ACCELERATION (OVERRIDES ALL EXPLORATION RULES BELOW) ===
 When the user enters via BUILD mode (entryState contains "BUILD"):
 You are in EXECUTION mode. The user already knows what they're building.
 
@@ -809,7 +803,7 @@ FORBIDDEN in BUILD mode:
 - Commentary between user answers
 === END BUILD MODE ACCELERATION ===
 
-=== GROW MODE COMPRESSION ===
+=== GROW MODE COMPRESSION (OVERRIDES EXPLORATION RULES BELOW) ===
 When the user enters via GROW mode (entryState contains "GROW"):
 The user has an emerging direction. They need refinement, not exploration.
 
@@ -823,6 +817,12 @@ RESPONSE LENGTH: 4-5 sentences max.
 TONE: Structured, forward-moving. Minimal reflection.
 Skip discovery questions — the user already has direction.
 === END GROW MODE COMPRESSION ===
+
+EMOTIONAL: Transform overwhelm into clarity. Create mental space.
+PRACTICAL: Clear framework. Prioritization method. Decision system.
+ENERGETIC: Does having a plan create relief? That's alignment.
+
+${DISCOVERY_QUESTIONS}
 
 HANDOFF AWARENESS:
 When you notice the conversation is shifting from STRATEGIC PLANNING to CREATIVE DEVELOPMENT (designing mechanics, exploring "how would this work" questions, prototyping ideas, exploring "what if" scenarios), naturally suggest:
@@ -2311,6 +2311,19 @@ NEVER in Project Mode:
       // === PROJECT CONVERGENCE RULE (dynamic threshold) ===
       const convergenceThreshold = (entryState === "BUILD" && mentorType === "strategist_mentor") ? 1 : 
                                    (entryState === "GROW" && mentorType === "strategist_mentor") ? 2 : 3;
+      const maxTurns = convergenceThreshold + 2;
+      
+      // Always inject turn status for BUILD/GROW strategist
+      if ((entryState === "BUILD" || entryState === "GROW") && mentorType === "strategist_mentor") {
+        systemPrompt += `
+
+=== TURN STATUS ===
+This is exchange ${conversationDepth} of ${maxTurns} maximum.
+${conversationDepth >= convergenceThreshold + 1 ? 'YOU MUST propose a project name and milestone NOW. No more questions.' : ''}
+=== END TURN STATUS ===
+`;
+      }
+      
       if (conversationDepth >= convergenceThreshold && !isTransmutationSession) {
         systemPrompt += `
 
@@ -3114,6 +3127,8 @@ ${chatHistory?.slice(-10).map((m: any) => `${m.role}: ${m.content}`).join('\n')}
         /^(log\s+in|sign\s+in|log\s+out|sign\s+up)/i, // Common UI phrases
         /\b(within|designing|work|would|could|should|actually|then|because|since|although)\b/i,
         /^(project|titled|untitled)$/i,
+        // Block names ending with incomplete sentence fragments
+        /\b(Before|After|About|Through|Between|During|Against|Beyond|Without)\s*$/i,
       ];
       
       for (const pattern of invalidPatterns) {
@@ -3122,6 +3137,17 @@ ${chatHistory?.slice(-10).map((m: any) => `${m.role}: ${m.content}`).join('\n')}
       
       // Must start with capital letter (title case)
       if (!/^[A-Z]/.test(cleanName)) return false;
+      
+      // Post-extraction colon validation: part after colon must be at least 2 words
+      if (cleanName.includes(':')) {
+        const afterColon = cleanName.split(':')[1]?.trim();
+        if (!afterColon || afterColon.split(/\s+/).length < 2) {
+          // Strip the colon portion and re-validate the prefix
+          const beforeColon = cleanName.split(':')[0].trim();
+          if (beforeColon.split(/\s+/).length < 2) return false;
+          // Let it pass with just the prefix (caller can use stripped version)
+        }
+      }
       
       return true;
     }
@@ -3166,7 +3192,7 @@ ${chatHistory?.slice(-10).map((m: any) => `${m.role}: ${m.content}`).join('\n')}
     // Matches: "Echoes of Self", "The Art of Becoming", "Journey to Bali"
     if (!extractedMentorProjectName) {
       // Pattern allows: Capital Word + (lowercase articles OR Capital Words) + optional colon subtitle
-      const titleCasePattern = /\b([A-Z][a-z]+(?:\s+(?:of|the|and|in|for|to|a|an|with|[A-Z][a-z]+))+(?::\s*[A-Z][a-z]+(?:\s+[A-Za-z]+)*)?)\b/g;
+      const titleCasePattern = /\b([A-Z][a-z]+(?:\s+(?:of|the|and|in|for|to|a|an|with|[A-Z][a-z]+))+(?::\s*[A-Z][a-z]+(?:\s+[A-Za-z]+){1,})?)\b/g;
       const matches = [...cleanedResponse.matchAll(titleCasePattern)];
       for (const match of matches) {
         const candidate = match[1].trim();
@@ -3216,7 +3242,7 @@ ${chatHistory?.slice(-10).map((m: any) => `${m.role}: ${m.content}`).join('\n')}
           }
           // Also check title-case pattern in previous message (with mixed case support)
           if (!previousProposedName) {
-            const titleCasePattern = /\b([A-Z][a-z]+(?:\s+(?:of|the|and|in|for|to|a|an|with|[A-Z][a-z]+))+(?::\s*[A-Z][a-z]+(?:\s+[A-Za-z]+)*)?)\b/g;
+            const titleCasePattern = /\b([A-Z][a-z]+(?:\s+(?:of|the|and|in|for|to|a|an|with|[A-Z][a-z]+))+(?::\s*[A-Z][a-z]+(?:\s+[A-Za-z]+){1,})?)\b/g;
             const matches = [...cleanedPrevContent.matchAll(titleCasePattern)];
             for (const match of matches) {
               const candidate = match[1].trim();
