@@ -122,6 +122,7 @@ const Chat = ({ mentorTypeOverride, embedded = false, locationState: propState }
   const [learningModuleData, setLearningModuleData] = useState<any>(null);
   const [exchangeCount, setExchangeCount] = useState(0);
   const [isHandoffProcessed, setIsHandoffProcessed] = useState(false);
+  const processedHandoffIds = useRef<Set<string>>(new Set());
   const [valueMapDetection, setValueMapDetection] = useState<ValueMapDetection | null>(null);
   const [suggestedHandoff, setSuggestedHandoff] = useState<SuggestedHandoff | null>(null);
   const [userMentors, setUserMentors] = useState<string[]>([]);
@@ -217,13 +218,37 @@ const Chat = ({ mentorTypeOverride, embedded = false, locationState: propState }
 
   const processHandoff = async (handoffId: string) => {
     console.log('[Chat] processHandoff called with:', { handoffId, mentorType });
+    
+    // Guard: skip if this handoffId was already processed in this component lifecycle
+    if (processedHandoffIds.current.has(handoffId)) {
+      console.log('[Chat] Handoff already processed (ref guard), skipping:', handoffId);
+      setIsHandoffProcessed(true);
+      return;
+    }
+    
+    // Mark immediately in ref to survive re-renders
+    processedHandoffIds.current.add(handoffId);
     setLoading(true);
-    setIsHandoffProcessed(true); // Set immediately to prevent re-triggering
+    setIsHandoffProcessed(true);
     
     try {
       const { data: { user } } = await supabase.auth.getUser();
       if (!user) {
         console.error('[Chat] No user found during handoff');
+        processedHandoffIds.current.delete(handoffId);
+        return;
+      }
+
+      // DB guard: check if handoff was already processed
+      const { data: handoffRecord } = await supabase
+        .from("conversation_handoffs")
+        .select("processed")
+        .eq("id", handoffId)
+        .single();
+      
+      if (handoffRecord?.processed) {
+        console.log('[Chat] Handoff already processed in DB, skipping:', handoffId);
+        setLoading(false);
         return;
       }
 
