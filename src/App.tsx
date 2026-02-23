@@ -15,7 +15,7 @@ import Index from "./pages/Index";
 import OnboardingRouter from "./components/OnboardingRouter";
 import OnboardingStep1 from "./pages/OnboardingStep1";
 import OnboardingStep2 from "./pages/OnboardingStep2";
-import OnboardingStep3 from "./pages/OnboardingStep3";
+
 import OnboardingStep4 from "./pages/OnboardingStep4";
 import OnboardingQuest from "./pages/OnboardingQuest";
 import OnboardingWorkContext from "./pages/OnboardingWorkContext";
@@ -226,10 +226,6 @@ const App = () => {
             <Route
               path="/onboarding/step2"
               element={session ? <OnboardingStep2 /> : <Navigate to="/" />}
-            />
-            <Route
-              path="/onboarding/step3"
-              element={session ? <OnboardingStep3 /> : <Navigate to="/" />}
             />
             <Route
               path="/onboarding/step4"
