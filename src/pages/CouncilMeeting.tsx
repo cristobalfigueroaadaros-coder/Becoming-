@@ -1022,83 +1022,19 @@ const CouncilMeeting = ({ embedded = false, locationState: propState }: CouncilM
               </motion.div>
             )}
 
-            {/* Thread Continuation Options - Soft integration paths */}
-            {!suggestedMentor && (
-              <motion.div
-                initial={{ opacity: 0, y: 10 }}
-                animate={{ opacity: 1, y: 0 }}
-              >
-                <Card className="border-2 border-accent/30 bg-gradient-to-br from-accent/5 to-transparent">
-                  <CardContent className="pt-6 space-y-4">
-                    <div className="flex flex-col sm:flex-row gap-3">
-                      <Button 
-                        onClick={async () => {
-                          // Save insight to project
-                          try {
-                            const { data: { user } } = await supabase.auth.getUser();
-                            if (!user) throw new Error("Not authenticated");
-                            
-                            // Get active project
-                            const { data: activeProject } = await supabase
-                              .from("integrator_projects")
-                              .select("id, project_title")
-                              .eq("user_id", user.id)
-                              .eq("status", "active")
-                              .order("created_at", { ascending: false })
-                              .limit(1)
-                              .single();
-                            
-                            if (!activeProject) {
-                              toast.info("No active project found. Start one in the Creation Lab.");
-                              return;
-                            }
-                            
-                            // Save insight
-                            await supabase.from("saved_insights").insert({
-                              user_id: user.id,
-                              insight_text: councilInsight || Object.values(mentorPerspectives).join("\n\n"),
-                              source_type: "council_meeting",
-                              project_id: activeProject.id,
-                            });
-                            
-                            toast.success(`Insight saved to "${activeProject.project_title}"`);
-                            continueAsking();
-                          } catch (error) {
-                            console.error("Error saving insight:", error);
-                            toast.error("Failed to save insight");
-                          }
-                        }}
-                        variant="default" 
-                        className="flex-1"
-                        size="lg"
-                      >
-                        <Target className="w-4 h-4 mr-2" />
-                        Add this insight to my project
-                      </Button>
-                      <Button 
-                        onClick={() => continueAsking()} 
-                        variant="outline" 
-                        className="flex-1"
-                        size="lg"
-                      >
-                        <MessageCircle className="w-4 h-4 mr-2" />
-                        Reflect more
-                      </Button>
-                    </div>
-                    <div className="flex justify-center">
-                      <Button 
-                        onClick={resetConversation} 
-                        variant="ghost" 
-                        size="sm"
-                        className="text-muted-foreground"
-                      >
-                        <RefreshCw className="w-3 h-3 mr-2" />
-                        Start new topic
-                      </Button>
-                    </div>
-                  </CardContent>
-                </Card>
-              </motion.div>
+            {/* Thread Continuation - Only show reset when no suggested question */}
+            {!suggestedMentor && !suggestedNextQuestion && (
+              <div className="flex justify-center pt-2">
+                <Button 
+                  onClick={resetConversation} 
+                  variant="ghost" 
+                  size="sm"
+                  className="text-muted-foreground"
+                >
+                  <RefreshCw className="w-3 h-3 mr-2" />
+                  Start new topic
+                </Button>
+              </div>
             )}
           </div>
         )}

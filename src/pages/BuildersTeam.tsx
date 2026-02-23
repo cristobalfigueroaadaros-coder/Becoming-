@@ -693,26 +693,20 @@ const BuildersTeam = ({ embedded = false }: BuildersTeamProps) => {
               </motion.div>
             )}
 
-            {/* Action Buttons */}
-            <div className="flex flex-col sm:flex-row gap-3 pt-4">
-              <Button
-                onClick={() => continueAsking()}
-                className="flex-1 bg-lime-600 hover:bg-lime-700"
-                size="lg"
-              >
-                <MessageCircle className="w-4 h-4 mr-2" />
-                Continue Building
-              </Button>
-              <Button
-                onClick={resetConversation}
-                variant="outline"
-                className="flex-1"
-                size="lg"
-              >
-                <RefreshCw className="w-4 h-4 mr-2" />
-                New Build Session
-              </Button>
-            </div>
+            {/* Action Buttons - Only show reset when no suggested question */}
+            {!suggestedNextQuestion && (
+              <div className="flex justify-center pt-4">
+                <Button
+                  onClick={resetConversation}
+                  variant="ghost"
+                  size="sm"
+                  className="text-muted-foreground"
+                >
+                  <RefreshCw className="w-3 h-3 mr-2" />
+                  New Build Session
+                </Button>
+              </div>
+            )}
           </div>
         )}
       </div>
