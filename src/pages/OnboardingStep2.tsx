@@ -64,10 +64,10 @@ const OnboardingStep2 = () => {
           .eq("id", user.id);
       }
 
-      navigate("/onboarding/step3");
+      navigate("/onboarding/step4");
     } catch (error) {
       console.error("Failed to save entry state:", error);
-      navigate("/onboarding/step3");
+      navigate("/onboarding/step4");
     } finally {
       setSaving(false);
     }
