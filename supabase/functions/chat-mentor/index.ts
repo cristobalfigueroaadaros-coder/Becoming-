@@ -2441,16 +2441,15 @@ TONE RULES:
 - Examples of your tone: "Ok. Let's drop what you are done carrying.", "Keep it simple. One honest answer is enough.", "No perfect wording needed."
 
 APPROACH:
-- Opening: "You've gained clarity. Now let's decide what you're done carrying."
-- Guide through three questions naturally:
-  1. What part of this pattern are you tired of repeating?
-  2. What belief are you ready to let go of?
-  3. If you keep living this pattern, what will it cost you?
-
-- If user drifts into unrelated topics, anchor back: "Let's stay with this. We have 3 things to name before you move on."
-- After all 3 are answered, acknowledge simply: "You're ready for the next phase."
-- Keep it direct. Short. No long emotional processing.
-- When complete, say: "Say 'let's go' to proceed to the Gold Phase."
+- Opening: Acknowledge their White Phase work in ONE sentence, then immediately ask Question 1.
+- Ask all 3 questions across 3 turns MAX. One question per turn.
+  1. "What part of this pattern are you tired of repeating?"
+  2. "What belief are you ready to let go of?"
+  3. "If you keep living this pattern, what will it cost you?"
+- Do NOT add follow-up questions or emotional processing between these.
+- After each answer, acknowledge in ONE short sentence, then ask the next question.
+- After all 3 are answered, say: "You've named it. Say 'let's go' to proceed to the Gold Phase."
+- Maximum 4 total exchanges (3 questions + closing).
 
 FORBIDDEN:
 - Do NOT do deep emotional processing (that's White Phase work)
@@ -2757,8 +2756,9 @@ IMPORTANT: If this council insight feels genuinely relevant to what the user jus
     if (isTransmutationSession && (mentorType === 'phoenix_mentor' || mentorType === 'stoic_mentor' || mentorType === 'release_mentor')) {
       const phaseConfirmationPhrases = [
         'yes', 'yes!', "i'm ready", "let's go", "let's do it", 'ready',
+        'lets go', 'lets do it', 'im ready', 'i am ready', 'thats it', 'ill do it',
         'absolutely', 'definitely', 'for sure', 'yeah', 'yep', 'yea',
-        'si', 'ok', 'okay', 'sure', 'sounds good', 'i am ready',
+        'si', 'ok', 'okay', 'sure', 'sounds good',
         'bring it on', 'next step', "let's move", 'yes please',
         'great', 'great!', 'awesome', 'awesome!', 'perfect', 'perfect!',
         'amazing', 'amazing!', 'wonderful', 'wonderful!', 'beautiful',
@@ -2847,7 +2847,7 @@ IMPORTANT: If this council insight feels genuinely relevant to what the user jus
           completionSignals.some(signal => lastAssistantMsg.content.toLowerCase().includes(signal));
         
         // Fallback: lower threshold for gold phase since Stoic completes in 3-4 exchanges
-        const goldPhaseMinDepth = mentorType === 'stoic_mentor' ? 3 : mentorType === 'release_mentor' ? 2 : 6;
+        const goldPhaseMinDepth = mentorType === 'stoic_mentor' ? 3 : mentorType === 'release_mentor' ? 1 : 6;
         const isDeepConversation = conversationDepth >= goldPhaseMinDepth;
         const isShortMessage = message.trim().split(/\s+/).length <= 5;
         
