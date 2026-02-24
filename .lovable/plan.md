@@ -1,107 +1,140 @@
 
 
-# Onboarding Completion + Personal Mission Framing Page
+# Surface Compression and Flow Optimization
 
-## Placement in Flow
+## Overview
 
-The new page inserts between the existing "Council Welcome" page (the "We hear you" page) and the "First Project" page.
+This is a prompt engineering pass across 3 edge functions and 1 utility function. No UI changes. No architecture changes. The goal: reduce word density, enforce directness, and tighten every mentor and council output.
 
-```text
-Council Intro (story)
-    |
-Council Welcome ("We hear you...")
-    |
-NEW: Onboarding Completion + Personal Mission  <-- this page
-    |
-First Project (idea input)
-    |
-Console session
+## Changes
+
+### 1. `supabase/functions/chat-mentor/index.ts` -- Global + Mentor Compression
+
+**A. HUMAN_CONVERSATION_RULES (lines 19-77) -- Add Global Compression Rule**
+
+Insert a new block before the existing rules:
+
+```
+GLOBAL COMPRESSION RULE (APPLY TO EVERY RESPONSE):
+- Reduce response length by 20-30% compared to your instinct.
+- Remove one explanatory sentence before every question.
+- No double validation (e.g., "That's powerful... that takes courage..." -- pick ONE).
+- No abstract phrasing. Replace "Led to the development of..." with "You learned..."
+- Shorter. Direct. Human.
+- In 1-to-1: Maximum 2 sentences of reflection + 1 question or CTA.
+- Never pad. Never repeat yourself in different words.
 ```
 
-## What Gets Built
+Update the LENGTH RULE to be stricter:
+- 1-to-1 sessions: "1 short reflection + 1 sharp question or CTA. No double framing."
+- Transmutation: "2-3 sentences max. Let silence work."
 
-### 1. New Page: `src/pages/OnboardingCompletion.tsx`
+**B. Phoenix Mentor (lines 1488-1650) -- White Phase Compression**
 
-A transition page with four animated blocks:
+Strip the distillation flow from 6 steps to 3:
+1. Acknowledge the emotion
+2. Clarify the pattern's role
+3. Surface the shift/learning
 
-**Block 1 -- Completion Celebration**
-- Header: "Onboarding Complete."
-- Subtle confetti burst (using existing `canvas-confetti` dependency)
-- Subtext: "You've taken the first step."
+Remove:
+- "Normalize the experience" step (redundant with acknowledgment)
+- "Surface life skills" step (skill extraction is Gold Phase territory)
+- "Converge and pause" step (replaced by mandatory CTA)
 
-**Block 2 -- Personalized Reflection Summary (AI-generated)**
-- Calls a new edge function that reads the user's profile data (`entry_state`, `work_context`, `user_foundation_summary`, `action_patterns`) and generates 4-6 personalized lines
-- References something they've been doing, something they're curious about, and something they want to improve
-- Stage-adaptive tone (Discovery = exploratory, Growth = refining, Build = scaling)
-- Shows a loading shimmer while AI generates, with a fast fallback if it takes too long
+Add explicit rule:
+```
+WHITE PHASE COMPRESSION (CRITICAL):
+- Focus ONLY on answering the preset White Phase questions.
+- No skill extraction. No early redemption. No philosophical reframing. No meta commentary.
+- White Phase is excavation. Not interpretation.
+- Priority: cleanly auto-populate the pattern name and core wound over extracting psychological nuance.
+- Maximum 3 core questions total across the entire White Phase.
+```
 
-**Block 3 -- Mission Framing**
-- Static text based on `entry_state`:
-  - DISCOVER: "We'll identify a project direction worth committing to for the next 7 days -- something aligned with your curiosity and strengths."
-  - GROW: "We'll refine your current direction and test a sharper version of it."
-  - BUILD: "We'll optimize your current trajectory and define your next execution sprint."
+Update win condition: Remove "life skill" language. Replace with "shift" and "learning" only.
 
-**Block 4 -- CTA Button**
-- "Start My Project Session" (intentional, not generic "Continue")
-- Navigates to `/gravity/first-project`
+**C. Gold Phase / Stoic (lines 2590-2608) -- Remove Over-celebration**
 
-### 2. New Edge Function: `supabase/functions/generate-onboarding-summary/index.ts`
+Add:
+```
+GOLD PHASE TONE:
+- No over-celebration. No inflated praise.
+- Grounded tone. Example: "You reclaimed self-respect." then "What action proves it this week?"
+- Clean. Stable. Strong.
+```
 
-- Reads user profile: `entry_state`, `work_context`, `user_foundation_summary`, `action_patterns`, `birth_name`
-- Sends to Lovable AI (gemini-3-flash-preview) with a strict prompt:
-  - Output exactly 4-6 short lines
-  - Must reference their stage, something specific they shared, and their direction
-  - Tone: intelligent, personal, grounded -- not fluffy
-- Returns `{ summary: string, stage: string }`
-- Fallback: If AI fails, return a stage-based static summary so the page never breaks
+**D. Release Mentor (lines 2563-2588) -- Already tight, add tone reinforcement**
 
-### 3. Route + Flow Updates
+Add one line:
+```
+- No abstract or poetic language. No metaphors. Embodied over conceptual.
+```
 
-**`src/App.tsx`**: Add route `/gravity/onboarding-complete` pointing to the new page
+### 2. `supabase/functions/council-meeting/index.ts` -- Council Surface Compression
 
-**`src/pages/GravityCouncilWelcome.tsx`**: Change navigation from `/gravity/first-project` to `/gravity/onboarding-complete`
+**A. Council Insight prompt (lines 696-721)**
 
-**`src/components/OnboardingRouter.tsx`**: Add a new checkpoint. After `council_introduction_completed` and before `first_project_created_at`, check for a new profile flag `onboarding_completion_seen` to route correctly.
+Change line 720 from:
+```
+Generate 1-2 sentences MAX. No restatement. New perspective only.
+```
+To:
+```
+Generate 1-2 sentences MAX (under 120 words). No restatement. No layered metaphors. No poetic expansion. Maximum clarity. The Council sets tone -- it does not analyze deeply.
+```
 
-**Database**: Add `onboarding_completion_seen` boolean column to `profiles` table (default false). The new page sets this to `true` on CTA click.
+**B. Banter already limited to Q1 only** -- no change needed (already implemented).
 
-**`supabase/config.toml`**: Register the new edge function with `verify_jwt = false`.
+**C. Mentor micro-perspectives** -- add compression instruction to the perspective generation prompt to keep each perspective under 40 words.
 
-## Technical Details
+### 3. `supabase/functions/inner-self-council/index.ts` -- Inner Self Council Compression
 
-### Profile Data Available for Personalization
+Add compression rules to the system prompt:
+```
+COMPRESSION RULES:
+- Council Insight: under 120 words. No layered metaphors. No poetic expansion.
+- Mentor perspectives: 2-3 sentences each, under 40 words each.
+- Banter: 3-4 lines max (already enforced).
+- No double validation across mentors.
+```
 
-| Field | Source | Content |
-|-------|--------|---------|
-| `entry_state` | Step 2 | DISCOVER, GROW, or BUILD |
-| `work_context` | Work Context page | Professional background text |
-| `user_foundation_summary` | Council Intro | JSON with `who_they_are`, `struggles`, `aspirations`, `key_themes` |
-| `action_patterns` | Self-Discovery Quest | Behavioral patterns (overthinking, momentum, etc.) |
-| `birth_name` | Step 1 | User's name for personalization |
+### 4. `supabase/functions/extract-superpowers/index.ts` -- Superpower Description Rule
 
-### Edge Function Prompt Strategy
+Update the prompt (line 64-120) to enforce human, embodied descriptions:
 
-The prompt instructs the AI to:
-- Write in second person ("You're...")
-- Keep each line under 15 words
-- Reference at least one specific thing from `user_foundation_summary`
-- End with a forward-looking line about what happens next
-- Never use exclamation marks or hype language
+Change the description instruction from:
+```
+"One sentence about how this was gained from this event"
+```
+To:
+```
+"One short embodied sentence. Human and empathetic. NOT corporate. Examples of good descriptions: 'You stopped shrinking.', 'You pause before saying yes.', 'You choose yourself.' Avoid: 'Demonstrates newfound capacity...' or 'Led to the development of...'"
+```
 
-### Fallback Logic
+### 5. Transmutation Tone Discipline -- Already Enforced
 
-If the AI call fails or times out (3-second timeout):
-- DISCOVER: "You're in exploration mode. There's creative energy here, but no clear direction yet. That's not a weakness -- it's raw potential. Now we're going to focus on finding something compelling enough to build toward."
-- GROW: "You've already been building. You're not starting from zero -- you're refining. Now we'll focus on strengthening your positioning."
-- BUILD: "You're already executing. This is not about searching -- it's about scaling. Now we'll focus on structured momentum."
+The `TRANSMUTATION_TONE_RULES` in council-meeting and the `TRANSMUTATION LANGUAGE FIREWALL` in chat-mentor already forbid business language. No changes needed here -- this is already locked.
+
+### 6. Momentum Protection -- Already Enforced
+
+Handoff continuity is handled by the handoff system and `processedHandoffIds` guard (just fixed). The existing `conversationContext` injection already carries prior context. No changes needed.
 
 ## Files Summary
 
-| File | Action | Purpose |
+| File | Change | Purpose |
 |------|--------|---------|
-| `src/pages/OnboardingCompletion.tsx` | Create | New transition page with 4 blocks |
-| `supabase/functions/generate-onboarding-summary/index.ts` | Create | AI personalization edge function |
-| `src/App.tsx` | Edit | Add new route |
-| `src/pages/GravityCouncilWelcome.tsx` | Edit | Redirect to new page |
-| `src/components/OnboardingRouter.tsx` | Edit | Add routing checkpoint |
-| Database migration | Execute | Add `onboarding_completion_seen` column |
+| `supabase/functions/chat-mentor/index.ts` | Add global compression rule, strip Phoenix to 3 steps, tighten Gold tone, reinforce Release | 20-30% shorter mentor responses, no skill extraction in White Phase |
+| `supabase/functions/council-meeting/index.ts` | Cap council insight at 120 words, add compression to perspective prompts | Sharper council output |
+| `supabase/functions/inner-self-council/index.ts` | Add compression rules to system prompt | Consistent compression across all councils |
+| `supabase/functions/extract-superpowers/index.ts` | Update description prompt to embodied language | Human superpower descriptions |
+
+## What This Does NOT Change
+
+- No UI changes
+- No database changes
+- No routing changes
+- No architecture changes
+- Transmutation tone firewall already in place
+- Handoff continuity already fixed
+- Banter already limited to Q1 only
+
