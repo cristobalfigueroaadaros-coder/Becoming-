@@ -137,3 +137,6 @@ verify_jwt = true
 
 [functions.generate-sprint-insight]
 verify_jwt = true
+
+[functions.generate-onboarding-summary]
+verify_jwt = false

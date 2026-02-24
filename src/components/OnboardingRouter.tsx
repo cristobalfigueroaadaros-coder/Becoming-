@@ -18,7 +18,7 @@ const OnboardingRouter = () => {
 
         const { data: profile } = await supabase
           .from("profiles")
-          .select("birth_name, gravity_orientation_completed, gravity_transition_completed, council_introduction_completed, first_project_created_at")
+          .select("birth_name, gravity_orientation_completed, gravity_transition_completed, council_introduction_completed, first_project_created_at, onboarding_completion_seen")
           .eq("id", user.id)
           .single();
 
@@ -43,8 +43,11 @@ const OnboardingRouter = () => {
         } else if (!profile.council_introduction_completed) {
           // Transition complete, council intro pending
           navigate("/gravity/council-intro");
+        } else if (!(profile as any).onboarding_completion_seen) {
+          // Council intro complete, onboarding completion page pending
+          navigate("/gravity/onboarding-complete");
         } else if (!profile.first_project_created_at) {
-          // Council intro complete, first project pending
+          // Onboarding completion seen, first project pending
           navigate("/gravity/first-project");
         } else {
           // All onboarding complete - go to dashboard

@@ -24,6 +24,7 @@ import GravityTransition from "./pages/GravityTransition";
 import GravityCouncilIntro from "./pages/GravityCouncilIntro";
 import GravityCouncilWelcome from "./pages/GravityCouncilWelcome";
 import GravityFirstProject from "./pages/GravityFirstProject";
+import OnboardingCompletion from "./pages/OnboardingCompletion";
 import ProjectCouncilIntroduction from "./pages/ProjectCouncilIntroduction";
 import Dashboard from "./pages/Dashboard";
 import CommunityHub from "./pages/CommunityHub";
@@ -212,6 +213,10 @@ const App = () => {
             <Route
               path="/gravity/council-welcome"
               element={session ? <GravityCouncilWelcome /> : <Navigate to="/" />}
+            />
+            <Route
+              path="/gravity/onboarding-complete"
+              element={session ? <OnboardingCompletion /> : <Navigate to="/" />}
             />
             <Route
               path="/gravity/first-project"

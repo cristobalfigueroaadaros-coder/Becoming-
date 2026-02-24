@@ -7,7 +7,7 @@ const GravityCouncilWelcome = () => {
   const navigate = useNavigate();
 
   const handleEnter = () => {
-    navigate('/gravity/first-project');
+    navigate('/gravity/onboarding-complete');
   };
 
   return (
