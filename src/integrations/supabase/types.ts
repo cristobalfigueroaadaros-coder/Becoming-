@@ -2334,6 +2334,7 @@ export type Database = {
           main_strengths: string[] | null
           numerology_profile: Json | null
           numerology_signals: Json | null
+          onboarding_completion_seen: boolean
           priority_growth_area: string | null
           purpose_path: string | null
           reflection_loop_count: number | null
@@ -2384,6 +2385,7 @@ export type Database = {
           main_strengths?: string[] | null
           numerology_profile?: Json | null
           numerology_signals?: Json | null
+          onboarding_completion_seen?: boolean
           priority_growth_area?: string | null
           purpose_path?: string | null
           reflection_loop_count?: number | null
@@ -2434,6 +2436,7 @@ export type Database = {
           main_strengths?: string[] | null
           numerology_profile?: Json | null
           numerology_signals?: Json | null
+          onboarding_completion_seen?: boolean
           priority_growth_area?: string | null
           purpose_path?: string | null
           reflection_loop_count?: number | null
