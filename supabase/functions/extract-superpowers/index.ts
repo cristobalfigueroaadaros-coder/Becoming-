@@ -105,12 +105,12 @@ Brave Step: "${transmutationData.brave_step || ""}"
 - Each name must be 1-3 CAPITALIZED words — like a medal title
 - No punctuation, no full sentences
 - Include an emoji icon for each
-- Include a one-sentence description tied to the specific event
+- Include a one-sentence embodied description. Human and empathetic, NOT corporate. Good: "You stopped shrinking." Bad: "Demonstrates newfound capacity..."
 
 ## Format
 
 Respond ONLY with a JSON array:
-[{"name": "Superpower Name", "category": "Emotional Mastery", "description": "One sentence about how this was gained from this event", "icon": "🔥", "color": "amber"}]
+[{"name": "Superpower Name", "category": "Emotional Mastery", "description": "One short embodied sentence. Human and empathetic. NOT corporate. Examples: 'You stopped shrinking.', 'You pause before saying yes.', 'You choose yourself.' Avoid: 'Demonstrates newfound capacity...' or 'Led to the development of...'", "icon": "🔥", "color": "amber"}]
 
 Use these color mappings:
 - Emotional Mastery → rose
