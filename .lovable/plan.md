@@ -1,64 +1,73 @@
 
 
-# Fix: Double Handoff Processing + Birth City Selector
+# Fix: Every Mentor Response Must End With a Prompt or CTA
 
-## Issue 1: Strategist Mentor Loses Context (Handoff Fires Twice)
+## Problem
 
-### Root Cause
+The Phoenix Mentor (and potentially other mentors) sometimes end responses without a question or clear call-to-action, leaving the user stranded with no direction. Two specific cases:
 
-When the Council navigates from the Project Council to a 1-to-1 mentor (e.g., `/council?view=strategist_mentor`), the Chat component **mounts twice** due to React re-rendering when switching from `CouncilMeetingPage` to `ChatPage`. Each mount resets `isHandoffProcessed` to `false`.
+1. **Opening message**: Phoenix acknowledges the pattern but doesn't always ask a clear engaging question
+2. **Closing message**: Phoenix summarizes the learning but doesn't ask "Are you ready for the next step?" as required by its own rules
 
-The sequence:
-1. First mount: `processHandoff` fires, sends `__HANDOFF_INIT__` with handoffId -- gets correct contextual response
-2. First call marks the handoff record as `processed: true` in the database
-3. Component remounts (React key change), `isHandoffProcessed` resets to `false`
-4. Second mount: `processHandoff` fires again with the **same handoffId**
-5. Edge function queries `processed: false` -- finds **nothing** (already marked processed)
-6. Without handoff context, the AI generates a generic "Welcome, could you bring me up to speed?" message
-7. This generic message **overwrites** the good contextual one in the UI
+This is a prompt enforcement issue -- the rules exist but the AI doesn't consistently follow them.
 
-### Fix
+## Changes
 
-**File: `src/pages/Chat.tsx`**
+### 1. `supabase/functions/chat-mentor/index.ts` -- Strengthen HUMAN_CONVERSATION_RULES
 
-Add a guard using a `useRef` to track processed handoff IDs that survives re-renders but not full unmount cycles. Also check the database to see if the handoff is already processed before invoking the edge function.
+In the `CLOSE LOOPS` section (around line 52), upgrade from suggestion to **mandatory rule**:
 
-Specifically:
-- Add a `processedHandoffIds` ref (`useRef<Set<string>>`) that persists across re-renders
-- In `processHandoff`, check if the handoffId is already in the set before proceeding
-- Add the handoffId to the set immediately before making the API call
-- Also query the handoff record first to verify `processed: false` before invoking the edge function
+Current:
+```
+CLOSE LOOPS - End with:
+- A question to go deeper, OR
+- An action suggestion, OR
+- An invitation to commit
+```
 
-This prevents the second call entirely without affecting the first.
+Replace with:
+```
+MANDATORY CLOSING RULE (NEVER VIOLATE):
+Every single response you send MUST end with exactly ONE of:
+- A direct question to the user, OR
+- A clear call-to-action (e.g., "Say 'let's go' when you're ready"), OR
+- An invitation to commit or decide
 
-## Issue 2: Birth City Should Be a Searchable Selector
+If your response does not end with a question or CTA, it is INCOMPLETE.
+NEVER end with a summary, reflection, or statement alone.
+The last sentence of every message must invite the user to respond.
+```
 
-### Current State
+### 2. `supabase/functions/chat-mentor/index.ts` -- Reinforce Phoenix Closing
 
-The birth city field is a plain text input. The user wants it to be selectable like the country field.
+In the Phoenix mentor prompt (around line 1587), add explicit enforcement after the closing structure:
 
-### Fix
+After the existing Step 5 ("Are you ready for the next step?"), add:
 
-**File: `src/pages/OnboardingStep1.tsx`**
+```
+CRITICAL: If you reach the win condition and summarize the learning,
+you MUST still end with "Are you ready for the next step?" or similar CTA.
+A summary without a forward question is an INCOMPLETE response.
+```
 
-Convert the city input to a searchable combobox (same pattern as country) with a curated list of major cities per country. Since a complete city database would require an external API, we'll use a curated list of ~500 major world cities grouped by country, and keep a "type to search" input that also allows custom entry (the user can type a city not in the list).
+### 3. `supabase/functions/chat-mentor/index.ts` -- Reinforce Phoenix Mission Block
 
-**File: `src/data/cities.ts`** (new file)
+In the PHOENIX MISSION section (around line 2548-2553), update:
 
-Create a data file with major cities organized by country code/name, covering the most common birth locations. The combobox will filter cities based on the selected country, and still allow free-text entry for cities not in the list.
+Current:
+```
+4. When complete, celebrate the reframe and guide toward Red Phase
+```
 
-Approach:
-- Add a `cityOpen` state for the popover
-- Use `Command` with `CommandInput` for search
-- Filter cities by selected country
-- Include a "Use custom city" option at the bottom so users can still type any city
-- When country changes, reset city selection
+Replace with:
+```
+4. When complete, celebrate the reframe, then ALWAYS ask: "Are you ready for the next step?" to guide toward Red Phase. NEVER end without this question.
+```
 
-## Summary
+## Impact
 
-| File | Change | Why |
-|------|--------|-----|
-| `src/pages/Chat.tsx` | Add `useRef` guard + DB check to prevent double handoff processing | Stops the second call that generates a generic welcome and overwrites the contextual one |
-| `src/pages/OnboardingStep1.tsx` | Convert city input to searchable combobox with custom entry fallback | Makes city selectable while still allowing unlisted cities |
-| `src/data/cities.ts` (new) | Curated list of major cities grouped by country | Data source for the city combobox |
+- All 19 mentors will be bound by the stronger closing rule in HUMAN_CONVERSATION_RULES
+- Phoenix specifically gets double reinforcement in both its personality prompt and mission block
+- No architecture changes, no UI changes -- purely prompt engineering
+- The AI will be explicitly told that a response without a closing question/CTA is incomplete
 
