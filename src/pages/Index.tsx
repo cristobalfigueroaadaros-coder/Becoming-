@@ -41,7 +41,7 @@ const Index = () => {
         if (authData.user) {
           const { data: profile } = await supabase
             .from("profiles")
-            .select("birth_name, gravity_orientation_completed, gravity_transition_completed, council_introduction_completed, first_project_created_at")
+            .select("birth_name, gravity_orientation_completed, gravity_transition_completed, council_introduction_completed, first_project_created_at, onboarding_completion_seen")
             .eq("id", authData.user.id)
             .single();
           
@@ -54,6 +54,8 @@ const Index = () => {
             navigate("/gravity/transition");
           } else if (!profile.council_introduction_completed) {
             navigate("/gravity/council-intro");
+          } else if (!(profile as any).onboarding_completion_seen) {
+            navigate("/gravity/onboarding-complete");
           } else if (!profile.first_project_created_at) {
             navigate("/gravity/first-project");
           } else {

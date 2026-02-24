@@ -138,6 +138,8 @@ const Dashboard = () => {
             navigate("/gravity/transition");
           } else if (!profile.council_introduction_completed) {
             navigate("/gravity/council-intro");
+          } else if (!(profile as any).onboarding_completion_seen) {
+            navigate("/gravity/onboarding-complete");
           } else {
             navigate("/gravity/first-project");
           }

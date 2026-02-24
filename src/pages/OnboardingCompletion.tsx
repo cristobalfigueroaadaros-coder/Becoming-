@@ -70,7 +70,7 @@ const OnboardingCompletion = () => {
     } catch (e) {
       console.error("Failed to update profile:", e);
     }
-    navigate("/gravity/first-project");
+    navigate("/council");
   };
 
   return (
