@@ -16,6 +16,15 @@ const FALLBACKS: Record<string, string> = {
     "You're already executing.\nThis is not about searching — it's about scaling.\nNow we'll focus on structured momentum.",
 };
 
+async function fetchProfile(supabase: any, userId: string) {
+  const { data } = await supabase
+    .from("profiles")
+    .select("entry_state, work_context, user_foundation_summary, action_patterns, birth_name")
+    .eq("id", userId)
+    .single();
+  return data;
+}
+
 serve(async (req) => {
   if (req.method === "OPTIONS") return new Response(null, { headers: corsHeaders });
 
@@ -36,18 +45,25 @@ serve(async (req) => {
 
     const { data: { user }, error: userError } = await supabase.auth.getUser();
     if (userError || !user) {
+      console.error("Auth error:", userError);
       return new Response(JSON.stringify({ error: "Unauthorized" }), {
         status: 401,
         headers: { ...corsHeaders, "Content-Type": "application/json" },
       });
     }
     const userId = user.id;
+    console.log("User ID:", userId);
 
-    const { data: profile } = await supabase
-      .from("profiles")
-      .select("entry_state, work_context, user_foundation_summary, action_patterns, birth_name")
-      .eq("id", userId)
-      .single();
+    // Fetch profile, retry once after 2s if foundation summary is missing
+    let profile = await fetchProfile(supabase, userId);
+    console.log("Profile found:", !!profile, "| foundation_summary:", !!profile?.user_foundation_summary, "| work_context:", !!profile?.work_context, "| name:", profile?.birth_name);
+
+    if (profile && !profile.user_foundation_summary) {
+      console.log("Foundation summary missing, retrying in 2s...");
+      await new Promise(r => setTimeout(r, 2000));
+      profile = await fetchProfile(supabase, userId);
+      console.log("Retry result — foundation_summary:", !!profile?.user_foundation_summary);
+    }
 
     const stage = profile?.entry_state || "DISCOVER";
     const name = profile?.birth_name || "there";
@@ -62,6 +78,7 @@ serve(async (req) => {
 
     const LOVABLE_API_KEY = Deno.env.get("LOVABLE_API_KEY");
     if (!LOVABLE_API_KEY) {
+      console.log("No LOVABLE_API_KEY, returning fallback");
       return new Response(
         JSON.stringify({ summary: FALLBACKS[stage] || FALLBACKS.DISCOVER, stage }),
         { headers: { ...corsHeaders, "Content-Type": "application/json" } }
@@ -116,6 +133,7 @@ Rules:
 
       const aiData = await aiResp.json();
       const summary = aiData.choices?.[0]?.message?.content?.trim();
+      console.log("AI summary generated, length:", summary?.length);
 
       return new Response(
         JSON.stringify({ summary: summary || FALLBACKS[stage] || FALLBACKS.DISCOVER, stage }),
