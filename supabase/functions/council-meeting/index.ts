@@ -717,7 +717,7 @@ Do NOT restate what the user already said. Add new perspective only.
 ${isQ1 ? 'Q1: Show the Council sees the PERSON, not just the idea. 1 observational sentence that is warm and grounding, not motivational-poster generic.' : ''}
 ${isQ3 ? 'Q3: Name what has shifted or clarified across the full conversation. Point toward the north star. Make it feel earned.' : ''}
 
-Generate 1-2 sentences MAX. No restatement. New perspective only. Specific to this person and this moment.
+Generate 1-2 sentences MAX (under 120 words). No restatement. No layered metaphors. No poetic expansion. Maximum clarity. The Council sets tone — it does not analyze deeply. Specific to this person and this moment.
 Just the insight, no labels.`;
 
       const insightResponse = await fetch("https://ai.gateway.lovable.dev/v1/chat/completions", {
@@ -1053,7 +1053,7 @@ CRITICAL:
 - Do NOT ask about things they already told you
 - Show you've been paying attention throughout the conversation
 
-Generate 1-2 sentences ONLY through your assigned dimension lens.
+Generate 1-2 sentences ONLY through your assigned dimension lens. Under 40 words total.
 Strong personality. Sharp. Clear. No fluff. No restating what the user said.
 Add NEW perspective only. Just your perspective, no labels or format.
 
