@@ -1,49 +1,51 @@
-# Fix Onboarding Completion Page: Personalization + CTA Routing
 
-## Problem 1: No Personal Information Displayed
 
-The AI-generated summary never loads. Two root causes:
+# Fix: Onboarding Completion Flow — Routing and Personalization
 
-1. **Auth method broken**: The edge function uses `supabase.auth.getClaims(token)` which does not exist in the Supabase JS SDK. This causes a runtime error, falling through to the fallback.
-2. **Timeout too short**: The 3-second timeout fires before the AI gateway responds, aborting the request (confirmed in logs: `AbortError: The signal has been aborted`).  
-  
-The order is wrong, the new page goes after the page "we hard you.."  pelase fix this 
+## Issues Found
 
-Result: Users always see the generic fallback text with no personal details.
+### Issue 1: CTA skips the project idea input step
+The "Start My Project Session" button navigates directly to `/council` without any project idea. The Council needs the user's idea (via `prefilledQuestion` + `isFirstProjectFlow: true`) to generate its first response. Without this state, the Council just sits there waiting for input — and the user doesn't know what to do.
 
-## Problem 2: CTA Routes to Wrong Destination
+**Fix**: Change the CTA destination from `/council` back to `/gravity/first-project`. This is the page that asks "Tell us: Is there an idea, a project...?" and THEN sends the user to the Council with the correct state.
 
-"Start My Project Session" currently navigates to `/gravity/first-project`. Per the PDR, it should connect the user to the **Project Council** for their first session.
+### Issue 2: No personalized summary showing
+The edge function works but falls back to generic text because at this point in the flow, the test user's `user_foundation_summary` may not be fully populated yet (the `process-user-foundation` function may still be processing). The function also has no logging to diagnose what profile data it received.
+
+**Fix**: Add console logging to the edge function so we can diagnose what data is available. Also add a small retry/wait if the foundation summary is empty (it may still be processing from the Council Intro step).
 
 ## Changes
 
-### 1. Fix Edge Function Auth (`supabase/functions/generate-onboarding-summary/index.ts`)
+### 1. `src/pages/OnboardingCompletion.tsx`
+- Change CTA navigation from `/council` to `/gravity/first-project`
+- This restores the correct flow: Completion Page -> First Project Input -> Council with idea
 
-Replace the broken `getClaims` approach with the standard `getUser()` pattern:
+### 2. `supabase/functions/generate-onboarding-summary/index.ts`
+- Add `console.log` statements to log: user ID, whether profile was found, which fields have data, and which fallback (if any) was used
+- If `user_foundation_summary` is null/empty, wait 2 seconds and retry the profile fetch once (to handle race condition with `process-user-foundation` still running)
+
+## Corrected Flow
 
 ```text
-BEFORE (broken):
-  const token = authHeader.replace("Bearer ", "");
-  const { data: claimsData, error: claimsError } = await supabase.auth.getClaims(token);
-  const userId = claimsData.claims.sub;
-
-AFTER (working):
-  const { data: { user }, error: userError } = await supabase.auth.getUser();
-  const userId = user.id;
+Council Intro (user tells their story)
+    |
+    v
+Council Welcome ("We hear you")
+    |
+    v
+Onboarding Completion (confetti + AI summary + mission framing)
+    |  CTA: "Start My Project Session"
+    v
+First Project Input (user types/speaks their idea)
+    |  CTA: "Start Building"
+    v
+Council (with prefilledQuestion + isFirstProjectFlow state)
 ```
-
-### 2. Increase Timeout (`supabase/functions/generate-onboarding-summary/index.ts`)
-
-Change the AI call timeout from 3 seconds to 10 seconds. The Gemini flash model typically responds in 4-7 seconds, so 3 seconds is too aggressive.
-
-### 3. Fix CTA Destination (`src/pages/OnboardingCompletion.tsx`)
-
-Change the navigation target from `/gravity/first-project` to `/council` so the user lands directly in the Project Council to begin their first session.
 
 ## Files
 
+| File | Change |
+|------|--------|
+| `src/pages/OnboardingCompletion.tsx` | Change navigation from `/council` to `/gravity/first-project` |
+| `supabase/functions/generate-onboarding-summary/index.ts` | Add logging + retry logic for empty foundation summary |
 
-| File                                                      | Change                                                            |
-| --------------------------------------------------------- | ----------------------------------------------------------------- |
-| `supabase/functions/generate-onboarding-summary/index.ts` | Fix auth method, increase timeout to 10s                          |
-| `src/pages/OnboardingCompletion.tsx`                      | Change CTA navigation from `/gravity/first-project` to `/council` |
