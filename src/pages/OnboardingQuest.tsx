@@ -213,7 +213,7 @@ const OnboardingQuest = () => {
         completed_at: new Date().toISOString(),
       });
 
-      // Update profile with patterns
+      // Update profile with patterns + mark quest completed
       await supabase
         .from("profiles")
         .update({
@@ -221,8 +221,14 @@ const OnboardingQuest = () => {
         })
         .eq("id", user.id);
 
-      toast.success("Great! Just one more step...");
-      navigate("/onboarding/work-context");
+      // Mark quest completed (new column not in generated types yet)
+      await (supabase
+        .from("profiles") as any)
+        .update({ onboarding_quest_completed: true })
+        .eq("id", user.id);
+
+      toast.success("You're in! Let's set up your Council.");
+      navigate("/dashboard");
     } catch (error: any) {
       console.error("Error completing quest:", error);
       toast.error("Failed to save progress");

@@ -18,9 +18,17 @@ const OnboardingRouter = () => {
 
         const { data: profile } = await supabase
           .from("profiles")
-          .select("birth_name, gravity_orientation_completed, gravity_transition_completed, council_introduction_completed, first_project_created_at, onboarding_completion_seen")
+          .select("birth_name, gravity_orientation_completed, gravity_transition_completed, council_introduction_completed, first_project_created_at, onboarding_completion_seen, console_intake_completed")
           .eq("id", user.id)
           .single();
+
+        // Separate query for quest completion (may not be in generated types yet)
+        const { data: questCheck } = await supabase
+          .from("profiles")
+          .select("onboarding_quest_completed" as any)
+          .eq("id", user.id)
+          .single();
+        const questCompleted = (questCheck as any)?.onboarding_quest_completed;
 
         // Route to the correct step based on completion status
         // Follow the exact onboarding flow order:
@@ -37,17 +45,20 @@ const OnboardingRouter = () => {
         } else if (!profile?.birth_name) {
           // Orientation complete, but identity not filled
           navigate("/onboarding");
+        } else if (questCompleted && !profile.first_project_created_at) {
+          // Quest completed but no project yet — go to dashboard (notification will appear)
+          navigate("/dashboard");
         } else if (!profile.gravity_transition_completed) {
-          // Identity complete, transition pending
+          // Identity complete, transition pending (legacy flow)
           navigate("/gravity/transition");
         } else if (!profile.council_introduction_completed) {
-          // Transition complete, council intro pending
+          // Transition complete, council intro pending (legacy flow)
           navigate("/gravity/council-intro");
         } else if (!(profile as any).onboarding_completion_seen) {
-          // Council intro complete, onboarding completion page pending
+          // Council intro complete, onboarding completion page pending (legacy flow)
           navigate("/gravity/onboarding-complete");
         } else if (!profile.first_project_created_at) {
-          // Onboarding completion seen, first project pending
+          // Onboarding completion seen, first project pending (legacy flow)
           navigate("/gravity/first-project");
         } else {
           // All onboarding complete - go to dashboard
