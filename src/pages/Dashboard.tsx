@@ -7,6 +7,7 @@ import { MentorWhisperNotification } from "@/components/MentorWhisperNotificatio
 import { useMentorWhisper } from "@/hooks/useMentorWhisper";
 import { useMentorOutreach } from "@/hooks/useMentorOutreach";
 import { VoiceOfSystemModal } from "@/components/voice/VoiceOfSystemModal";
+import IntakeNotification from "@/components/console-thread/IntakeNotification";
 
 // Dashboard components
 import DashboardHeader from "@/components/dashboard/DashboardHeader";
@@ -28,6 +29,7 @@ const Dashboard = () => {
   const [showWhisperNotification, setShowWhisperNotification] = useState(false);
   const [hasQuestPending, setHasQuestPending] = useState(false);
   const [showVoiceModal, setShowVoiceModal] = useState(false);
+  const [showIntakeNotification, setShowIntakeNotification] = useState(false);
 
   const {
     unreadWhisper,
@@ -152,6 +154,20 @@ const Dashboard = () => {
 
         const selfDiscoveryCompleted = profile.self_discovery_completed === true;
         setHasQuestPending(!selfDiscoveryCompleted);
+
+        // Show intake notification if quest completed but no project yet
+        if (!profile.first_project_created_at) {
+          // Check if quest was completed (new column)
+          const { data: questCheck } = await supabase
+            .from("profiles")
+            .select("onboarding_quest_completed, console_intake_completed" as any)
+            .eq("id", user.id)
+            .single();
+          const qc = questCheck as any;
+          if (qc?.onboarding_quest_completed && !qc?.console_intake_completed) {
+            setShowIntakeNotification(true);
+          }
+        }
       }
     } catch (error: any) {
       console.error("Error checking first-time user status:", error);
@@ -255,6 +271,9 @@ const Dashboard = () => {
 
         {/* Future Self Space */}
         <FutureSelfSpaceCard hasQuestPending={hasQuestPending} />
+
+        {/* Console Intake Notification */}
+        {showIntakeNotification && <IntakeNotification />}
 
         {/* Narrative System - Connection between values and actions */}
         <NarrativeSystemCard />

@@ -63,6 +63,7 @@ import OptimalTimingDashboard from "./pages/OptimalTimingDashboard";
 import PatternMap from "./pages/PatternMap";
 import SuperpowerMap from "./pages/SuperpowerMap";
 import MomentumDashboard from "./pages/MomentumDashboard";
+import ConsoleThread from "./pages/ConsoleThread";
 
 const queryClient = new QueryClient();
 
@@ -243,6 +244,11 @@ const App = () => {
             <Route
               path="/onboarding/work-context"
               element={session ? <OnboardingWorkContext /> : <Navigate to="/" />}
+            />
+            {/* Console Thread Route */}
+            <Route
+              path="/console-thread"
+              element={session ? <ConsoleThread /> : <Navigate to="/" />}
             />
             
             {/* Main App Routes with Bottom Navigation */}

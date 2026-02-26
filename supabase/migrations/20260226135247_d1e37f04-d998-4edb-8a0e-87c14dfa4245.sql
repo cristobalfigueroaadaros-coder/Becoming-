@@ -1,0 +1,1 @@
+ALTER TABLE profiles ADD COLUMN IF NOT EXISTS onboarding_quest_completed boolean DEFAULT false;

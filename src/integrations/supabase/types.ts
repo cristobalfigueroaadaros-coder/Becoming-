@@ -2304,6 +2304,7 @@ export type Database = {
           birth_name: string | null
           birth_time: string | null
           birth_time_unknown: boolean | null
+          console_intake_completed: boolean | null
           constellation_insights: Json | null
           council_introduction_completed: boolean | null
           council_unlocked: boolean | null
@@ -2335,6 +2336,7 @@ export type Database = {
           numerology_profile: Json | null
           numerology_signals: Json | null
           onboarding_completion_seen: boolean
+          onboarding_quest_completed: boolean | null
           priority_growth_area: string | null
           purpose_path: string | null
           reflection_loop_count: number | null
@@ -2355,6 +2357,7 @@ export type Database = {
           birth_name?: string | null
           birth_time?: string | null
           birth_time_unknown?: boolean | null
+          console_intake_completed?: boolean | null
           constellation_insights?: Json | null
           council_introduction_completed?: boolean | null
           council_unlocked?: boolean | null
@@ -2386,6 +2389,7 @@ export type Database = {
           numerology_profile?: Json | null
           numerology_signals?: Json | null
           onboarding_completion_seen?: boolean
+          onboarding_quest_completed?: boolean | null
           priority_growth_area?: string | null
           purpose_path?: string | null
           reflection_loop_count?: number | null
@@ -2406,6 +2410,7 @@ export type Database = {
           birth_name?: string | null
           birth_time?: string | null
           birth_time_unknown?: boolean | null
+          console_intake_completed?: boolean | null
           constellation_insights?: Json | null
           council_introduction_completed?: boolean | null
           council_unlocked?: boolean | null
@@ -2437,6 +2442,7 @@ export type Database = {
           numerology_profile?: Json | null
           numerology_signals?: Json | null
           onboarding_completion_seen?: boolean
+          onboarding_quest_completed?: boolean | null
           priority_growth_area?: string | null
           purpose_path?: string | null
           reflection_loop_count?: number | null
