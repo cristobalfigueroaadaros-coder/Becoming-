@@ -1,65 +1,58 @@
 
 
-# Fix: Embed Console Thread INTO the Council Page
+# Console Thread UX Improvements + Project Creation Fix
 
-## Problem
-The `ConsoleThread` was built as a **standalone page** at `/console-thread`. It is NOT integrated into the Council page. When users tap the Council button, they see the old `CouncilMeetingPage` — not the continuous thread. The thread needs to be a conversation entry inside the Council sidebar, just like "Project Council" or any mentor chat.
+## Issues to Fix
 
-## Changes
+### 1. Mentor bubble colors not showing
+`ChatBubble.tsx` uses `mentorColor` as a Tailwind class on the icon circle, but mentor messages use `bg-blue-500` etc. — this only colors the icon, not the bubble itself. Need to add a colored left border or tinted background to distinguish mentors.
 
-### 1. Database: Create `console_thread_messages` table
-Persist all thread messages so users can return to the conversation.
-```sql
-CREATE TABLE console_thread_messages (
-  id uuid PRIMARY KEY DEFAULT gen_random_uuid(),
-  user_id uuid NOT NULL,
-  role text NOT NULL, -- 'user', 'mentor', 'system'
-  content text NOT NULL DEFAULT '',
-  mentor_type text,
-  mentor_name text,
-  mentor_icon text,
-  mentor_color text,
-  card_type text, -- 'council_reveal', 'project_creation', null
-  card_data jsonb,
-  phase text, -- which phase this message was part of
-  created_at timestamptz DEFAULT now()
-);
-ALTER TABLE console_thread_messages ENABLE ROW LEVEL SECURITY;
--- RLS: users can only access their own messages
-CREATE POLICY "Users can manage own thread messages" ON console_thread_messages FOR ALL USING (auth.uid() = user_id);
-```
+### 2. Perspectives appear too fast
+The typing delay is `600 + Math.random() * 600` (0.6-1.2s). Increase to `1500 + Math.random() * 1000` (1.5-2.5s) for perspectives and similar for banter.
 
-Also add `console_thread_phase` text column to `profiles` to persist the current phase state.
+### 3. Future Self intake questions too robotic
+Replace the 3 static questions with warmer, human copy that uses the user's `display_name`:
+- Q1: "Hey {name}! Before I assemble your Council, I'd like to ask you a few questions to understand where you are. First — what's your work experience or background?"
+- Q2: "That's great to know. Now tell me a bit about your story — who are you becoming?"
+- Q3: "Love it. So what have you been working on, or thinking about building?"
 
-### 2. `src/pages/ConsoleThread.tsx` — Add `embedded` prop
-- Add `embedded?: boolean` prop (like `CouncilMeetingPage` and `ChatPage` already have)
-- When `embedded=true`: remove the header, remove `h-screen`, adapt to fill parent container
-- On init: load existing messages from `console_thread_messages` + restore phase from `profiles.console_thread_phase`
-- On every message add: save to `console_thread_messages`
-- On phase change: save to `profiles.console_thread_phase`
-- Remove redirect to dashboard when intake completed — the thread should always be accessible for scrollback
+Fetch `display_name` from profiles on init.
 
-### 3. `src/pages/Council.tsx` — Add "New Conversation" entry in sidebar
-- Add a new sidebar entry **above** "Project Council" labeled "New Conversation" (or the project name once created)
-- When `console_intake_completed` is false, auto-select this entry and show a notification badge
-- When selected (`view=intake`), render `<ConsoleThread embedded />` in the content area instead of `CouncilMeetingPage`
-- Query `profiles` for `console_intake_completed` and `console_thread_phase` to determine badge/label
+### 4. Markdown artifacts (`**text**`) showing raw
+`ChatBubble.tsx` renders content with `whitespace-pre-wrap` but doesn't parse markdown. Strip `**` and `*` from content before rendering (simple regex clean), or render bold inline.
 
-### 4. Routing cleanup
-- `/console-thread` route in `App.tsx`: redirect to `/council?view=intake`
-- `IntakeNotification.tsx`: navigate to `/council?view=intake` instead of `/console-thread`
-- `BottomNavigation.tsx`: badge logic stays the same, but tapping Council auto-opens the intake thread
+### 5. System asks user for project name
+The system shouldn't ask. When `projectCoherence.isCoherent` is detected, use the `FirstWinNamingCard` (existing component) instead of `ProjectCreationCard`. This card proposes a name that the user can edit and accept — feels like a surprise/celebration.
 
-### 5. Council Reveal ordering (already correct in ConsoleThread logic)
-The `ConsoleThread` already shows council reveal AFTER the 3 intake questions. No change needed — just needs to actually render.
+### 6. Project creation fails — "No project ID returned"
+`ProjectCreationCard` reads `data?.projectId` but the `integrator-setup` edge function returns `{ project: { id: ... } }`. Fix: read `data?.project?.id || data?.projectId`.
 
-## Files
+### 7. Council reveal should feel more celebratory
+Use confetti + a "first win" style reveal instead of the plain card. Add a celebration message from Future Self before the card.
 
-| File | Change |
-|------|--------|
-| Migration SQL | Create `console_thread_messages` table + add `console_thread_phase` to profiles |
-| `src/pages/ConsoleThread.tsx` | Add `embedded` prop, persist messages to DB, restore on load |
-| `src/pages/Council.tsx` | Add "New Conversation" sidebar entry, render ConsoleThread when selected |
-| `src/components/console-thread/IntakeNotification.tsx` | Navigate to `/council?view=intake` |
-| `src/App.tsx` | Redirect `/console-thread` → `/council?view=intake` |
+## Files to Change
+
+### `src/pages/ConsoleThread.tsx`
+- Fetch `display_name` from profiles on init
+- Replace static `INTAKE_QUESTIONS` with dynamic copy using the name
+- Increase typing delays for perspectives (1500-2500ms) and banter (800-1200ms)
+- Replace `ProjectCreationCard` usage with `FirstWinNamingCard` from existing component
+- Wire `FirstWinNamingCard.onAccept` to call integrator-setup and handle project creation
+- Add a celebratory Future Self message before council reveal card
+
+### `src/components/console-thread/ChatBubble.tsx`
+- Strip markdown `**` and `*` from content before rendering
+- Add mentor-colored left border on mentor bubbles for visual distinction
+
+### `src/components/console-thread/ProjectCreationCard.tsx`
+- Fix: read `data?.project?.id || data?.projectId` instead of just `data?.projectId`
+
+### `src/components/console-thread/MentorRevealCard.tsx`
+- Add confetti on render (first-win feeling)
+
+## Implementation Order
+1. Fix ProjectCreationCard projectId bug
+2. Update ChatBubble for markdown stripping + mentor colors
+3. Update ConsoleThread: warm intake copy, slower typing, FirstWinNamingCard integration
+4. Update MentorRevealCard celebration feel
 
