@@ -214,6 +214,51 @@ export type Database = {
         }
         Relationships: []
       }
+      console_thread_messages: {
+        Row: {
+          card_data: Json | null
+          card_type: string | null
+          content: string
+          created_at: string | null
+          id: string
+          mentor_color: string | null
+          mentor_icon: string | null
+          mentor_name: string | null
+          mentor_type: string | null
+          phase: string | null
+          role: string
+          user_id: string
+        }
+        Insert: {
+          card_data?: Json | null
+          card_type?: string | null
+          content?: string
+          created_at?: string | null
+          id?: string
+          mentor_color?: string | null
+          mentor_icon?: string | null
+          mentor_name?: string | null
+          mentor_type?: string | null
+          phase?: string | null
+          role?: string
+          user_id: string
+        }
+        Update: {
+          card_data?: Json | null
+          card_type?: string | null
+          content?: string
+          created_at?: string | null
+          id?: string
+          mentor_color?: string | null
+          mentor_icon?: string | null
+          mentor_name?: string | null
+          mentor_type?: string | null
+          phase?: string | null
+          role?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
       constellation_connections: {
         Row: {
           connection_insight: string
@@ -2305,6 +2350,7 @@ export type Database = {
           birth_time: string | null
           birth_time_unknown: boolean | null
           console_intake_completed: boolean | null
+          console_thread_phase: string | null
           constellation_insights: Json | null
           council_introduction_completed: boolean | null
           council_unlocked: boolean | null
@@ -2358,6 +2404,7 @@ export type Database = {
           birth_time?: string | null
           birth_time_unknown?: boolean | null
           console_intake_completed?: boolean | null
+          console_thread_phase?: string | null
           constellation_insights?: Json | null
           council_introduction_completed?: boolean | null
           council_unlocked?: boolean | null
@@ -2411,6 +2458,7 @@ export type Database = {
           birth_time?: string | null
           birth_time_unknown?: boolean | null
           console_intake_completed?: boolean | null
+          console_thread_phase?: string | null
           constellation_insights?: Json | null
           council_introduction_completed?: boolean | null
           council_unlocked?: boolean | null

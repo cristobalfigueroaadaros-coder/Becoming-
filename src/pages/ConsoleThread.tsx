@@ -50,7 +50,11 @@ const INTAKE_QUESTIONS = [
   "What are you building or thinking about building?",
 ];
 
-const ConsoleThread = () => {
+interface ConsoleThreadProps {
+  embedded?: boolean;
+}
+
+const ConsoleThread = ({ embedded = false }: ConsoleThreadProps) => {
   const navigate = useNavigate();
   const [phase, setPhase] = useState<Phase>("intake_q1");
   const [messages, setMessages] = useState<ChatMessage[]>([]);
@@ -63,6 +67,7 @@ const ConsoleThread = () => {
   const [councilAccepted, setCouncilAccepted] = useState(false);
   const [projectName, setProjectName] = useState("New Conversation");
   const [handoffMentor, setHandoffMentor] = useState<string | null>(null);
+  const [initialLoading, setInitialLoading] = useState(true);
   const scrollRef = useRef<HTMLDivElement>(null);
   const inputRef = useRef<HTMLInputElement>(null);
 
@@ -71,24 +76,49 @@ const ConsoleThread = () => {
     scrollRef.current?.scrollIntoView({ behavior: "smooth" });
   }, [messages, typing]);
 
-  // Open with first question
+  // Persist a message to DB
+  const persistMessage = async (msg: ChatMessage, currentPhase: Phase) => {
+    try {
+      const { data: { user } } = await supabase.auth.getUser();
+      if (!user) return;
+      await supabase.from("console_thread_messages").insert({
+        user_id: user.id,
+        role: msg.role,
+        content: msg.content,
+        mentor_type: msg.mentorName ? Object.entries(mentorConfig).find(([_, v]) => v.name === msg.mentorName)?.[0] : null,
+        mentor_name: msg.mentorName || null,
+        mentor_icon: msg.mentorIcon || null,
+        mentor_color: msg.mentorColor || null,
+        card_type: msg.card ? "card" : null,
+        phase: currentPhase,
+      } as any);
+    } catch (e) {
+      console.error("Failed to persist message:", e);
+    }
+  };
+
+  // Persist phase to profile
+  const persistPhase = async (newPhase: Phase) => {
+    try {
+      const { data: { user } } = await supabase.auth.getUser();
+      if (!user) return;
+      await supabase.from("profiles").update({ console_thread_phase: newPhase } as any).eq("id", user.id);
+    } catch (e) {
+      console.error("Failed to persist phase:", e);
+    }
+  };
+
+  // Load existing messages from DB on init
   useEffect(() => {
     const init = async () => {
       const { data: { user } } = await supabase.auth.getUser();
-      if (!user) { navigate("/"); return; }
+      if (!user) { if (!embedded) navigate("/"); return; }
 
-      // Check if intake already completed
       const { data: profile } = await supabase
         .from("profiles")
-        .select("console_intake_completed, entry_state")
+        .select("console_intake_completed, entry_state, console_thread_phase")
         .eq("id", user.id)
         .single();
-
-      if (profile?.console_intake_completed) {
-        // Already completed, redirect to dashboard
-        navigate("/dashboard");
-        return;
-      }
 
       setEntryState(profile?.entry_state || "DISCOVER");
 
@@ -99,13 +129,46 @@ const ConsoleThread = () => {
         .eq("user_id", user.id);
       if (mentors) setUserMentors(mentors.map(m => m.mentor_type));
 
-      // Add first question from Future Self
-      addSystemMessage(INTAKE_QUESTIONS[0], "future_self");
+      // Try to restore existing thread messages
+      const { data: savedMessages } = await supabase
+        .from("console_thread_messages")
+        .select("*")
+        .eq("user_id", user.id)
+        .order("created_at", { ascending: true });
+
+      if (savedMessages && savedMessages.length > 0) {
+        // Restore messages
+        const restored: ChatMessage[] = savedMessages.map((m: any) => ({
+          id: m.id,
+          role: m.role as "user" | "mentor" | "system",
+          content: m.content,
+          mentorName: m.mentor_name || undefined,
+          mentorIcon: m.mentor_icon || undefined,
+          mentorColor: m.mentor_color || undefined,
+          // Cards are not restorable as React nodes; show text instead
+          card: m.card_type === "card" ? undefined : undefined,
+        }));
+        setMessages(restored);
+
+        // Restore phase
+        const savedPhase = (profile as any)?.console_thread_phase as Phase | null;
+        if (savedPhase) {
+          setPhase(savedPhase);
+          // Restore intake answers from user messages
+          const userMsgs = restored.filter(m => m.role === "user");
+          setIntakeAnswers(userMsgs.slice(0, 3).map(m => m.content));
+        }
+      } else {
+        // Fresh thread — add first question from Future Self
+        addSystemMessage(INTAKE_QUESTIONS[0], "future_self", "intake_q1");
+      }
+
+      setInitialLoading(false);
     };
     init();
   }, []);
 
-  const addSystemMessage = (content: string, mentorType?: string) => {
+  const addSystemMessage = (content: string, mentorType?: string, phaseForPersist?: Phase) => {
     const config = mentorType ? mentorConfig[mentorType] : undefined;
     const msg: ChatMessage = {
       id: crypto.randomUUID(),
@@ -116,18 +179,20 @@ const ConsoleThread = () => {
       mentorColor: config?.color,
     };
     setMessages(prev => [...prev, msg]);
+    persistMessage(msg, phaseForPersist || phase);
   };
 
-  const addUserMessage = (content: string) => {
+  const addUserMessage = (content: string, phaseForPersist?: Phase) => {
     const msg: ChatMessage = {
       id: crypto.randomUUID(),
       role: "user",
       content,
     };
     setMessages(prev => [...prev, msg]);
+    persistMessage(msg, phaseForPersist || phase);
   };
 
-  const addCardMessage = (card: React.ReactNode, mentorType?: string) => {
+  const addCardMessage = (card: React.ReactNode, mentorType?: string, phaseForPersist?: Phase) => {
     const config = mentorType ? mentorConfig[mentorType] : undefined;
     const msg: ChatMessage = {
       id: crypto.randomUUID(),
@@ -139,6 +204,7 @@ const ConsoleThread = () => {
       card,
     };
     setMessages(prev => [...prev, msg]);
+    persistMessage(msg, phaseForPersist || phase);
   };
 
   const showTyping = (mentorType?: string, durationMs = 1200) => {
@@ -156,19 +222,24 @@ const ConsoleThread = () => {
     if (phase === "intake_q1") {
       const newAnswers = [...intakeAnswers, text];
       setIntakeAnswers(newAnswers);
+      const nextPhase: Phase = "intake_q2";
+      setPhase(nextPhase);
+      persistPhase(nextPhase);
       await showTyping("future_self", 800);
-      addSystemMessage(INTAKE_QUESTIONS[1], "future_self");
-      setPhase("intake_q2");
+      addSystemMessage(INTAKE_QUESTIONS[1], "future_self", nextPhase);
     } else if (phase === "intake_q2") {
       const newAnswers = [...intakeAnswers, text];
       setIntakeAnswers(newAnswers);
+      const nextPhase: Phase = "intake_q3";
+      setPhase(nextPhase);
+      persistPhase(nextPhase);
       await showTyping("future_self", 800);
-      addSystemMessage(INTAKE_QUESTIONS[2], "future_self");
-      setPhase("intake_q3");
+      addSystemMessage(INTAKE_QUESTIONS[2], "future_self", nextPhase);
     } else if (phase === "intake_q3") {
       const newAnswers = [...intakeAnswers, text];
       setIntakeAnswers(newAnswers);
       setPhase("processing");
+      persistPhase("processing");
       await processIntake(newAnswers);
     } else if (phase === "user_reply") {
       await handleUserReply(text);
@@ -185,26 +256,24 @@ const ConsoleThread = () => {
       const { data: { user } } = await supabase.auth.getUser();
       if (!user) return;
 
-      // Show processing
       await showTyping("future_self", 1500);
-      addSystemMessage("Processing your answers... Let me assemble your Council.", "future_self");
+      addSystemMessage("Processing your answers... Let me assemble your Council.", "future_self", "processing");
 
-      // Save work context
       await supabase.from("profiles").update({
         work_context: answers[0],
       }).eq("id", user.id);
 
-      // Call process-user-foundation with combined story
       const storyText = `Work background: ${answers[0]}\n\nMy story: ${answers[1]}\n\nWhat I'm building: ${answers[2]}`;
       await supabase.functions.invoke("process-user-foundation", {
         body: { storyText },
       });
 
-      // Council Reveal
       await showTyping(undefined, 1000);
-      addSystemMessage("Based on your answers, this will be your Council.", "future_self");
+      addSystemMessage("Based on your answers, this will be your Council.", "future_self", "council_reveal");
 
-      setPhase("council_reveal");
+      const nextPhase: Phase = "council_reveal";
+      setPhase(nextPhase);
+      persistPhase(nextPhase);
       addCardMessage(
         <MentorRevealCard
           mentors={userMentors}
@@ -212,11 +281,14 @@ const ConsoleThread = () => {
           onAccept={handleCouncilAccept}
           accepted={false}
         />,
+        undefined,
+        nextPhase
       );
     } catch (error: any) {
       console.error("Error processing intake:", error);
       toast.error("Something went wrong. Please try again.");
       setPhase("intake_q1");
+      persistPhase("intake_q1");
     } finally {
       setLoading(false);
     }
@@ -226,7 +298,6 @@ const ConsoleThread = () => {
     setCouncilAccepted(true);
     confetti({ particleCount: 80, spread: 60, origin: { y: 0.7 } });
 
-    // Replace the card message with accepted version
     setMessages(prev => {
       const updated = [...prev];
       let cardIdx = -1;
@@ -249,9 +320,10 @@ const ConsoleThread = () => {
       return updated;
     });
 
-    setPhase("council_accepted");
+    const nextPhase: Phase = "council_accepted";
+    setPhase(nextPhase);
+    persistPhase(nextPhase);
 
-    // Now run council-meeting with Q3 answer
     await runCouncilMeeting();
   };
 
@@ -260,7 +332,6 @@ const ConsoleThread = () => {
     try {
       const projectIdea = intakeAnswers[2] || "I want to build something meaningful";
 
-      // Call council-meeting
       const { data, error } = await supabase.functions.invoke("council-meeting", {
         body: {
           question: projectIdea,
@@ -271,38 +342,40 @@ const ConsoleThread = () => {
 
       if (error) throw error;
 
-      // Render perspectives
       const perspectives = data.mentorPerspectives || {};
-      setPhase("perspectives");
+      const perspPhase: Phase = "perspectives";
+      setPhase(perspPhase);
+      persistPhase(perspPhase);
 
       for (const [mentorType, perspective] of Object.entries(perspectives)) {
         await showTyping(mentorType, 600 + Math.random() * 600);
-        addSystemMessage(perspective as string, mentorType);
+        addSystemMessage(perspective as string, mentorType, perspPhase);
       }
 
-      // Render banter
       const banterLines = data.banterLines || [];
       if (banterLines.length > 0) {
-        setPhase("banter");
+        const banterPhase: Phase = "banter";
+        setPhase(banterPhase);
+        persistPhase(banterPhase);
         for (const line of banterLines) {
           await showTyping(line.mentor, 400 + Math.random() * 400);
-          addSystemMessage(line.text, line.mentor);
+          addSystemMessage(line.text, line.mentor, banterPhase);
         }
       }
 
-      // Ask the user a question (clarity question or suggested next)
       const clarityQ = data.clarityQuestion || data.suggestedNextQuestion;
       if (clarityQ) {
         await showTyping("future_self", 600);
-        addSystemMessage(clarityQ, "future_self");
+        addSystemMessage(clarityQ, "future_self", "user_reply");
       }
 
-      // Check for mentor suggestion
       if (data.suggestedMentorFor1to1) {
         setHandoffMentor(data.suggestedMentorFor1to1.mentorType);
       }
 
-      setPhase("user_reply");
+      const nextPhase: Phase = "user_reply";
+      setPhase(nextPhase);
+      persistPhase(nextPhase);
     } catch (error: any) {
       console.error("Error in council meeting:", error);
       toast.error("Council meeting failed");
@@ -314,17 +387,17 @@ const ConsoleThread = () => {
   const handleUserReply = async (text: string) => {
     setLoading(true);
     try {
-      // If we have a handoff mentor, offer handoff
       if (handoffMentor) {
         const config = mentorConfig[handoffMentor];
         await showTyping("future_self", 800);
         addSystemMessage(
           `I think you're ready to work 1-to-1 with ${config?.name || handoffMentor}.\n\nIf you're ready, type "let's go".`,
-          "future_self"
+          "future_self",
+          "handoff_offer"
         );
         setPhase("handoff_offer");
+        persistPhase("handoff_offer");
       } else {
-        // Run another round of council meeting
         const { data, error } = await supabase.functions.invoke("council-meeting", {
           body: {
             question: text,
@@ -338,46 +411,45 @@ const ConsoleThread = () => {
 
         if (error) throw error;
 
-        // Render perspectives
         const perspectives = data.mentorPerspectives || {};
         for (const [mentorType, perspective] of Object.entries(perspectives)) {
           await showTyping(mentorType, 500 + Math.random() * 500);
-          addSystemMessage(perspective as string, mentorType);
+          addSystemMessage(perspective as string, mentorType, "user_reply");
         }
 
-        // Banter
         if (data.banterLines?.length > 0) {
           for (const line of data.banterLines) {
             await showTyping(line.mentor, 300 + Math.random() * 300);
-            addSystemMessage(line.text, line.mentor);
+            addSystemMessage(line.text, line.mentor, "user_reply");
           }
         }
 
-        // Check for handoff
         if (data.suggestedMentorFor1to1) {
           setHandoffMentor(data.suggestedMentorFor1to1.mentorType);
         }
 
-        // Detect project coherence
         if (data.projectCoherence?.isCoherent) {
           setPhase("project_detected");
+          persistPhase("project_detected");
           await showTyping("future_self", 600);
-          addSystemMessage("I see a clear project forming here.", "future_self");
+          addSystemMessage("I see a clear project forming here.", "future_self", "project_detected");
           addCardMessage(
             <ProjectCreationCard
               projectName={data.projectCoherence.projectName}
               projectDescription={data.projectCoherence.projectDescription}
               onProjectCreated={handleProjectCreated}
-            />
+            />,
+            undefined,
+            "project_detected"
           );
         } else {
-          // Continue conversation
           const nextQ = data.clarityQuestion || data.suggestedNextQuestion;
           if (nextQ) {
             await showTyping("future_self", 500);
-            addSystemMessage(nextQ, "future_self");
+            addSystemMessage(nextQ, "future_self", "user_reply");
           }
           setPhase("user_reply");
+          persistPhase("user_reply");
         }
       }
     } catch (error: any) {
@@ -391,8 +463,8 @@ const ConsoleThread = () => {
   const handleHandoffResponse = async (text: string) => {
     const affirmative = /^(let'?s?\s*go|yes|yeah|yep|sure|ready|ok|okay|absolutely|do it|go)/i.test(text);
     if (!affirmative) {
-      // User doesn't want handoff, continue conversation
       setPhase("user_reply");
+      persistPhase("user_reply");
       await handleUserReply(text);
       return;
     }
@@ -404,7 +476,6 @@ const ConsoleThread = () => {
       const { data: { user } } = await supabase.auth.getUser();
       if (!user) return;
 
-      // Create handoff record
       const sourceMessages = messages.slice(-20).map(m => ({
         role: m.role === "user" ? "user" : "assistant",
         content: m.content,
@@ -425,7 +496,6 @@ const ConsoleThread = () => {
 
       if (handoffError) throw handoffError;
 
-      // Call chat-mentor with handoff
       const { data, error } = await supabase.functions.invoke("chat-mentor", {
         body: { mentorType: handoffMentor, message: "__HANDOFF_INIT__", handoffId: handoff.id },
       });
@@ -434,11 +504,9 @@ const ConsoleThread = () => {
 
       await supabase.from("conversation_handoffs").update({ processed: true }).eq("id", handoff.id);
 
-      const config = mentorConfig[handoffMentor];
       await showTyping(handoffMentor, 1000);
-      addSystemMessage(data.response, handoffMentor);
+      addSystemMessage(data.response, handoffMentor, "mentor_1to1");
 
-      // Save to chats table
       await supabase.from("chats").insert({
         user_id: user.id,
         mentor_type: handoffMentor as any,
@@ -447,6 +515,7 @@ const ConsoleThread = () => {
       });
 
       setPhase("mentor_1to1");
+      persistPhase("mentor_1to1");
     } catch (error: any) {
       console.error("Error in handoff:", error);
       toast.error("Handoff failed");
@@ -463,7 +532,6 @@ const ConsoleThread = () => {
       const { data: { user } } = await supabase.auth.getUser();
       if (!user) return;
 
-      // Save user message
       await supabase.from("chats").insert({
         user_id: user.id,
         mentor_type: handoffMentor as any,
@@ -479,7 +547,6 @@ const ConsoleThread = () => {
 
       if (error) throw error;
 
-      // Save assistant message
       await supabase.from("chats").insert({
         user_id: user.id,
         mentor_type: handoffMentor as any,
@@ -487,19 +554,21 @@ const ConsoleThread = () => {
         content: data.response,
       });
 
-      addSystemMessage(data.response, handoffMentor);
+      addSystemMessage(data.response, handoffMentor, "mentor_1to1");
 
-      // Check for project coherence
       if (data.projectCoherence?.isCoherent) {
         setPhase("project_detected");
+        persistPhase("project_detected");
         await showTyping("future_self", 600);
-        addSystemMessage("I see a clear project forming here.", "future_self");
+        addSystemMessage("I see a clear project forming here.", "future_self", "project_detected");
         addCardMessage(
           <ProjectCreationCard
             projectName={data.projectCoherence.projectName}
             projectDescription={data.projectCoherence.projectDescription}
             onProjectCreated={handleProjectCreated}
-          />
+          />,
+          undefined,
+          "project_detected"
         );
       }
     } catch (error: any) {
@@ -513,10 +582,19 @@ const ConsoleThread = () => {
   const handleProjectCreated = (projectId: string, name: string) => {
     setProjectName(name);
     setPhase("complete");
+    persistPhase("complete");
     confetti({ particleCount: 120, spread: 80, origin: { y: 0.6 } });
     
+    // Mark intake as completed
+    (async () => {
+      const { data: { user } } = await supabase.auth.getUser();
+      if (user) {
+        await supabase.from("profiles").update({ console_intake_completed: true } as any).eq("id", user.id);
+      }
+    })();
+
     setTimeout(() => {
-      addSystemMessage(`Your project "${name}" has been created. You can now find it in your Creation Lab.\n\nGood luck — your Council is behind you.`, "future_self");
+      addSystemMessage(`Your project "${name}" has been created. You can now find it in your Creation Lab.\n\nGood luck — your Council is behind you.`, "future_self", "complete");
     }, 500);
   };
 
@@ -529,26 +607,36 @@ const ConsoleThread = () => {
 
   const isInputDisabled = loading || phase === "processing" || phase === "council_reveal" || phase === "perspectives" || phase === "banter";
 
-  return (
-    <div className="flex flex-col h-screen bg-background">
-      {/* Header */}
-      <div className="flex items-center gap-3 px-4 py-3 border-b border-border bg-background/95 backdrop-blur-sm">
-        <Button variant="ghost" size="icon" onClick={() => navigate("/dashboard")} className="shrink-0">
-          <ArrowLeft className="w-5 h-5" />
-        </Button>
-        <h1 className="font-semibold text-foreground truncate flex-1">{projectName}</h1>
-        {phase === "complete" && (
-          <Button
-            variant="ghost"
-            size="icon"
-            onClick={() => navigate("/council")}
-            className="shrink-0"
-            title="Talk to Another Mentor"
-          >
-            <Plus className="w-5 h-5" />
-          </Button>
-        )}
+  if (initialLoading) {
+    return (
+      <div className={cn("flex items-center justify-center", embedded ? "h-full" : "h-screen")}>
+        <p className="text-muted-foreground">Loading conversation...</p>
       </div>
+    );
+  }
+
+  return (
+    <div className={cn("flex flex-col bg-background", embedded ? "h-full" : "h-screen")}>
+      {/* Header - only show when NOT embedded */}
+      {!embedded && (
+        <div className="flex items-center gap-3 px-4 py-3 border-b border-border bg-background/95 backdrop-blur-sm">
+          <Button variant="ghost" size="icon" onClick={() => navigate("/dashboard")} className="shrink-0">
+            <ArrowLeft className="w-5 h-5" />
+          </Button>
+          <h1 className="font-semibold text-foreground truncate flex-1">{projectName}</h1>
+          {phase === "complete" && (
+            <Button
+              variant="ghost"
+              size="icon"
+              onClick={() => navigate("/council")}
+              className="shrink-0"
+              title="Talk to Another Mentor"
+            >
+              <Plus className="w-5 h-5" />
+            </Button>
+          )}
+        </div>
+      )}
 
       {/* Messages */}
       <div className="flex-1 overflow-y-auto py-4 space-y-1">
