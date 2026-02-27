@@ -1,8 +1,10 @@
+import { useEffect } from "react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import { Users, Check } from "lucide-react";
 import { motion } from "framer-motion";
 import { mentorDisplayNames, type ValidMentorId } from "@/lib/mentorTypes";
+import confetti from "canvas-confetti";
 
 // Mentor descriptors reused from ProjectCouncilIntroduction
 const MENTOR_DESCRIPTORS: Record<string, string> = {
@@ -35,6 +37,12 @@ interface MentorRevealCardProps {
 
 const MentorRevealCard = ({ mentors, entryState, onAccept, accepted }: MentorRevealCardProps) => {
   const stageLabel = entryState === "GROW" ? "Grow" : entryState === "BUILD" ? "Build" : "Discover";
+
+  useEffect(() => {
+    if (!accepted) {
+      confetti({ particleCount: 60, spread: 50, origin: { y: 0.7 }, colors: ['#8B5CF6', '#D946EF', '#10B981'] });
+    }
+  }, []);
 
   return (
     <Card className="border-primary/20 bg-card/80 backdrop-blur-sm overflow-hidden">

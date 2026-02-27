@@ -9,7 +9,7 @@ import { cn } from "@/lib/utils";
 import ChatBubble, { type ChatMessage } from "@/components/console-thread/ChatBubble";
 import TypingIndicator from "@/components/console-thread/TypingIndicator";
 import MentorRevealCard from "@/components/console-thread/MentorRevealCard";
-import ProjectCreationCard from "@/components/console-thread/ProjectCreationCard";
+import { FirstWinNamingCard } from "@/components/FirstWinNamingCard";
 import confetti from "canvas-confetti";
 
 // Mentor config (reused from Council.tsx)
@@ -44,10 +44,11 @@ type Phase =
   | "handoff_offer" | "mentor_1to1"
   | "project_detected" | "complete";
 
-const INTAKE_QUESTIONS = [
-  "What is your work experience or background?",
-  "Tell us about your story. Who are you becoming?",
-  "What are you building or thinking about building?",
+// Dynamic intake questions using user's name
+const getIntakeQuestions = (name: string) => [
+  `Hey ${name}! Before I assemble your Council, I'd like to ask you a few questions to understand where you are. First — what's your work experience or background?`,
+  `That's great to know. Now tell me a bit about your story — who are you becoming?`,
+  `Love it. So what have you been working on, or thinking about building?`,
 ];
 
 interface ConsoleThreadProps {
@@ -68,6 +69,7 @@ const ConsoleThread = ({ embedded = false }: ConsoleThreadProps) => {
   const [projectName, setProjectName] = useState("New Conversation");
   const [handoffMentor, setHandoffMentor] = useState<string | null>(null);
   const [initialLoading, setInitialLoading] = useState(true);
+  const [displayName, setDisplayName] = useState("friend");
   const scrollRef = useRef<HTMLDivElement>(null);
   const inputRef = useRef<HTMLInputElement>(null);
 
@@ -116,10 +118,12 @@ const ConsoleThread = ({ embedded = false }: ConsoleThreadProps) => {
 
       const { data: profile } = await supabase
         .from("profiles")
-        .select("console_intake_completed, entry_state, console_thread_phase")
+        .select("console_intake_completed, entry_state, console_thread_phase, display_name")
         .eq("id", user.id)
         .single();
 
+      const name = (profile as any)?.display_name || "friend";
+      setDisplayName(name);
       setEntryState(profile?.entry_state || "DISCOVER");
 
       // Load mentors
@@ -160,7 +164,8 @@ const ConsoleThread = ({ embedded = false }: ConsoleThreadProps) => {
         }
       } else {
         // Fresh thread — add first question from Future Self
-        addSystemMessage(INTAKE_QUESTIONS[0], "future_self", "intake_q1");
+        const questions = getIntakeQuestions(name);
+        addSystemMessage(questions[0], "future_self", "intake_q1");
       }
 
       setInitialLoading(false);
@@ -225,16 +230,16 @@ const ConsoleThread = ({ embedded = false }: ConsoleThreadProps) => {
       const nextPhase: Phase = "intake_q2";
       setPhase(nextPhase);
       persistPhase(nextPhase);
-      await showTyping("future_self", 800);
-      addSystemMessage(INTAKE_QUESTIONS[1], "future_self", nextPhase);
+      await showTyping("future_self", 1200);
+      addSystemMessage(getIntakeQuestions(displayName)[1], "future_self", nextPhase);
     } else if (phase === "intake_q2") {
       const newAnswers = [...intakeAnswers, text];
       setIntakeAnswers(newAnswers);
       const nextPhase: Phase = "intake_q3";
       setPhase(nextPhase);
       persistPhase(nextPhase);
-      await showTyping("future_self", 800);
-      addSystemMessage(INTAKE_QUESTIONS[2], "future_self", nextPhase);
+      await showTyping("future_self", 1200);
+      addSystemMessage(getIntakeQuestions(displayName)[2], "future_self", nextPhase);
     } else if (phase === "intake_q3") {
       const newAnswers = [...intakeAnswers, text];
       setIntakeAnswers(newAnswers);
@@ -269,7 +274,7 @@ const ConsoleThread = ({ embedded = false }: ConsoleThreadProps) => {
       });
 
       await showTyping(undefined, 1000);
-      addSystemMessage("Based on your answers, this will be your Council.", "future_self", "council_reveal");
+      addSystemMessage(`${displayName}, your Council is ready. Here's who will be guiding you on this journey ✨`, "future_self", "council_reveal");
 
       const nextPhase: Phase = "council_reveal";
       setPhase(nextPhase);
@@ -348,7 +353,7 @@ const ConsoleThread = ({ embedded = false }: ConsoleThreadProps) => {
       persistPhase(perspPhase);
 
       for (const [mentorType, perspective] of Object.entries(perspectives)) {
-        await showTyping(mentorType, 600 + Math.random() * 600);
+        await showTyping(mentorType, 1500 + Math.random() * 1000);
         addSystemMessage(perspective as string, mentorType, perspPhase);
       }
 
@@ -358,7 +363,7 @@ const ConsoleThread = ({ embedded = false }: ConsoleThreadProps) => {
         setPhase(banterPhase);
         persistPhase(banterPhase);
         for (const line of banterLines) {
-          await showTyping(line.mentor, 400 + Math.random() * 400);
+          await showTyping(line.mentor, 800 + Math.random() * 400);
           addSystemMessage(line.text, line.mentor, banterPhase);
         }
       }
@@ -431,13 +436,17 @@ const ConsoleThread = ({ embedded = false }: ConsoleThreadProps) => {
         if (data.projectCoherence?.isCoherent) {
           setPhase("project_detected");
           persistPhase("project_detected");
-          await showTyping("future_self", 600);
-          addSystemMessage("I see a clear project forming here.", "future_self", "project_detected");
+          await showTyping("future_self", 1000);
+          addSystemMessage("Something is coming together here... I can feel it ✨", "future_self", "project_detected");
           addCardMessage(
-            <ProjectCreationCard
-              projectName={data.projectCoherence.projectName}
-              projectDescription={data.projectCoherence.projectDescription}
-              onProjectCreated={handleProjectCreated}
+            <FirstWinNamingCard
+              proposedName={data.projectCoherence.projectName}
+              description={data.projectCoherence.projectDescription}
+              onAccept={(name) => handleFirstWinAccept(name, data.projectCoherence.projectDescription)}
+              onKeepExploring={() => {
+                setPhase("user_reply");
+                persistPhase("user_reply");
+              }}
             />,
             undefined,
             "project_detected"
@@ -559,13 +568,17 @@ const ConsoleThread = ({ embedded = false }: ConsoleThreadProps) => {
       if (data.projectCoherence?.isCoherent) {
         setPhase("project_detected");
         persistPhase("project_detected");
-        await showTyping("future_self", 600);
-        addSystemMessage("I see a clear project forming here.", "future_self", "project_detected");
+        await showTyping("future_self", 1000);
+        addSystemMessage("Something is coming together here... I can feel it ✨", "future_self", "project_detected");
         addCardMessage(
-          <ProjectCreationCard
-            projectName={data.projectCoherence.projectName}
-            projectDescription={data.projectCoherence.projectDescription}
-            onProjectCreated={handleProjectCreated}
+          <FirstWinNamingCard
+            proposedName={data.projectCoherence.projectName}
+            description={data.projectCoherence.projectDescription}
+            onAccept={(name) => handleFirstWinAccept(name, data.projectCoherence.projectDescription)}
+            onKeepExploring={() => {
+              setPhase("user_reply");
+              persistPhase("user_reply");
+            }}
           />,
           undefined,
           "project_detected"
@@ -574,6 +587,43 @@ const ConsoleThread = ({ embedded = false }: ConsoleThreadProps) => {
     } catch (error: any) {
       console.error("Error in 1-to-1:", error);
       toast.error("Something went wrong");
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const handleFirstWinAccept = async (name: string, description: string) => {
+    setLoading(true);
+    try {
+      const { data: { user } } = await supabase.auth.getUser();
+      if (!user) throw new Error("Not authenticated");
+
+      const { data, error } = await supabase.functions.invoke("integrator-setup", {
+        body: {
+          projectTitle: name,
+          projectDescription: description,
+          timeframeDays: 30,
+        },
+      });
+
+      if (error) throw error;
+
+      const projectId = data?.project?.id || data?.projectId;
+      if (!projectId) throw new Error("No project ID returned");
+
+      await supabase
+        .from("profiles")
+        .update({
+          first_project_created_at: new Date().toISOString(),
+          first_project_id: projectId,
+          console_intake_completed: true,
+        } as any)
+        .eq("id", user.id);
+
+      handleProjectCreated(projectId, name);
+    } catch (error: any) {
+      console.error("Error creating project:", error);
+      toast.error("Failed to create project");
     } finally {
       setLoading(false);
     }

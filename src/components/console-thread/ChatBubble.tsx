@@ -18,6 +18,21 @@ interface ChatBubbleProps {
   index: number;
 }
 
+// Strip markdown bold/italic artifacts
+const cleanMarkdown = (text: string): React.ReactNode => {
+  // Convert **text** to <strong> and *text* to <em>
+  const parts = text.split(/(\*\*[^*]+\*\*|\*[^*]+\*)/g);
+  return parts.map((part, i) => {
+    if (part.startsWith("**") && part.endsWith("**")) {
+      return <strong key={i} className="font-semibold">{part.slice(2, -2)}</strong>;
+    }
+    if (part.startsWith("*") && part.endsWith("*")) {
+      return <em key={i}>{part.slice(1, -1)}</em>;
+    }
+    return part;
+  });
+};
+
 const ChatBubble = ({ message, index }: ChatBubbleProps) => {
   const isUser = message.role === "user";
 
@@ -45,8 +60,13 @@ const ChatBubble = ({ message, index }: ChatBubbleProps) => {
             {message.card ? (
               <div>{message.card}</div>
             ) : (
-              <div className="bg-muted rounded-2xl rounded-tl-sm px-4 py-2.5 text-sm leading-relaxed text-foreground whitespace-pre-wrap">
-                {message.content}
+              <div className={cn(
+                "rounded-2xl rounded-tl-sm px-4 py-2.5 text-sm leading-relaxed text-foreground whitespace-pre-wrap",
+                message.mentorColor
+                  ? `bg-muted border-l-3 ${message.mentorColor.replace("bg-", "border-")}`
+                  : "bg-muted"
+              )}>
+                {cleanMarkdown(message.content)}
               </div>
             )}
           </div>

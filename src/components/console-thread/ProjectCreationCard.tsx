@@ -32,7 +32,7 @@ const ProjectCreationCard = ({ projectName, projectDescription, onProjectCreated
 
       if (error) throw error;
 
-      const projectId = data?.projectId;
+      const projectId = data?.project?.id || data?.projectId;
       if (!projectId) throw new Error("No project ID returned");
 
       // Mark first project created
