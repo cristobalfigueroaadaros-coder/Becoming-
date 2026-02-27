@@ -11,6 +11,7 @@ import { toast } from "sonner";
 // Lazy load the actual conversation components to avoid circular deps
 import CouncilMeetingPage from "./CouncilMeeting";
 import ChatPage from "./Chat";
+import ConsoleThread from "./ConsoleThread";
 
 // Type for location state passed from various flows
 interface LocationState {
@@ -95,11 +96,13 @@ const Council = () => {
   const [councilNotifications, setCouncilNotifications] = useState(0);
   const [loading, setLoading] = useState(true);
   const [showMobileList, setShowMobileList] = useState(true);
+  const [intakePending, setIntakePending] = useState(false);
   
   // Get current view from URL params
   const currentView = searchParams.get("view") || "console";
   const isConsole = currentView === "console";
-  const selectedMentor = !isConsole ? currentView : null;
+  const isIntake = currentView === "intake";
+  const selectedMentor = !isConsole && !isIntake ? currentView : null;
 
   useEffect(() => {
     loadData();
@@ -107,7 +110,10 @@ const Council = () => {
 
   // When view changes, hide mobile list if a conversation is selected
   useEffect(() => {
-    if (currentView && currentView !== "console") {
+    if (currentView && currentView !== "console" && currentView !== "intake") {
+      setShowMobileList(false);
+    }
+    if (currentView === "intake") {
       setShowMobileList(false);
     }
   }, [currentView]);
@@ -116,6 +122,23 @@ const Council = () => {
     try {
       const { data: { user } } = await supabase.auth.getUser();
       if (!user) return;
+
+      // Check intake status
+      const { data: profile } = await supabase
+        .from("profiles")
+        .select("console_intake_completed, onboarding_quest_completed")
+        .eq("id", user.id)
+        .single();
+
+      const questDone = !!(profile as any)?.onboarding_quest_completed;
+      const intakeDone = !!(profile as any)?.console_intake_completed;
+      setIntakePending(questDone && !intakeDone);
+
+      // Auto-select intake if pending and no view specified
+      if (questDone && !intakeDone && !searchParams.get("view")) {
+        setSearchParams({ view: "intake" });
+        setShowMobileList(false);
+      }
 
       // Load user's mentors
       const { data: mentors } = await supabase
@@ -220,6 +243,11 @@ const Council = () => {
     markCouncilNotificationsAsRead();
   };
 
+  const handleSelectIntake = () => {
+    setSearchParams({ view: "intake" });
+    setShowMobileList(false);
+  };
+
   const [isNavigating, setIsNavigating] = useState(false);
 
   const handleSelectMentor = async (mentorType: string) => {
@@ -309,6 +337,27 @@ const Council = () => {
       </div>
       <ScrollArea className="flex-1">
         <div className="p-2 space-y-1">
+          {/* New Conversation / Intake Thread */}
+          <button
+            onClick={handleSelectIntake}
+            className={cn(
+              "w-full flex items-center gap-3 p-3 rounded-lg transition-colors text-left",
+              isIntake && !showMobileList
+                ? "bg-primary/10 text-primary" 
+                : "hover:bg-muted"
+            )}
+          >
+            <div className="w-10 h-10 rounded-full bg-primary/20 flex items-center justify-center">
+              <span className="text-lg">✨</span>
+            </div>
+            <div className="flex-1 min-w-0">
+              <p className="font-medium truncate">New Conversation</p>
+              <p className="text-xs text-muted-foreground truncate">Your journey thread</p>
+            </div>
+            {intakePending && (
+              <span className="w-3 h-3 rounded-full bg-destructive animate-pulse shrink-0" />
+            )}
+          </button>
           {/* Console (Group Chat) */}
           <button
             onClick={handleSelectConsole}
@@ -444,7 +493,7 @@ const Council = () => {
         <ArrowLeft className="w-5 h-5" />
       </Button>
       <span className="font-medium truncate">
-        {isConsole ? "Council" : mentorConfig[selectedMentor || ""]?.name || "Chat"}
+        {isIntake ? "New Conversation" : isConsole ? "Council" : mentorConfig[selectedMentor || ""]?.name || "Chat"}
       </span>
     </div>
   );
@@ -468,7 +517,9 @@ const Council = () => {
         
         {/* Right Content Area */}
         <div className="flex-1 overflow-hidden h-full">
-          {isConsole ? (
+          {isIntake ? (
+            <ConsoleThread embedded />
+          ) : isConsole ? (
             <CouncilMeetingPage embedded locationState={location.state} />
           ) : selectedMentor ? (
             <ChatPage mentorTypeOverride={selectedMentor} embedded locationState={location.state} />
@@ -488,7 +539,9 @@ const Council = () => {
           <div className="h-full flex flex-col">
             <MobileBackHeader />
             <div className="flex-1 overflow-hidden">
-              {isConsole ? (
+              {isIntake ? (
+                <ConsoleThread embedded />
+              ) : isConsole ? (
                 <CouncilMeetingPage embedded locationState={location.state} />
               ) : selectedMentor ? (
                 <ChatPage mentorTypeOverride={selectedMentor} embedded locationState={location.state} />

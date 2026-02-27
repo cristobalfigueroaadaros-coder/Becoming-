@@ -7,7 +7,7 @@ const IntakeNotification = () => {
 
   return (
     <motion.button
-      onClick={() => navigate("/console-thread")}
+      onClick={() => navigate("/council?view=intake")}
       className="w-full flex items-center gap-3 p-4 rounded-xl bg-primary/10 border border-primary/20 hover:bg-primary/15 transition-colors text-left"
       initial={{ opacity: 0, y: -10, scale: 0.98 }}
       animate={{ opacity: 1, y: 0, scale: 1 }}
