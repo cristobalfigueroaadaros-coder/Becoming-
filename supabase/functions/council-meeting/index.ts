@@ -640,9 +640,9 @@ CRITICAL: Reference specific details from their foundation story. Use their actu
 ` : '';
 
     // === ENTRY STATE CONTEXT (Branch-specific council behavior) ===
-    const entryState = (profile as any)?.entry_state || null;
+    const resolvedEntryState = entryState || (profile as any)?.entry_state || null;
     let entryStateContext = "";
-    if (entryState === "DISCOVER") {
+    if (resolvedEntryState === "DISCOVER") {
       entryStateContext = `
 === ENTRY STATE: DISCOVER ===
 This user is discovering their purpose. They don't have a clear direction yet.
@@ -653,7 +653,7 @@ YOUR COUNCIL MISSION: Connect their biography, skills, and emotional signals int
 - Mandatory handoff target: Creative Visionary (for project crystallization)
 === END ENTRY STATE ===
 `;
-    } else if (entryState === "GROW") {
+    } else if (resolvedEntryState === "GROW") {
       entryStateContext = `
 === ENTRY STATE: GROW ===
 This user has an emerging sense of purpose and wants to grow it.
@@ -664,7 +664,7 @@ YOUR COUNCIL MISSION: Refine and elevate their emerging direction. Sharpen scope
 - Handoff target: Creative Visionary (if needs creative expansion) or Strategist (if needs structure/positioning)
 === END ENTRY STATE ===
 `;
-    } else if (entryState === "BUILD") {
+    } else if (resolvedEntryState === "BUILD") {
       entryStateContext = `
 === ENTRY STATE: BUILD ===
 This user is already working on something and wants to advance execution.
@@ -1483,9 +1483,9 @@ ANALYZE:
 2. Or do they NEED GUIDANCE (scattered, uncertain, exploring)?
 
 RULES:
-${entryState === 'DISCOVER' ? `- User selected DISCOVER phase. You MUST suggest creative_visionary.` :
-  entryState === 'BUILD' ? `- User selected BUILD phase. You MUST suggest strategist_mentor.` :
-  entryState === 'GROW' ? `- User selected GROW phase. Suggest strategist_mentor or creative_visionary based on conversation.` :
+${resolvedEntryState === 'DISCOVER' ? `- User selected DISCOVER phase. You MUST suggest creative_visionary.` :
+  resolvedEntryState === 'BUILD' ? `- User selected BUILD phase. You MUST suggest strategist_mentor.` :
+  resolvedEntryState === 'GROW' ? `- User selected GROW phase. Suggest strategist_mentor or creative_visionary based on conversation.` :
   `- If CLARITY → Suggest strategist_mentor or creative_visionary
 - If NEEDS GUIDANCE → Suggest creative_visionary
 - If STRONG CREATIVE ENERGY → Suggest creative_visionary
