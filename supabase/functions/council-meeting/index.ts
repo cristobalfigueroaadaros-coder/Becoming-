@@ -892,10 +892,11 @@ User asking about their purpose:
 ✅ Be specific to what they actually said
 ✅ Use frequency/energy/vibration language
 ✅ Reveal the "hidden truth" about what's really happening energetically
+✅ NEVER ask questions. Provide statements and transmissions only. No question marks.
 
 Question: "${question}"
 
-Detect the context, then respond with 1-2 sentences from the appropriate perspective.`;
+Detect the context, then respond with 1-2 sentences from the appropriate perspective. No questions.`;
 
       } else if (mentorType === "creative_visionary") {
         systemPrompt = `You are The Creative Visionary — imagination engine, idea generator, possibility expander. Think: Walt Disney building universes.
@@ -986,10 +987,11 @@ User overwhelmed by options:
 ✅ Ground it with "start small", "test it", "build the smallest version"
 ✅ Make them feel like a creator with a universe to build
 ✅ Match response to their actual context (building vs personal)
+✅ NEVER ask questions. Provide statements and visions only. No question marks.
 
 Question: "${question}"
 
-Detect the context, then respond with 1-2 sentences in simple, energetic language that explodes possibilities and grounds them with action.`;
+Detect the context, then respond with 1-2 sentences in simple, energetic language that explodes possibilities and grounds them with action. No questions.`;
 
       } else if (mentorType === "strategist_mentor") {
         // Special handling for Strategist - includes reflection loop interruption
@@ -1015,15 +1017,16 @@ ${strategistInterruption}
 **CRITICAL ACTION BIAS:**
 - You ALWAYS push toward concrete action
 - Every response implies: "What are you building?" or "What will you test?"
-- Interrupt reflection loops with direct action questions
+- Interrupt reflection loops with direct action statements
 - Close loops with decisions and next steps
+- You MUST provide statements, reflections, or guidance. NEVER ask questions. No question marks. Only declarative statements.
 
 Examples of CORRECT brevity:
 - "The gatekeepers aren't your audience—the owners are. Let's find a direct line to them."
 - "Your advocates can open doors. Arm them with an executive pitch."
 - "One C-suite value proposition, one strategic introduction. Start there."
 
-Generate EXACTLY 1-2 sentences. No more. Sharp, clear, directional.
+Generate EXACTLY 1-2 sentences. No more. Sharp, clear, directional. No questions.
 ${KEYWORD_HIGHLIGHTING_RULES}`;
 
       } else {
@@ -1052,6 +1055,7 @@ CRITICAL:
 - Reference their specific goals, ideas, or problems by name
 - Do NOT ask about things they already told you
 - Show you've been paying attention throughout the conversation
+- You MUST provide statements, reflections, or guidance. NEVER ask questions. No question marks. No rhetorical questions. Only declarative statements.
 
 Generate 1-2 sentences ONLY through your assigned dimension lens. Under 40 words total.
 Strong personality. Sharp. Clear. No fluff. No restating what the user said.
@@ -1349,16 +1353,24 @@ Return ONLY a comma-separated list of 3-5 keywords, nothing else.`;
       }
 
       // === STEP 4: Generate STAGE-AWARE suggested question ===
+      // Include the user's full context so the follow-up question connects to their story
+      const userContextForFollowUp = `
+USER'S FULL CONTEXT (use this to make the question deeply personal and connected):
+${question}
+
+MENTOR PERSPECTIVES GIVEN:
+${Object.entries(mentorPerspectives).map(([m, p]) => `${mentorNames[m]}: ${p}`).join('\n')}
+`;
       let nextQuestionPrompt = "";
 
       if (journeyStage === "DISCOVERY") {
         // DISCOVERY: Guide toward self-understanding and exploration
         nextQuestionPrompt = `You are the Council. The user is in DISCOVERY stage - exploring, seeking understanding.
-
+${userContextForFollowUp}
 User's question: "${question}"
 Domain: ${domainFocus}
 
-Generate ONE short question (max 15 words) that helps them dig deeper into understanding themselves.
+Generate ONE short question (max 15 words) that helps them reflect on what they shared and move toward clarity. The question MUST connect to their background, story, and goals — not be generic.
 ${domainFocus === "PERSONAL" ? 
   'Examples:\n- "What part of this feels most alive when you imagine it?"\n- "What pattern do you notice keeps showing up here?"' :
   'Examples:\n- "What kind of problem do you most want to solve?"\n- "Who would you want to help with this?"'}
@@ -1368,27 +1380,25 @@ Just the question, nothing else.`;
         // CLARITY: Guide toward commitment and sharpening focus
         if (domainFocus === "PERSONAL") {
           nextQuestionPrompt = `You are the Council. The user is in CLARITY stage on a PERSONAL journey - gaining insight, needs commitment.
-
+${userContextForFollowUp}
 User's question: "${question}"
 
-Generate ONE short question (max 15 words) that guides toward commitment and making it feel real.
+Generate ONE short question (max 15 words) that guides toward commitment. MUST connect to their specific background and story.
 Examples:
 - "What would need to be true for you to fully commit to this?"
 - "What's one thing you could try this week to test this?"
-- "What would make this path feel more real to you?"
 
 Just the question, nothing else.`;
         } else {
           // CLARITY + CREATION: Guide toward simplifying and defining
           nextQuestionPrompt = `You are the Council. The user is in CLARITY stage about CREATION - has direction but needs focus.
-
+${userContextForFollowUp}
 User's question: "${question}"
 
-Generate ONE short question (max 15 words) that helps them define and simplify their creation idea.
+Generate ONE short question (max 15 words) that helps them narrow down and define their creation idea. MUST reference their specific context.
 Examples:
 - "Who specifically is suffering from this problem right now?"
 - "What would this look like if it was 10x simpler?"
-- "What's the smallest version of this you could test?"
 
 Just the question, nothing else.`;
         }
@@ -1396,29 +1406,26 @@ Just the question, nothing else.`;
         // ACTION: Ready for concrete steps
         if (domainFocus === "PERSONAL") {
           nextQuestionPrompt = `You are the Council. The user is in ACTION stage on a PERSONAL journey - ready for concrete first steps.
-
+${userContextForFollowUp}
 User's question: "${question}"
 
-Generate ONE short question (max 15 words) that guides toward a meaningful first step or experiment.
+Generate ONE short question (max 15 words) that guides toward a meaningful first step. MUST connect to their background and goals.
 Examples:
 - "What's one conversation you could have this week to test this?"
-- "What would be the smallest step that still feels meaningful?"
 - "What could you do tomorrow to start living this?"
 
 Just the question, nothing else.`;
         } else {
           // ACTION + CREATION: NOW trigger creation/testing/iteration questions!
           nextQuestionPrompt = `You are the Council. The user is in ACTION stage about CREATION - ready to build and test!
-
+${userContextForFollowUp}
 User's question: "${question}"
 Keywords from mentors: ${banterKeywords || "build, test, iterate, measure"}
 
-Generate ONE short question (max 18 words) that guides toward creating something testable.
-The question MUST encourage building a tangible prototype/MVP they can test and iterate on.
+Generate ONE short question (max 18 words) that guides toward creating something testable. MUST reference their specific idea/context.
 Examples:
 - "What kind of tool could you build this week with measurable outcomes you can test fast?"
 - "What's the simplest version of this you could launch in 7 days?"
-- "Who are 3 people you could test this with by Friday?"
 
 Just the question, nothing else.`;
         }

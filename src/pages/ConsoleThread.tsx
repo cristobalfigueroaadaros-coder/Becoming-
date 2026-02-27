@@ -173,7 +173,7 @@ const ConsoleThread = ({ embedded = false }: ConsoleThreadProps) => {
     init();
   }, []);
 
-  const addSystemMessage = (content: string, mentorType?: string, phaseForPersist?: Phase) => {
+  const addSystemMessage = (content: string, mentorType?: string, phaseForPersist?: Phase, messageType?: "perspective" | "banter" | "standard") => {
     const config = mentorType ? mentorConfig[mentorType] : undefined;
     const msg: ChatMessage = {
       id: crypto.randomUUID(),
@@ -182,6 +182,7 @@ const ConsoleThread = ({ embedded = false }: ConsoleThreadProps) => {
       mentorName: config?.name,
       mentorIcon: config?.icon,
       mentorColor: config?.color,
+      messageType,
     };
     setMessages(prev => [...prev, msg]);
     persistMessage(msg, phaseForPersist || phase);
@@ -337,11 +338,21 @@ const ConsoleThread = ({ embedded = false }: ConsoleThreadProps) => {
     try {
       const projectIdea = intakeAnswers[2] || "I want to build something meaningful";
 
+      // Send ALL intake answers as full context, not just Q3
+      const fullIntakeContext = `Background: ${intakeAnswers[0] || "Not shared"}\n\nStory: ${intakeAnswers[1] || "Not shared"}\n\nWhat they're building/exploring: ${intakeAnswers[2] || projectIdea}`;
+
+      const conversationHistory = messages
+        .filter(m => m.content && m.role !== "system")
+        .map(m => ({
+          role: m.role === "user" ? "user" : "council",
+          content: m.content,
+        }));
+
       const { data, error } = await supabase.functions.invoke("council-meeting", {
         body: {
-          question: projectIdea,
+          question: fullIntakeContext,
           mentorTypes: [...userMentors, "future_self"],
-          conversationHistory: [],
+          conversationHistory,
         },
       });
 
@@ -354,7 +365,7 @@ const ConsoleThread = ({ embedded = false }: ConsoleThreadProps) => {
 
       for (const [mentorType, perspective] of Object.entries(perspectives)) {
         await showTyping(mentorType, 1500 + Math.random() * 1000);
-        addSystemMessage(perspective as string, mentorType, perspPhase);
+        addSystemMessage(perspective as string, mentorType, perspPhase, "perspective");
       }
 
       const banterLines = data.banterLines || [];
@@ -364,7 +375,7 @@ const ConsoleThread = ({ embedded = false }: ConsoleThreadProps) => {
         persistPhase(banterPhase);
         for (const line of banterLines) {
           await showTyping(line.mentor, 800 + Math.random() * 400);
-          addSystemMessage(line.text, line.mentor, banterPhase);
+          addSystemMessage(line.text, line.mentor, banterPhase, "banter");
         }
       }
 

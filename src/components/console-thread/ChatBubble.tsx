@@ -1,6 +1,35 @@
 import { motion } from "framer-motion";
 import { cn } from "@/lib/utils";
 import { ReactNode } from "react";
+import { InsightActionButton } from "@/components/InsightActionButton";
+
+// Hex color map for inline styling (Tailwind purges dynamic classes)
+const mentorHexColors: Record<string, string> = {
+  "bg-orange-500": "#f97316",
+  "bg-blue-500": "#3b82f6",
+  "bg-purple-500": "#a855f7",
+  "bg-cyan-500": "#06b6d4",
+  "bg-indigo-500": "#6366f1",
+  "bg-green-500": "#22c55e",
+  "bg-pink-500": "#ec4899",
+  "bg-teal-500": "#14b8a6",
+  "bg-rose-500": "#f43f5e",
+  "bg-amber-600": "#d97706",
+  "bg-emerald-500": "#10b981",
+  "bg-violet-500": "#8b5cf6",
+  "bg-primary": "#6366f1",
+  "bg-sky-500": "#0ea5e9",
+  "bg-red-600": "#dc2626",
+  "bg-lime-500": "#84cc16",
+  "bg-slate-600": "#475569",
+  "bg-indigo-600": "#4f46e5",
+  "bg-teal-600": "#0d9488",
+};
+
+function getHexColor(tailwindClass?: string): string | undefined {
+  if (!tailwindClass) return undefined;
+  return mentorHexColors[tailwindClass] || undefined;
+}
 
 export interface ChatMessage {
   id: string;
@@ -11,6 +40,7 @@ export interface ChatMessage {
   mentorColor?: string;
   card?: ReactNode;
   timestamp?: string;
+  messageType?: "perspective" | "banter" | "standard";
 }
 
 interface ChatBubbleProps {
@@ -18,9 +48,8 @@ interface ChatBubbleProps {
   index: number;
 }
 
-// Strip markdown bold/italic artifacts
+// Strip markdown bold/italic artifacts into proper JSX
 const cleanMarkdown = (text: string): React.ReactNode => {
-  // Convert **text** to <strong> and *text* to <em>
   const parts = text.split(/(\*\*[^*]+\*\*|\*[^*]+\*)/g);
   return parts.map((part, i) => {
     if (part.startsWith("**") && part.endsWith("**")) {
@@ -35,10 +64,50 @@ const cleanMarkdown = (text: string): React.ReactNode => {
 
 const ChatBubble = ({ message, index }: ChatBubbleProps) => {
   const isUser = message.role === "user";
+  const isBanter = message.messageType === "banter";
+  const hexColor = getHexColor(message.mentorColor);
+
+  // Banter: WhatsApp zig-zag style
+  if (isBanter && !isUser) {
+    const isEven = index % 2 === 0;
+    return (
+      <motion.div
+        className={cn("flex px-4 py-0.5", isEven ? "justify-start" : "justify-start pl-12")}
+        initial={{ opacity: 0, y: 6 }}
+        animate={{ opacity: 1, y: 0 }}
+        transition={{ duration: 0.2, delay: Math.min(index * 0.03, 0.2) }}
+      >
+        <div className="max-w-[75%]">
+          {message.mentorName && (
+            <span
+              className="text-[10px] font-semibold block mb-0.5"
+              style={{ color: hexColor || "hsl(var(--muted-foreground))" }}
+            >
+              {message.mentorName}
+            </span>
+          )}
+          <div
+            className="rounded-xl px-3 py-1.5 text-xs leading-relaxed text-foreground bg-muted/70 whitespace-pre-wrap"
+            style={{ borderLeft: `3px solid ${hexColor || "hsl(var(--muted-foreground))"}` }}
+          >
+            {cleanMarkdown(message.content)}
+          </div>
+          <div className="mt-0.5">
+            <InsightActionButton
+              insightText={message.content}
+              sourceType="council_banter"
+              sourceMentor={message.mentorName}
+              className="opacity-0 group-hover:opacity-100"
+            />
+          </div>
+        </div>
+      </motion.div>
+    );
+  }
 
   return (
     <motion.div
-      className={cn("flex px-4 py-1.5", isUser ? "justify-end" : "justify-start")}
+      className={cn("flex px-4 py-1.5 group", isUser ? "justify-end" : "justify-start")}
       initial={{ opacity: 0, y: 10 }}
       animate={{ opacity: 1, y: 0 }}
       transition={{ duration: 0.3, delay: Math.min(index * 0.05, 0.3) }}
@@ -46,28 +115,40 @@ const ChatBubble = ({ message, index }: ChatBubbleProps) => {
       {!isUser && (
         <div className="flex items-start gap-2.5 max-w-[85%]">
           {message.mentorIcon && (
-            <div className={cn(
-              "w-8 h-8 rounded-full flex items-center justify-center shrink-0 text-sm mt-0.5",
-              message.mentorColor || "bg-primary/20"
-            )}>
+            <div
+              className="w-8 h-8 rounded-full flex items-center justify-center shrink-0 text-sm mt-0.5"
+              style={{ backgroundColor: hexColor ? `${hexColor}33` : "hsl(var(--primary) / 0.2)" }}
+            >
               {message.mentorIcon}
             </div>
           )}
           <div className="space-y-1">
             {message.mentorName && (
-              <span className="text-xs text-muted-foreground font-medium">{message.mentorName}</span>
+              <span
+                className="text-xs font-medium"
+                style={{ color: hexColor || "hsl(var(--muted-foreground))" }}
+              >
+                {message.mentorName}
+              </span>
             )}
             {message.card ? (
               <div>{message.card}</div>
             ) : (
-              <div className={cn(
-                "rounded-2xl rounded-tl-sm px-4 py-2.5 text-sm leading-relaxed text-foreground whitespace-pre-wrap",
-                message.mentorColor
-                  ? `bg-muted border-l-3 ${message.mentorColor.replace("bg-", "border-")}`
-                  : "bg-muted"
-              )}>
-                {cleanMarkdown(message.content)}
-              </div>
+              <>
+                <div
+                  className="rounded-2xl rounded-tl-sm px-4 py-2.5 text-sm leading-relaxed text-foreground whitespace-pre-wrap bg-muted"
+                  style={{ borderLeft: hexColor ? `3px solid ${hexColor}` : undefined }}
+                >
+                  {cleanMarkdown(message.content)}
+                </div>
+                {/* Save button for mentor messages (not cards) */}
+                <InsightActionButton
+                  insightText={message.content}
+                  sourceType={message.messageType === "perspective" ? "mentor_perspective" : "council_guidance"}
+                  sourceMentor={message.mentorName}
+                  className="opacity-40 hover:opacity-100"
+                />
+              </>
             )}
           </div>
         </div>
