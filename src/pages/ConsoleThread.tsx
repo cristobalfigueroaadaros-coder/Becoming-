@@ -617,32 +617,20 @@ const ConsoleThread = ({ embedded = false }: ConsoleThreadProps) => {
       const { data: { user } } = await supabase.auth.getUser();
       if (!user) throw new Error("Not authenticated");
 
-      const { data, error } = await supabase.functions.invoke("integrator-setup", {
-        body: {
-          projectTitle: name,
-          projectDescription: description,
-          timeframeDays: 30,
-        },
-      });
-
-      if (error) throw error;
-
-      const projectId = data?.project?.id || data?.projectId;
-      if (!projectId) throw new Error("No project ID returned");
-
       await supabase
         .from("profiles")
         .update({
           first_project_created_at: new Date().toISOString(),
-          first_project_id: projectId,
           console_intake_completed: true,
         } as any)
         .eq("id", user.id);
 
-      handleProjectCreated(projectId, name);
+      navigate("/creation-lab", {
+        state: { projectName: name, projectDescription: description },
+      });
     } catch (error: any) {
-      console.error("Error creating project:", error);
-      toast.error("Failed to create project");
+      console.error("Error navigating to creation lab:", error);
+      toast.error("Something went wrong");
     } finally {
       setLoading(false);
     }

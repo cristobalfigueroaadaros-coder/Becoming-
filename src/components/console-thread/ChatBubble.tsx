@@ -87,8 +87,11 @@ const ChatBubble = ({ message, index }: ChatBubbleProps) => {
             </span>
           )}
           <div
-            className="group/banter rounded-xl px-3 py-1.5 text-xs leading-relaxed text-foreground bg-muted/70 whitespace-pre-wrap"
-            style={{ borderLeft: `3px solid ${hexColor || "hsl(var(--muted-foreground))"}` }}
+            className="group/banter rounded-xl px-3 py-1.5 text-xs leading-relaxed text-foreground whitespace-pre-wrap"
+            style={{
+              borderLeft: `3px solid ${hexColor || "hsl(var(--muted-foreground))"}`,
+              backgroundColor: hexColor ? `${hexColor}1F` : "hsl(var(--muted) / 0.7)",
+            }}
           >
             {cleanMarkdown(message.content)}
             <InsightActionButton
