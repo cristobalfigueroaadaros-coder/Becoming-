@@ -1,28 +1,32 @@
 
 
-# Fix: Remove "Assembling Council" Message + Fix Edge Function Crash
+# Fix: Banter Visual Identity + Project Accept Navigation
 
-## Root Cause of Broken Flow
+## Issues
 
-The `council-meeting` edge function **crashes on startup** because line 643 declares `const entryState` which conflicts with the `entryState` already destructured from the request body at line 419. In Deno (strict ES modules), this causes a runtime error, which is why the function returns "Failed to fetch" and "Council meeting failed" appears.
+### 1. Banter bubbles missing mentor color distinction
+Banter bubbles use `bg-muted/70` (gray) for all mentors. They should use a light tint of each mentor's hex color as background so each mentor is visually distinct from the others and from perspective messages.
+
+### 2. Project accept flow broken
+`handleFirstWinAccept` calls `integrator-setup` directly with hardcoded `timeframeDays: 30`. The edge function crashes because the AI sometimes returns malformed JSON (truncated keys). The user expects: accept project → navigate to Creation Lab timeframe selector → user picks days → then project is created.
+
+The Creation Lab already has a project setup screen (`showProjectSetup` state) that renders when navigated to with `{ projectName, projectDescription }` in the router state.
 
 ## Changes
 
-### 1. `supabase/functions/council-meeting/index.ts`
-- **Line 643**: Rename the shadowing variable from `const entryState` to `const profileEntryState` (or simply use the `entryState` from the request body, falling back to profile). Replace:
-  ```typescript
-  const entryState = (profile as any)?.entry_state || null;
-  ```
-  with:
-  ```typescript
-  const resolvedEntryState = entryState || (profile as any)?.entry_state || null;
-  ```
-  Then update all references in lines 645-680 and 1486-1489 to use `resolvedEntryState`.
+### `src/components/console-thread/ChatBubble.tsx`
+- Change banter bubble background from `bg-muted/70` to a dynamic style using the mentor's hex color at ~12% opacity: `style={{ backgroundColor: hexColor ? hexColor + '1F' : undefined }}` (the `1F` suffix = ~12% alpha in hex)
+- This makes each banter bubble subtly colored per mentor while keeping it distinct from perspective bubbles (which use `bg-muted` with a left border)
 
-### 2. `src/pages/ConsoleThread.tsx`
-- **Line 258-259**: Remove the "Processing your answers... Let me assemble your Council" message. The flow should go directly from intake Q3 answer to the personalized council assembly message (line 274) without the intermediate "processing" text.
+### `src/pages/ConsoleThread.tsx`
+- **Replace `handleFirstWinAccept`**: Instead of calling `integrator-setup` + creating the project inline, navigate to `/creation-lab` with state `{ projectName: name, projectDescription: description }`. This sends the user to the existing timeframe selector in CreationLab.
+- Update `profiles` with `first_project_created_at` and `console_intake_completed` before navigating
+- Remove the `integrator-setup` invocation from this file entirely (Creation Lab handles it)
+
+### `src/pages/CreationLab.tsx`
+- No changes needed — it already reads `navState.projectName` and shows the timeframe selector + calls `integrator-setup`
 
 ## Expected Result
-- No more "assembling council" message after intake Q3
-- Edge function stops crashing, so perspectives, banter, and follow-up question all appear after council acceptance
+- Banter bubbles: each mentor's bubble has a unique tinted background matching their color
+- Project accept: user clicks "Yes, let's build this" → navigates to Creation Lab → picks timeframe → project created → Focus Mode loads
 
