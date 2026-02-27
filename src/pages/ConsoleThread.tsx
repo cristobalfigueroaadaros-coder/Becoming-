@@ -255,9 +255,6 @@ const ConsoleThread = ({ embedded = false }: ConsoleThreadProps) => {
       const { data: { user } } = await supabase.auth.getUser();
       if (!user) return;
 
-      await showTyping("future_self", 1500);
-      addSystemMessage("Processing your answers... Let me assemble your Council.", "future_self", "processing");
-
       await supabase.from("profiles").update({
         work_context: answers[0],
       }).eq("id", user.id);
