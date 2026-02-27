@@ -87,17 +87,15 @@ const ChatBubble = ({ message, index }: ChatBubbleProps) => {
             </span>
           )}
           <div
-            className="rounded-xl px-3 py-1.5 text-xs leading-relaxed text-foreground bg-muted/70 whitespace-pre-wrap"
+            className="group/banter rounded-xl px-3 py-1.5 text-xs leading-relaxed text-foreground bg-muted/70 whitespace-pre-wrap"
             style={{ borderLeft: `3px solid ${hexColor || "hsl(var(--muted-foreground))"}` }}
           >
             {cleanMarkdown(message.content)}
-          </div>
-          <div className="mt-0.5">
             <InsightActionButton
               insightText={message.content}
               sourceType="council_banter"
               sourceMentor={message.mentorName}
-              className="opacity-0 group-hover:opacity-100"
+              className="opacity-0 group-hover/banter:opacity-100 mt-1 -mb-0.5"
             />
           </div>
         </div>
@@ -134,21 +132,18 @@ const ChatBubble = ({ message, index }: ChatBubbleProps) => {
             {message.card ? (
               <div>{message.card}</div>
             ) : (
-              <>
-                <div
-                  className="rounded-2xl rounded-tl-sm px-4 py-2.5 text-sm leading-relaxed text-foreground whitespace-pre-wrap bg-muted"
-                  style={{ borderLeft: hexColor ? `3px solid ${hexColor}` : undefined }}
-                >
-                  {cleanMarkdown(message.content)}
-                </div>
-                {/* Save button for mentor messages (not cards) */}
+              <div
+                className="group/msg rounded-2xl rounded-tl-sm px-4 py-2.5 text-sm leading-relaxed text-foreground whitespace-pre-wrap bg-muted"
+                style={{ borderLeft: hexColor ? `3px solid ${hexColor}` : undefined }}
+              >
+                {cleanMarkdown(message.content)}
                 <InsightActionButton
                   insightText={message.content}
                   sourceType={message.messageType === "perspective" ? "mentor_perspective" : "council_guidance"}
                   sourceMentor={message.mentorName}
-                  className="opacity-40 hover:opacity-100"
+                  className="opacity-0 group-hover/msg:opacity-100 mt-1.5 -mb-0.5"
                 />
-              </>
+              </div>
             )}
           </div>
         </div>

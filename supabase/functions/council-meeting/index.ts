@@ -416,6 +416,7 @@ Deno.serve(async (req) => {
       generateOpenerOnly = false,
       councilType = 'default',
       sprintReviewContext,
+      entryState = null,
     } = await req.json();
 
     // Defensive: conversationHistory is user-provided and can contain null/undefined
@@ -1482,10 +1483,13 @@ ANALYZE:
 2. Or do they NEED GUIDANCE (scattered, uncertain, exploring)?
 
 RULES:
-- If CLARITY (they know what they want to build/do) → Suggest strategist_mentor or creative_visionary
-- If NEEDS GUIDANCE (still finding direction) → Suggest alignment_mentor
-- If STRONG CREATIVE ENERGY (lots of ideas, excitement) → Suggest creative_visionary
-- If NEEDS STRUCTURE (has idea but overwhelmed) → Suggest strategist_mentor
+${entryState === 'DISCOVER' ? `- User selected DISCOVER phase. You MUST suggest creative_visionary.` :
+  entryState === 'BUILD' ? `- User selected BUILD phase. You MUST suggest strategist_mentor.` :
+  entryState === 'GROW' ? `- User selected GROW phase. Suggest strategist_mentor or creative_visionary based on conversation.` :
+  `- If CLARITY → Suggest strategist_mentor or creative_visionary
+- If NEEDS GUIDANCE → Suggest creative_visionary
+- If STRONG CREATIVE ENERGY → Suggest creative_visionary
+- If NEEDS STRUCTURE → Suggest strategist_mentor`}
 
 YOU MUST RESPOND WITH VALID JSON ONLY:
 {
@@ -1495,7 +1499,7 @@ YOU MUST RESPOND WITH VALID JSON ONLY:
   "suggestionMessage": "This feels like something worth shaping. Want to explore it with [Mentor Name]?"
 }
 
-Use these EXACT mentor keys: strategist_mentor, creative_visionary, alignment_mentor`;
+Use these EXACT mentor keys: strategist_mentor, creative_visionary`;
 
       try {
         const routingResponse = await fetch("https://ai.gateway.lovable.dev/v1/chat/completions", {

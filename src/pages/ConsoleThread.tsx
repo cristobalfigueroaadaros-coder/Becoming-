@@ -47,7 +47,7 @@ type Phase =
 // Dynamic intake questions using user's name
 const getIntakeQuestions = (name: string) => [
   `Hey ${name}! Before I assemble your Council, I'd like to ask you a few questions to understand where you are. First — what's your work experience or background?`,
-  `That's great to know. Now tell me a bit about your story — who are you becoming?`,
+  `That's great to know. Now tell me a bit about your story — your dreams, your struggles, what excites you, what keeps you up at night.`,
   `Love it. So what have you been working on, or thinking about building?`,
 ];
 
@@ -78,7 +78,6 @@ const ConsoleThread = ({ embedded = false }: ConsoleThreadProps) => {
     scrollRef.current?.scrollIntoView({ behavior: "smooth" });
   }, [messages, typing]);
 
-  // Persist a message to DB
   const persistMessage = async (msg: ChatMessage, currentPhase: Phase) => {
     try {
       const { data: { user } } = await supabase.auth.getUser();
@@ -99,7 +98,6 @@ const ConsoleThread = ({ embedded = false }: ConsoleThreadProps) => {
     }
   };
 
-  // Persist phase to profile
   const persistPhase = async (newPhase: Phase) => {
     try {
       const { data: { user } } = await supabase.auth.getUser();
@@ -141,7 +139,6 @@ const ConsoleThread = ({ embedded = false }: ConsoleThreadProps) => {
         .order("created_at", { ascending: true });
 
       if (savedMessages && savedMessages.length > 0) {
-        // Restore messages
         const restored: ChatMessage[] = savedMessages.map((m: any) => ({
           id: m.id,
           role: m.role as "user" | "mentor" | "system",
@@ -149,21 +146,17 @@ const ConsoleThread = ({ embedded = false }: ConsoleThreadProps) => {
           mentorName: m.mentor_name || undefined,
           mentorIcon: m.mentor_icon || undefined,
           mentorColor: m.mentor_color || undefined,
-          // Cards are not restorable as React nodes; show text instead
           card: m.card_type === "card" ? undefined : undefined,
         }));
         setMessages(restored);
 
-        // Restore phase
         const savedPhase = (profile as any)?.console_thread_phase as Phase | null;
         if (savedPhase) {
           setPhase(savedPhase);
-          // Restore intake answers from user messages
           const userMsgs = restored.filter(m => m.role === "user");
           setIntakeAnswers(userMsgs.slice(0, 3).map(m => m.content));
         }
       } else {
-        // Fresh thread — add first question from Future Self
         const questions = getIntakeQuestions(name);
         addSystemMessage(questions[0], "future_self", "intake_q1");
       }
@@ -269,13 +262,20 @@ const ConsoleThread = ({ embedded = false }: ConsoleThreadProps) => {
         work_context: answers[0],
       }).eq("id", user.id);
 
-      const storyText = `Work background: ${answers[0]}\n\nMy story: ${answers[1]}\n\nWhat I'm building: ${answers[2]}`;
+      const storyText = `Work background: ${answers[0]}\\\\n\\\\nMy story: ${answers[1]}\\\\n\\\\nWhat I'm building: ${answers[2]}`;
       await supabase.functions.invoke("process-user-foundation", {
         body: { storyText },
       });
 
       await showTyping(undefined, 1000);
-      addSystemMessage(`${displayName}, your Council is ready. Here's who will be guiding you on this journey ✨`, "future_self", "council_reveal");
+
+      // Personalized council assembly message based on entry_state
+      const stateLabel = entryState === "BUILD" ? "building something real" : entryState === "GROW" ? "growing what you've started" : "discovering your path";
+      addSystemMessage(
+        `Based on what you've shared — your background, your story, and where you want to go — I've assembled a Council specifically for you. Because you're ${stateLabel}, these mentors will help you move forward with clarity and momentum ✨`,
+        "future_self",
+        "council_reveal"
+      );
 
       const nextPhase: Phase = "council_reveal";
       setPhase(nextPhase);
@@ -317,7 +317,7 @@ const ConsoleThread = ({ embedded = false }: ConsoleThreadProps) => {
             <MentorRevealCard
               mentors={userMentors}
               entryState={entryState}
-              onAccept={() => {}}
+              onAccept={() => { }}
               accepted={true}
             />
           ),
@@ -339,20 +339,16 @@ const ConsoleThread = ({ embedded = false }: ConsoleThreadProps) => {
       const projectIdea = intakeAnswers[2] || "I want to build something meaningful";
 
       // Send ALL intake answers as full context, not just Q3
-      const fullIntakeContext = `Background: ${intakeAnswers[0] || "Not shared"}\n\nStory: ${intakeAnswers[1] || "Not shared"}\n\nWhat they're building/exploring: ${intakeAnswers[2] || projectIdea}`;
+      const fullIntakeContext = `Background: ${intakeAnswers[0] || "Not shared"}\\\\n\\\\nStory: ${intakeAnswers[1] || "Not shared"}\\\\n\\\\nWhat they're building/exploring: ${intakeAnswers[2] || projectIdea}`;
 
-      const conversationHistory = messages
-        .filter(m => m.content && m.role !== "system")
-        .map(m => ({
-          role: m.role === "user" ? "user" : "council",
-          content: m.content,
-        }));
-
+      // Pass EMPTY conversationHistory for first council call so edge function treats as Q1
+      // This ensures suggestedNextQuestion is generated (isQ1 = true)
       const { data, error } = await supabase.functions.invoke("council-meeting", {
         body: {
           question: fullIntakeContext,
           mentorTypes: [...userMentors, "future_self"],
-          conversationHistory,
+          conversationHistory: [],
+          entryState,
         },
       });
 
@@ -385,9 +381,7 @@ const ConsoleThread = ({ embedded = false }: ConsoleThreadProps) => {
         addSystemMessage(clarityQ, "future_self", "user_reply");
       }
 
-      if (data.suggestedMentorFor1to1) {
-        setHandoffMentor(data.suggestedMentorFor1to1.mentorType);
-      }
+      // DON'T set handoffMentor from first council call — defer to 2nd round
 
       const nextPhase: Phase = "user_reply";
       setPhase(nextPhase);
@@ -407,21 +401,23 @@ const ConsoleThread = ({ embedded = false }: ConsoleThreadProps) => {
         const config = mentorConfig[handoffMentor];
         await showTyping("future_self", 800);
         addSystemMessage(
-          `I think you're ready to work 1-to-1 with ${config?.name || handoffMentor}.\n\nIf you're ready, type "let's go".`,
+          `I think you're ready to work 1-to-1 with ${config?.name || handoffMentor}.\\\\n\\\\nIf you're ready, type "let's go".`,
           "future_self",
           "handoff_offer"
         );
         setPhase("handoff_offer");
         persistPhase("handoff_offer");
       } else {
+        // 2nd round: pass single user msg so questionNumber=2 (triggers mentor routing)
         const { data, error } = await supabase.functions.invoke("council-meeting", {
           body: {
             question: text,
             mentorTypes: [...userMentors, "future_self"],
-            conversationHistory: messages.map(m => ({
-              role: m.role === "user" ? "user" : "council",
-              content: m.content,
-            })),
+            conversationHistory: [{
+              role: "user",
+              content: intakeAnswers.join("\\\n"),
+            }],
+            entryState,
           },
         });
 
@@ -430,16 +426,17 @@ const ConsoleThread = ({ embedded = false }: ConsoleThreadProps) => {
         const perspectives = data.mentorPerspectives || {};
         for (const [mentorType, perspective] of Object.entries(perspectives)) {
           await showTyping(mentorType, 500 + Math.random() * 500);
-          addSystemMessage(perspective as string, mentorType, "user_reply");
+          addSystemMessage(perspective as string, mentorType, "user_reply", "perspective");
         }
 
         if (data.banterLines?.length > 0) {
           for (const line of data.banterLines) {
             await showTyping(line.mentor, 300 + Math.random() * 300);
-            addSystemMessage(line.text, line.mentor, "user_reply");
+            addSystemMessage(line.text, line.mentor, "user_reply", "banter");
           }
         }
 
+        // 2nd round: NOW set handoff mentor (entry-state-aware from edge function)
         if (data.suggestedMentorFor1to1) {
           setHandoffMentor(data.suggestedMentorFor1to1.mentorType);
         }
@@ -468,8 +465,22 @@ const ConsoleThread = ({ embedded = false }: ConsoleThreadProps) => {
             await showTyping("future_self", 500);
             addSystemMessage(nextQ, "future_self", "user_reply");
           }
-          setPhase("user_reply");
-          persistPhase("user_reply");
+
+          // If handoff mentor was set from this round, offer it after showing perspectives
+          if (data.suggestedMentorFor1to1) {
+            const config = mentorConfig[data.suggestedMentorFor1to1.mentorType];
+            await showTyping("future_self", 800);
+            addSystemMessage(
+              `I think you're ready to work 1-to-1 with ${config?.name || data.suggestedMentorFor1to1.mentorName}.\\\\n\\\\nIf you're ready, type "let's go".`,
+              "future_self",
+              "handoff_offer"
+            );
+            setPhase("handoff_offer");
+            persistPhase("handoff_offer");
+          } else {
+            setPhase("user_reply");
+            persistPhase("user_reply");
+          }
         }
       }
     } catch (error: any) {
@@ -646,7 +657,6 @@ const ConsoleThread = ({ embedded = false }: ConsoleThreadProps) => {
     persistPhase("complete");
     confetti({ particleCount: 120, spread: 80, origin: { y: 0.6 } });
     
-    // Mark intake as completed
     (async () => {
       const { data: { user } } = await supabase.auth.getUser();
       if (user) {
@@ -655,7 +665,7 @@ const ConsoleThread = ({ embedded = false }: ConsoleThreadProps) => {
     })();
 
     setTimeout(() => {
-      addSystemMessage(`Your project "${name}" has been created. You can now find it in your Creation Lab.\n\nGood luck — your Council is behind you.`, "future_self", "complete");
+      addSystemMessage(`Your project "${name}" has been created. You can now find it in your Creation Lab.\\\\n\\\\nGood luck — your Council is behind you.`, "future_self", "complete");
     }, 500);
   };
 
