@@ -114,9 +114,8 @@ const Dashboard = () => {
         .eq("id", user.id)
         .single();
 
-      // Check if user has completed the Gravity flow (has first project)
+      // Self-heal: backfill first_project flag if project exists but flag is missing
       if (profile && !profile.first_project_created_at) {
-        // Self-heal: Check if a project actually exists (flag might have failed to save)
         const { data: existingProjects } = await supabase
           .from("integrator_projects")
           .select("id, created_at")
@@ -125,7 +124,6 @@ const Dashboard = () => {
           .limit(1);
         
         if (existingProjects && existingProjects.length > 0) {
-          // Project exists but flag is missing - backfill it
           await supabase
             .from("profiles")
             .update({
@@ -133,20 +131,8 @@ const Dashboard = () => {
               first_project_id: existingProjects[0].id
             })
             .eq("id", user.id);
-          // Continue to dashboard normally (don't redirect)
-        } else {
-          // No project exists - redirect to appropriate Gravity step
-          if (!profile.gravity_transition_completed) {
-            navigate("/gravity/transition");
-          } else if (!profile.council_introduction_completed) {
-            navigate("/gravity/council-intro");
-          } else if (!(profile as any).onboarding_completion_seen) {
-            navigate("/gravity/onboarding-complete");
-          } else {
-            navigate("/gravity/first-project");
-          }
-          return;
         }
+        // No redirect to legacy pages — dashboard + intake notification handles it
       }
 
       if (profile) {

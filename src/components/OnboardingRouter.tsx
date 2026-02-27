@@ -40,28 +40,12 @@ const OnboardingRouter = () => {
         // 6. Dashboard
 
         if (!profile?.gravity_orientation_completed) {
-          // New user - start at orientation
           navigate("/gravity/orientation");
         } else if (!profile?.birth_name) {
-          // Orientation complete, but identity not filled
           navigate("/onboarding");
-        } else if (questCompleted && !profile.first_project_created_at) {
-          // Quest completed but no project yet — go to dashboard (notification will appear)
-          navigate("/dashboard");
-        } else if (!profile.gravity_transition_completed) {
-          // Identity complete, transition pending (legacy flow)
-          navigate("/gravity/transition");
-        } else if (!profile.council_introduction_completed) {
-          // Transition complete, council intro pending (legacy flow)
-          navigate("/gravity/council-intro");
-        } else if (!(profile as any).onboarding_completion_seen) {
-          // Council intro complete, onboarding completion page pending (legacy flow)
-          navigate("/gravity/onboarding-complete");
-        } else if (!profile.first_project_created_at) {
-          // Onboarding completion seen, first project pending (legacy flow)
-          navigate("/gravity/first-project");
         } else {
-          // All onboarding complete - go to dashboard
+          // Quest completed or in progress — always go to dashboard
+          // Legacy gravity pages are bypassed; console thread handles intake
           navigate("/dashboard");
         }
       } catch (error) {

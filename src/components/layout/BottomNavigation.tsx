@@ -2,6 +2,8 @@ import { useLocation, useNavigate } from "react-router-dom";
 import { LayoutGrid, Users, FlaskConical, User } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { useProblemClarificationStatus } from "@/hooks/useProblemClarificationStatus";
+import { useEffect, useState } from "react";
+import { supabase } from "@/integrations/supabase/client";
 
 interface NavItem {
   icon: React.ElementType;
@@ -21,7 +23,7 @@ const navItems: NavItem[] = [
     icon: Users,
     label: "Council",
     path: "/council",
-    matchPaths: ["/council", "/council-meeting", "/chat"],
+    matchPaths: ["/council", "/council-meeting", "/chat", "/console-thread"],
   },
   {
     icon: FlaskConical,
@@ -41,6 +43,22 @@ export const BottomNavigation = () => {
   const location = useLocation();
   const navigate = useNavigate();
   const { needsClarification, badgeCount, isInClarificationSession } = useProblemClarificationStatus();
+  const [councilBadge, setCouncilBadge] = useState(false);
+
+  useEffect(() => {
+    const checkCouncilBadge = async () => {
+      const { data: { user } } = await supabase.auth.getUser();
+      if (!user) return;
+      const { data } = await supabase
+        .from("profiles")
+        .select("onboarding_quest_completed, console_intake_completed" as any)
+        .eq("id", user.id)
+        .single();
+      const p = data as any;
+      setCouncilBadge(!!p?.onboarding_quest_completed && !p?.console_intake_completed);
+    };
+    checkCouncilBadge();
+  }, [location.pathname]);
 
   const isActive = (item: NavItem) => {
     const currentPath = location.pathname;
@@ -63,7 +81,9 @@ export const BottomNavigation = () => {
           const active = isActive(item);
           const Icon = item.icon;
           // Hide badge when user is in the clarification session
-          const showBadge = item.path === "/creation-lab" && needsClarification && badgeCount > 0 && !isInClarificationSession;
+          const showCreationBadge = item.path === "/creation-lab" && needsClarification && badgeCount > 0 && !isInClarificationSession;
+          const showCouncilBadge = item.path === "/council" && councilBadge;
+          const showBadge = showCreationBadge || showCouncilBadge;
           
           return (
             <button
@@ -80,7 +100,7 @@ export const BottomNavigation = () => {
                 <Icon className={cn("w-6 h-6", active && "text-primary")} />
                 {showBadge && (
                   <span className="absolute -top-1.5 -right-1.5 w-4 h-4 rounded-full bg-destructive text-destructive-foreground text-[10px] font-bold flex items-center justify-center animate-pulse">
-                    {badgeCount}
+                    {showCouncilBadge ? "!" : badgeCount}
                   </span>
                 )}
               </div>
