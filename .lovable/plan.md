@@ -1,38 +1,65 @@
 
 
-# Fix: Council Assembly Ordering, Hide Legacy Pages, Add Council Notification Badge
+# Fix: Embed Console Thread INTO the Council Page
 
-## Issues
-
-1. **Council assembly shown before intake questions**: The `ConsoleThread` loads mentors from `user_mentors` on init, but shows the council reveal card immediately after the 3 intake questions. The problem is the council was already assembled during `OnboardingStep4` (before the quest). The thread correctly shows it after Q3 — but old legacy pages (`GravityCouncilIntro`, `GravityCouncilWelcome`, `GravityFirstProject`, `OnboardingCompletion`, `ProjectCouncilIntroduction`) are still accessible and the `OnboardingRouter` still routes to them.
-
-2. **Legacy pages not hidden**: The old pages ("Before we can guide you, we must know you...", "Onboarding Complete", "We hear you...") are still routable and the `OnboardingRouter` still sends users to them. These need to be bypassed since the console thread now handles all of that.
-
-3. **No red notification badge on Council button**: When the user completes the quest and lands on the dashboard, there's no visual indicator on the Council nav item to guide them to start the console thread. The `IntakeNotification` card exists on the dashboard but the Council button in the bottom nav should also have a red badge.
+## Problem
+The `ConsoleThread` was built as a **standalone page** at `/console-thread`. It is NOT integrated into the Council page. When users tap the Council button, they see the old `CouncilMeetingPage` — not the continuous thread. The thread needs to be a conversation entry inside the Council sidebar, just like "Project Council" or any mentor chat.
 
 ## Changes
 
-### 1. `src/components/OnboardingRouter.tsx`
-- Simplify routing: after quest completed (`onboarding_quest_completed: true`) but no `first_project_created_at`, navigate to `/dashboard` — skip ALL legacy gravity pages
-- Remove the fallthrough to `/gravity/transition`, `/gravity/council-intro`, `/gravity/onboarding-complete`, `/gravity/first-project` for users who completed the quest
+### 1. Database: Create `console_thread_messages` table
+Persist all thread messages so users can return to the conversation.
+```sql
+CREATE TABLE console_thread_messages (
+  id uuid PRIMARY KEY DEFAULT gen_random_uuid(),
+  user_id uuid NOT NULL,
+  role text NOT NULL, -- 'user', 'mentor', 'system'
+  content text NOT NULL DEFAULT '',
+  mentor_type text,
+  mentor_name text,
+  mentor_icon text,
+  mentor_color text,
+  card_type text, -- 'council_reveal', 'project_creation', null
+  card_data jsonb,
+  phase text, -- which phase this message was part of
+  created_at timestamptz DEFAULT now()
+);
+ALTER TABLE console_thread_messages ENABLE ROW LEVEL SECURITY;
+-- RLS: users can only access their own messages
+CREATE POLICY "Users can manage own thread messages" ON console_thread_messages FOR ALL USING (auth.uid() = user_id);
+```
 
-### 2. `src/pages/Dashboard.tsx`
-- Fix `checkFirstTimeUser`: when `onboarding_quest_completed` is true but no project exists, do NOT redirect to legacy gravity pages. Just show the dashboard with the intake notification.
-- Remove the redirect logic in lines 118-149 that sends users to `/gravity/transition`, `/gravity/council-intro`, etc. when quest is completed.
+Also add `console_thread_phase` text column to `profiles` to persist the current phase state.
 
-### 3. `src/components/layout/BottomNavigation.tsx`
-- Add a red notification badge on the "Council" nav item when user has completed quest but hasn't completed console intake (`console_intake_completed = false`)
-- Query profile for `onboarding_quest_completed` and `console_intake_completed` to determine badge visibility
+### 2. `src/pages/ConsoleThread.tsx` — Add `embedded` prop
+- Add `embedded?: boolean` prop (like `CouncilMeetingPage` and `ChatPage` already have)
+- When `embedded=true`: remove the header, remove `h-screen`, adapt to fill parent container
+- On init: load existing messages from `console_thread_messages` + restore phase from `profiles.console_thread_phase`
+- On every message add: save to `console_thread_messages`
+- On phase change: save to `profiles.console_thread_phase`
+- Remove redirect to dashboard when intake completed — the thread should always be accessible for scrollback
 
-### 4. `src/components/console-thread/IntakeNotification.tsx`
-- Change navigation target from `/console-thread` to `/council` (the Council button should be the entry point, and the thread opens from there)
-- OR keep `/console-thread` but also add the badge on Council
+### 3. `src/pages/Council.tsx` — Add "New Conversation" entry in sidebar
+- Add a new sidebar entry **above** "Project Council" labeled "New Conversation" (or the project name once created)
+- When `console_intake_completed` is false, auto-select this entry and show a notification badge
+- When selected (`view=intake`), render `<ConsoleThread embedded />` in the content area instead of `CouncilMeetingPage`
+- Query `profiles` for `console_intake_completed` and `console_thread_phase` to determine badge/label
+
+### 4. Routing cleanup
+- `/console-thread` route in `App.tsx`: redirect to `/council?view=intake`
+- `IntakeNotification.tsx`: navigate to `/council?view=intake` instead of `/console-thread`
+- `BottomNavigation.tsx`: badge logic stays the same, but tapping Council auto-opens the intake thread
+
+### 5. Council Reveal ordering (already correct in ConsoleThread logic)
+The `ConsoleThread` already shows council reveal AFTER the 3 intake questions. No change needed — just needs to actually render.
 
 ## Files
 
 | File | Change |
 |------|--------|
-| `src/components/OnboardingRouter.tsx` | Skip legacy pages when quest completed |
-| `src/pages/Dashboard.tsx` | Don't redirect to legacy gravity pages when quest completed |
-| `src/components/layout/BottomNavigation.tsx` | Add red badge on Council when intake pending |
+| Migration SQL | Create `console_thread_messages` table + add `console_thread_phase` to profiles |
+| `src/pages/ConsoleThread.tsx` | Add `embedded` prop, persist messages to DB, restore on load |
+| `src/pages/Council.tsx` | Add "New Conversation" sidebar entry, render ConsoleThread when selected |
+| `src/components/console-thread/IntakeNotification.tsx` | Navigate to `/council?view=intake` |
+| `src/App.tsx` | Redirect `/console-thread` → `/council?view=intake` |
 
