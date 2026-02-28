@@ -46,7 +46,7 @@ type Phase =
 
 // Dynamic intake questions using user's name
 const getIntakeQuestions = (name: string) => [
-  `Hey ${name}! Before I assemble your Council, I'd like to ask you a few questions to understand where you are. First — what's your work experience or background?`,
+  `Hey ${name}! 👋 I'm going to ask you a few questions so I can recommend a customized team of mentors based on your journey and where you are right now.\n\nFirst — what's your work experience or background?`,
   `That's great to know. Now tell me a bit about your story — your dreams, your struggles, what excites you, what keeps you up at night.`,
   `Love it. So what have you been working on, or thinking about building?`,
 ];
@@ -66,6 +66,7 @@ const ConsoleThread = ({ embedded = false }: ConsoleThreadProps) => {
   const [userMentors, setUserMentors] = useState<string[]>([]);
   const [entryState, setEntryState] = useState("DISCOVER");
   const [councilAccepted, setCouncilAccepted] = useState(false);
+  const [councilMeetingRan, setCouncilMeetingRan] = useState(false);
   const [projectName, setProjectName] = useState("New Conversation");
   const [handoffMentor, setHandoffMentor] = useState<string | null>(null);
   const [initialLoading, setInitialLoading] = useState(true);
@@ -240,6 +241,10 @@ const ConsoleThread = ({ embedded = false }: ConsoleThreadProps) => {
       setPhase("processing");
       persistPhase("processing");
       await processIntake(newAnswers);
+    } else if (phase === "user_reply" && councilAccepted && !councilMeetingRan) {
+      // First "let's go" after council reveal — run initial council meeting
+      setCouncilMeetingRan(true);
+      await runCouncilMeeting();
     } else if (phase === "user_reply") {
       await handleUserReply(text);
     } else if (phase === "handoff_offer") {
@@ -327,7 +332,15 @@ const ConsoleThread = ({ embedded = false }: ConsoleThreadProps) => {
     setPhase(nextPhase);
     persistPhase(nextPhase);
 
-    await runCouncilMeeting();
+    // Guidance message before council starts
+    await showTyping("future_self", 1200);
+    addSystemMessage(
+      `Now you're going to interact with your mentor council. They'll help you define a project to work on.\n\nWrite "let's go" when you're ready.`,
+      "future_self",
+      nextPhase
+    );
+    setPhase("user_reply");
+    persistPhase("user_reply");
   };
 
   const runCouncilMeeting = async () => {
@@ -357,7 +370,7 @@ const ConsoleThread = ({ embedded = false }: ConsoleThreadProps) => {
       persistPhase(perspPhase);
 
       for (const [mentorType, perspective] of Object.entries(perspectives)) {
-        await showTyping(mentorType, 1500 + Math.random() * 1000);
+        await showTyping(mentorType, 3000 + Math.random() * 2000);
         addSystemMessage(perspective as string, mentorType, perspPhase, "perspective");
       }
 
@@ -367,7 +380,7 @@ const ConsoleThread = ({ embedded = false }: ConsoleThreadProps) => {
         setPhase(banterPhase);
         persistPhase(banterPhase);
         for (const line of banterLines) {
-          await showTyping(line.mentor, 800 + Math.random() * 400);
+          await showTyping(line.mentor, 2500 + Math.random() * 2500);
           addSystemMessage(line.text, line.mentor, banterPhase, "banter");
         }
       }
@@ -422,13 +435,13 @@ const ConsoleThread = ({ embedded = false }: ConsoleThreadProps) => {
 
         const perspectives = data.mentorPerspectives || {};
         for (const [mentorType, perspective] of Object.entries(perspectives)) {
-          await showTyping(mentorType, 500 + Math.random() * 500);
+          await showTyping(mentorType, 2000 + Math.random() * 1500);
           addSystemMessage(perspective as string, mentorType, "user_reply", "perspective");
         }
 
         if (data.banterLines?.length > 0) {
           for (const line of data.banterLines) {
-            await showTyping(line.mentor, 300 + Math.random() * 300);
+            await showTyping(line.mentor, 2500 + Math.random() * 2500);
             addSystemMessage(line.text, line.mentor, "user_reply", "banter");
           }
         }
@@ -439,13 +452,22 @@ const ConsoleThread = ({ embedded = false }: ConsoleThreadProps) => {
         }
 
         if (data.projectCoherence?.isCoherent) {
+          // Validate project name — reject generic placeholders
+          const genericNames = ["project name", "untitled", "new project", "my project", "unnamed"];
+          let finalProjectName = data.projectCoherence.projectName || "";
+          if (!finalProjectName.trim() || genericNames.some(g => finalProjectName.toLowerCase().trim() === g)) {
+            // Derive from intake Q3 (project idea)
+            const idea = intakeAnswers[2] || "";
+            finalProjectName = idea.length > 5 && idea.length < 60 ? idea : "My First Project";
+          }
+
           setPhase("project_detected");
           persistPhase("project_detected");
           await showTyping("future_self", 1000);
           addSystemMessage("Something is coming together here... I can feel it ✨", "future_self", "project_detected");
           addCardMessage(
             <FirstWinNamingCard
-              proposedName={data.projectCoherence.projectName}
+              proposedName={finalProjectName}
               description={data.projectCoherence.projectDescription}
               onAccept={(name) => handleFirstWinAccept(name, data.projectCoherence.projectDescription)}
               onKeepExploring={() => {

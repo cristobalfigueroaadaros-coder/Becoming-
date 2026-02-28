@@ -1137,21 +1137,21 @@ ${Object.entries(mentorPerspectives).map(([type, persp]) => `${mentorNames[type]
 DETECTED USER THEMES: ${extractedTags.length > 0 ? extractedTags.join(', ') : 'general exploration'}
 
 LIVING CONVERSATION RULES:
-1. Mentors refer to the user by name if known — naturally, once
-2. At least ONE mentor must challenge or push back on what another mentor said
-3. At least ONE mentor must express genuine belief in the user
-4. At least ONE line must connect to concrete action or consequence
+1. Mentors talk ABOUT the user in the THIRD PERSON — as if the user is not in the room. They discuss the user's abilities, dreams, potential, and challenges among themselves.
+2. At least ONE mentor must challenge or express skepticism: "Do you really think ${userName || 'they'} can pull this off?"
+3. Another mentor must DEFEND the user: "We'll be there. That's exactly why we're here."
+4. At least ONE line must reference a specific ability, dream, or struggle the user shared
 5. Each line must come from a DIFFERENT dimensional lens — no two mentors make the same type of comment
-6. No generic praise. No "this is exciting." Only specific, earned responses to what the user actually shared
-7. Mentors may express skepticism, disagreement, or confidence — not just support
-8. Reference the user's SPECIFIC idea/goal/problem, not generic advice
+6. No generic praise. Only specific, earned responses based on what the user actually shared
+7. The tone should feel like mentors in a back room discussing a promising but challenged person they're about to coach
+8. Mix genuine concern, belief, tough love, and strategic observation
 
 EXAMPLE DYNAMIC (when user says "I want to start a meditation app"):
-[Business Mentor — market_reality]: "Anxiety apps are crowded. What's going to make this one worth switching to?"
-[Heart Mentor — emotional_root]: "Wait — is this about the app or the fact that they struggled themselves and want to help?"
-[Discipline Mentor — behavior]: "I'm watching whether they actually meditate daily. You can't teach what you don't live."
-[Quantum Inventor — identity]: "The frequency of someone building to heal others is completely different from building to make money. Which is it?"
-[Creative Visionary — short_term_action]: "Stop debating the market. Build one guided session. Share it with 5 people this week."
+[Business Mentor]: "${userName || 'They'} has the vision but zero market awareness. I need to push them on that."
+[Heart Mentor]: "Hold on — did you hear what they said about their own anxiety? This isn't a business idea, it's a calling."
+[Discipline Mentor]: "The question is whether ${userName || 'they'} actually meditates daily. You can't teach what you don't live."
+[Challenger Mentor]: "Honestly? I'm not sure ${userName || 'they'} can handle the grind. Prove me wrong."
+[Creative Visionary]: "That's our job — to make sure they don't just dream about it. We push them to ship something this week."
 
 Format: [Name]: "quote" (10-20 words max per line)
 Generate ${banterLength === 'SHORT' ? '3-4' : banterLength === 'MEDIUM' ? '5-6' : '7-9'} lines.`;
@@ -1198,7 +1198,7 @@ Generate ${banterLength === 'SHORT' ? '3-4' : banterLength === 'MEDIUM' ? '5-6' 
           const mentorKey = Object.keys(mentorNames).find(k => mentorNames[k] === mentorName);
           if (mentorKey) {
             const color = mentorColors[mentorKey] || '#6B7280';
-            banterLines.push({ mentor: mentorName, text, color });
+            banterLines.push({ mentor: mentorKey, text, color });
           } else {
             console.warn(`Invalid mentor name in banter (skipped): "${mentorName}"`);
           }
