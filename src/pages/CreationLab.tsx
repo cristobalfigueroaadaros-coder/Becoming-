@@ -176,8 +176,20 @@ const CreationLab = () => {
 
       if (error) throw error;
 
+      // Extract project ID from the response
+      const projectId = data?.project?.id || data?.projectId;
+      
+      // Set first_project_id on profile so the system recognizes it
+      if (projectId) {
+        const { data: { user: currentUser } } = await supabase.auth.getUser();
+        if (currentUser) {
+          await supabase.from("profiles").update({
+            first_project_id: projectId,
+          } as any).eq("id", currentUser.id);
+        }
+      }
+
       // Wait for data refresh to complete BEFORE hiding setup
-      // This ensures activeProject is populated when Focus Mode renders
       await refreshData();
       
       // Safety check - if still no active project, try loading projects again
