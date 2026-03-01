@@ -42,7 +42,7 @@ type Phase =
   | "perspectives" | "banter"
   | "user_reply"
   | "handoff_offer" | "mentor_1to1"
-  | "project_detected" | "complete";
+  | "project_detected" | "complete" | "post_project";
 
 // Dynamic intake questions using user's name
 const getIntakeQuestions = (name: string) => [
@@ -167,7 +167,7 @@ const ConsoleThread = ({ embedded = false }: ConsoleThreadProps) => {
     init();
   }, []);
 
-  const addSystemMessage = (content: string, mentorType?: string, phaseForPersist?: Phase, messageType?: "perspective" | "banter" | "standard") => {
+  const addSystemMessage = (content: string, mentorType?: string, phaseForPersist?: Phase, messageType?: "perspective" | "banter" | "standard" | "notification") => {
     const config = mentorType ? mentorConfig[mentorType] : undefined;
     const msg: ChatMessage = {
       id: crypto.randomUUID(),
@@ -251,6 +251,8 @@ const ConsoleThread = ({ embedded = false }: ConsoleThreadProps) => {
       await handleHandoffResponse(text);
     } else if (phase === "mentor_1to1") {
       await handleMentor1to1(text);
+    } else if (phase === "post_project") {
+      await handlePostProjectMessage(text);
     }
   };
 
@@ -369,8 +371,8 @@ const ConsoleThread = ({ embedded = false }: ConsoleThreadProps) => {
       setPhase(perspPhase);
       persistPhase(perspPhase);
 
-      for (const [mentorType, perspective] of Object.entries(perspectives)) {
-        await showTyping(mentorType, 3000 + Math.random() * 2000);
+    for (const [mentorType, perspective] of Object.entries(perspectives)) {
+        await showTyping(mentorType, 5000 + Math.random() * 15000);
         addSystemMessage(perspective as string, mentorType, perspPhase, "perspective");
       }
 
@@ -380,7 +382,7 @@ const ConsoleThread = ({ embedded = false }: ConsoleThreadProps) => {
         setPhase(banterPhase);
         persistPhase(banterPhase);
         for (const line of banterLines) {
-          await showTyping(line.mentor, 2500 + Math.random() * 2500);
+          await showTyping(line.mentor, 4000 + Math.random() * 10000);
           addSystemMessage(line.text, line.mentor, banterPhase, "banter");
         }
       }
@@ -434,14 +436,14 @@ const ConsoleThread = ({ embedded = false }: ConsoleThreadProps) => {
         if (error) throw error;
 
         const perspectives = data.mentorPerspectives || {};
-        for (const [mentorType, perspective] of Object.entries(perspectives)) {
-          await showTyping(mentorType, 2000 + Math.random() * 1500);
+      for (const [mentorType, perspective] of Object.entries(perspectives)) {
+          await showTyping(mentorType, 5000 + Math.random() * 12000);
           addSystemMessage(perspective as string, mentorType, "user_reply", "perspective");
         }
 
         if (data.banterLines?.length > 0) {
           for (const line of data.banterLines) {
-            await showTyping(line.mentor, 2500 + Math.random() * 2500);
+            await showTyping(line.mentor, 4000 + Math.random() * 10000);
             addSystemMessage(line.text, line.mentor, "user_reply", "banter");
           }
         }
@@ -658,10 +660,54 @@ const ConsoleThread = ({ embedded = false }: ConsoleThreadProps) => {
     }
   };
 
+  const handlePostProjectMessage = async (text: string) => {
+    setLoading(true);
+    try {
+      const { data, error } = await supabase.functions.invoke("council-meeting", {
+        body: {
+          question: text,
+          mentorTypes: [...userMentors, "future_self"],
+          conversationHistory: messages.slice(-15).map(m => ({
+            role: m.role === "user" ? "user" : "assistant",
+            content: m.content,
+          })),
+          entryState,
+          projectContext: projectName,
+        },
+      });
+
+      if (error) throw error;
+
+      const perspectives = data.mentorPerspectives || {};
+      for (const [mentorType, perspective] of Object.entries(perspectives)) {
+        await showTyping(mentorType, 5000 + Math.random() * 12000);
+        addSystemMessage(perspective as string, mentorType, "post_project", "perspective");
+      }
+
+      if (data.banterLines?.length > 0) {
+        for (const line of data.banterLines) {
+          await showTyping(line.mentor, 4000 + Math.random() * 10000);
+          addSystemMessage(line.text, line.mentor, "post_project", "banter");
+        }
+      }
+
+      const nextQ = data.clarityQuestion || data.suggestedNextQuestion;
+      if (nextQ) {
+        await showTyping("future_self", 1000);
+        addSystemMessage(nextQ, "future_self", "post_project");
+      }
+    } catch (error: any) {
+      console.error("Error in post-project conversation:", error);
+      toast.error("Something went wrong");
+    } finally {
+      setLoading(false);
+    }
+  };
+
   const handleProjectCreated = (projectId: string, name: string) => {
     setProjectName(name);
-    setPhase("complete");
-    persistPhase("complete");
+    setPhase("post_project");
+    persistPhase("post_project");
     confetti({ particleCount: 120, spread: 80, origin: { y: 0.6 } });
     
     (async () => {
@@ -672,8 +718,21 @@ const ConsoleThread = ({ embedded = false }: ConsoleThreadProps) => {
     })();
 
     setTimeout(() => {
-      addSystemMessage(`Your project "${name}" has been created. You can now find it in your Creation Lab.\\\\n\\\\nGood luck — your Council is behind you.`, "future_self", "complete");
+      addSystemMessage(`Your project "${name}" has been created! You can find it in your Creation Lab.\n\nBut don't leave yet — your Council is here to help you sharpen the idea. Keep talking.`, "future_self", "post_project");
     }, 500);
+
+    // Schedule a delayed notification from a random mentor
+    setTimeout(() => {
+      const availableMentors = userMentors.filter(m => m !== "future_self");
+      const randomMentor = availableMentors[Math.floor(Math.random() * availableMentors.length)] || "strategist_mentor";
+      const config = mentorConfig[randomMentor];
+      addSystemMessage(
+        `💬 ${config?.name || "A mentor"} wants to explore a different angle on "${name}" with you. Reply to start the conversation.`,
+        randomMentor,
+        "post_project",
+        "notification"
+      );
+    }, 8000 + Math.random() * 12000);
   };
 
   const handleKeyDown = (e: React.KeyboardEvent) => {
@@ -684,6 +743,7 @@ const ConsoleThread = ({ embedded = false }: ConsoleThreadProps) => {
   };
 
   const isInputDisabled = loading || phase === "processing" || phase === "council_reveal" || phase === "perspectives" || phase === "banter";
+  const showPlusButton = phase === "complete" || phase === "post_project";
 
   if (initialLoading) {
     return (
@@ -702,7 +762,7 @@ const ConsoleThread = ({ embedded = false }: ConsoleThreadProps) => {
             <ArrowLeft className="w-5 h-5" />
           </Button>
           <h1 className="font-semibold text-foreground truncate flex-1">{projectName}</h1>
-          {phase === "complete" && (
+          {showPlusButton && (
             <Button
               variant="ghost"
               size="icon"

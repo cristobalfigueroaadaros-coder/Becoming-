@@ -97,6 +97,7 @@ const Council = () => {
   const [loading, setLoading] = useState(true);
   const [showMobileList, setShowMobileList] = useState(true);
   const [intakePending, setIntakePending] = useState(false);
+  const [threadProjectName, setThreadProjectName] = useState<string | null>(null);
   
   // Get current view from URL params
   const currentView = searchParams.get("view") || "console";
@@ -133,6 +134,19 @@ const Council = () => {
       const questDone = !!(profile as any)?.onboarding_quest_completed;
       const intakeDone = !!(profile as any)?.console_intake_completed;
       setIntakePending(questDone && !intakeDone);
+
+      // Load project name for thread label
+      const firstProjectId = (profile as any)?.first_project_id;
+      if (firstProjectId) {
+        const { data: project } = await supabase
+          .from("integrator_projects")
+          .select("project_title")
+          .eq("id", firstProjectId)
+          .single();
+        if (project?.project_title) {
+          setThreadProjectName(project.project_title);
+        }
+      }
 
       // Auto-select intake if pending and no view specified
       if (questDone && !intakeDone && !searchParams.get("view")) {
@@ -351,7 +365,7 @@ const Council = () => {
               <span className="text-lg">✨</span>
             </div>
             <div className="flex-1 min-w-0">
-              <p className="font-medium truncate">New Conversation</p>
+              <p className="font-medium truncate">{threadProjectName || "New Conversation"}</p>
               <p className="text-xs text-muted-foreground truncate">Your journey thread</p>
             </div>
             {intakePending && (
@@ -493,7 +507,7 @@ const Council = () => {
         <ArrowLeft className="w-5 h-5" />
       </Button>
       <span className="font-medium truncate">
-        {isIntake ? "New Conversation" : isConsole ? "Council" : mentorConfig[selectedMentor || ""]?.name || "Chat"}
+        {isIntake ? (threadProjectName || "New Conversation") : isConsole ? "Council" : mentorConfig[selectedMentor || ""]?.name || "Chat"}
       </span>
     </div>
   );

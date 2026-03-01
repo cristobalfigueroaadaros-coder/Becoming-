@@ -40,7 +40,7 @@ export interface ChatMessage {
   mentorColor?: string;
   card?: ReactNode;
   timestamp?: string;
-  messageType?: "perspective" | "banter" | "standard";
+  messageType?: "perspective" | "banter" | "standard" | "notification";
 }
 
 interface ChatBubbleProps {
@@ -65,7 +65,45 @@ const cleanMarkdown = (text: string): React.ReactNode => {
 const ChatBubble = ({ message, index }: ChatBubbleProps) => {
   const isUser = message.role === "user";
   const isBanter = message.messageType === "banter";
+  const isNotification = message.messageType === "notification";
   const hexColor = getHexColor(message.mentorColor);
+
+  // Notification: WhatsApp-style CTA card
+  if (isNotification && !isUser) {
+    return (
+      <motion.div
+        className="flex px-4 py-2 justify-center"
+        initial={{ opacity: 0, scale: 0.95 }}
+        animate={{ opacity: 1, scale: 1 }}
+        transition={{ duration: 0.3, delay: Math.min(index * 0.05, 0.3) }}
+      >
+        <div
+          className="max-w-[85%] rounded-xl px-4 py-3 text-sm leading-relaxed border-2 flex items-start gap-3"
+          style={{
+            borderColor: "#dc2626",
+            backgroundColor: "#dc26260F",
+          }}
+        >
+          {message.mentorIcon && (
+            <div
+              className="w-8 h-8 rounded-full flex items-center justify-center shrink-0 text-sm"
+              style={{ backgroundColor: hexColor ? `${hexColor}33` : "#dc262633" }}
+            >
+              {message.mentorIcon}
+            </div>
+          )}
+          <div className="flex-1">
+            {message.mentorName && (
+              <span className="text-xs font-bold block mb-1" style={{ color: "#dc2626" }}>
+                {message.mentorName}
+              </span>
+            )}
+            <span className="text-foreground">{cleanMarkdown(message.content)}</span>
+          </div>
+        </div>
+      </motion.div>
+    );
+  }
 
   // Banter: WhatsApp zig-zag style
   if (isBanter && !isUser) {
