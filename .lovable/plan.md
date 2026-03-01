@@ -1,59 +1,71 @@
 
 
-# Fix: Banter Identity, Pacing, Project Name, Timeframe Flow, Future Self Guidance
+# Plan: Creative Space Keywords, Dynamic Thread Name, Post-Project Engagement, and Natural Pacing
 
-## Issues Found
+## Issues Identified
 
-### 1. Banter bubbles have no mentor name/color
-**Root cause**: Edge function (`council-meeting/index.ts` line 1201) pushes `mentor: mentorName` (display name like "Strategist Mentor") into `banterLines`. But `ConsoleThread.tsx` line 371 passes `line.mentor` to `addSystemMessage` as `mentorType`, which expects a key like `strategist_mentor`. The config lookup fails silently, so no name/color is attached.
-**Fix**: Edge function should push `mentor: mentorKey` (the internal key) instead of `mentorName`. Keep `mentorName` as a separate field for reference.
+### 1. Creative Space not suggesting keywords as connectors
+The keyword loading in `CreativeSpace.tsx` queries `user_keywords` and displays them, but there's no AI-driven suggestion for which keywords could connect existing tiles. The keywords just show up as a flat list with no intelligence about relevance to the current project context.
 
-### 2. Banter tone not human enough
-**Fix**: Update the banter prompt in the edge function to instruct mentors to talk about the user in third person — discussing their abilities, dreams, challenging them ("Do you think they can pull this off?"), while another defends ("We'll be there to push them"). Make it feel like mentors talking in the back room about the user, supportively.
+### 2. "New Conversation" sidebar label never updates to project name
+In `Council.tsx` line 354, the sidebar hardcodes "New Conversation". The `ConsoleThread` tracks `projectName` in local state but never communicates it back to the parent `Council.tsx`.
 
-### 3. Perspectives and banter sent too fast
-**Fix**: Increase typing delays:
-- Perspectives: `showTyping(mentorType, 3000 + Math.random() * 2000)` (~3-5s each)
-- Banter: `showTyping(line.mentor, 2500 + Math.random() * 2500)` (~2.5-5s each)
-- 2nd round perspectives: `showTyping(mentorType, 2000 + Math.random() * 1500)` (~2-3.5s each)
+### 3. No post-project engagement — thread goes dead after project creation
+Once the project is created and the user navigates to Creation Lab, the thread has no mechanism to re-engage the user. There are no follow-up messages, notifications, or mentor prompts within the thread.
 
-### 4. "Project Name" shown in FirstWinNamingCard
-**Root cause**: The AI in `chat-mentor` sometimes returns a literal "Project Name" as the project name. 
-**Fix**: In `ConsoleThread.tsx`, before passing to `FirstWinNamingCard`, validate that `projectName` is not a generic placeholder. If it is, fall back to a name derived from the user's project idea (intake Q3).
+### 4. Perspective timing too rigid (fixed 3-5s)
+Current delays use `3000 + Math.random() * 2000` (3-5s range). Need wider randomization (5-20s as requested).
 
-### 5. Timeframe selection doesn't create project
-**Root cause**: The `CreationLab` project setup flow works correctly — `handleCreateProject` calls `integrator-setup`. The issue is likely that when navigating from ConsoleThread, the `first_project_id` is not set (we removed it in the last diff), so the system may not recognize the project afterward.
-**Fix**: In `CreationLab.handleCreateProject`, after successful creation, also update `first_project_id` in the profile with the new project ID.
-
-### 6. Future Self needs more guidance context
-**Fix**: 
-- **Q1 intro**: Add "I'm going to ask you a few questions so I can recommend a customized team of mentors based on your journey."
-- **Post-council message**: Add "Now you're going to interact with your mentor council. They'll help you define a project to work on. Write 'let's go' when you're ready."
+---
 
 ## Changes
 
-### `supabase/functions/council-meeting/index.ts`
-- **Line 1201**: Change `mentor: mentorName` to `mentor: mentorKey` so the frontend can look up config
-- **Banter prompt**: Update to instruct mentors to talk about the user in third person — discussing abilities, dreams, challenging and supporting
+### A. `src/pages/Council.tsx` — Dynamic thread name
+- Load the user's first project name from `integrator_projects` (or from profile `first_project_id`) on init
+- Pass it as a prop or use it directly: replace hardcoded "New Conversation" with the project title when it exists, falling back to "New Conversation" if no project yet
+- Also update the header bar label (line 496)
 
-### `src/pages/ConsoleThread.tsx`
-- **Line 49**: Update Q1 intro to include guidance about what's coming
-- **Lines 359-361**: Increase perspective typing delay to ~3-5s
-- **Lines 369-371**: Increase banter typing delay to ~2.5-5s
-- **Lines 424-426**: Increase 2nd round perspective delay to ~2-3.5s
-- **Lines 430-432**: Increase 2nd round banter delay to ~2.5-5s
-- **handleCouncilAccept (line 326-330)**: Add a "let's go" prompt from Future Self after council is accepted, before running council meeting
-- **Lines 441-450**: Add validation for project name — if it's generic ("Project Name", "Untitled", etc.), derive from intake Q3
-- **handleFirstWinAccept**: No change needed — CreationLab handles project creation
+### B. `src/pages/ConsoleThread.tsx` — Pacing + Post-project engagement
 
-### `src/pages/CreationLab.tsx`
-- **handleCreateProject (~line 178)**: After successful `integrator-setup`, update profile with `first_project_id` from the returned data
+**Pacing (wider random delays):**
+- First round perspectives: `5000 + Math.random() * 15000` (5-20s)
+- Banter: `4000 + Math.random() * 10000` (4-14s)
+- Second round perspectives: `5000 + Math.random() * 12000` (5-17s)
 
-## Files
+**Post-project engagement system:**
+- After `handleProjectCreated` or when thread resumes in `complete` phase, add a new phase `"post_project"` that allows continued conversation
+- When user returns to the thread after project creation, Future Self sends a re-engagement message suggesting the user talk to a specific mentor about the project
+- When user sends messages in `post_project` phase, route them through `council-meeting` with the project context, allowing multi-mentor responses
+- The system detects when 2+ mentors have relevant perspectives and includes them all (already handled by the edge function — just need to keep calling it)
+
+**In-thread notifications (WhatsApp-style CTAs):**
+- Add a new message type `"notification"` to ChatMessage
+- Create a `NotificationBubble` component (red accent, mentor icon, CTA text) rendered inline in the thread
+- After project creation, schedule a delayed Future Self notification suggesting the user explore a specific angle with another mentor
+- These are rendered as special styled bubbles in the thread (not browser notifications)
+
+### C. `src/components/creative-space/CreativeSpace.tsx` — AI keyword suggestions
+- After loading keywords and tiles, call a lightweight AI function to suggest which keywords are most relevant to the current project context
+- Create a new edge function `suggest-keyword-connectors` that takes the project title, existing tile titles, and available keywords, then returns ranked keyword suggestions with connection rationale
+- Display suggested keywords at the top of the keyword section with a "Suggested" badge and a brief reason why they're relevant
+
+### D. New edge function: `supabase/functions/suggest-keyword-connectors/index.ts`
+- Accepts: `projectTitle`, `existingTiles[]`, `availableKeywords[]`
+- Uses Lovable AI (gemini-3-flash-preview) to rank keywords by relevance and suggest which tiles they could connect to
+- Returns: `suggestions: [{ keyword, relevance, connectTo: tileId[], reason }]`
+
+### E. `src/components/console-thread/ChatBubble.tsx` — Notification bubble style
+- Add rendering for `messageType === "notification"` — a red/accent-bordered compact card with mentor icon, CTA text, and a subtle action prompt
+
+---
+
+## File Summary
 
 | File | Change |
 |------|--------|
-| `supabase/functions/council-meeting/index.ts` | Fix banter mentor key, update banter prompt for human tone |
-| `src/pages/ConsoleThread.tsx` | Pacing delays, Future Self guidance text, project name validation |
-| `src/pages/CreationLab.tsx` | Set `first_project_id` after project creation |
+| `src/pages/Council.tsx` | Load project name, replace "New Conversation" dynamically |
+| `src/pages/ConsoleThread.tsx` | Wider random pacing (5-20s), post-project engagement phase, in-thread notification messages |
+| `src/components/console-thread/ChatBubble.tsx` | Add notification bubble rendering |
+| `src/components/creative-space/CreativeSpace.tsx` | Call AI keyword suggestion, display ranked suggestions |
+| `supabase/functions/suggest-keyword-connectors/index.ts` | New edge function for AI keyword relevance ranking |
 
