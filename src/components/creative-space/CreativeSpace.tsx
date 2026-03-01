@@ -3,7 +3,7 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/com
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { Input } from '@/components/ui/input';
-import { Lightbulb, Plus, Maximize2, Minimize2, Inbox, Tag, ChevronDown, ChevronUp } from 'lucide-react';
+import { Lightbulb, Plus, Maximize2, Minimize2, Inbox, Tag, ChevronDown, ChevronUp, Sparkles } from 'lucide-react';
 import { useCreativeSpace } from '@/hooks/useCreativeSpace';
 import { InsightTile } from './InsightTile';
 import { NoteTile } from './NoteTile';
@@ -22,6 +22,12 @@ interface UserKeyword {
   id: string;
   keyword: string;
   frequency_count: number;
+}
+
+interface KeywordSuggestion {
+  keyword: string;
+  reason: string;
+  relevance: number;
 }
 
 export function CreativeSpace({ projectId, projectTitle }: CreativeSpaceProps) {
@@ -56,6 +62,8 @@ export function CreativeSpace({ projectId, projectTitle }: CreativeSpaceProps) {
   const [quickNote, setQuickNote] = useState('');
   const [keywords, setKeywords] = useState<UserKeyword[]>([]);
   const [showKeywords, setShowKeywords] = useState(true);
+  const [suggestedKeywords, setSuggestedKeywords] = useState<KeywordSuggestion[]>([]);
+  const [loadingSuggestions, setLoadingSuggestions] = useState(false);
   const canvasRef = useRef<HTMLDivElement>(null);
 
   // Load user keywords
@@ -71,12 +79,35 @@ export function CreativeSpace({ projectId, projectTitle }: CreativeSpaceProps) {
         .order('frequency_count', { ascending: false })
         .limit(20);
       
-      if (data) {
+      if (data && data.length > 0) {
         setKeywords(data);
+        // Call AI suggestion after keywords load
+        fetchKeywordSuggestions(data);
       }
     };
     loadKeywords();
   }, []);
+
+  const fetchKeywordSuggestions = async (kws: UserKeyword[]) => {
+    if (kws.length === 0) return;
+    setLoadingSuggestions(true);
+    try {
+      const { data, error } = await supabase.functions.invoke("suggest-keyword-connectors", {
+        body: {
+          projectTitle,
+          existingTiles: tiles.map(t => ({ id: t.id, title: t.title })),
+          availableKeywords: kws.map(k => k.keyword),
+        },
+      });
+      if (!error && data?.suggestions) {
+        setSuggestedKeywords(data.suggestions);
+      }
+    } catch (e) {
+      console.error("Failed to fetch keyword suggestions:", e);
+    } finally {
+      setLoadingSuggestions(false);
+    }
+  };
 
   // Check which keywords are already tiles
   const keywordsInSpace = new Set(
@@ -227,23 +258,58 @@ export function CreativeSpace({ projectId, projectTitle }: CreativeSpaceProps) {
               {showKeywords ? <ChevronUp className="w-4 h-4 text-muted-foreground" /> : <ChevronDown className="w-4 h-4 text-muted-foreground" />}
             </div>
             {showKeywords && (
-              <div className="flex flex-wrap gap-2 mt-2">
-                {keywords.map(kw => (
-                  <Badge
-                    key={kw.id}
-                    variant={keywordsInSpace.has(kw.keyword.toLowerCase()) ? "outline" : "secondary"}
-                    className={cn(
-                      "cursor-pointer transition-colors",
-                      keywordsInSpace.has(kw.keyword.toLowerCase()) 
-                        ? "opacity-50 cursor-default" 
-                        : "hover:bg-green-500/20 hover:border-green-500"
-                    )}
-                    onClick={() => handleKeywordClick(kw.keyword)}
-                  >
-                    {kw.keyword}
-                    {!keywordsInSpace.has(kw.keyword.toLowerCase()) && <Plus className="w-3 h-3 ml-1 opacity-70" />}
-                  </Badge>
-                ))}
+              <div className="space-y-2 mt-2">
+                {/* AI Suggested keywords */}
+                {suggestedKeywords.length > 0 && (
+                  <div className="space-y-1.5">
+                    <div className="flex items-center gap-1.5">
+                      <Sparkles className="w-3 h-3 text-amber-500" />
+                      <span className="text-xs font-medium text-amber-600 dark:text-amber-400">Suggested connectors</span>
+                    </div>
+                    <div className="flex flex-wrap gap-2">
+                      {suggestedKeywords.map((s, i) => (
+                        <Badge
+                          key={`sug-${i}`}
+                          variant={keywordsInSpace.has(s.keyword.toLowerCase()) ? "outline" : "default"}
+                          className={cn(
+                            "cursor-pointer transition-colors",
+                            keywordsInSpace.has(s.keyword.toLowerCase())
+                              ? "opacity-50 cursor-default"
+                              : "hover:bg-amber-500/20 hover:border-amber-500 bg-amber-500/10 border-amber-500/30 text-amber-700 dark:text-amber-300"
+                          )}
+                          onClick={() => handleKeywordClick(s.keyword)}
+                          title={s.reason}
+                        >
+                          <Sparkles className="w-3 h-3 mr-1 opacity-70" />
+                          {s.keyword}
+                          {!keywordsInSpace.has(s.keyword.toLowerCase()) && <Plus className="w-3 h-3 ml-1 opacity-70" />}
+                        </Badge>
+                      ))}
+                    </div>
+                  </div>
+                )}
+                {loadingSuggestions && (
+                  <p className="text-xs text-muted-foreground animate-pulse">Finding best connectors...</p>
+                )}
+                {/* All keywords */}
+                <div className="flex flex-wrap gap-2">
+                  {keywords.map(kw => (
+                    <Badge
+                      key={kw.id}
+                      variant={keywordsInSpace.has(kw.keyword.toLowerCase()) ? "outline" : "secondary"}
+                      className={cn(
+                        "cursor-pointer transition-colors",
+                        keywordsInSpace.has(kw.keyword.toLowerCase()) 
+                          ? "opacity-50 cursor-default" 
+                          : "hover:bg-green-500/20 hover:border-green-500"
+                      )}
+                      onClick={() => handleKeywordClick(kw.keyword)}
+                    >
+                      {kw.keyword}
+                      {!keywordsInSpace.has(kw.keyword.toLowerCase()) && <Plus className="w-3 h-3 ml-1 opacity-70" />}
+                    </Badge>
+                  ))}
+                </div>
               </div>
             )}
           </div>
