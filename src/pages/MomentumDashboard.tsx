@@ -61,7 +61,7 @@ const MomentumDashboard = () => {
             )}
           </TabsContent>
           <TabsContent value="growth">
-            <CompoundGrowthTab pastReports={pastReports} currentStreak={currentStreak} />
+            <CompoundGrowthTab pastReports={pastReports} currentStreak={currentStreak} capabilities={capabilities} />
           </TabsContent>
           <TabsContent value="capabilities">
             <CapabilityMapTab capabilities={capabilities} />

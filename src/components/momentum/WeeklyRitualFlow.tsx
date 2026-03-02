@@ -128,6 +128,8 @@ export function WeeklyRitualFlow({ open, onClose, onComplete, weeklyData }: Week
         friction_type: answers?.frictionType || null,
         biggest_win_type: answers?.biggestWin || null,
         usefulness_answer: answers?.usefulness || null,
+        reflection_rate: weeklyData.reflectionRate,
+        active_days: weeklyData.activeDays,
       });
 
       if (error) throw error;
