@@ -2160,16 +2160,19 @@ export type Database = {
       }
       momentum_weekly_reports: {
         Row: {
+          active_days: number | null
           avg_usefulness_rating: number | null
           biggest_win_type: string | null
           created_at: string
           evolution_narrative: string | null
+          focus_category: string | null
           friction_points: Json | null
           friction_type: string | null
           id: string
           insights_captured: number | null
           momentum_score: number | null
           phases_active: Json | null
+          reflection_rate: number | null
           ritual_completed_at: string | null
           self_ratings: Json | null
           sprint_direction: string | null
@@ -2187,16 +2190,19 @@ export type Database = {
           wins_captured: number | null
         }
         Insert: {
+          active_days?: number | null
           avg_usefulness_rating?: number | null
           biggest_win_type?: string | null
           created_at?: string
           evolution_narrative?: string | null
+          focus_category?: string | null
           friction_points?: Json | null
           friction_type?: string | null
           id?: string
           insights_captured?: number | null
           momentum_score?: number | null
           phases_active?: Json | null
+          reflection_rate?: number | null
           ritual_completed_at?: string | null
           self_ratings?: Json | null
           sprint_direction?: string | null
@@ -2214,16 +2220,19 @@ export type Database = {
           wins_captured?: number | null
         }
         Update: {
+          active_days?: number | null
           avg_usefulness_rating?: number | null
           biggest_win_type?: string | null
           created_at?: string
           evolution_narrative?: string | null
+          focus_category?: string | null
           friction_points?: Json | null
           friction_type?: string | null
           id?: string
           insights_captured?: number | null
           momentum_score?: number | null
           phases_active?: Json | null
+          reflection_rate?: number | null
           ritual_completed_at?: string | null
           self_ratings?: Json | null
           sprint_direction?: string | null

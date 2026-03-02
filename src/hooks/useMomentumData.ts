@@ -35,6 +35,11 @@ export interface WeeklyReport {
   momentum_score: number | null;
   sprint_direction: string | null;
   system_insight: string | null;
+  reflection_rate: number | null;
+  active_days: number | null;
+  focus_category: string | null;
+  top_wins?: string[];
+  friction_points?: string[];
 }
 
 export interface Capability {
