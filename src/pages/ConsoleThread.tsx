@@ -649,6 +649,16 @@ const ConsoleThread = ({ embedded = false }: ConsoleThreadProps) => {
         } as any)
         .eq("id", user.id);
 
+      // Seed initial capabilities in background (non-blocking)
+      supabase.functions.invoke("seed-initial-capabilities", {
+        body: {
+          intakeAnswers,
+          workContext: entryState,
+        },
+      }).then(({ error }) => {
+        if (error) console.error("Capability seeding failed:", error);
+      });
+
       navigate("/creation-lab", {
         state: { projectName: name, projectDescription: description },
       });

@@ -81,6 +81,67 @@ export function WeeklyRitualFlow({ open, onClose, onComplete, weeklyData }: Week
     setStep("confirm");
   };
 
+  const detectBehavioralCapabilities = async (userId: string, reports: any[]) => {
+    if (reports.length < 3) return;
+    try {
+      const recentReports = reports.slice(0, 6);
+      const capChecks: { name: string; category: string; condition: boolean }[] = [
+        {
+          name: "Execution Consistency",
+          category: "execution",
+          condition: recentReports.slice(0, 3).every((r: any) => {
+            const rate = r.tasks_total > 0 ? (r.tasks_completed / r.tasks_total) * 100 : 0;
+            return rate > 80;
+          }),
+        },
+        {
+          name: "Focus Stability",
+          category: "strategy",
+          condition:
+            recentReports.slice(0, 4).length >= 4 &&
+            recentReports.slice(0, 4).every(
+              (r: any) => !r.sprint_direction?.toLowerCase().includes("pivot")
+            ),
+        },
+        {
+          name: "Reflection Discipline",
+          category: "reflection",
+          condition: recentReports.slice(0, 3).every((r: any) => (r.reflection_rate || 0) > 60),
+        },
+      ];
+
+      const toInsert = capChecks.filter((c) => c.condition);
+      if (toInsert.length === 0) return;
+
+      // Check which already exist
+      const { data: existing } = await supabase
+        .from("momentum_capabilities")
+        .select("capability_name")
+        .eq("user_id", userId)
+        .in("capability_name", toInsert.map((c) => c.name));
+
+      const existingNames = new Set((existing || []).map((e: any) => e.capability_name));
+      const newCaps = toInsert.filter((c) => !existingNames.has(c.name));
+
+      if (newCaps.length > 0) {
+        await supabase.from("momentum_capabilities").insert(
+          newCaps.map((c) => ({
+            user_id: userId,
+            capability_name: c.name,
+            source_type: "behavioral",
+            activation_count: 1,
+            level: 1,
+            acquisition_channel: "behavioral_detected",
+            category: c.category,
+            description: `Detected from consistent sprint behavior across ${recentReports.length} weeks.`,
+          })) as any
+        );
+      }
+    } catch (err) {
+      console.error("Behavioral capability detection error:", err);
+    }
+  };
+
   const handleConfirm = async () => {
     setSaving(true);
     try {
@@ -133,6 +194,18 @@ export function WeeklyRitualFlow({ open, onClose, onComplete, weeklyData }: Week
       });
 
       if (error) throw error;
+
+      // Run behavioral capability detection in background
+      const { data: allReports } = await supabase
+        .from("momentum_weekly_reports")
+        .select("*")
+        .eq("user_id", user.id)
+        .order("week_start", { ascending: false })
+        .limit(6);
+      if (allReports) {
+        detectBehavioralCapabilities(user.id, allReports);
+      }
+
       setStreak(newStreak);
       setStep("winner");
     } catch (err: any) {

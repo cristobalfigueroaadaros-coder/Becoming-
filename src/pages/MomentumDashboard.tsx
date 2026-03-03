@@ -11,7 +11,7 @@ import { WeeklyRitualFlow } from "@/components/momentum/WeeklyRitualFlow";
 
 const MomentumDashboard = () => {
   const navigate = useNavigate();
-  const { weeklyData, pastReports, capabilities, systemInsight, insightLoading, loading, refetch } = useMomentumData();
+  const { weeklyData, pastReports, capabilities, capabilityMapUnlocked, systemInsight, insightLoading, loading, refetch } = useMomentumData();
   const [ritualOpen, setRitualOpen] = useState(false);
 
   const currentStreak = pastReports.length > 0 ? pastReports[0].streak_weeks : 0;
@@ -44,10 +44,12 @@ const MomentumDashboard = () => {
 
         {/* Tabs */}
         <Tabs defaultValue="sprint" className="w-full">
-          <TabsList className="w-full">
+          <TabsList className={capabilityMapUnlocked ? "w-full" : "w-full"}>
             <TabsTrigger value="sprint" className="flex-1">Sprint Review</TabsTrigger>
             <TabsTrigger value="growth" className="flex-1">Growth</TabsTrigger>
-            <TabsTrigger value="capabilities" className="flex-1">Capabilities</TabsTrigger>
+            {capabilityMapUnlocked && (
+              <TabsTrigger value="capabilities" className="flex-1">Capabilities</TabsTrigger>
+            )}
           </TabsList>
 
           <TabsContent value="sprint">
@@ -63,9 +65,11 @@ const MomentumDashboard = () => {
           <TabsContent value="growth">
             <CompoundGrowthTab pastReports={pastReports} currentStreak={currentStreak} capabilities={capabilities} />
           </TabsContent>
-          <TabsContent value="capabilities">
-            <CapabilityMapTab capabilities={capabilities} />
-          </TabsContent>
+          {capabilityMapUnlocked && (
+            <TabsContent value="capabilities">
+              <CapabilityMapTab capabilities={capabilities} onCapabilitiesChanged={refetch} />
+            </TabsContent>
+          )}
         </Tabs>
       </div>
 

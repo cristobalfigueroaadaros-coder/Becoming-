@@ -2127,32 +2127,44 @@ export type Database = {
       }
       momentum_capabilities: {
         Row: {
+          acquisition_channel: string | null
           activation_count: number | null
           capability_name: string
+          category: string | null
           created_at: string
+          description: string | null
           first_activated_at: string
           id: string
           last_activated_at: string
+          level: number | null
           source_type: string | null
           user_id: string
         }
         Insert: {
+          acquisition_channel?: string | null
           activation_count?: number | null
           capability_name: string
+          category?: string | null
           created_at?: string
+          description?: string | null
           first_activated_at?: string
           id?: string
           last_activated_at?: string
+          level?: number | null
           source_type?: string | null
           user_id: string
         }
         Update: {
+          acquisition_channel?: string | null
           activation_count?: number | null
           capability_name?: string
+          category?: string | null
           created_at?: string
+          description?: string | null
           first_activated_at?: string
           id?: string
           last_activated_at?: string
+          level?: number | null
           source_type?: string | null
           user_id?: string
         }
@@ -2358,6 +2370,7 @@ export type Database = {
           birth_name: string | null
           birth_time: string | null
           birth_time_unknown: boolean | null
+          capability_map_unlocked: boolean | null
           console_intake_completed: boolean | null
           console_thread_phase: string | null
           constellation_insights: Json | null
@@ -2412,6 +2425,7 @@ export type Database = {
           birth_name?: string | null
           birth_time?: string | null
           birth_time_unknown?: boolean | null
+          capability_map_unlocked?: boolean | null
           console_intake_completed?: boolean | null
           console_thread_phase?: string | null
           constellation_insights?: Json | null
@@ -2466,6 +2480,7 @@ export type Database = {
           birth_name?: string | null
           birth_time?: string | null
           birth_time_unknown?: boolean | null
+          capability_map_unlocked?: boolean | null
           console_intake_completed?: boolean | null
           console_thread_phase?: string | null
           constellation_insights?: Json | null

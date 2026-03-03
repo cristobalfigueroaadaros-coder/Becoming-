@@ -49,12 +49,17 @@ export interface Capability {
   activation_count: number;
   first_activated_at: string;
   last_activated_at: string;
+  level?: number;
+  acquisition_channel?: string;
+  description?: string;
+  category?: string;
 }
 
 export function useMomentumData() {
   const [weeklyData, setWeeklyData] = useState<WeeklyData | null>(null);
   const [pastReports, setPastReports] = useState<WeeklyReport[]>([]);
   const [capabilities, setCapabilities] = useState<Capability[]>([]);
+  const [capabilityMapUnlocked, setCapabilityMapUnlocked] = useState(false);
   const [systemInsight, setSystemInsight] = useState<string | null>(null);
   const [insightLoading, setInsightLoading] = useState(false);
   const [loading, setLoading] = useState(true);
@@ -63,6 +68,14 @@ export function useMomentumData() {
     try {
       const { data: { user } } = await supabase.auth.getUser();
       if (!user) return;
+
+      // Check capability_map_unlocked on profile
+      const { data: profileData } = await supabase
+        .from("profiles")
+        .select("capability_map_unlocked")
+        .eq("id", user.id)
+        .single();
+      setCapabilityMapUnlocked(!!(profileData as any)?.capability_map_unlocked);
 
       const sevenDaysAgo = format(startOfDay(subDays(new Date(), 7)), "yyyy-MM-dd");
       const today = format(new Date(), "yyyy-MM-dd");
@@ -220,5 +233,5 @@ export function useMomentumData() {
     }
   }, [weeklyData?.tasksTotal]);
 
-  return { weeklyData, pastReports, capabilities, systemInsight, insightLoading, loading, refetch: fetchData };
+  return { weeklyData, pastReports, capabilities, capabilityMapUnlocked, systemInsight, insightLoading, loading, refetch: fetchData };
 }
