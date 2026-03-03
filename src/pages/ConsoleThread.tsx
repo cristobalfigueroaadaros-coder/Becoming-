@@ -453,7 +453,35 @@ const ConsoleThread = ({ embedded = false }: ConsoleThreadProps) => {
           setHandoffMentor(data.suggestedMentorFor1to1.mentorType);
         }
 
-        if (data.projectCoherence?.isCoherent) {
+        // Council-meeting doesn't return projectCoherence — run a lightweight
+        // chat-mentor call with the strategist to detect if a project name
+        // was proposed and agreed upon during council perspectives.
+        let coherenceResult = data.projectCoherence;
+        if (!coherenceResult?.isCoherent) {
+          try {
+            const allPerspectives = Object.values(perspectives).join("\n");
+            const recentContext = [
+              ...intakeAnswers.map(a => ({ role: "user" as const, content: a })),
+              { role: "user" as const, content: text },
+              { role: "assistant" as const, content: allPerspectives },
+            ];
+            const { data: coherenceCheck } = await supabase.functions.invoke("chat-mentor", {
+              body: {
+                mentorType: data.suggestedMentorFor1to1?.mentorType || "strategist_mentor",
+                message: text,
+                conversationHistory: recentContext,
+                coherenceCheckOnly: true,
+              },
+            });
+            if (coherenceCheck?.projectCoherence?.isCoherent) {
+              coherenceResult = coherenceCheck.projectCoherence;
+            }
+          } catch (e) {
+            console.error("Coherence check failed (non-blocking):", e);
+          }
+        }
+
+        if (coherenceResult?.isCoherent) {
           // Validate project name — reject generic placeholders
           const genericNames = ["project name", "untitled", "new project", "my project", "unnamed"];
           let finalProjectName = data.projectCoherence.projectName || "";

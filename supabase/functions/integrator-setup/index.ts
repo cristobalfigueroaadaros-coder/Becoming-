@@ -497,14 +497,20 @@ CRITICAL REQUIREMENTS:
     const phaseMap = new Map(phases.map((p: any) => [p.phase_name, p.id]));
 
     // Create daily steps - NO estimated_minutes, with PDR fields
+    const firstPhaseId = phases[0]?.id;
     const stepsToInsert = plan.dailySteps.map((step: any) => {
       const scheduledDate = new Date(startDate);
       scheduledDate.setDate(scheduledDate.getDate() + step.day - 1);
       
+      const resolvedPhaseId = phaseMap.get(step.phase);
+      if (!resolvedPhaseId) {
+        console.warn(`Phase name mismatch: "${step.phase}" not found in phases [${Array.from(phaseMap.keys()).join(', ')}]. Falling back to first phase.`);
+      }
+      
       return {
         project_id: project.id,
         node_id: node.id,
-        phase_id: phaseMap.get(step.phase),
+        phase_id: resolvedPhaseId || firstPhaseId,
         user_id: user.id,
         day_number: step.day,
         scheduled_date: scheduledDate.toISOString().split('T')[0],
