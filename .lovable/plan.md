@@ -1,133 +1,51 @@
 
 
-# Capability Map — Full Rebuild Plan
+# Fix Plan: Broken Flow, Project Creation Error, Mentor Quality, and Capability Map Layout
 
-## Current State
-- `momentum_capabilities` table: flat structure with `capability_name`, `source_type`, `activation_count`, timestamps
-- UI (`CapabilityMapTab.tsx`): simple badge list grouped by category, always visible as a tab
-- No levels, no acquisition channels, no progressive reveal, no identity visualization
+## Issues Found
 
-## What Changes
+### 1. Naming Card Not Triggering During Council Perspectives
+**Root cause**: The `council-meeting` edge function does NOT return `projectCoherence` — only `chat-mentor` does. When the Strategist proposes a name during council perspectives (e.g., "The Gift Compass"), the `handleUserReply` function calls `council-meeting`, which has no coherence detection. The naming card only triggers in `handleMentor1to1` (which calls `chat-mentor`).
 
-### 1. Database Migration
-Extend `momentum_capabilities` with new columns:
-- `level` INTEGER DEFAULT 1 (1-5: Recognized → Dominant)
-- `acquisition_channel` TEXT ('onboarding_inferred', 'self_declared', 'behavioral_detected', 'compound_unlock')
-- `description` TEXT (short grounded explanation)
-- `category` TEXT ('execution', 'reflection', 'strategy', 'creativity', 'identity')
+**Fix**: After the 2nd round perspectives in `handleUserReply`, if no `projectCoherence` is detected from council-meeting, run a lightweight check through `chat-mentor` with the strategist to detect if a project name was proposed and agreed upon. Alternatively, add project coherence detection directly to the `council-meeting` edge function — extracting proposed names from the perspectives text and checking user agreement.
 
-Add a new flag on `profiles`:
-- `capability_map_unlocked` BOOLEAN DEFAULT false
+### 2. "Start Building" Error — `Failed to create daily steps`
+**Root cause**: The `integrator_daily_steps.phase_id` column is `NOT NULL`. When the AI generates a step with a `phase` name that doesn't match any created phase (e.g., typo or mismatch between AI-generated phase names and step phase references), `phaseMap.get(step.phase)` returns `undefined`, causing the insert to fail with a null constraint violation.
 
-### 2. Initial Capability Seeding (Edge Function)
-Create `seed-initial-capabilities` edge function:
-- Triggered after first project creation (called from `ConsoleThread.tsx` after `handleFirstWinAccept`)
-- Reads onboarding answers (intake Q1-Q3 stored in console thread) + profile work_context
-- Uses AI (gemini-2.5-flash) to extract 3 inferred capabilities using the Mixed Precision Model:
-  - 1 Anchor (obvious strength)
-  - 1 Sharpened (reframed)
-  - 1 Insight (pattern-based inference)
-- Inserts them as `acquisition_channel: 'onboarding_inferred'`, level 1
-- Sets `capability_map_unlocked: true` on profile
-- Returns capabilities + a suggested list of 8-10 self-declared options for user selection
+**Fix**: In `integrator-setup/index.ts`, add a fallback for `phase_id`: if `phaseMap.get(step.phase)` returns `undefined`, assign the step to the first available phase. Also add error logging to show which phase name failed.
 
-### 3. Capability Map Tab — Visibility Gating
-In `MomentumDashboard.tsx`:
-- Only show the "Capabilities" tab trigger if `capability_map_unlocked` is true on the profile
-- When first unlocked, show a subtle badge/dot on the tab
+### 3. Creative Mentor Repetitiveness
+**Root cause**: The Creative Visionary prompt is detailed but lacks a **diversity enforcement rule**. The "Creative Recombination Engine" section always follows the same pattern: "I see an entire ecosystem/universe... app, real-world projects, mentor networks... Build the simplest version... test with X people."
 
-### 4. Full UI Rebuild (`CapabilityMapTab.tsx`)
-Replace badge list with identity-centered layout:
+**Fix**: Add an anti-repetition rule to the creative_visionary prompt:
+- "NEVER repeat structural patterns from previous messages"
+- "If you previously suggested 'build X and test with Y people,' use a completely different format"
+- "Vary: sometimes propose a single experiment, sometimes a framework, sometimes a constraint-based challenge"
+- "Each response must feel structurally different from the last"
 
-**Center**: User avatar (from profile)
+### 4. Marketing Mentor Not Talking About Marketing
+**Root cause**: The marketing_mentor prompt is extremely thin (only 4 lines of personality guidance). It lacks specific instructions about what marketing topics to cover (distribution, positioning, audience building, go-to-market). Without this, the AI defaults to general business advice, often overlapping with the Business Mentor's financial risk framing.
 
-**Orbiting nodes**: Each capability as a node showing:
-- Name
-- Level indicator (1-5 dots or ring fill)
-- Category color coding
-- Glow intensity based on activation_count
+**Fix**: Expand the marketing_mentor prompt with:
+- Specific marketing domains: positioning, distribution channels, audience building, content strategy, go-to-market, storytelling, brand narrative
+- Anti-overlap rule: "You are NOT the Business Mentor. Never discuss profitability, financial risk, or monetization strategy. Focus exclusively on how to reach people, tell the story, and build visibility."
+- Practical marketing actions: "Your suggestions should always be about reaching real humans — posting, messaging, creating content, testing hooks, finding distribution."
 
-**Sections below the visual**:
-- **Inferred** (system-assigned, non-removable)
-- **Self-Declared** (user-selected, expandable weekly)
-- **Behavioral** (detected from sprints)
-- **Compound** (rare advanced unlocks)
+### 5. Capability Map Missing Avatar-Centered Orbital Layout
+**Root cause**: The current `CapabilityMapTab.tsx` uses a simple list layout with an avatar at the top and grouped cards below. It doesn't match the Superpower Map's radial/orbital visual where nodes orbit around a center.
 
-**Self-Declaration Flow**:
-- On first visit after unlock, show a selection modal with 8-10 options
-- User picks 2-3
-- Each subsequent week, 1-2 new slots unlock (based on sprint count)
+**Fix**: Rebuild the visual section to use an orbital/radial layout:
+- Center: User avatar with a glowing ring
+- Orbiting nodes: Capabilities positioned in a circular arrangement around the avatar using CSS transforms (similar to how the Superpower Map works)
+- Each node shows: icon, name, level dots, and a glow intensity based on activation count
+- Keep the grouped sections below as a detail view, but the hero section should be the orbital visualization
 
-### 5. Level Progression Logic
-Client-side computation in `useMomentumData.ts`:
-- Level 1 (Recognized): activation_count >= 1
-- Level 2 (Activated): activation_count >= 3, across 2+ sprints
-- Level 3 (Strengthening): activation_count >= 8, across 3+ sprints
-- Level 4 (Established): activation_count >= 15, across 5+ sprints
-- Level 5 (Dominant): activation_count >= 25, across 8+ sprints
+## Files to Modify
 
-Levels never decay. Computed and synced when viewing the tab.
-
-### 6. Behavioral Detection
-Extend the existing `complete-task` edge function (or weekly ritual flow) to detect behavioral patterns and insert new capabilities:
-- After each sprint completion, check patterns like:
-  - High completion rate for 3+ sprints → "Execution Consistency"
-  - Multiple refinements without pivot → "Strategic Refinement"
-  - High reflection rate → "Reflection Discipline"
-- Insert with `acquisition_channel: 'behavioral_detected'`
-
-### 7. Compound Unlocks
-In `WeeklyRitualFlow.tsx` or via the `generate-compound-narrative` function:
-- After 4+ consecutive sprints with stable direction, high reflection, low pivots → unlock compound capabilities like "Execution Architecture", "Strategic Depth"
-- Insert with `acquisition_channel: 'compound_unlock'`
-
-### 8. Notification Flow
-After seeding initial capabilities:
-- Add a notification dot on the Dashboard's Momentum card
-- When user opens Momentum, show badge on the Capabilities tab
-- First click reveals capabilities with a calm intro card
-
-## Files to Create/Modify
-
-| File | Action |
+| File | Change |
 |------|--------|
-| DB migration | Add `level`, `acquisition_channel`, `description`, `category` to `momentum_capabilities`; add `capability_map_unlocked` to `profiles` |
-| `supabase/functions/seed-initial-capabilities/index.ts` | New: AI extraction of initial capabilities from onboarding data |
-| `src/components/momentum/CapabilityMapTab.tsx` | Full rebuild: avatar-centered orbital layout with sections |
-| `src/pages/MomentumDashboard.tsx` | Conditional tab visibility, unlock badge |
-| `src/hooks/useMomentumData.ts` | Level computation, fetch `capability_map_unlocked` |
-| `src/pages/ConsoleThread.tsx` | Call `seed-initial-capabilities` after first project accepted |
-| `src/components/momentum/WeeklyRitualFlow.tsx` | Behavioral + compound capability detection on ritual save |
-
-## Visual Design
-- Professional, minimal, prestige-based
-- No coins, no XP bars, no leaderboard
-- Orbital nodes with subtle glow
-- Calm color palette per category
-- Level shown as concentric rings or small dot indicators
-
-## Technical Details
-
-**Level thresholds** (computed client-side):
-```text
-Level 1: count >= 1
-Level 2: count >= 3, sprints >= 2
-Level 3: count >= 8, sprints >= 3
-Level 4: count >= 15, sprints >= 5
-Level 5: count >= 25, sprints >= 8
-```
-
-**Behavioral detection triggers** (checked during weekly ritual):
-```text
-completion_rate > 80% for 3+ sprints → "Execution Consistency"
-0 pivots for 4+ sprints → "Focus Stability"
-reflection_rate > 60% for 3+ sprints → "Reflection Discipline"
-design_thinking interactions in 3+ sprints → "Problem Framing"
-```
-
-**Compound unlock conditions**:
-```text
-4+ sprints + stability_index > 70 + reflection > 50% → "Execution Architecture"
-6+ sprints + no pivots + high momentum trend → "Strategic Depth"
-```
+| `src/pages/ConsoleThread.tsx` | Add project coherence detection after 2nd round council perspectives |
+| `supabase/functions/integrator-setup/index.ts` | Add phase_id fallback for mismatched AI phase names |
+| `supabase/functions/chat-mentor/index.ts` | Expand marketing_mentor prompt; add anti-repetition rules to creative_visionary |
+| `src/components/momentum/CapabilityMapTab.tsx` | Add orbital/radial visual layout for capabilities around avatar |
 
