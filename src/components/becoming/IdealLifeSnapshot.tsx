@@ -5,6 +5,7 @@ import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
 import { Label } from "@/components/ui/label";
 import { Compass, Edit2, Save, X, Loader2, ImageIcon, RefreshCw } from "lucide-react";
+import { MicroGuide } from "@/components/MicroGuide";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
 
@@ -165,6 +166,11 @@ export const IdealLifeSnapshot = () => {
           <CardTitle className="text-lg flex items-center gap-2">
             <Compass className="w-5 h-5 text-teal-500" />
             Ideal Life Snapshot
+            <MicroGuide
+              guideKey="ideal_life"
+              title="Ideal Life Snapshot"
+              description={"This exercise helps visualize the life you want to build.\n\nIt connects your present actions with your future direction."}
+            />
           </CardTitle>
           {!editing && (
             <Button

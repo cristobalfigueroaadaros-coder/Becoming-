@@ -4,6 +4,7 @@ import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { Input } from '@/components/ui/input';
 import { Lightbulb, Plus, Maximize2, Minimize2, Inbox, Tag, ChevronDown, ChevronUp, Sparkles } from 'lucide-react';
+import { MicroGuide } from "@/components/MicroGuide";
 import { useCreativeSpace } from '@/hooks/useCreativeSpace';
 import { InsightTile } from './InsightTile';
 import { NoteTile } from './NoteTile';
@@ -190,6 +191,11 @@ export function CreativeSpace({ projectId, projectTitle }: CreativeSpaceProps) {
             <CardTitle className="flex items-center gap-2 text-lg">
               <Lightbulb className="w-5 h-5 text-primary" />
               Creative Space
+              <MicroGuide
+                guideKey="creative_space"
+                title="Creative Space"
+                description={"This is where your ideas live.\n\nYou can save insights, connect keywords, and explore new directions.\n\nOver time patterns begin to emerge."}
+              />
             </CardTitle>
             <CardDescription className="text-sm">
               Explore your ideas freely — move, connect, and discover

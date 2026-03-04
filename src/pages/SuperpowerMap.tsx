@@ -3,6 +3,7 @@ import { useNavigate, useLocation } from "react-router-dom";
 import { motion, AnimatePresence } from "framer-motion";
 import { Button } from "@/components/ui/button";
 import { ArrowLeft, User, Zap } from "lucide-react";
+import { MicroGuide } from "@/components/MicroGuide";
 import { useSuperpowers, type Superpower } from "@/hooks/useSuperpowers";
 import confetti from "canvas-confetti";
 import { toast } from "sonner";
@@ -84,6 +85,11 @@ const SuperpowerMap = () => {
             <h1 className="text-xl font-bold flex items-center gap-2">
               <Zap className="w-5 h-5 text-amber-500" />
               Superpower Map
+              <MicroGuide
+                guideKey="superpowers"
+                title="Superpowers"
+                description={"Superpowers represent strengths that emerge from your growth.\n\nThey reflect how challenges have been transformed into wisdom, knowledge, and abilities."}
+              />
             </h1>
             <p className="text-sm text-muted-foreground">
               {superpowers.length} superpower{superpowers.length !== 1 ? "s" : ""} unlocked

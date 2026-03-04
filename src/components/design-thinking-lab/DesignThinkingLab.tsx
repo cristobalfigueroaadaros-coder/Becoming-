@@ -1,6 +1,7 @@
 import React, { useState } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { Palette, Loader2 } from 'lucide-react';
+import { MicroGuide } from "@/components/MicroGuide";
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { PhaseType } from './types';
 import { PhaseCircle } from './PhaseCircle';
@@ -59,6 +60,11 @@ export const DesignThinkingLab: React.FC<DesignThinkingLabProps> = ({ projectId,
         <CardTitle className="text-lg flex items-center gap-2">
           <Palette className="w-5 h-5 text-primary" />
           Design Thinking Lab
+          <MicroGuide
+            guideKey="design_thinking"
+            title="Design Thinking Lab"
+            description={"This lab helps you improve and iterate your project.\n\nHere you analyze ideas, refine direction, and observe how your project evolves over time."}
+          />
         </CardTitle>
       </CardHeader>
       

@@ -6,6 +6,7 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { ArrowLeft, Orbit, MessageCircle, Sparkles, Clock, Loader2 } from "lucide-react";
+import { MicroGuide } from "@/components/MicroGuide";
 import { useInnerPatterns, type InnerPattern } from "@/hooks/useInnerPatterns";
 import { useLifetimeEvents, type LifetimeEvent, type TimePeriod, type LifetimeEventInput } from "@/hooks/useLifetimeEvents";
 import { useSuperpowers } from "@/hooks/useSuperpowers";
@@ -481,6 +482,31 @@ const PatternMap = () => {
               Lifetime
             </TabsTrigger>
           </TabsList>
+
+          {/* Tab-specific MicroGuides */}
+          <div className="flex justify-end mt-2">
+            {activeTab === "pattern-map" && (
+              <MicroGuide
+                guideKey="pattern_map"
+                title="Pattern Map"
+                description={"This map helps discover patterns or challenges across your life events.\n\nRecognizing these patterns is the first step toward transmutation."}
+              />
+            )}
+            {activeTab === "transmutation" && (
+              <MicroGuide
+                guideKey="transmutation"
+                title="Transmutation"
+                description={"This process transforms challenging life events into strength.\n\nThrough structured phases you turn friction into knowledge, wisdom, and growth."}
+              />
+            )}
+            {activeTab === "lifetime" && (
+              <MicroGuide
+                guideKey="lifetime"
+                title="Life Time"
+                description="This timeline helps locate the events that shaped your life."
+              />
+            )}
+          </div>
         </Tabs>
 
         {/* Pattern Map Canvas */}
