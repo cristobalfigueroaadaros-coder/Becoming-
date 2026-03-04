@@ -3,6 +3,7 @@ import { useNavigate } from "react-router-dom";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Rocket, Sparkles, TrendingUp, Calendar, Target } from "lucide-react";
+import { MicroGuide } from "@/components/MicroGuide";
 import { IntegratorCalendar } from "@/components/integrator/IntegratorCalendar";
 import { IntegratorDailyStepCard } from "@/components/integrator/IntegratorDailyStepCard";
 import { ProjectHeaderEditor } from "@/components/integrator/ProjectHeaderEditor";
@@ -133,6 +134,13 @@ export const FocusMode = ({
       )}
 
       {/* Project Header - Clean hierarchy without phases */}
+      <div className="flex justify-end">
+        <MicroGuide
+          guideKey="project"
+          title="Project"
+          description={"This space shows the project you are currently building.\n\nIt defines the direction of your work and the outcome you want to create."}
+        />
+      </div>
       <ProjectHeaderEditor
         project={activeProject}
         currentPhase={currentPhase}

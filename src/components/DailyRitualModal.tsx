@@ -7,6 +7,7 @@ import { Label } from "@/components/ui/label";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
 import { Sparkles, Flame, Target, Heart, Music, Play, Pause, Star, Trash2, ExternalLink } from "lucide-react";
+import { MicroGuide } from "@/components/MicroGuide";
 import { useAchievements } from "@/hooks/useAchievements";
 import { Progress } from "@/components/ui/progress";
 import { Badge } from "@/components/ui/badge";
@@ -334,6 +335,11 @@ export const DailyRitualModal = ({ open, onClose, onComplete }: DailyRitualModal
             <div className="flex items-center gap-2 text-primary">
               <Sparkles className="w-5 h-5" />
               <h3 className="text-lg font-semibold">How are you feeling right now?</h3>
+              <MicroGuide
+                guideKey="daily_ritual"
+                title="Daily Ritual"
+                description={"This is a moment for yourself.\n\nHere you take a short pause through breathing, meditation, or visualization to center your focus before taking action."}
+              />
             </div>
             <p className="text-sm text-muted-foreground">
               Take a moment to check in with yourself. No judgment, just awareness.

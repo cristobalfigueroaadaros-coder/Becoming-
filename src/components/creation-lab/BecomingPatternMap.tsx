@@ -2,6 +2,7 @@ import { useState } from "react";
 import { motion } from "framer-motion";
 import { useNavigate } from "react-router-dom";
 import { Orbit, MessageCircle } from "lucide-react";
+import { MicroGuide } from "@/components/MicroGuide";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
@@ -134,7 +135,14 @@ export const BecomingPatternMap = ({
                   <Orbit className="w-5 h-5 text-indigo-500" />
                 </div>
                 <div>
-                  <CardTitle className="text-lg">{selectedPattern.pattern_name}</CardTitle>
+                  <CardTitle className="text-lg flex items-center gap-2">
+                    {selectedPattern.pattern_name}
+                    <MicroGuide
+                      guideKey="pattern_profile"
+                      title="Your Pattern Profile"
+                      description={"This profile helps identify recurring behaviors or challenges in your life.\n\nRecognizing patterns is the first step toward transformation."}
+                    />
+                  </CardTitle>
                   <div className="flex items-center gap-2 mt-1">
                     <Badge
                       variant="secondary"

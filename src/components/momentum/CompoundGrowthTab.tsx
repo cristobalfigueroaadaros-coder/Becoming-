@@ -4,6 +4,7 @@ import { Badge } from "@/components/ui/badge";
 import { TrendingUp, TrendingDown, Minus, Target, Brain, Zap, BarChart3 } from "lucide-react";
 import { LineChart, Line, XAxis, YAxis, ResponsiveContainer, Tooltip } from "recharts";
 import { supabase } from "@/integrations/supabase/client";
+import { MicroGuide } from "@/components/MicroGuide";
 import type { WeeklyReport, Capability } from "@/hooks/useMomentumData";
 
 interface CompoundGrowthTabProps {
@@ -158,6 +159,13 @@ export function CompoundGrowthTab({ pastReports, currentStreak, capabilities }: 
 
   return (
     <div className="space-y-3">
+      <div className="flex justify-end">
+        <MicroGuide
+          guideKey="compound_growth"
+          title="Compound Growth"
+          description={"This view shows the accumulation of your progress over time.\n\nSmall consistent actions compound into meaningful growth."}
+        />
+      </div>
       {/* Narrative block */}
       {(compoundNarrative || narrativeLoading) && (
         <Card className="border-border/50">

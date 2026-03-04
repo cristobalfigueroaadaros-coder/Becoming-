@@ -3,6 +3,7 @@ import { Progress } from "@/components/ui/progress";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { CheckCircle, Lightbulb, Trophy, AlertTriangle, Activity, Zap, Calendar, BookOpen, Brain } from "lucide-react";
+import { MicroGuide } from "@/components/MicroGuide";
 import type { WeeklyData } from "@/hooks/useMomentumData";
 
 interface SprintReviewTabProps {
@@ -48,6 +49,13 @@ export function SprintReviewTab({ data, systemInsight, insightLoading, onStartRi
   return (
     <div className="space-y-4">
       {/* Section A — Momentum Score */}
+      <div className="flex justify-end">
+        <MicroGuide
+          guideKey="sprint_review"
+          title="Sprint Review"
+          description={"This is your weekly reflection.\n\nHere you evaluate your week using statistics and execution data.\n\nYou review what worked, what didn't, and what direction to take next."}
+        />
+      </div>
       <Card>
         <CardContent className="py-6 flex justify-center">
           <MomentumScoreRing score={data.momentumScore} />

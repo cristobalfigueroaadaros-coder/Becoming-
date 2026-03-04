@@ -46,6 +46,7 @@ export interface ChatMessage {
 interface ChatBubbleProps {
   message: ChatMessage;
   index: number;
+  perspectiveIndex?: number; // which perspective message this is (1-based)
 }
 
 // Strip markdown bold/italic artifacts into proper JSX
@@ -62,11 +63,12 @@ const cleanMarkdown = (text: string): React.ReactNode => {
   });
 };
 
-const ChatBubble = ({ message, index }: ChatBubbleProps) => {
+const ChatBubble = ({ message, index, perspectiveIndex }: ChatBubbleProps) => {
   const isUser = message.role === "user";
   const isBanter = message.messageType === "banter";
   const isNotification = message.messageType === "notification";
   const hexColor = getHexColor(message.mentorColor);
+  const showTutorialArrow = message.messageType === "perspective" && perspectiveIndex === 3 && localStorage.getItem('save_tutorial_shown') !== '1';
 
   // Notification: WhatsApp-style CTA card
   if (isNotification && !isUser) {
@@ -183,6 +185,7 @@ const ChatBubble = ({ message, index }: ChatBubbleProps) => {
                   sourceType={message.messageType === "perspective" ? "mentor_perspective" : "council_guidance"}
                   sourceMentor={message.mentorName}
                   className="opacity-0 group-hover/msg:opacity-100 mt-1.5 -mb-0.5"
+                  showTutorialArrow={showTutorialArrow}
                 />
               </div>
             )}

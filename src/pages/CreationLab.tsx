@@ -5,6 +5,7 @@ import { Card, CardHeader, CardTitle, CardDescription, CardContent } from "@/com
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { ArrowLeft, Lightbulb, Target, Rocket, Check } from "lucide-react";
+import { MicroGuide } from "@/components/MicroGuide";
 import { motion } from "framer-motion";
 import { useCreationLabData } from "@/hooks/useCreationLabData";
 import { ModeSelector, type CreationLabMode } from "@/components/creation-lab/ModeSelector";
@@ -256,7 +257,14 @@ const CreationLab = () => {
             <CardContent className="space-y-6 pt-4">
               {/* Project Name */}
               <div className="space-y-2">
-                <label className="text-sm font-medium">Project Name</label>
+                <div className="flex items-center gap-2">
+                  <label className="text-sm font-medium">Project Name</label>
+                  <MicroGuide
+                    guideKey="project_name"
+                    title="Project Name"
+                    description={"This defines the idea or project you are building.\n\nProjects help transform insights into something real."}
+                  />
+                </div>
                 <Input
                   value={projectName}
                   onChange={(e) => setProjectName(e.target.value)}

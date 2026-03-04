@@ -6,6 +6,7 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { ToggleGroup, ToggleGroupItem } from "@/components/ui/toggle-group";
 import { Network, Clock, FileText, Filter, X, Sparkles, Loader2, Target, Eye, Tag, User, Rocket } from "lucide-react";
+import { MicroGuide } from "@/components/MicroGuide";
 import { ConstellationCanvas } from "@/components/ConstellationCanvas";
 import { ConstellationTimeline } from "@/components/ConstellationTimeline";
 import { ConstellationSystem } from "@/components/ConstellationSystem";
@@ -178,6 +179,13 @@ export const LivingConstellation = ({
 
   return (
     <div className="space-y-6">
+      <div className="flex justify-end">
+        <MicroGuide
+          guideKey="constellation"
+          title="Living Constellation"
+          description={"This map visualizes how your ideas, experiences, and insights connect.\n\nIt helps reveal relationships between different parts of your journey."}
+        />
+      </div>
       <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full">
         <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 mb-6">
           <TabsList className="grid grid-cols-4">

@@ -6,6 +6,7 @@ import { CoreDiscoveries } from "@/components/becoming/CoreDiscoveries";
 import { DailyJournal } from "@/components/becoming/DailyJournal";
 import { ActualSelfSummaryCard } from "@/components/becoming/ActualSelfSummaryCard";
 import { LifeDomainsRadar } from "@/components/LifeDomainsRadar";
+import { MicroGuide } from "@/components/MicroGuide";
 
 export const BecomingHome = () => {
   return (
@@ -40,6 +41,13 @@ export const BecomingHome = () => {
           <CoreDiscoveries />
 
           {/* Life Domains Radar - Awareness view */}
+          <div className="flex justify-end">
+            <MicroGuide
+              guideKey="life_assessment"
+              title="Complete Your Life Assessment"
+              description={"This assessment evaluates key areas of your life.\n\nIt helps identify strengths, gaps, and opportunities for growth."}
+            />
+          </div>
           <LifeDomainsRadar />
         </div>
       </div>

@@ -1,6 +1,7 @@
 import { useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { ArrowLeft, Rocket } from "lucide-react";
+import { MicroGuide } from "@/components/MicroGuide";
 import { Button } from "@/components/ui/button";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { useMomentumData } from "@/hooks/useMomentumData";
@@ -37,9 +38,16 @@ const MomentumDashboard = () => {
           </Button>
         </div>
 
-        <div>
-          <h1 className="text-2xl font-bold">Momentum</h1>
-          <p className="text-sm text-muted-foreground">Your weekly execution intelligence.</p>
+        <div className="flex items-center gap-2">
+          <div>
+            <h1 className="text-2xl font-bold">Momentum</h1>
+            <p className="text-sm text-muted-foreground">Your weekly execution intelligence.</p>
+          </div>
+          <MicroGuide
+            guideKey="momentum"
+            title="Momentum"
+            description={"This is where you review your progress.\n\nEvery week you reflect on what worked, what you learned, and what can be improved or changed.\n\nYou review this together with your Console."}
+          />
         </div>
 
         {/* Tabs */}

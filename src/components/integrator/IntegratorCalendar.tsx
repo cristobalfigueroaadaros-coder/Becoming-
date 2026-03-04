@@ -1,6 +1,7 @@
 import { useState } from "react";
 import { motion } from "framer-motion";
 import { Check, Clock, X, MessageSquare, SkipForward, CalendarClock } from "lucide-react";
+import { MicroGuide } from "@/components/MicroGuide";
 import { format, parseISO, isToday, isBefore } from "date-fns";
 import {
   Dialog,
@@ -96,6 +97,13 @@ export function IntegratorCalendar({
 
   return (
     <div className="space-y-4">
+      <div className="flex justify-end">
+        <MicroGuide
+          guideKey="journey_calendar"
+          title="Your Journey Calendar"
+          description={"This calendar shows the tasks you need to complete during the upcoming days.\n\nIt helps you stay accountable and maintain consistent progress."}
+        />
+      </div>
       {/* Calendar Grid */}
       <div className="space-y-2">
         {weeks.map((week, weekIndex) => (

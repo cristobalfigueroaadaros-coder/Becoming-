@@ -816,9 +816,15 @@ const ConsoleThread = ({ embedded = false }: ConsoleThreadProps) => {
 
       {/* Messages */}
       <div className="flex-1 overflow-y-auto py-4 space-y-1">
-        {messages.map((msg, i) => (
-          <ChatBubble key={msg.id} message={msg} index={i} />
-        ))}
+        {messages.map((msg, i) => {
+          // Count perspective messages up to this point for tutorial arrow
+          const perspectiveIndex = msg.messageType === "perspective"
+            ? messages.slice(0, i + 1).filter(m => m.messageType === "perspective").length
+            : undefined;
+          return (
+            <ChatBubble key={msg.id} message={msg} index={i} perspectiveIndex={perspectiveIndex} />
+          );
+        })}
         {typing && (
           <TypingIndicator
             mentorName={typing.name}

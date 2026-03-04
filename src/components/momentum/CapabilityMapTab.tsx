@@ -5,6 +5,7 @@ import { Button } from "@/components/ui/button";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Avatar, AvatarFallback } from "@/components/ui/avatar";
 import { Zap, Star, Shield, Brain, Sparkles, Target, Eye, Layers, Check } from "lucide-react";
+import { MicroGuide } from "@/components/MicroGuide";
 import { subDays } from "date-fns";
 import type { Capability } from "@/hooks/useMomentumData";
 import { supabase } from "@/integrations/supabase/client";
@@ -244,6 +245,13 @@ export function CapabilityMapTab({
 
   return (
     <div className="space-y-5">
+      <div className="flex justify-end">
+        <MicroGuide
+          guideKey="capability_map"
+          title="Capability Map"
+          description={"This map shows the capabilities you develop through action and life experience.\n\nAs you build projects and solve problems, your strengths become visible here."}
+        />
+      </div>
       {/* ── Orbital Identity Visualization ── */}
       <div className="relative mx-auto" style={{ width: orbitalRadius * 2 + 100, height: orbitalRadius * 2 + 100 }}>
         {/* Orbit ring */}

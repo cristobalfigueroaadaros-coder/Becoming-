@@ -6,6 +6,7 @@ import { Textarea } from "@/components/ui/textarea";
 import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
 import { BookOpen, Plus, Save, X, Calendar } from "lucide-react";
+import { MicroGuide } from "@/components/MicroGuide";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
 import { format, isToday, parseISO } from "date-fns";
@@ -157,6 +158,11 @@ export const DailyJournal = () => {
           <CardTitle className="text-lg flex items-center gap-2">
             <BookOpen className="w-5 h-5 text-amber-500" />
             Daily Journal
+            <MicroGuide
+              guideKey="daily_journal"
+              title="Daily Journal"
+              description={"This space captures your reflections.\n\nWriting helps clarify thoughts and reveal patterns."}
+            />
           </CardTitle>
           {!isWriting && (
             <Button

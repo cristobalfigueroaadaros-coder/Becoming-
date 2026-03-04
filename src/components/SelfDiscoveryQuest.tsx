@@ -9,6 +9,7 @@ import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
 import { Progress } from "@/components/ui/progress";
 import { Badge } from "@/components/ui/badge";
 import { BookOpen, CheckCircle2, Lock, Sparkles, Heart, Target, Brain, Compass, Star } from "lucide-react";
+import { MicroGuide } from "@/components/MicroGuide";
 import { toast } from "sonner";
 import { cn } from "@/lib/utils";
 
@@ -602,6 +603,11 @@ export const SelfDiscoveryQuest = () => {
               <CardTitle className="flex items-center gap-2">
                 <BookOpen className="w-5 h-5" />
                 Quest Progress
+                <MicroGuide
+                  guideKey="self_discovery"
+                  title="Self Discovery Quest"
+                  description={"This section contains exercises designed to help you understand yourself better.\n\nThrough questions and reflections, you discover deeper motivations and direction."}
+                />
               </CardTitle>
               <CardDescription>
                 Complete quests to unlock deeper self-understanding
