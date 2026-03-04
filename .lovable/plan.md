@@ -1,51 +1,83 @@
 
 
-# Fix Plan: Broken Flow, Project Creation Error, Mentor Quality, and Capability Map Layout
+# Contextual Micro-Guide System
 
-## Issues Found
+## Overview
+Create a reusable `MicroGuide` component (info icon + popover/dialog) and place it in every feature header listed in the PDR. Also implement a one-time Save button tutorial with an animated arrow on the 3rd perspective message.
 
-### 1. Naming Card Not Triggering During Council Perspectives
-**Root cause**: The `council-meeting` edge function does NOT return `projectCoherence` — only `chat-mentor` does. When the Strategist proposes a name during council perspectives (e.g., "The Gift Compass"), the `handleUserReply` function calls `council-meeting`, which has no coherence detection. The naming card only triggers in `handleMentor1to1` (which calls `chat-mentor`).
+## Architecture
 
-**Fix**: After the 2nd round perspectives in `handleUserReply`, if no `projectCoherence` is detected from council-meeting, run a lightweight check through `chat-mentor` with the strategist to detect if a project name was proposed and agreed upon. Alternatively, add project coherence detection directly to the `council-meeting` edge function — extracting proposed names from the perspectives text and checking user agreement.
+### 1. Reusable `MicroGuide` component (`src/components/MicroGuide.tsx`)
+- Renders a small `Info` icon (lucide) in the top-right of a feature header
+- On click, opens a minimal Dialog with: title, 3-4 line explanation, close button
+- Tracks "first view" per guide key using localStorage (`microguide_viewed_{key}`)
+- On first visit: icon has a subtle pulse animation (CSS `animate-pulse`)
+- After first view: pulse stops, icon remains available
 
-### 2. "Start Building" Error — `Failed to create daily steps`
-**Root cause**: The `integrator_daily_steps.phase_id` column is `NOT NULL`. When the AI generates a step with a `phase` name that doesn't match any created phase (e.g., typo or mismatch between AI-generated phase names and step phase references), `phaseMap.get(step.phase)` returns `undefined`, causing the insert to fail with a null constraint violation.
+### 2. Placement across all features
+Each feature gets a `<MicroGuide guideKey="..." title="..." description="..." />` added to its header area:
 
-**Fix**: In `integrator-setup/index.ts`, add a fallback for `phase_id`: if `phaseMap.get(step.phase)` returns `undefined`, assign the step to the first available phase. Also add error logging to show which phase name failed.
+| Feature | File | Guide Key |
+|---------|------|-----------|
+| Momentum Dashboard | `MomentumDashboard.tsx` | `momentum` |
+| Sprint Review tab | `SprintReviewTab.tsx` | `sprint_review` |
+| Compound Growth tab | `CompoundGrowthTab.tsx` | `compound_growth` |
+| Capability Map tab | `CapabilityMapTab.tsx` | `capability_map` |
+| Project (Focus Mode) | `FocusMode.tsx` | `project` |
+| Daily Ritual Modal | `DailyRitualModal.tsx` | `daily_ritual` |
+| Project Setup (name) | `CreationLab.tsx` (setup section) | `project_name` |
+| Daily Goals | Within integrator step cards | `daily_goals` |
+| Journey Calendar | `IntegratorCalendar.tsx` | `journey_calendar` |
+| Design Thinking Lab | `DesignThinkingLab.tsx` | `design_thinking` |
+| Creative Space | `CreativeSpace.tsx` | `creative_space` |
+| Purpose → Value Map | `PurposeToValueMap.tsx` / `ValueMapCanvas.tsx` | `value_map` |
+| Living Constellation | `LivingConstellation.tsx` | `constellation` |
+| Self Discovery Quest | `SelfDiscoveryQuest.tsx` | `self_discovery` |
+| Daily Journal | `DailyJournal.tsx` | `daily_journal` |
+| Pattern Profile | `BecomingPatternMap.tsx` | `pattern_profile` |
+| Ideal Life Snapshot | `IdealLifeSnapshot.tsx` | `ideal_life` |
+| Life Assessment | `BecomingHome.tsx` (assessment section) | `life_assessment` |
+| Pattern Map | `PatternMap.tsx` (pattern tab) | `pattern_map` |
+| Transmutation | `PatternMap.tsx` (transmutation tab) | `transmutation` |
+| Lifetime | `PatternMap.tsx` (lifetime tab) | `lifetime` |
+| Superpowers | `SuperpowerMap.tsx` | `superpowers` |
 
-### 3. Creative Mentor Repetitiveness
-**Root cause**: The Creative Visionary prompt is detailed but lacks a **diversity enforcement rule**. The "Creative Recombination Engine" section always follows the same pattern: "I see an entire ecosystem/universe... app, real-world projects, mentor networks... Build the simplest version... test with X people."
+### 3. Save Button Tutorial (special case)
+In `ChatBubble.tsx`:
+- Track perspective message count using a ref/counter passed from `ConsoleThread.tsx`
+- On the 3rd perspective message, render a small animated arrow (CSS animation pointing down-right) near the Save/Bookmark button
+- When user clicks Save for the first time (tracked via localStorage `save_tutorial_shown`), show a Dialog:
+  - Title: "Save Insight"
+  - Text: "When a mentor shares something meaningful, you can save it. Saved insights help transform conversations into ideas and creative directions."
+  - Button: "Continue"
+- After clicking Continue, the existing `InsightActionSheet` opens as normal
+- Arrow animation and tutorial only appear once, ever
 
-**Fix**: Add an anti-repetition rule to the creative_visionary prompt:
-- "NEVER repeat structural patterns from previous messages"
-- "If you previously suggested 'build X and test with Y people,' use a completely different format"
-- "Vary: sometimes propose a single experiment, sometimes a framework, sometimes a constraint-based challenge"
-- "Each response must feel structurally different from the last"
+### 4. Component Design
+```tsx
+// MicroGuide.tsx
+interface MicroGuideProps {
+  guideKey: string;
+  title: string;
+  description: string;
+}
+```
+- Uses `Dialog` from `@/components/ui/dialog`
+- localStorage check: `microguide_viewed_${guideKey}`
+- Pulse class: `animate-pulse` on the Info icon wrapper, removed after first open
+- Minimal styling: muted icon, small size (w-4 h-4), blends with headers
 
-### 4. Marketing Mentor Not Talking About Marketing
-**Root cause**: The marketing_mentor prompt is extremely thin (only 4 lines of personality guidance). It lacks specific instructions about what marketing topics to cover (distribution, positioning, audience building, go-to-market). Without this, the AI defaults to general business advice, often overlapping with the Business Mentor's financial risk framing.
+### Files to create
+- `src/components/MicroGuide.tsx`
 
-**Fix**: Expand the marketing_mentor prompt with:
-- Specific marketing domains: positioning, distribution channels, audience building, content strategy, go-to-market, storytelling, brand narrative
-- Anti-overlap rule: "You are NOT the Business Mentor. Never discuss profitability, financial risk, or monetization strategy. Focus exclusively on how to reach people, tell the story, and build visibility."
-- Practical marketing actions: "Your suggestions should always be about reaching real humans — posting, messaging, creating content, testing hooks, finding distribution."
+### Files to modify (add MicroGuide to headers)
+All ~20 feature files listed above — each gets a single `<MicroGuide>` component added near its title/header, with the exact text from the PDR.
 
-### 5. Capability Map Missing Avatar-Centered Orbital Layout
-**Root cause**: The current `CapabilityMapTab.tsx` uses a simple list layout with an avatar at the top and grouped cards below. It doesn't match the Superpower Map's radial/orbital visual where nodes orbit around a center.
+For the Save tutorial: `ChatBubble.tsx` + `ConsoleThread.tsx` (pass perspective count, handle first-save detection).
 
-**Fix**: Rebuild the visual section to use an orbital/radial layout:
-- Center: User avatar with a glowing ring
-- Orbiting nodes: Capabilities positioned in a circular arrangement around the avatar using CSS transforms (similar to how the Superpower Map works)
-- Each node shows: icon, name, level dots, and a glow intensity based on activation count
-- Keep the grouped sections below as a detail view, but the hero section should be the orbital visualization
-
-## Files to Modify
-
-| File | Change |
-|------|--------|
-| `src/pages/ConsoleThread.tsx` | Add project coherence detection after 2nd round council perspectives |
-| `supabase/functions/integrator-setup/index.ts` | Add phase_id fallback for mismatched AI phase names |
-| `supabase/functions/chat-mentor/index.ts` | Expand marketing_mentor prompt; add anti-repetition rules to creative_visionary |
-| `src/components/momentum/CapabilityMapTab.tsx` | Add orbital/radial visual layout for capabilities around avatar |
+## Visual Design
+- Info icon: `text-muted-foreground/50`, 16px, hover brightens
+- Pulse: only on first visit, subtle opacity pulse
+- Dialog: minimal, no background effects, small max-width, centered text
+- Save arrow: small chevron-down-right icon with CSS translate animation pointing toward the Save button
 
