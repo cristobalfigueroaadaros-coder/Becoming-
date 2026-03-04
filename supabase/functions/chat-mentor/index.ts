@@ -582,6 +582,21 @@ NEVER repeat structural patterns from your previous messages in this conversatio
 - NEVER use the pattern "I see [grand vision]... Build the simplest version... test with X people" more than once per conversation.
 === END ANTI-REPETITION ===
 
+=== MANDATORY CONVERGENCE OVERRIDE ===
+When the user says "create a project", "let's build this", "let's go", "start building", "make this a project", or similar action/commitment language:
+- STOP asking exploratory questions immediately
+- Propose a SPECIFIC project name based on everything discussed so far
+- Use EXACTLY this format: 'This project sounds like "[Project Name]" — a [one-line description].'
+- Then ask: "Does this capture it? Is this something meaningful enough for you to build?"
+- Do NOT ask another exploratory question after the user requests project creation
+- If the user then says "yes" or agrees, respond with the SAME project name in quotes again to confirm
+
+When the user says "yes", "exactly", "that's it", or similar AFTER you have already proposed a project name:
+- Do NOT ask more questions
+- Restate the project name in quotes: "Great, let's build \"[Project Name]\""
+- This is critical: the name MUST appear in quotes in your response
+=== END CONVERGENCE ===
+
 ${DISCOVERY_QUESTIONS}`,
 
   creator_mentor: `You are The Creative Mentor — a human-centered creator who helps users turn ideas into concrete, testable expressions.
@@ -3109,6 +3124,30 @@ ${chatHistory?.slice(-10).map((m: any) => `${m.role}: ${m.content}`).join('\n')}
     }
     // === END TRANSMUTATION PHASE COMPLETION DETECTION ===
 
+    // === EXPLICIT PROJECT CREATION DETECTION — Force convergence ===
+    const explicitProjectRequestPatterns = [
+      /\b(create|make|start|build)\s+(a\s+)?project\b/i,
+      /\blet[''\u2019]?s\s+(go|build|start|do\s+it|create)\b/i,
+      /\btrigger\s+(the\s+)?(winner|project)\s+card\b/i,
+    ];
+    const isExplicitProjectCreationRequest = explicitProjectRequestPatterns.some(p => p.test(message));
+    
+    if (isExplicitProjectCreationRequest && conversationDepth >= 4 && !isTransmutationSession) {
+      console.log("[chat-mentor] Explicit project creation request detected at depth", conversationDepth);
+      // Append a strong convergence instruction to force the AI to propose a name
+      messages[0].content += `
+
+=== URGENT: USER REQUESTS PROJECT CREATION ===
+The user has explicitly asked to create a project. You MUST:
+1. STOP asking exploratory questions
+2. Based on EVERYTHING discussed so far, propose a SPECIFIC project name
+3. Use this EXACT format: 'This project sounds like "[Project Name]" — a [one-line description].'
+4. The project name MUST be in double quotes
+5. Ask: "Does this capture it?"
+6. Do NOT ask any other question
+=== END URGENT ===`;
+    }
+
     // Call Lovable AI with full context — with timeout protection
     const controller = new AbortController();
     const timeoutId = setTimeout(() => controller.abort(), 25000); // 25s timeout
@@ -3341,7 +3380,7 @@ ${chatHistory?.slice(-10).map((m: any) => `${m.role}: ${m.content}`).join('\n')}
     // If we didn't find a name in the current response, check the PREVIOUS AI message
     let previousProposedName: string | null = null;
     if (!extractedMentorProjectName && chatHistory && chatHistory.length >= 2) {
-      const previousMessages = chatHistory.slice(-4);
+      const previousMessages = chatHistory.slice(-8);
       for (let i = previousMessages.length - 1; i >= 0; i--) {
         const msg = previousMessages[i];
         if (msg.role === 'assistant') {
@@ -3545,8 +3584,19 @@ ${chatHistory?.slice(-10).map((m: any) => `${m.role}: ${m.content}`).join('\n')}
     const hasExplicitAgreement = engagementData.signals.hasAgreement && 
       /\b(yes|let's do it|i want to|that's exactly|perfect|let's build|i'm ready|commit|i agree|absolutely|definitely)\b/i.test(message);
     
+    // Fix: If user explicitly requests project creation, bypass HIGH engagement requirement
+    const isExplicitProjectRequest = /\b(create|make|start|build)\s+(a\s+)?project\b/i.test(message) ||
+      /\blet[''\u2019]?s\s+(go|build|start|do\s+it|create)\b/i.test(message) ||
+      /\btrigger\s+(the\s+)?(winner|project)\s+card\b/i.test(message);
+    
     // Cross-mentor agreement now HELPS but doesn't BYPASS engagement requirement
-    const meetsEngagementRequirement = engagementData.level === 'HIGH' && hasExplicitAgreement;
+    let meetsEngagementRequirement = engagementData.level === 'HIGH' && hasExplicitAgreement;
+    
+    // For explicit project requests with sufficient depth, treat as HIGH engagement
+    if (isExplicitProjectRequest && conversationDepth >= 4) {
+      meetsEngagementRequirement = true;
+      console.log("Explicit project request detected — bypassing engagement threshold");
+    }
     
     if (crossMentorProjectAgreement.hasAgreedName) {
       console.log("Cross-mentor project agreement found - depth requirement is", baseDepthRequirement, "(still requires engagement)");
