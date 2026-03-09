@@ -15,7 +15,7 @@ export interface CreatorPost {
   location: string | null;
   image_url: string | null;
   created_at: string;
-  profiles?: { display_name: string | null; avatar_url: string | null } | null;
+  profiles?: { display_name: string | null } | null;
 }
 
 export interface CreatorUpdate {
