@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { MapPin, Target, ArrowRight, Image, ChevronDown, Send } from "lucide-react";
+import { MapPin, Target, ArrowRight, ChevronDown, Send } from "lucide-react";
 import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
@@ -55,45 +55,46 @@ export const PostComposer = ({ onSubmit, isSubmitting }: PostComposerProps) => {
           onChange={(e) => setStatement(e.target.value)}
           placeholder="What are you creating for a better world?"
           rows={2}
-          className="flex-1 resize-none bg-transparent text-sm text-foreground placeholder:text-muted-foreground/60 focus:outline-none leading-relaxed"
+          className="flex-1 resize-none bg-transparent text-sm text-foreground placeholder:text-muted-foreground focus:outline-none leading-relaxed"
         />
       </div>
 
       {/* Helper hints */}
       {!statement && (
-        <p className="text-[11px] text-muted-foreground/50 pl-[42px] -mt-1">
+        <p className="text-[11px] text-muted-foreground pl-[42px] -mt-1">
           e.g. starting a community project • building a purpose-driven business • healing myself
         </p>
       )}
 
       {/* Expandable details */}
       {showDetails && (
-        <div className="pl-[42px] space-y-2 pt-1">
-          <div className="flex items-center gap-2 text-xs">
-            <Target className="w-3.5 h-3.5 text-muted-foreground/50 shrink-0" />
+        <div className="pl-[42px] space-y-2.5 pt-1 border-t border-border/50 mt-1">
+          <p className="text-[11px] text-muted-foreground pt-1">Add more context to your post (optional)</p>
+          <div className="flex items-center gap-2">
+            <Target className="w-3.5 h-3.5 text-primary shrink-0" />
             <input
               value={goal}
               onChange={(e) => setGoal(e.target.value)}
               placeholder="What impact would you like to achieve?"
-              className="flex-1 bg-transparent text-foreground placeholder:text-muted-foreground/40 focus:outline-none"
+              className="flex-1 bg-muted/30 rounded-md px-2.5 py-1.5 text-xs text-foreground placeholder:text-muted-foreground focus:outline-none focus:ring-1 focus:ring-primary/30"
             />
           </div>
-          <div className="flex items-center gap-2 text-xs">
-            <ArrowRight className="w-3.5 h-3.5 text-muted-foreground/50 shrink-0" />
+          <div className="flex items-center gap-2">
+            <ArrowRight className="w-3.5 h-3.5 text-primary shrink-0" />
             <input
               value={nextStep}
               onChange={(e) => setNextStep(e.target.value)}
               placeholder="What is your next step?"
-              className="flex-1 bg-transparent text-foreground placeholder:text-muted-foreground/40 focus:outline-none"
+              className="flex-1 bg-muted/30 rounded-md px-2.5 py-1.5 text-xs text-foreground placeholder:text-muted-foreground focus:outline-none focus:ring-1 focus:ring-primary/30"
             />
           </div>
-          <div className="flex items-center gap-2 text-xs">
-            <MapPin className="w-3.5 h-3.5 text-muted-foreground/50 shrink-0" />
+          <div className="flex items-center gap-2">
+            <MapPin className="w-3.5 h-3.5 text-primary shrink-0" />
             <input
               value={location}
               onChange={(e) => setLocation(e.target.value)}
-              placeholder="Location (optional)"
-              className="flex-1 bg-transparent text-foreground placeholder:text-muted-foreground/40 focus:outline-none"
+              placeholder="Your location"
+              className="flex-1 bg-muted/30 rounded-md px-2.5 py-1.5 text-xs text-foreground placeholder:text-muted-foreground focus:outline-none focus:ring-1 focus:ring-primary/30"
             />
           </div>
         </div>
@@ -133,9 +134,14 @@ export const PostComposer = ({ onSubmit, isSubmitting }: PostComposerProps) => {
           {/* Details toggle */}
           <button
             onClick={() => setShowDetails(!showDetails)}
-            className="text-[11px] text-muted-foreground hover:text-foreground transition-colors rounded-full bg-muted/50 px-2.5 py-1"
+            className={cn(
+              "text-[11px] transition-colors rounded-full px-2.5 py-1",
+              showDetails
+                ? "text-primary bg-primary/10"
+                : "text-muted-foreground hover:text-foreground bg-muted/50"
+            )}
           >
-            {showDetails ? "Less" : "+ Details"}
+            {showDetails ? "− Less" : "+ Details"}
           </button>
         </div>
 
