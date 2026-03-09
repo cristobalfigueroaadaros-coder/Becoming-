@@ -495,6 +495,54 @@ const Council = () => {
             </div>
           </button>
 
+          {/* Creator Connections Section */}
+          {(chatRequests.length > 0 || creatorChats.length > 0) && (
+            <>
+              <div className="py-2">
+                <p className="px-3 text-xs font-medium text-muted-foreground uppercase tracking-wide">
+                  Creator Connections
+                </p>
+              </div>
+
+              {/* Pending Requests */}
+              {chatRequests.map((req: any) => (
+                <div key={req.id} className="px-2">
+                  <ChatRequestCard
+                    requestId={req.id}
+                    senderName={req.senderName}
+                    message={req.message}
+                    onHandled={loadData}
+                  />
+                </div>
+              ))}
+
+              {/* Active Creator Chats */}
+              {creatorChats.map((chat: any) => (
+                <button
+                  key={chat.id}
+                  onClick={() => {
+                    setSearchParams({ view: `creator-chat-${chat.id}` });
+                    setShowMobileList(false);
+                  }}
+                  className={cn(
+                    "w-full flex items-center gap-3 p-3 rounded-lg transition-colors text-left",
+                    creatorChatId === chat.id && !showMobileList
+                      ? "bg-primary/10 text-primary"
+                      : "hover:bg-muted"
+                  )}
+                >
+                  <div className="w-10 h-10 rounded-full bg-primary/10 flex items-center justify-center">
+                    <Globe className="w-5 h-5 text-primary" />
+                  </div>
+                  <div className="flex-1 min-w-0">
+                    <p className="font-medium truncate">{chat.otherName}</p>
+                    <p className="text-xs text-muted-foreground truncate">Creator connection</p>
+                  </div>
+                </button>
+              ))}
+            </>
+          )}
+
           {/* Divider */}
           <div className="py-2">
             <p className="px-3 text-xs font-medium text-muted-foreground uppercase tracking-wide">
