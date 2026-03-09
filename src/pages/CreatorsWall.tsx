@@ -46,7 +46,7 @@ const SEED_POSTS: MapSeedPost[] = [
     next_step: "Organize the first beach cleanup event.",
     gradient: { from: "#0891b2", to: "#67e8f9" }, emoji: "🌊",
     resonances: { inspires_me: 73, creating_similar: 14, want_to_help: 28, needed_this: 19 },
-    date: "Mar 4, 2026", coords: { x: 76, y: 53 }, category: "environment",
+    date: "Mar 4, 2026", coords: { x: 115.19, y: -8.65 }, category: "environment",
   },
   {
     id: "seed-5", name: "Alex", location: "California", post_type: "creating",
