@@ -183,7 +183,7 @@ export function useCreatorPosts() {
         const userIds = [...new Set((data || []).map(c => c.user_id))];
         const { data: profiles } = await supabase
           .from("profiles")
-          .select("id, display_name, avatar_url")
+          .select("id, display_name")
           .in("id", userIds);
         const profileMap = new Map((profiles || []).map(p => [p.id, p]));
         return (data || []).map(c => ({
