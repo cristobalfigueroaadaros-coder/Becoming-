@@ -40,7 +40,7 @@ export interface CreatorComment {
   user_id: string;
   content: string;
   created_at: string;
-  profiles?: { display_name: string | null; avatar_url: string | null } | null;
+  profiles?: { display_name: string | null } | null;
 }
 
 export function useCreatorPosts() {
