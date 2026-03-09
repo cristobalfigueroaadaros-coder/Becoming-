@@ -609,7 +609,7 @@ const Council = () => {
         <ArrowLeft className="w-5 h-5" />
       </Button>
       <span className="font-medium truncate">
-        {isIntake ? (threadProjectName || "New Conversation") : isConsole ? "Chats" : isCreatorChat ? (creatorChats.find((c: any) => c.id === creatorChatId)?.otherName || "Creator Chat") : mentorConfig[selectedMentor || ""]?.name || "Chat"}
+        {isIntake ? (threadProjectName || "New Conversation") : isBuilderTeam ? (threadProjectName ? `${threadProjectName} — Builder Team` : "Builder Team") : isConsole ? "Chats" : isCreatorChat ? (creatorChats.find((c: any) => c.id === creatorChatId)?.otherName || "Creator Chat") : mentorConfig[selectedMentor || ""]?.name || "Chat"}
       </span>
     </div>
   );
