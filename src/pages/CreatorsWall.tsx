@@ -82,7 +82,7 @@ const SEED_POSTS: MapSeedPost[] = [
     next_step: "Create a small local workshop with 10 participants.",
     gradient: { from: "#9333ea", to: "#f9a8d4" }, emoji: "🎨",
     resonances: { inspires_me: 89, creating_similar: 11, want_to_help: 6, needed_this: 74 },
-    date: "Mar 6, 2026", coords: { x: 49, y: 18 }, category: "art",
+    date: "Mar 6, 2026", coords: { x: 4.90, y: 52.37 }, category: "art",
   },
   {
     id: "seed-9", name: "Ahmed", location: "Cairo", post_type: "creating",
