@@ -95,9 +95,13 @@ export const CreatorPostCard = ({
       <ResonanceButtons resonances={resonances} currentUserId={currentUserId} onToggle={onToggleResonance} />
 
       {/* Engagement prompt */}
-      <p className="text-[11px] text-muted-foreground/60 italic">
-        {ENGAGEMENT_PROMPTS[post.post_type] || "Leave a supportive message or share if this resonates."}
-      </p>
+      <div className="flex items-center gap-2 px-3 py-2 rounded-lg bg-muted/30 border border-border/30">
+        <span className="text-primary/70">💬</span>
+        <p className="text-[11px] text-muted-foreground leading-relaxed">
+          {ENGAGEMENT_PROMPTS[post.post_type] || "Leave a supportive message or share if this resonates."}
+          <span className="text-muted-foreground/50"> · Positive support only</span>
+        </p>
+      </div>
 
       {/* Expand */}
       <button
