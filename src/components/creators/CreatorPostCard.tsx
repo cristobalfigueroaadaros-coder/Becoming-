@@ -94,6 +94,11 @@ export const CreatorPostCard = ({
       {/* Resonance buttons */}
       <ResonanceButtons resonances={resonances} currentUserId={currentUserId} onToggle={onToggleResonance} />
 
+      {/* Engagement prompt */}
+      <p className="text-[11px] text-muted-foreground/60 italic">
+        {ENGAGEMENT_PROMPTS[post.post_type] || "Leave a supportive message or share if this resonates."}
+      </p>
+
       {/* Expand */}
       <button
         onClick={() => setExpanded(!expanded)}

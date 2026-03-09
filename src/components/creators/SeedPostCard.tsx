@@ -182,6 +182,11 @@ export const SeedPostCard = ({ post }: { post: SeedPost }) => {
         </button>
       </div>
 
+      {/* Engagement prompt */}
+      <p className="text-[11px] text-muted-foreground/60 italic">
+        {ENGAGEMENT_PROMPTS[post.post_type] || "Leave a supportive message or share if this resonates."}
+      </p>
+
       {/* Comment Section */}
       {showComments && (
         <div className="space-y-3 pt-1 border-t border-border/50">
