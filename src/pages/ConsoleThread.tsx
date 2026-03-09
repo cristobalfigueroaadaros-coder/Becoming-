@@ -44,12 +44,42 @@ type Phase =
   | "handoff_offer" | "mentor_1to1"
   | "project_detected" | "complete" | "post_project";
 
-// Dynamic intake questions using user's name
-const getIntakeQuestions = (name: string) => [
-  `Hey ${name}! 👋 I'm going to ask you a few questions so I can recommend a customized team of mentors based on your journey and where you are right now.\n\nFirst — what's your work experience or background?`,
-  `That's great to know. Now tell me a bit about your story — your dreams, your struggles, what excites you, what keeps you up at night.`,
-  `Love it. So what have you been working on, or thinking about building?`,
-];
+// Phase-aware intake questions
+const getPhaseQuestions = (entryState: string): string[] => {
+  if (entryState === "BUILD") return [
+    "Let's get straight to it.\n\nWhat are you currently building or working on?",
+    "What's the biggest challenge you're facing right now?",
+    "If things went well in the next 90 days, what progress would you hope to see?",
+  ];
+  if (entryState === "GROW") return [
+    "Tell me about the idea or project you've been thinking about building.",
+    "What problem are you hoping to solve or improve for people?",
+    "If this idea worked exactly the way you imagine, what kind of impact would it create?",
+  ];
+  // DISCOVER (default)
+  return [
+    "Tell me a little about your background and the experiences that shaped how you see the world.",
+    "What kinds of problems, ideas, or topics naturally pull your attention or curiosity?",
+    "If you imagine yourself five years from now doing meaningful work — what would you be doing?",
+  ];
+};
+
+// Generate a brief AI reflection on the user's answer (1 sentence, supportive)
+const generateReflection = async (answer: string): Promise<string | null> => {
+  try {
+    const { data, error } = await supabase.functions.invoke("future-self-guidance", {
+      body: {
+        prompt: `The user just shared this in an onboarding conversation: "${answer}"\n\nWrite ONE short supportive sentence (max 15 words) that acknowledges something meaningful from their answer. Be warm and specific. Do not ask a question. Do not use exclamation marks excessively. Examples of good reflections:\n- "Building something around meaning and purpose is powerful work."\n- "That kind of curiosity usually leads somewhere important."\n- "Sounds like you've built real depth in that space."\n\nReflection:`,
+      },
+    });
+    if (!error && data?.guidance) {
+      return data.guidance.trim().replace(/^["']|["']$/g, "");
+    }
+  } catch {
+    // Non-blocking — skip reflection if it fails
+  }
+  return null;
+};
 
 interface ConsoleThreadProps {
   embedded?: boolean;
