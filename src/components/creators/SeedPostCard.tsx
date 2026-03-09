@@ -61,6 +61,7 @@ export interface SeedPost {
 }
 
 export const SeedPostCard = ({ post }: { post: SeedPost }) => {
+  const navigate = useNavigate();
   const style = POST_TYPE_STYLES[post.post_type] ?? POST_TYPE_STYLES.creating;
   const [localResonances, setLocalResonances] = useState(post.resonances);
   const [clicked, setClicked] = useState<Set<string>>(new Set());
