@@ -1060,7 +1060,7 @@ const CouncilMeeting = ({ embedded = false, locationState: propState }: CouncilM
 
                 await supabase.from("future_self_messages").insert({
                   user_id: user.id,
-                  message: `You just unlocked "${valueMapDetection.blockTitle}" in your Value Map. This clarity is building something real.`,
+                  message: `You just unlocked "${valueMapDetection.blockTitle}" in your Business Plan. This clarity is building something real.`,
                   trigger_reason: "value_map_unlock",
                 });
 

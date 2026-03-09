@@ -46,13 +46,13 @@ export function ValueMapUnlockCelebration({
         colors: ['#8B5CF6', '#EC4899', '#06B6D4'],
       });
       
-      toast.success(`"${detection.blockTitle}" unlocked in your Value Map!`, {
-        description: "Your purpose is becoming clearer.",
+      toast.success(`"${detection.blockTitle}" unlocked in your Business Plan!`, {
+        description: "Your plan is becoming clearer.",
         duration: 4000,
       });
     } catch (error) {
       console.error("Error accepting detection:", error);
-      toast.error("Failed to save to Value Map");
+      toast.error("Failed to save to Business Plan");
     } finally {
       setIsAccepting(false);
     }
@@ -80,7 +80,7 @@ export function ValueMapUnlockCelebration({
               <div className="flex-1 min-w-0">
                 <div className="flex items-center gap-2">
                   <MapPin className="w-3.5 h-3.5 text-primary" />
-                  <span className="text-xs font-medium text-primary">Value Map Discovery</span>
+                  <span className="text-xs font-medium text-primary">Business Plan Discovery</span>
                 </div>
                 <h3 className="font-semibold text-foreground mt-0.5 truncate">
                   {detection.blockTitle}

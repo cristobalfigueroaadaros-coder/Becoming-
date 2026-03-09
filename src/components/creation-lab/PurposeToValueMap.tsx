@@ -11,8 +11,8 @@ export const PurposeToValueMap = ({ userPurpose }: PurposeToValueMapProps) => {
       <div className="flex justify-end">
         <MicroGuide
           guideKey="value_map"
-          title="Value Map"
-          description={"This space helps transform your idea into a real business model.\n\nHere your idea gains structure, substance, and direction to create value and operate as a sustainable project."}
+          title="Business Plan"
+          description={"This space helps transform your idea into a real business plan.\n\nHere your idea gains structure, substance, and direction to create value and operate as a sustainable project."}
         />
       </div>
       <ValueMapCanvas />
