@@ -44,12 +44,52 @@ type Phase =
   | "handoff_offer" | "mentor_1to1"
   | "project_detected" | "complete" | "post_project";
 
-// Dynamic intake questions using user's name
-const getIntakeQuestions = (name: string) => [
-  `Hey ${name}! 👋 I'm going to ask you a few questions so I can recommend a customized team of mentors based on your journey and where you are right now.\n\nFirst — what's your work experience or background?`,
-  `That's great to know. Now tell me a bit about your story — your dreams, your struggles, what excites you, what keeps you up at night.`,
-  `Love it. So what have you been working on, or thinking about building?`,
-];
+// Phase-aware intake questions
+const getPhaseQuestions = (entryState: string): string[] => {
+  if (entryState === "BUILD") return [
+    "Let's get straight to it.\n\nWhat are you currently building or working on?",
+    "What's the biggest challenge you're facing right now?",
+    "If things went well in the next 90 days, what progress would you hope to see?",
+  ];
+  if (entryState === "GROW") return [
+    "Tell me about the idea or project you've been thinking about building.",
+    "What problem are you hoping to solve or improve for people?",
+    "If this idea worked exactly the way you imagine, what kind of impact would it create?",
+  ];
+  // DISCOVER (default)
+  return [
+    "Tell me a little about your background and the experiences that shaped how you see the world.",
+    "What kinds of problems, ideas, or topics naturally pull your attention or curiosity?",
+    "If you imagine yourself five years from now doing meaningful work — what would you be doing?",
+  ];
+};
+
+// Generate a brief reflection on the user's answer (local, no AI call needed)
+const generateReflection = (answer: string): string | null => {
+  const lower = answer.toLowerCase();
+  const len = answer.length;
+
+  // Too short to reflect on meaningfully
+  if (len < 15) return null;
+
+  // Pattern-match for common themes
+  if (/build|creat|launch|start|mak/i.test(lower)) return "That creative drive says a lot about where you're headed.";
+  if (/help|support|serv|communit|people/i.test(lower)) return "That kind of purpose — helping others — runs deep.";
+  if (/design|art|music|writ|story/i.test(lower)) return "There's something powerful about channeling ideas into form.";
+  if (/tech|code|engineer|develop|software/i.test(lower)) return "Sounds like you've built real depth in that space.";
+  if (/teach|mentor|coach|educ/i.test(lower)) return "Guiding others is one of the most meaningful things you can do.";
+  if (/heal|therap|psych|well|mind/i.test(lower)) return "Working with the inner world takes real courage and depth.";
+  if (/travel|explor|discover|adventure/i.test(lower)) return "That kind of curiosity usually leads somewhere important.";
+  if (/mean|purpose|impact|legacy|matter/i.test(lower)) return "Building something around meaning and purpose is powerful work.";
+  if (/struggle|challeng|hard|difficult|stuck/i.test(lower)) return "Acknowledging that takes honesty — it's a sign of real self-awareness.";
+  if (/dream|vision|imagin|future|hope/i.test(lower)) return "That vision is worth paying attention to.";
+  if (/business|entrepreneur|company|startup/i.test(lower)) return "Building something of your own takes real conviction.";
+  if (/grow|learn|improv|evolv|develop/i.test(lower)) return "That growth mindset is your biggest asset.";
+
+  // Generic but warm fallbacks based on length
+  if (len > 100) return "There's a lot of depth in what you just shared.";
+  return "That's a meaningful starting point.";
+};
 
 interface ConsoleThreadProps {
   embedded?: boolean;
@@ -159,8 +199,25 @@ const ConsoleThread = ({ embedded = false, onProjectNameChange }: ConsoleThreadP
           setIntakeAnswers(userMsgs.slice(0, 3).map(m => m.content));
         }
       } else {
-        const questions = getIntakeQuestions(name);
-        addSystemMessage(questions[0], "future_self", "intake_q1");
+        // Multi-message opening sequence
+        const openMsg1: ChatMessage = {
+          id: crypto.randomUUID(), role: "mentor", content: `Hey ${name} 👋`,
+          mentorName: mentorConfig.future_self.name, mentorIcon: mentorConfig.future_self.icon, mentorColor: mentorConfig.future_self.color,
+        };
+        setMessages([openMsg1]);
+        persistMessage(openMsg1, "intake_q1");
+
+        await showTyping("future_self", 1500);
+        addSystemMessage("Before we begin, I want to understand where you are in your journey.", "future_self", "intake_q1");
+
+        await showTyping("future_self", 1800);
+        addSystemMessage("I'll ask you a few short questions so I can assemble the right mentor council for you.", "future_self", "intake_q1");
+
+        await showTyping("future_self", 2000);
+        addSystemMessage("Your answers will help me choose mentors who can give you the best perspective and guidance.\n\nLet's start.", "future_self", "intake_q1");
+
+        await showTyping("future_self", 1200);
+        addSystemMessage(getPhaseQuestions(profile?.entry_state || "DISCOVER")[0], "future_self", "intake_q1");
       }
 
       setInitialLoading(false);
@@ -226,16 +283,28 @@ const ConsoleThread = ({ embedded = false, onProjectNameChange }: ConsoleThreadP
       const nextPhase: Phase = "intake_q2";
       setPhase(nextPhase);
       persistPhase(nextPhase);
-      await showTyping("future_self", 1200);
-      addSystemMessage(getIntakeQuestions(displayName)[1], "future_self", nextPhase);
+      // Reflection on answer
+      await showTyping("future_self", 1500);
+      const reflection = generateReflection(text);
+      if (reflection) {
+        addSystemMessage(reflection, "future_self", nextPhase);
+        await showTyping("future_self", 1200);
+      }
+      addSystemMessage(getPhaseQuestions(entryState)[1], "future_self", nextPhase);
     } else if (phase === "intake_q2") {
       const newAnswers = [...intakeAnswers, text];
       setIntakeAnswers(newAnswers);
       const nextPhase: Phase = "intake_q3";
       setPhase(nextPhase);
       persistPhase(nextPhase);
-      await showTyping("future_self", 1200);
-      addSystemMessage(getIntakeQuestions(displayName)[2], "future_self", nextPhase);
+      // Reflection on answer
+      await showTyping("future_self", 1500);
+      const reflection = generateReflection(text);
+      if (reflection) {
+        addSystemMessage(reflection, "future_self", nextPhase);
+        await showTyping("future_self", 1200);
+      }
+      addSystemMessage(getPhaseQuestions(entryState)[2], "future_self", nextPhase);
     } else if (phase === "intake_q3") {
       const newAnswers = [...intakeAnswers, text];
       setIntakeAnswers(newAnswers);
@@ -272,12 +341,34 @@ const ConsoleThread = ({ embedded = false, onProjectNameChange }: ConsoleThreadP
         body: { storyText },
       });
 
-      await showTyping(undefined, 1000);
+      // Reflection after final answer
+      await showTyping("future_self", 1500);
+      const reflection = generateReflection(answers[2]);
+      if (reflection) {
+        addSystemMessage(reflection, "future_self", "processing");
+        await showTyping("future_self", 1200);
+      }
 
-      // Personalized council assembly message based on entry_state
-      const stateLabel = entryState === "BUILD" ? "building something real" : entryState === "GROW" ? "growing what you've started" : "discovering your path";
+      addSystemMessage("Thanks for sharing that.", "future_self", "processing");
+      await showTyping("future_self", 1500);
+      addSystemMessage("It helps me understand your journey and what you're trying to build.", "future_self", "processing");
+      await showTyping("future_self", 2000);
+      addSystemMessage("Give me a moment to assemble the mentors who can help you move forward.", "future_self", "processing");
+
+      await showTyping("future_self", 2500);
+
+      // Explain the council
+      addSystemMessage("Inside Becoming, you'll work with a small council of mentors.", "future_self", "council_reveal");
+      await showTyping("future_self", 1800);
+      addSystemMessage("Each mentor brings a different perspective — strategy, creativity, philosophy, psychology, and real-world experience.", "future_self", "council_reveal");
+      await showTyping("future_self", 1800);
+      addSystemMessage("They will challenge your thinking, help you see blind spots, and guide you as you define your project.", "future_self", "council_reveal");
+
+      await showTyping("future_self", 2000);
+
+      // Council assembly message
       addSystemMessage(
-        `Based on what you've shared — your background, your story, and where you want to go — I've assembled a Council specifically for you. Because you're ${stateLabel}, these mentors will help you move forward with clarity and momentum ✨`,
+        "Based on what you shared — your background, your story, and where you're going — I've assembled a mentor council for you.\n\nThey're here to help you think clearly and move forward with intention.",
         "future_self",
         "council_reveal"
       );
@@ -335,10 +426,22 @@ const ConsoleThread = ({ embedded = false, onProjectNameChange }: ConsoleThreadP
     setPhase(nextPhase);
     persistPhase(nextPhase);
 
-    // Guidance message before council starts
+    // Multi-message handoff
     await showTyping("future_self", 1200);
     addSystemMessage(
-      `Now you're going to interact with your mentor council. They'll help you define a project to work on.\n\nWrite "let's go" when you're ready.`,
+      "Now you're going to interact with your mentor council.",
+      "future_self",
+      nextPhase
+    );
+    await showTyping("future_self", 1500);
+    addSystemMessage(
+      "They'll help you define a project to work on and guide your next steps.",
+      "future_self",
+      nextPhase
+    );
+    await showTyping("future_self", 1200);
+    addSystemMessage(
+      `Write "let's go" when you're ready.`,
       "future_self",
       nextPhase
     );
