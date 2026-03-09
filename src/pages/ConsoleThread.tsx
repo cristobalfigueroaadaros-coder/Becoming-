@@ -273,16 +273,28 @@ const ConsoleThread = ({ embedded = false, onProjectNameChange }: ConsoleThreadP
       const nextPhase: Phase = "intake_q2";
       setPhase(nextPhase);
       persistPhase(nextPhase);
-      await showTyping("future_self", 1200);
-      addSystemMessage(getIntakeQuestions(displayName)[1], "future_self", nextPhase);
+      // Reflection on answer
+      await showTyping("future_self", 1500);
+      const reflection = await generateReflection(text);
+      if (reflection) {
+        addSystemMessage(reflection, "future_self", nextPhase);
+        await showTyping("future_self", 1200);
+      }
+      addSystemMessage(getPhaseQuestions(entryState)[1], "future_self", nextPhase);
     } else if (phase === "intake_q2") {
       const newAnswers = [...intakeAnswers, text];
       setIntakeAnswers(newAnswers);
       const nextPhase: Phase = "intake_q3";
       setPhase(nextPhase);
       persistPhase(nextPhase);
-      await showTyping("future_self", 1200);
-      addSystemMessage(getIntakeQuestions(displayName)[2], "future_self", nextPhase);
+      // Reflection on answer
+      await showTyping("future_self", 1500);
+      const reflection = await generateReflection(text);
+      if (reflection) {
+        addSystemMessage(reflection, "future_self", nextPhase);
+        await showTyping("future_self", 1200);
+      }
+      addSystemMessage(getPhaseQuestions(entryState)[2], "future_self", nextPhase);
     } else if (phase === "intake_q3") {
       const newAnswers = [...intakeAnswers, text];
       setIntakeAnswers(newAnswers);
