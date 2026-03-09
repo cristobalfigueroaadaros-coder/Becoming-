@@ -97,7 +97,7 @@ export const BottomNavigation = () => {
           const Icon = item.icon;
           // Hide badge when user is in the clarification session
           const showCreationBadge = item.path === "/creation-lab" && needsClarification && badgeCount > 0 && !isInClarificationSession;
-          const showCouncilBadge = item.path === "/council" && councilBadge;
+          const showCouncilBadge = item.path === "/council" && (councilBadge || creatorRequestCount > 0);
           const showBadge = showCreationBadge || showCouncilBadge;
           
           return (
