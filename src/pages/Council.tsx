@@ -532,7 +532,7 @@ const Council = () => {
         {/* Right Content Area */}
         <div className="flex-1 overflow-hidden h-full">
           {isIntake ? (
-            <ConsoleThread embedded />
+            <ConsoleThread embedded onProjectNameChange={setThreadProjectName} />
           ) : isConsole ? (
             <CouncilMeetingPage embedded locationState={location.state} />
           ) : selectedMentor ? (
