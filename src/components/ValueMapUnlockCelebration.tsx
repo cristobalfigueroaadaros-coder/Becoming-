@@ -52,7 +52,7 @@ export function ValueMapUnlockCelebration({
       });
     } catch (error) {
       console.error("Error accepting detection:", error);
-      toast.error("Failed to save to Value Map");
+      toast.error("Failed to save to Business Plan");
     } finally {
       setIsAccepting(false);
     }
