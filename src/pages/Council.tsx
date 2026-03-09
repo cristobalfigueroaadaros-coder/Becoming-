@@ -507,7 +507,7 @@ const Council = () => {
         <ArrowLeft className="w-5 h-5" />
       </Button>
       <span className="font-medium truncate">
-        {isIntake ? (threadProjectName || "New Conversation") : isConsole ? "Council" : mentorConfig[selectedMentor || ""]?.name || "Chat"}
+        {isIntake ? (threadProjectName || "New Conversation") : isConsole ? "Chats" : mentorConfig[selectedMentor || ""]?.name || "Chat"}
       </span>
     </div>
   );

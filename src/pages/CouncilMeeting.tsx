@@ -539,7 +539,7 @@ const CouncilMeeting = ({ embedded = false, locationState: propState }: CouncilM
           )}
           <div className="flex-1">
             <h1 className={cn("font-bold", embedded ? "text-2xl" : "text-4xl")}>
-              {embedded ? "Council" : "Council Meeting"}
+              {embedded ? "Chats" : "Deep Chat"}
             </h1>
             <p className="text-muted-foreground mt-1 text-sm">
               {questionNumber === 0 && "Deep wisdom through a 3-question journey"}
