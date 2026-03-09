@@ -53,9 +53,10 @@ const getIntakeQuestions = (name: string) => [
 
 interface ConsoleThreadProps {
   embedded?: boolean;
+  onProjectNameChange?: (name: string) => void;
 }
 
-const ConsoleThread = ({ embedded = false }: ConsoleThreadProps) => {
+const ConsoleThread = ({ embedded = false, onProjectNameChange }: ConsoleThreadProps) => {
   const navigate = useNavigate();
   const [phase, setPhase] = useState<Phase>("intake_q1");
   const [messages, setMessages] = useState<ChatMessage[]>([]);
@@ -744,6 +745,7 @@ const ConsoleThread = ({ embedded = false }: ConsoleThreadProps) => {
 
   const handleProjectCreated = (projectId: string, name: string) => {
     setProjectName(name);
+    onProjectNameChange?.(name);
     setPhase("post_project");
     persistPhase("post_project");
     confetti({ particleCount: 120, spread: 80, origin: { y: 0.6 } });
