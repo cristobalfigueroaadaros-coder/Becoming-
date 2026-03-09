@@ -745,6 +745,7 @@ const ConsoleThread = ({ embedded = false, onProjectNameChange }: ConsoleThreadP
 
   const handleProjectCreated = (projectId: string, name: string) => {
     setProjectName(name);
+    onProjectNameChange?.(name);
     setPhase("post_project");
     persistPhase("post_project");
     confetti({ particleCount: 120, spread: 80, origin: { y: 0.6 } });
