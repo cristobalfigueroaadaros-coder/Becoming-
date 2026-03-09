@@ -1,6 +1,7 @@
 import { useEffect, useState } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Button } from "@/components/ui/button";
 import { Radar, RadarChart, PolarGrid, PolarAngleAxis, PolarRadiusAxis, ResponsiveContainer, Legend, Tooltip } from "recharts";
 import { Loader2 } from "lucide-react";
 
@@ -61,8 +62,11 @@ export const LifeDomainsRadar = () => {
         <CardHeader>
           <CardTitle className="text-center">Complete Your Life Assessment</CardTitle>
         </CardHeader>
-        <CardContent className="text-center text-muted-foreground">
-          <p>Your life domains radar will appear here once you complete the onboarding assessment.</p>
+        <CardContent className="text-center text-muted-foreground space-y-4">
+          <p>Your life domains radar will appear here once you complete the assessment.</p>
+          <Button onClick={() => window.location.href = '/life-assessment'}>
+            Start Assessment
+          </Button>
         </CardContent>
       </Card>
     );

@@ -65,6 +65,7 @@ import SuperpowerMap from "./pages/SuperpowerMap";
 import MomentumDashboard from "./pages/MomentumDashboard";
 import CreatorsWall from "./pages/CreatorsWall";
 import CreatorProfile from "./pages/CreatorProfile";
+import LifeAssessment from "./pages/LifeAssessment";
 
 
 const queryClient = new QueryClient();
@@ -317,6 +318,10 @@ const App = () => {
             <Route
               path="/future-self/life-domains"
               element={session ? <LifeDomainsPage /> : <Navigate to="/" />}
+            />
+            <Route
+              path="/life-assessment"
+              element={session ? <LifeAssessment /> : <Navigate to="/" />}
             />
             <Route
               path="/future-self/goals"
