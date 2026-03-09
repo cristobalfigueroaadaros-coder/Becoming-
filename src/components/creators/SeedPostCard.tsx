@@ -18,12 +18,8 @@ const RESONANCE_CONFIG = [
   { key: "needed_this" as const, emoji: "💛", label: "Needed this" },
 ];
 
-const COMMENT_HINTS = [
-  "I love this idea",
-  "I'm working on something similar",
-  "This inspired me today",
-  "Happy to support if needed",
-];
+
+
 
 interface SeedComment {
   id: string;
@@ -215,18 +211,8 @@ export const SeedPostCard = ({ post }: { post: SeedPost }) => {
             </div>
           )}
 
-          {/* Hint chips */}
-          <div className="flex gap-1.5 overflow-x-auto scrollbar-hide">
-            {COMMENT_HINTS.map(hint => (
-              <button
-                key={hint}
-                onClick={() => setCommentText(hint)}
-                className="text-[10px] whitespace-nowrap rounded-full px-2.5 py-1 bg-muted/50 text-muted-foreground hover:bg-muted hover:text-foreground transition-colors shrink-0"
-              >
-                {hint}
-              </button>
-            ))}
-          </div>
+
+
 
           {/* Comment input */}
           <div className="flex gap-2 items-end">
