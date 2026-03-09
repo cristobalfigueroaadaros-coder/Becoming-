@@ -263,6 +263,10 @@ const App = () => {
               element={session ? <AppLayout><CreatorsWall /></AppLayout> : <Navigate to="/" />}
             />
             <Route
+              path="/creators/:creatorId"
+              element={session ? <AppLayout><CreatorProfile /></AppLayout> : <Navigate to="/" />}
+            />
+            <Route
               path="/council"
               element={session ? <AppLayout><Council /></AppLayout> : <Navigate to="/" />}
             />

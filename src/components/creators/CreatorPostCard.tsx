@@ -46,7 +46,7 @@ export const CreatorPostCard = ({
             {(post.profiles?.display_name || "?")[0].toUpperCase()}
           </div>
           <div>
-            <p className="text-sm font-medium text-foreground">{post.profiles?.display_name || "Creator"}</p>
+            <p className="text-sm font-medium text-foreground cursor-pointer hover:text-primary transition-colors" onClick={() => navigate(`/creators/${post.user_id}`)}>{post.profiles?.display_name || "Creator"}</p>
             <div className="flex items-center gap-2 text-[11px] text-muted-foreground">
               {post.location && (
                 <span className="flex items-center gap-0.5"><MapPin className="w-3 h-3" />{post.location}</span>
