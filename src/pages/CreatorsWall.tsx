@@ -28,7 +28,7 @@ const SEED_POSTS: MapSeedPost[] = [
     next_step: "Find a small piece of land and organize the first volunteer day.",
     gradient: { from: "#16a34a", to: "#86efac" }, emoji: "🌱",
     resonances: { inspires_me: 38, creating_similar: 12, want_to_help: 9, needed_this: 27 },
-    date: "Mar 2, 2026", coords: { x: 15, y: 42 }, category: "community",
+    date: "Mar 2, 2026", coords: { x: -99.13, y: 19.43 }, category: "community",
   },
   {
     id: "seed-3", name: "Daniel", location: "Berlin", post_type: "creating",
