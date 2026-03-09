@@ -179,8 +179,33 @@ const CreatorsWall = () => {
         </p>
       </div>
 
-      {/* Post creation */}
-      <CreatePostForm onSubmit={handleCreatePost} isSubmitting={createPost.isPending} />
+      {/* Feed: seed posts first, then real user posts */}
+      <div className="space-y-4">
+        {SEED_POSTS.map((post) => (
+          <SeedPostCard key={post.id} post={post} />
+        ))}
+        {isLoading ? (
+          <div className="space-y-4">
+            {[1, 2, 3].map((i) => (
+              <div key={i} className="h-40 rounded-xl bg-muted animate-pulse" />
+            ))}
+          </div>
+        ) : (
+          posts.map((post) => (
+            <PostCardWrapper
+              key={post.id}
+              post={post}
+              currentUserId={currentUserId}
+              toggleResonance={toggleResonance}
+              addUpdate={addUpdate}
+              addComment={addComment}
+              useResonances={useResonances}
+              useUpdates={useUpdates}
+              useComments={useComments}
+            />
+          ))
+        )}
+      </div>
 
       {/* Integration prompt after posting */}
       {justPosted && (
@@ -195,34 +220,26 @@ const CreatorsWall = () => {
         </div>
       )}
 
-      {/* Feed */}
-      {isLoading ? (
-        <div className="space-y-4">
-          {[1, 2, 3].map((i) => (
-            <div key={i} className="h-40 rounded-xl bg-muted animate-pulse" />
-          ))}
-        </div>
-      ) : posts.length === 0 ? (
-        <div className="text-center py-12">
-          <p className="text-muted-foreground text-sm">Be the first creator to share what you're building.</p>
-        </div>
+      {/* Share CTA at bottom */}
+      {!shareExpanded ? (
+        <button
+          onClick={() => setShareExpanded(true)}
+          className="w-full rounded-xl border border-primary/20 bg-primary/5 p-4 flex items-center justify-between text-left hover:bg-primary/10 transition-colors"
+        >
+          <div>
+            <p className="text-sm font-medium text-foreground">What are you creating for a better world?</p>
+            <p className="text-xs text-muted-foreground mt-0.5">Share your creation and join the movement.</p>
+          </div>
+          <div className="w-8 h-8 rounded-full bg-primary/10 flex items-center justify-center flex-shrink-0">
+            <Plus className="w-4 h-4 text-primary" />
+          </div>
+        </button>
       ) : (
-        <div className="space-y-4">
-          {posts.map((post) => (
-            <PostCardWrapper
-              key={post.id}
-              post={post}
-              currentUserId={currentUserId}
-              toggleResonance={toggleResonance}
-              addUpdate={addUpdate}
-              addComment={addComment}
-              useResonances={useResonances}
-              useUpdates={useUpdates}
-              useComments={useComments}
-            />
-          ))}
-        </div>
+        <CreatePostForm onSubmit={handleCreatePost} isSubmitting={createPost.isPending} />
       )}
+
+      {/* Bottom padding */}
+      <div className="h-4" />
     </div>
   );
 };
