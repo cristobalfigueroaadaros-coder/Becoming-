@@ -331,12 +331,34 @@ const ConsoleThread = ({ embedded = false, onProjectNameChange }: ConsoleThreadP
         body: { storyText },
       });
 
-      await showTyping(undefined, 1000);
+      // Reflection after final answer
+      await showTyping("future_self", 1500);
+      const reflection = await generateReflection(answers[2]);
+      if (reflection) {
+        addSystemMessage(reflection, "future_self", "processing");
+        await showTyping("future_self", 1200);
+      }
 
-      // Personalized council assembly message based on entry_state
-      const stateLabel = entryState === "BUILD" ? "building something real" : entryState === "GROW" ? "growing what you've started" : "discovering your path";
+      addSystemMessage("Thanks for sharing that.", "future_self", "processing");
+      await showTyping("future_self", 1500);
+      addSystemMessage("It helps me understand your journey and what you're trying to build.", "future_self", "processing");
+      await showTyping("future_self", 2000);
+      addSystemMessage("Give me a moment to assemble the mentors who can help you move forward.", "future_self", "processing");
+
+      await showTyping("future_self", 2500);
+
+      // Explain the council
+      addSystemMessage("Inside Becoming, you'll work with a small council of mentors.", "future_self", "council_reveal");
+      await showTyping("future_self", 1800);
+      addSystemMessage("Each mentor brings a different perspective — strategy, creativity, philosophy, psychology, and real-world experience.", "future_self", "council_reveal");
+      await showTyping("future_self", 1800);
+      addSystemMessage("They will challenge your thinking, help you see blind spots, and guide you as you define your project.", "future_self", "council_reveal");
+
+      await showTyping("future_self", 2000);
+
+      // Council assembly message
       addSystemMessage(
-        `Based on what you've shared — your background, your story, and where you want to go — I've assembled a Council specifically for you. Because you're ${stateLabel}, these mentors will help you move forward with clarity and momentum ✨`,
+        "Based on what you shared — your background, your story, and where you're going — I've assembled a mentor council for you.\n\nThey're here to help you think clearly and move forward with intention.",
         "future_self",
         "council_reveal"
       );
