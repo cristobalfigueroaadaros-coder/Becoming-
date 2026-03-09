@@ -20,6 +20,12 @@ const navItems: NavItem[] = [
     matchPaths: ["/dashboard"],
   },
   {
+    icon: Globe,
+    label: "Creators",
+    path: "/creators",
+    matchPaths: ["/creators"],
+  },
+  {
     icon: Users,
     label: "Council",
     path: "/council",
