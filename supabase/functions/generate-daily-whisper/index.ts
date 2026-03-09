@@ -181,7 +181,7 @@ serve(async (req) => {
     
     if (hasActiveProject && valueMapProgress < 0.3 && valueMapBlocks.length > 0) {
       triggerCondition = "value_map_guidance";
-      triggerReason = "Purpose to Value Map needs attention - ready to clarify your path";
+      triggerReason = "Business Plan needs attention - ready to clarify your path";
     }
     
     // Check Self Discovery Quest progress
