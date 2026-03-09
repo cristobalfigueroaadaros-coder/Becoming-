@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { useNavigate } from "react-router-dom";
+import { useNavigate, useLocation } from "react-router-dom";
 import {
   BookOpen, Compass, FlaskConical, Sparkles, Users, TrendingUp,
   ArrowRight, Play, Search, Heart, MessageSquare, Target, Lightbulb,
