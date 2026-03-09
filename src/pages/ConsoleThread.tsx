@@ -64,19 +64,25 @@ const getPhaseQuestions = (entryState: string): string[] => {
   ];
 };
 
-// Generate a brief AI reflection on the user's answer (1 sentence, supportive)
+// Generate a brief reflection on the user's answer (1 sentence, supportive)
 const generateReflection = async (answer: string): Promise<string | null> => {
   try {
-    const { data, error } = await supabase.functions.invoke("future-self-guidance", {
+    const { data, error } = await supabase.functions.invoke("chat-mentor", {
       body: {
-        prompt: `The user just shared this in an onboarding conversation: "${answer}"\n\nWrite ONE short supportive sentence (max 15 words) that acknowledges something meaningful from their answer. Be warm and specific. Do not ask a question. Do not use exclamation marks excessively. Examples of good reflections:\n- "Building something around meaning and purpose is powerful work."\n- "That kind of curiosity usually leads somewhere important."\n- "Sounds like you've built real depth in that space."\n\nReflection:`,
+        mentorType: "future_self",
+        message: answer,
+        conversationHistory: [],
+        reflectionOnly: true,
+        reflectionPrompt: `The user just shared this in an onboarding conversation: "${answer}"\n\nWrite ONE short supportive sentence (max 15 words) that acknowledges something meaningful from their answer. Be warm and specific to what they said. Do not ask a question. Do not use exclamation marks excessively. Examples:\n- "Building something around meaning and purpose is powerful work."\n- "That kind of curiosity usually leads somewhere important."\n- "Sounds like you've built real depth in that space."\n\nRespond with ONLY the reflection sentence, nothing else.`,
       },
     });
-    if (!error && data?.guidance) {
-      return data.guidance.trim().replace(/^["']|["']$/g, "");
+    if (!error && data?.response) {
+      const clean = data.response.trim().replace(/^["']|["']$/g, "");
+      // Only use if it's short enough (actual reflection, not a full response)
+      if (clean.length < 120) return clean;
     }
   } catch {
-    // Non-blocking — skip reflection if it fails
+    // Non-blocking
   }
   return null;
 };
