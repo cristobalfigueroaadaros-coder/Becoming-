@@ -1,25 +1,70 @@
 
-# Creator Wall Post Composer — Implementation Plan
 
-We will create a new, aesthetically pleasing `PostComposer` component and position it at the top of the Creators Wall (right below the header), replacing the old bottom-positioned `CreatePostForm`. The new design will be cleaner, minimal, and follow the structure of modern social post inputs.
+# Becoming Guide — Floating Knowledge Hub
 
-### 1. Create `src/components/creators/PostComposer.tsx`
-We will build a sleek, horizontally-oriented composer card:
-- **Left Side:** A circular avatar container with a subtle user icon.
-- **Right Side (Input Area):** A minimal, borderless textarea with the placeholder: `"What are you creating for a better world?"`.
-- **Helper Text:** Small, calm hints immediately below the input (`Examples: starting a community project • building a purpose-driven business • healing myself`).
-- **Expandable Optional Fields:** A clean "Details" toggle that reveals borderless inputs for **Goal**, **Next Step**, and **Location** with small leading icons.
-- **Action Bar:** A minimal row containing:
-  - A dropdown menu to select the post type (`Creating`, `Working on self`, etc.).
-  - An image upload button.
-  - The "Share" button.
-- **Design Style:** We will use `bg-card`, rounded corners, `shadow-sm`, and `border-0` on inputs to keep it feeling light and encouraging rather than bulky.
+## Overview
+Create a floating "Becoming Guide" button and a Sheet panel that serves as an in-app reference manual. The guide contains expandable sections explaining the system's philosophy, tools, and workflow with a dynamic "Start Here" section.
 
-### 2. Update `src/pages/CreatorsWall.tsx`
-- **Import:** Import the new `PostComposer` component.
-- **Guidance Message:** Add the requested guidance text just below the mission statement:
-  > *"This space is for sharing positive impact, supporting each other, and building a better world together."* (Styled as a subtle, center-aligned message box).
-- **Positioning:** Render the `PostComposer` directly beneath the guidance message, before the `SEED_POSTS` feed.
-- **Cleanup:** Remove the old `shareExpanded` state, the bottom "Share your creation" button, and the `CreatePostForm` logic from the bottom of the page since the composer is now persistent at the top.
+## Architecture
 
-This approach resolves the sizing issues, aligns the visual style with standard post cards, and ensures the composer is immediately visible without needing an extra click to expand.
+### New Files
+- `src/components/BecomingGuide.tsx` — Main component with floating button + Sheet panel
+
+### Modified Files
+- `src/components/layout/AppLayout.tsx` — Add `<BecomingGuide />` inside the layout
+
+## Component Design
+
+### Floating Button
+- Fixed position: `bottom-24 right-4` (above bottom nav)
+- Small pill button with `BookOpen` icon + "Guide" label
+- Uses `Sheet` component (side="right") to open the panel
+
+### Sheet Panel Content
+
+**Header**: "Becoming Guide" title with a short welcome line
+
+**"Start Here" section** (always visible at top, not collapsible):
+- Dynamically checks user state via existing hooks (`useIntegratorProjects`)
+- No project → "Share an idea with the Council" → links to `/council`
+- Has project → "Continue building" → links to `/creation-lab`
+- Highlight box: "You do not need to understand everything before starting. Just share an idea with the Council and begin."
+
+**Accordion sections** (using existing `Accordion` component):
+
+1. **Foundation** (icon: `Compass`)
+   - "What is Becoming" — 4-5 lines from PDR
+   - "Message from the Founder" — Cristobal's message
+   - "Example Journey" — The flow steps
+   - "The Becoming Loop" — Insight → Build → Test → Learn cycle
+
+2. **Creation Lab** (icon: `FlaskConical`)
+   - Sub-items: Project, Daily Goals, Design Thinking, Creative Space, Map, Purpose to Value
+   - Each with 3-4 line explanation from PDR
+
+3. **Becoming Path** (icon: `Sparkles`)
+   - Sub-items: Becoming Exercises, Pattern Discovery, Transmutation, Superpowers
+
+4. **Council** (icon: `Users`)
+   - Council explanation + Save Button explanation
+
+5. **Momentum** (icon: `TrendingUp`)
+   - Weekly Sprint, Accumulated Work, Capabilities
+
+### Implementation Details
+- Each section uses nested `Accordion` for sub-topics
+- Important callouts use a styled div with `bg-primary/10 border-l-2 border-primary` 
+- All text comes from the PDR content (hardcoded strings, no DB needed)
+- Sheet can be closed instantly via X or overlay click
+- No localStorage tracking needed — this is always available
+
+### Visual Examples Placeholder
+The PDR requests before/after screenshots for each major section. Since we don't have these images yet, each section will include a subtle placeholder note: "Visual examples coming soon" that can be replaced with actual images later.
+
+## Files Summary
+
+| File | Change |
+|------|--------|
+| `src/components/BecomingGuide.tsx` | New — floating button + Sheet with all guide content |
+| `src/components/layout/AppLayout.tsx` | Add `<BecomingGuide />` alongside `<BottomNavigation />` |
+
