@@ -14,7 +14,7 @@ import { CreatorChatView } from "@/components/creators/CreatorChatView";
 import CouncilMeetingPage from "./CouncilMeeting";
 import ChatPage from "./Chat";
 import ConsoleThread from "./ConsoleThread";
-
+import BuilderTeamThread from "./BuilderTeamThread";
 // Type for location state passed from various flows
 interface LocationState {
   prefilledQuestion?: string;
