@@ -631,6 +631,12 @@ const Council = () => {
             <ConsoleThread embedded onProjectNameChange={setThreadProjectName} />
           ) : isConsole ? (
             <CouncilMeetingPage embedded locationState={location.state} />
+          ) : isCreatorChat && creatorChatId && currentUserId ? (
+            <CreatorChatView
+              chatId={creatorChatId}
+              currentUserId={currentUserId}
+              otherUserName={creatorChats.find((c: any) => c.id === creatorChatId)?.otherName || "Creator"}
+            />
           ) : selectedMentor ? (
             <ChatPage mentorTypeOverride={selectedMentor} embedded locationState={location.state} />
           ) : (
