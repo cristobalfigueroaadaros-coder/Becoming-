@@ -64,27 +64,31 @@ const getPhaseQuestions = (entryState: string): string[] => {
   ];
 };
 
-// Generate a brief reflection on the user's answer (1 sentence, supportive)
-const generateReflection = async (answer: string): Promise<string | null> => {
-  try {
-    const { data, error } = await supabase.functions.invoke("chat-mentor", {
-      body: {
-        mentorType: "future_self",
-        message: answer,
-        conversationHistory: [],
-        reflectionOnly: true,
-        reflectionPrompt: `The user just shared this in an onboarding conversation: "${answer}"\n\nWrite ONE short supportive sentence (max 15 words) that acknowledges something meaningful from their answer. Be warm and specific to what they said. Do not ask a question. Do not use exclamation marks excessively. Examples:\n- "Building something around meaning and purpose is powerful work."\n- "That kind of curiosity usually leads somewhere important."\n- "Sounds like you've built real depth in that space."\n\nRespond with ONLY the reflection sentence, nothing else.`,
-      },
-    });
-    if (!error && data?.response) {
-      const clean = data.response.trim().replace(/^["']|["']$/g, "");
-      // Only use if it's short enough (actual reflection, not a full response)
-      if (clean.length < 120) return clean;
-    }
-  } catch {
-    // Non-blocking
-  }
-  return null;
+// Generate a brief reflection on the user's answer (local, no AI call needed)
+const generateReflection = (answer: string): string | null => {
+  const lower = answer.toLowerCase();
+  const len = answer.length;
+
+  // Too short to reflect on meaningfully
+  if (len < 15) return null;
+
+  // Pattern-match for common themes
+  if (/build|creat|launch|start|mak/i.test(lower)) return "That creative drive says a lot about where you're headed.";
+  if (/help|support|serv|communit|people/i.test(lower)) return "That kind of purpose — helping others — runs deep.";
+  if (/design|art|music|writ|story/i.test(lower)) return "There's something powerful about channeling ideas into form.";
+  if (/tech|code|engineer|develop|software/i.test(lower)) return "Sounds like you've built real depth in that space.";
+  if (/teach|mentor|coach|educ/i.test(lower)) return "Guiding others is one of the most meaningful things you can do.";
+  if (/heal|therap|psych|well|mind/i.test(lower)) return "Working with the inner world takes real courage and depth.";
+  if (/travel|explor|discover|adventure/i.test(lower)) return "That kind of curiosity usually leads somewhere important.";
+  if (/mean|purpose|impact|legacy|matter/i.test(lower)) return "Building something around meaning and purpose is powerful work.";
+  if (/struggle|challeng|hard|difficult|stuck/i.test(lower)) return "Acknowledging that takes honesty — it's a sign of real self-awareness.";
+  if (/dream|vision|imagin|future|hope/i.test(lower)) return "That vision is worth paying attention to.";
+  if (/business|entrepreneur|company|startup/i.test(lower)) return "Building something of your own takes real conviction.";
+  if (/grow|learn|improv|evolv|develop/i.test(lower)) return "That growth mindset is your biggest asset.";
+
+  // Generic but warm fallbacks based on length
+  if (len > 100) return "There's a lot of depth in what you just shared.";
+  return "That's a meaningful starting point.";
 };
 
 interface ConsoleThreadProps {
