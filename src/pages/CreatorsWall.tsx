@@ -5,11 +5,13 @@ import { Button } from "@/components/ui/button";
 import { useCreatorPosts } from "@/hooks/useCreatorPosts";
 import { PostComposer } from "@/components/creators/PostComposer";
 import { CreatorPostCard } from "@/components/creators/CreatorPostCard";
-import { SeedPostCard, type SeedPost } from "@/components/creators/SeedPostCard";
-import { CreatorMap, type MapSeedPost } from "@/components/creators/CreatorMap";
+import { SeedPostCard } from "@/components/creators/SeedPostCard";
+import { CreatorMap } from "@/components/creators/CreatorMap";
+import { SEED_POSTS } from "@/data/seedCreators";
 import { toast } from "@/hooks/use-toast";
 import { cn } from "@/lib/utils";
 import type { ResonanceType } from "@/hooks/useCreatorPosts";
+import type { MapSeedPost } from "@/components/creators/CreatorMap";
 
 const SEED_POSTS: MapSeedPost[] = [
   {
