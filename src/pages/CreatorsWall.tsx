@@ -73,7 +73,7 @@ const SEED_POSTS: MapSeedPost[] = [
     next_step: "Host the first workshop for farmers.",
     gradient: { from: "#365314", to: "#84cc16" }, emoji: "🌾",
     resonances: { inspires_me: 34, creating_similar: 21, want_to_help: 16, needed_this: 22 },
-    date: "Mar 6, 2026", coords: { x: 20, y: 76 }, category: "environment",
+    date: "Mar 6, 2026", coords: { x: -70.67, y: -33.45 }, category: "environment",
   },
   {
     id: "seed-8", name: "Maya", location: "Amsterdam", post_type: "working_on_self",
