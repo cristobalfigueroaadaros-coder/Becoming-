@@ -343,7 +343,7 @@ const ConsoleThread = ({ embedded = false, onProjectNameChange }: ConsoleThreadP
 
       // Reflection after final answer
       await showTyping("future_self", 1500);
-      const reflection = await generateReflection(answers[2]);
+      const reflection = generateReflection(answers[2]);
       if (reflection) {
         addSystemMessage(reflection, "future_self", "processing");
         await showTyping("future_self", 1200);
