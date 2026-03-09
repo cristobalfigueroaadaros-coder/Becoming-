@@ -798,6 +798,138 @@ export type Database = {
           },
         ]
       }
+      creator_comments: {
+        Row: {
+          content: string
+          created_at: string
+          id: string
+          post_id: string
+          user_id: string
+        }
+        Insert: {
+          content: string
+          created_at?: string
+          id?: string
+          post_id: string
+          user_id: string
+        }
+        Update: {
+          content?: string
+          created_at?: string
+          id?: string
+          post_id?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "creator_comments_post_id_fkey"
+            columns: ["post_id"]
+            isOneToOne: false
+            referencedRelation: "creator_posts"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      creator_posts: {
+        Row: {
+          created_at: string
+          goal: string | null
+          id: string
+          image_url: string | null
+          location: string | null
+          next_step: string | null
+          post_type: string
+          statement: string
+          user_id: string
+        }
+        Insert: {
+          created_at?: string
+          goal?: string | null
+          id?: string
+          image_url?: string | null
+          location?: string | null
+          next_step?: string | null
+          post_type: string
+          statement: string
+          user_id: string
+        }
+        Update: {
+          created_at?: string
+          goal?: string | null
+          id?: string
+          image_url?: string | null
+          location?: string | null
+          next_step?: string | null
+          post_type?: string
+          statement?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
+      creator_resonances: {
+        Row: {
+          created_at: string
+          id: string
+          post_id: string
+          resonance_type: string
+          user_id: string
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          post_id: string
+          resonance_type: string
+          user_id: string
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          post_id?: string
+          resonance_type?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "creator_resonances_post_id_fkey"
+            columns: ["post_id"]
+            isOneToOne: false
+            referencedRelation: "creator_posts"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      creator_updates: {
+        Row: {
+          content: string
+          created_at: string
+          id: string
+          post_id: string
+          user_id: string
+        }
+        Insert: {
+          content: string
+          created_at?: string
+          id?: string
+          post_id: string
+          user_id: string
+        }
+        Update: {
+          content?: string
+          created_at?: string
+          id?: string
+          post_id?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "creator_updates_post_id_fkey"
+            columns: ["post_id"]
+            isOneToOne: false
+            referencedRelation: "creator_posts"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       current_challenge: {
         Row: {
           challenge_description: string
