@@ -87,6 +87,7 @@ export const BecomingGuide = () => {
   const [open, setOpen] = useState(false);
   const [expandedId, setExpandedId] = useState<string | null>(null);
   const navigate = useNavigate();
+  const location = useLocation();
   const { projects } = useIntegratorProjects();
   const hasProject = projects && projects.length > 0;
 
@@ -97,13 +98,21 @@ export const BecomingGuide = () => {
     navigate(path);
   };
 
+  // Check if we're on a chat/council page with an input field
+  const isChatPage = location.pathname.includes("/council") || 
+                     location.pathname.includes("/chat") || 
+                     location.pathname.includes("/console-thread");
+
   return (
     <Sheet open={open} onOpenChange={setOpen}>
       <SheetTrigger asChild>
         <Button
           size="sm"
           variant="secondary"
-          className="fixed bottom-24 right-4 z-40 rounded-full shadow-lg gap-1.5 px-3 h-9"
+          className={cn(
+            "fixed right-4 z-40 rounded-full shadow-lg gap-1.5 px-3 h-9",
+            isChatPage ? "bottom-36" : "bottom-24"
+          )}
         >
           <BookOpen className="w-4 h-4" />
           <span className="text-xs font-medium">Guide</span>
