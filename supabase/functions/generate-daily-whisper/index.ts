@@ -348,7 +348,7 @@ Actionable Hints: ${hints.join(" | ") || "None"}`;
       celebration: "Acknowledge their wins, then ask: what's next?",
       pattern_interruption: "Say something unexpected that breaks their usual thinking. Then suggest action.",
       // App guidance prompts - Future Self as system consciousness
-      guidance: "Gently guide them toward completing their Purpose to Value Map. They're ready to clarify what they stand for. Mention the Value Map by name.",
+      guidance: "Gently guide them toward completing their Business Plan. They're ready to clarify what they stand for. Mention the Business Plan by name.",
       invitation: "Invite them to continue their Self Discovery journey. Be curious about what they might learn about themselves.",
       insight: "Suggest they connect their insights in the Living Constellation. Mention how patterns emerge when dots connect.",
       inspiration: "Encourage them to start a creation project. Action reveals clarity. Reference something specific from their constellation or council insights.",
