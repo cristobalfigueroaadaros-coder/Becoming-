@@ -635,6 +635,8 @@ const Council = () => {
         <div className="flex-1 overflow-hidden h-full">
           {isIntake ? (
             <ConsoleThread embedded onProjectNameChange={setThreadProjectName} />
+          ) : isBuilderTeam ? (
+            <BuilderTeamThread embedded />
           ) : isConsole ? (
             <CouncilMeetingPage embedded locationState={location.state} />
           ) : isCreatorChat && creatorChatId && currentUserId ? (
