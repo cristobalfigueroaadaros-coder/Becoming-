@@ -285,7 +285,7 @@ const ConsoleThread = ({ embedded = false, onProjectNameChange }: ConsoleThreadP
       persistPhase(nextPhase);
       // Reflection on answer
       await showTyping("future_self", 1500);
-      const reflection = await generateReflection(text);
+      const reflection = generateReflection(text);
       if (reflection) {
         addSystemMessage(reflection, "future_self", nextPhase);
         await showTyping("future_self", 1200);
