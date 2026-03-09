@@ -19,7 +19,7 @@ const SEED_POSTS: MapSeedPost[] = [
     next_step: "Record the first episode and publish it this week.",
     gradient: { from: "#f97316", to: "#fdba74" }, emoji: "🎙️",
     resonances: { inspires_me: 42, creating_similar: 8, want_to_help: 5, needed_this: 31 },
-    date: "Mar 1, 2026", coords: { x: 21, y: 28 }, category: "family",
+    date: "Mar 1, 2026", coords: { x: -79.38, y: 43.65 }, category: "family",
   },
   {
     id: "seed-2", name: "Maria", location: "Mexico City", post_type: "creating",
