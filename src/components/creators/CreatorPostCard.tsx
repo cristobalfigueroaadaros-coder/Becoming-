@@ -1,4 +1,5 @@
 import { useState } from "react";
+import { useNavigate } from "react-router-dom";
 import { Card } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { MapPin, ChevronDown, ChevronUp, Target, ArrowRight } from "lucide-react";
@@ -31,6 +32,7 @@ export const CreatorPostCard = ({
   post, currentUserId, resonances, updates, comments,
   onToggleResonance, onAddUpdate, onAddComment,
 }: CreatorPostCardProps) => {
+  const navigate = useNavigate();
   const [expanded, setExpanded] = useState(false);
   const style = POST_TYPE_STYLES[post.post_type] || POST_TYPE_STYLES.creating;
   const isOwner = currentUserId === post.user_id;
@@ -44,7 +46,7 @@ export const CreatorPostCard = ({
             {(post.profiles?.display_name || "?")[0].toUpperCase()}
           </div>
           <div>
-            <p className="text-sm font-medium text-foreground">{post.profiles?.display_name || "Creator"}</p>
+            <p className="text-sm font-medium text-foreground cursor-pointer hover:text-primary transition-colors" onClick={() => navigate(`/creators/${post.user_id}`)}>{post.profiles?.display_name || "Creator"}</p>
             <div className="flex items-center gap-2 text-[11px] text-muted-foreground">
               {post.location && (
                 <span className="flex items-center gap-0.5"><MapPin className="w-3 h-3" />{post.location}</span>

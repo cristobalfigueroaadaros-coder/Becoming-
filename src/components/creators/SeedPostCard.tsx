@@ -1,4 +1,5 @@
 import { useState } from "react";
+import { useNavigate } from "react-router-dom";
 import { MapPin, Target, ArrowRight, MessageCircle, UserPlus, Send } from "lucide-react";
 import { Card } from "@/components/ui/card";
 import { cn } from "@/lib/utils";
@@ -60,6 +61,7 @@ export interface SeedPost {
 }
 
 export const SeedPostCard = ({ post }: { post: SeedPost }) => {
+  const navigate = useNavigate();
   const style = POST_TYPE_STYLES[post.post_type] ?? POST_TYPE_STYLES.creating;
   const [localResonances, setLocalResonances] = useState(post.resonances);
   const [clicked, setClicked] = useState<Set<string>>(new Set());
@@ -98,7 +100,7 @@ export const SeedPostCard = ({ post }: { post: SeedPost }) => {
             {post.name[0].toUpperCase()}
           </div>
           <div>
-            <p className="text-sm font-medium text-foreground">{post.name}</p>
+            <p className="text-sm font-medium text-foreground cursor-pointer hover:text-primary transition-colors" onClick={() => navigate(`/creators/${post.id}`)}>{post.name}</p>
             <div className="flex items-center gap-2 text-[11px] text-muted-foreground">
               <span className="flex items-center gap-0.5">
                 <MapPin className="w-3 h-3" />{post.location}

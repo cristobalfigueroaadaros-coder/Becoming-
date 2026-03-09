@@ -50,6 +50,7 @@ export const BottomNavigation = () => {
   const navigate = useNavigate();
   const { needsClarification, badgeCount, isInClarificationSession } = useProblemClarificationStatus();
   const [councilBadge, setCouncilBadge] = useState(false);
+  const [creatorRequestCount, setCreatorRequestCount] = useState(0);
 
   useEffect(() => {
     const checkCouncilBadge = async () => {
@@ -62,6 +63,14 @@ export const BottomNavigation = () => {
         .single();
       const p = data as any;
       setCouncilBadge(!!p?.onboarding_quest_completed && !p?.console_intake_completed);
+
+      // Check pending creator chat requests
+      const { count } = await supabase
+        .from("creator_chat_requests")
+        .select("*", { count: "exact", head: true })
+        .eq("receiver_id", user.id)
+        .eq("status", "pending");
+      setCreatorRequestCount(count || 0);
     };
     checkCouncilBadge();
   }, [location.pathname]);
@@ -88,7 +97,7 @@ export const BottomNavigation = () => {
           const Icon = item.icon;
           // Hide badge when user is in the clarification session
           const showCreationBadge = item.path === "/creation-lab" && needsClarification && badgeCount > 0 && !isInClarificationSession;
-          const showCouncilBadge = item.path === "/council" && councilBadge;
+          const showCouncilBadge = item.path === "/council" && (councilBadge || creatorRequestCount > 0);
           const showBadge = showCreationBadge || showCouncilBadge;
           
           return (
@@ -106,7 +115,7 @@ export const BottomNavigation = () => {
                 <Icon className={cn("w-5 h-5", active && "text-primary")} />
                 {showBadge && (
                   <span className="absolute -top-1.5 -right-1.5 w-4 h-4 rounded-full bg-destructive text-destructive-foreground text-[10px] font-bold flex items-center justify-center animate-pulse">
-                    {showCouncilBadge ? "!" : badgeCount}
+                    {showCouncilBadge ? (creatorRequestCount > 0 ? creatorRequestCount : "!") : badgeCount}
                   </span>
                 )}
               </div>

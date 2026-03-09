@@ -2,11 +2,13 @@ import { useState, useEffect, useMemo, useCallback } from "react";
 import { useSearchParams, useNavigate, useLocation } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
 import { cn } from "@/lib/utils";
-import { Users, ArrowLeft, Hammer, Heart, Sparkles } from "lucide-react";
+import { Users, ArrowLeft, Hammer, Heart, Sparkles, Globe } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { Button } from "@/components/ui/button";
 import { toast } from "sonner";
+import { ChatRequestCard } from "@/components/creators/ChatRequestCard";
+import { CreatorChatView } from "@/components/creators/CreatorChatView";
 
 // Lazy load the actual conversation components to avoid circular deps
 import CouncilMeetingPage from "./CouncilMeeting";
@@ -98,12 +100,17 @@ const Council = () => {
   const [showMobileList, setShowMobileList] = useState(true);
   const [intakePending, setIntakePending] = useState(false);
   const [threadProjectName, setThreadProjectName] = useState<string | null>(null);
+  const [creatorChats, setCreatorChats] = useState<any[]>([]);
+  const [chatRequests, setChatRequests] = useState<any[]>([]);
+  const [currentUserId, setCurrentUserId] = useState<string | null>(null);
   
   // Get current view from URL params
   const currentView = searchParams.get("view") || "console";
   const isConsole = currentView === "console";
   const isIntake = currentView === "intake";
-  const selectedMentor = !isConsole && !isIntake ? currentView : null;
+  const isCreatorChat = currentView.startsWith("creator-chat-");
+  const creatorChatId = isCreatorChat ? currentView.replace("creator-chat-", "") : null;
+  const selectedMentor = !isConsole && !isIntake && !isCreatorChat ? currentView : null;
 
   useEffect(() => {
     loadData();
@@ -196,6 +203,47 @@ const Council = () => {
         .is("read_at", null);
 
       setCouncilNotifications(count || 0);
+
+      setCurrentUserId(user.id);
+
+      // Load creator chats
+      const { data: chats } = await supabase
+        .from("creator_chats")
+        .select("*")
+        .or(`user1_id.eq.${user.id},user2_id.eq.${user.id}`);
+      
+      if (chats) {
+        // For each chat, get the other user's profile
+        const enriched = await Promise.all(chats.map(async (chat: any) => {
+          const otherId = chat.user1_id === user.id ? chat.user2_id : chat.user1_id;
+          const { data: profile } = await supabase
+            .from("profiles")
+            .select("display_name")
+            .eq("id", otherId)
+            .single();
+          return { ...chat, otherName: (profile as any)?.display_name || "Creator", otherId };
+        }));
+        setCreatorChats(enriched);
+      }
+
+      // Load pending chat requests
+      const { data: requests } = await supabase
+        .from("creator_chat_requests")
+        .select("*")
+        .eq("receiver_id", user.id)
+        .eq("status", "pending");
+
+      if (requests) {
+        const enrichedReqs = await Promise.all(requests.map(async (req: any) => {
+          const { data: profile } = await supabase
+            .from("profiles")
+            .select("display_name")
+            .eq("id", req.sender_id)
+            .single();
+          return { ...req, senderName: (profile as any)?.display_name || "Creator" };
+        }));
+        setChatRequests(enrichedReqs);
+      }
     } catch (error) {
       console.error("Error loading council data:", error);
     } finally {
@@ -447,6 +495,54 @@ const Council = () => {
             </div>
           </button>
 
+          {/* Creator Connections Section */}
+          {(chatRequests.length > 0 || creatorChats.length > 0) && (
+            <>
+              <div className="py-2">
+                <p className="px-3 text-xs font-medium text-muted-foreground uppercase tracking-wide">
+                  Creator Connections
+                </p>
+              </div>
+
+              {/* Pending Requests */}
+              {chatRequests.map((req: any) => (
+                <div key={req.id} className="px-2">
+                  <ChatRequestCard
+                    requestId={req.id}
+                    senderName={req.senderName}
+                    message={req.message}
+                    onHandled={loadData}
+                  />
+                </div>
+              ))}
+
+              {/* Active Creator Chats */}
+              {creatorChats.map((chat: any) => (
+                <button
+                  key={chat.id}
+                  onClick={() => {
+                    setSearchParams({ view: `creator-chat-${chat.id}` });
+                    setShowMobileList(false);
+                  }}
+                  className={cn(
+                    "w-full flex items-center gap-3 p-3 rounded-lg transition-colors text-left",
+                    creatorChatId === chat.id && !showMobileList
+                      ? "bg-primary/10 text-primary"
+                      : "hover:bg-muted"
+                  )}
+                >
+                  <div className="w-10 h-10 rounded-full bg-primary/10 flex items-center justify-center">
+                    <Globe className="w-5 h-5 text-primary" />
+                  </div>
+                  <div className="flex-1 min-w-0">
+                    <p className="font-medium truncate">{chat.otherName}</p>
+                    <p className="text-xs text-muted-foreground truncate">Creator connection</p>
+                  </div>
+                </button>
+              ))}
+            </>
+          )}
+
           {/* Divider */}
           <div className="py-2">
             <p className="px-3 text-xs font-medium text-muted-foreground uppercase tracking-wide">
@@ -507,7 +603,7 @@ const Council = () => {
         <ArrowLeft className="w-5 h-5" />
       </Button>
       <span className="font-medium truncate">
-        {isIntake ? (threadProjectName || "New Conversation") : isConsole ? "Chats" : mentorConfig[selectedMentor || ""]?.name || "Chat"}
+        {isIntake ? (threadProjectName || "New Conversation") : isConsole ? "Chats" : isCreatorChat ? (creatorChats.find((c: any) => c.id === creatorChatId)?.otherName || "Creator Chat") : mentorConfig[selectedMentor || ""]?.name || "Chat"}
       </span>
     </div>
   );
@@ -535,6 +631,12 @@ const Council = () => {
             <ConsoleThread embedded onProjectNameChange={setThreadProjectName} />
           ) : isConsole ? (
             <CouncilMeetingPage embedded locationState={location.state} />
+          ) : isCreatorChat && creatorChatId && currentUserId ? (
+            <CreatorChatView
+              chatId={creatorChatId}
+              currentUserId={currentUserId}
+              otherUserName={creatorChats.find((c: any) => c.id === creatorChatId)?.otherName || "Creator"}
+            />
           ) : selectedMentor ? (
             <ChatPage mentorTypeOverride={selectedMentor} embedded locationState={location.state} />
           ) : (
@@ -557,6 +659,12 @@ const Council = () => {
                 <ConsoleThread embedded onProjectNameChange={setThreadProjectName} />
               ) : isConsole ? (
                 <CouncilMeetingPage embedded locationState={location.state} />
+              ) : isCreatorChat && creatorChatId && currentUserId ? (
+                <CreatorChatView
+                  chatId={creatorChatId}
+                  currentUserId={currentUserId}
+                  otherUserName={creatorChats.find((c: any) => c.id === creatorChatId)?.otherName || "Creator"}
+                />
               ) : selectedMentor ? (
                 <ChatPage mentorTypeOverride={selectedMentor} embedded locationState={location.state} />
               ) : null}

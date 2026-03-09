@@ -64,6 +64,7 @@ import PatternMap from "./pages/PatternMap";
 import SuperpowerMap from "./pages/SuperpowerMap";
 import MomentumDashboard from "./pages/MomentumDashboard";
 import CreatorsWall from "./pages/CreatorsWall";
+import CreatorProfile from "./pages/CreatorProfile";
 
 
 const queryClient = new QueryClient();
@@ -260,6 +261,10 @@ const App = () => {
             <Route
               path="/creators"
               element={session ? <AppLayout><CreatorsWall /></AppLayout> : <Navigate to="/" />}
+            />
+            <Route
+              path="/creators/:creatorId"
+              element={session ? <AppLayout><CreatorProfile /></AppLayout> : <Navigate to="/" />}
             />
             <Route
               path="/council"
