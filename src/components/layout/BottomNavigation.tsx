@@ -27,7 +27,7 @@ const navItems: NavItem[] = [
   },
   {
     icon: Users,
-    label: "Council",
+    label: "Chats",
     path: "/council",
     matchPaths: ["/council", "/council-meeting", "/chat", "/console-thread"],
   },
