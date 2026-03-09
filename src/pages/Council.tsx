@@ -100,6 +100,9 @@ const Council = () => {
   const [showMobileList, setShowMobileList] = useState(true);
   const [intakePending, setIntakePending] = useState(false);
   const [threadProjectName, setThreadProjectName] = useState<string | null>(null);
+  const [creatorChats, setCreatorChats] = useState<any[]>([]);
+  const [chatRequests, setChatRequests] = useState<any[]>([]);
+  const [currentUserId, setCurrentUserId] = useState<string | null>(null);
   
   // Get current view from URL params
   const currentView = searchParams.get("view") || "console";
