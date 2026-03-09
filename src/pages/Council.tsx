@@ -445,20 +445,25 @@ const Council = () => {
             )}
           </button>
 
-          {/* Builders Team (Group Chat) */}
+          {/* Builder Team Thread */}
           <button
-            onClick={() => navigate('/builders-team')}
+            onClick={() => {
+              setSearchParams({ view: "builder-team" });
+              setShowMobileList(false);
+            }}
             className={cn(
               "w-full flex items-center gap-3 p-3 rounded-lg transition-colors text-left",
-              "hover:bg-muted"
+              isBuilderTeam && !showMobileList
+                ? "bg-primary/10 text-primary" 
+                : "hover:bg-muted"
             )}
           >
             <div className="w-10 h-10 rounded-full bg-lime-500/20 flex items-center justify-center">
               <Hammer className="w-5 h-5 text-lime-500" />
             </div>
             <div className="flex-1 min-w-0">
-              <p className="font-medium truncate">Builders Team</p>
-              <p className="text-xs text-muted-foreground truncate">Design, UX & Gamification</p>
+              <p className="font-medium truncate">{threadProjectName ? `${threadProjectName} — Builder Team` : "Builder Team"}</p>
+              <p className="text-xs text-muted-foreground truncate">Design, UX, Gamification & more</p>
             </div>
           </button>
 
