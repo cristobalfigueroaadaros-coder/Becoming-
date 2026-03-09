@@ -416,10 +416,22 @@ const ConsoleThread = ({ embedded = false, onProjectNameChange }: ConsoleThreadP
     setPhase(nextPhase);
     persistPhase(nextPhase);
 
-    // Guidance message before council starts
+    // Multi-message handoff
     await showTyping("future_self", 1200);
     addSystemMessage(
-      `Now you're going to interact with your mentor council. They'll help you define a project to work on.\n\nWrite "let's go" when you're ready.`,
+      "Now you're going to interact with your mentor council.",
+      "future_self",
+      nextPhase
+    );
+    await showTyping("future_self", 1500);
+    addSystemMessage(
+      "They'll help you define a project to work on and guide your next steps.",
+      "future_self",
+      nextPhase
+    );
+    await showTyping("future_self", 1200);
+    addSystemMessage(
+      `Write "let's go" when you're ready.`,
       "future_self",
       nextPhase
     );
