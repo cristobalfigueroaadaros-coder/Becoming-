@@ -91,7 +91,7 @@ const SEED_POSTS: MapSeedPost[] = [
     next_step: "Launch a social page and invite friends to participate.",
     gradient: { from: "#d97706", to: "#fef08a" }, emoji: "💛",
     resonances: { inspires_me: 66, creating_similar: 19, want_to_help: 8, needed_this: 57 },
-    date: "Mar 7, 2026", coords: { x: 53, y: 36 }, category: "community",
+    date: "Mar 7, 2026", coords: { x: 31.24, y: 30.04 }, category: "community",
   },
   {
     id: "seed-10", name: "Emma", location: "London", post_type: "creating",
