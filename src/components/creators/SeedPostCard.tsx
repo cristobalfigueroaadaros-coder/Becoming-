@@ -19,6 +19,13 @@ const RESONANCE_CONFIG = [
   { key: "needed_this" as const, emoji: "💛", label: "Needed this" },
 ];
 
+const ENGAGEMENT_PROMPTS: Record<string, string> = {
+  creating: "Are you building something similar or able to help?",
+  working_on_self: "Leave a supportive message or share if this resonates.",
+  looking_for_help: "Do you have an idea, contact, or skill that could support this?",
+  offering_help: "Could you or someone you know benefit from this?",
+};
+
 
 
 
