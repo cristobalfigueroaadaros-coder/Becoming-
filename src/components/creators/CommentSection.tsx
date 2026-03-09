@@ -25,9 +25,9 @@ export const CommentSection = ({ comments, onAddComment }: CommentSectionProps) 
   return (
     <div className="space-y-2 mt-3">
       {comments.map((c) => (
-        <div key={c.id} className="flex gap-2 text-xs">
-          <div className="w-5 h-5 rounded-full bg-muted flex items-center justify-center text-[10px] font-bold text-muted-foreground shrink-0">
-            {(c.profiles?.display_name || "?")[0].toUpperCase()}
+      <div key={c.id} className="flex gap-2 text-xs">
+        <div className="w-5 h-5 rounded-full bg-muted flex items-center justify-center text-[10px] font-bold text-muted-foreground shrink-0">
+          {(c.profiles?.display_name || "?")[0].toUpperCase()}
           </div>
           <div>
             <span className="font-medium text-foreground">{c.profiles?.display_name || "Creator"}</span>
