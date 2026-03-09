@@ -64,7 +64,7 @@ const SEED_POSTS: MapSeedPost[] = [
     next_step: "Design the first prototype of the game.",
     gradient: { from: "#db2777", to: "#fde68a" }, emoji: "🎮",
     resonances: { inspires_me: 47, creating_similar: 6, want_to_help: 13, needed_this: 38 },
-    date: "Mar 5, 2026", coords: { x: 47, y: 24 }, category: "education",
+    date: "Mar 5, 2026", coords: { x: 2.17, y: 41.39 }, category: "education",
   },
   {
     id: "seed-7", name: "Lucas", location: "Chile", post_type: "creating",
