@@ -176,11 +176,20 @@ export function useCreatorPosts() {
       queryFn: async () => {
         const { data, error } = await supabase
           .from("creator_comments")
-          .select("*, profiles(display_name, avatar_url)")
+          .select("*")
           .eq("post_id", postId)
           .order("created_at", { ascending: true });
         if (error) throw error;
-        return data as CreatorComment[];
+        const userIds = [...new Set((data || []).map(c => c.user_id))];
+        const { data: profiles } = await supabase
+          .from("profiles")
+          .select("id, display_name, avatar_url")
+          .in("id", userIds);
+        const profileMap = new Map((profiles || []).map(p => [p.id, p]));
+        return (data || []).map(c => ({
+          ...c,
+          profiles: profileMap.get(c.user_id) || null,
+        })) as CreatorComment[];
       },
     });
   };
