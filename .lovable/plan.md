@@ -1,70 +1,123 @@
 
 
-# Becoming Guide — Floating Knowledge Hub
+# Creators Wall — Full Implementation Plan
 
 ## Overview
-Create a floating "Becoming Guide" button and a Sheet panel that serves as an in-app reference manual. The guide contains expandable sections explaining the system's philosophy, tools, and workflow with a dynamic "Start Here" section.
+A new "Creators" section added to the bottom navigation between Home and Council. It serves as the community entry layer where users share what they're creating, follow each other's journeys, and connect through meaningful resonance reactions.
 
-## Architecture
+## Database Tables (Migration)
 
-### New Files
-- `src/components/BecomingGuide.tsx` — Main component with floating button + Sheet panel
+### `creator_posts`
+| Column | Type | Notes |
+|--------|------|-------|
+| id | uuid PK | |
+| user_id | uuid FK profiles | |
+| statement | text NOT NULL | Main "what are you creating" |
+| post_type | text NOT NULL | `creating`, `working_on_self`, `looking_for_help`, `offering_help` |
+| goal | text | Optional |
+| next_step | text | Optional |
+| location | text | Optional |
+| image_url | text | Optional |
+| created_at | timestamptz | |
 
-### Modified Files
-- `src/components/layout/AppLayout.tsx` — Add `<BecomingGuide />` inside the layout
+### `creator_updates`
+| Column | Type | Notes |
+|--------|------|-------|
+| id | uuid PK | |
+| post_id | uuid FK creator_posts | |
+| user_id | uuid FK profiles | |
+| content | text NOT NULL | Progress update |
+| created_at | timestamptz | |
 
-## Component Design
+### `creator_resonances`
+| Column | Type | Notes |
+|--------|------|-------|
+| id | uuid PK | |
+| post_id | uuid FK creator_posts | |
+| user_id | uuid FK profiles | |
+| resonance_type | text NOT NULL | `inspires_me`, `creating_similar`, `want_to_help`, `needed_this` |
+| created_at | timestamptz | |
+| UNIQUE(post_id, user_id, resonance_type) | | One per type per user |
 
-### Floating Button
-- Fixed position: `bottom-24 right-4` (above bottom nav)
-- Small pill button with `BookOpen` icon + "Guide" label
-- Uses `Sheet` component (side="right") to open the panel
+### `creator_comments`
+| Column | Type | Notes |
+|--------|------|-------|
+| id | uuid PK | |
+| post_id | uuid FK creator_posts | |
+| user_id | uuid FK profiles | |
+| content | text NOT NULL | |
+| created_at | timestamptz | |
 
-### Sheet Panel Content
+### Storage bucket
+- `creator-images` (public) for post image uploads
 
-**Header**: "Becoming Guide" title with a short welcome line
+### RLS Policies
+- All tables: authenticated users can SELECT all rows
+- INSERT/UPDATE/DELETE: only own rows (user_id = auth.uid())
+- Enable realtime on `creator_posts`, `creator_resonances`, `creator_comments`
 
-**"Start Here" section** (always visible at top, not collapsible):
-- Dynamically checks user state via existing hooks (`useIntegratorProjects`)
-- No project → "Share an idea with the Council" → links to `/council`
-- Has project → "Continue building" → links to `/creation-lab`
-- Highlight box: "You do not need to understand everything before starting. Just share an idea with the Council and begin."
+## New Files
 
-**Accordion sections** (using existing `Accordion` component):
+### `src/pages/CreatorsWall.tsx`
+Main page with:
+- **Header**: "Creators" title, mission message, dynamic counter (count of creator_posts), mission statement about 144,000
+- **Post creation prompt** at top: "What are you creating for a better world?" with example chips, post type selector, optional fields (goal, next step, location, image upload)
+- **Feed**: Chronological list of `CreatorPostCard` components
+- **Integration prompt**: After posting, show "Want help growing this?" → link to Creation Lab
 
-1. **Foundation** (icon: `Compass`)
-   - "What is Becoming" — 4-5 lines from PDR
-   - "Message from the Founder" — Cristobal's message
-   - "Example Journey" — The flow steps
-   - "The Becoming Loop" — Insight → Build → Test → Learn cycle
+### `src/components/creators/CreatorPostCard.tsx`
+Displays a single post thread:
+- Creator name + location + post type badge
+- Statement, goal, next step, image
+- Resonance buttons with counts
+- Expand to show progress updates + comments
+- "Add Update" button for post owner
 
-2. **Creation Lab** (icon: `FlaskConical`)
-   - Sub-items: Project, Daily Goals, Design Thinking, Creative Space, Map, Purpose to Value
-   - Each with 3-4 line explanation from PDR
+### `src/components/creators/CreatePostForm.tsx`
+Form component with:
+- Textarea for statement
+- Post type selector (4 pill buttons)
+- Optional fields: goal, next step, location
+- Image upload to `creator-images` bucket
+- Example prompts shown as subtle chips
 
-3. **Becoming Path** (icon: `Sparkles`)
-   - Sub-items: Becoming Exercises, Pattern Discovery, Transmutation, Superpowers
+### `src/components/creators/ResonanceButtons.tsx`
+Four reaction buttons:
+- "This inspires me" (Sparkles icon)
+- "I'm creating something similar" (Users icon)
+- "I want to help" (HandHeart icon)
+- "I needed to see this today" (Heart icon)
+- Each shows count, toggles on click
+- "Creating similar" or "Want to help" triggers connection suggestion
 
-4. **Council** (icon: `Users`)
-   - Council explanation + Save Button explanation
+### `src/components/creators/ProgressThread.tsx`
+Shows timeline of updates under a post. Owner can add new updates.
 
-5. **Momentum** (icon: `TrendingUp`)
-   - Weekly Sprint, Accumulated Work, Capabilities
+### `src/components/creators/CommentSection.tsx`
+Comment list + input. Note above input: "This space is for positive support, collaboration, and encouragement."
 
-### Implementation Details
-- Each section uses nested `Accordion` for sub-topics
-- Important callouts use a styled div with `bg-primary/10 border-l-2 border-primary` 
-- All text comes from the PDR content (hardcoded strings, no DB needed)
-- Sheet can be closed instantly via X or overlay click
-- No localStorage tracking needed — this is always available
+### `src/hooks/useCreatorPosts.tsx`
+Hook for CRUD on posts, updates, resonances, comments. Uses react-query.
 
-### Visual Examples Placeholder
-The PDR requests before/after screenshots for each major section. Since we don't have these images yet, each section will include a subtle placeholder note: "Visual examples coming soon" that can be replaced with actual images later.
+## Modified Files
 
-## Files Summary
+### `src/components/layout/BottomNavigation.tsx`
+Add "Creators" nav item between Home and Council:
+```
+{ icon: Globe, label: "Creators", path: "/creators", matchPaths: ["/creators"] }
+```
+Now 5 items — icons will be slightly smaller to fit.
 
-| File | Change |
-|------|--------|
-| `src/components/BecomingGuide.tsx` | New — floating button + Sheet with all guide content |
-| `src/components/layout/AppLayout.tsx` | Add `<BecomingGuide />` alongside `<BottomNavigation />` |
+### `src/App.tsx`
+Add route: `/creators` → `<AppLayout><CreatorsWall /></AppLayout>`
+
+## AI Moderation
+Comments will use a simple client-side content filter (block obvious profanity/negativity patterns). Full AI moderation is Phase 2.
+
+## Visual Design
+- Post cards: Card component with subtle left border colored by post type
+- Creating = blue, Working on self = purple, Looking for help = amber, Offering help = green
+- Resonance buttons: ghost variant, icon + label + count
+- Header counter: large animated number with "Creators connected" label
+- Feed: simple chronological scroll, no algorithm
 
