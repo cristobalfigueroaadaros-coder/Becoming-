@@ -1,85 +1,70 @@
 
 
-# Creator Map — Implementation Plan
+# Becoming Guide — Floating Knowledge Hub
 
 ## Overview
+Create a floating "Becoming Guide" button and a Sheet panel that serves as an in-app reference manual. The guide contains expandable sections explaining the system's philosophy, tools, and workflow with a dynamic "Start Here" section.
 
-Add a **Map** view to the Creators section, toggled via a `Wall | Map` switch below the header. The map shows creator pins on a stylized SVG world map, with tap-to-preview and tap-again-to-expand interactions.
+## Architecture
 
-## Approach
+### New Files
+- `src/components/BecomingGuide.tsx` — Main component with floating button + Sheet panel
 
-Use an **inline SVG world map** (simplified continent outlines) with absolutely-positioned creator dots — no external map library needed. This keeps it lightweight, fast, and visually consistent with the app's calm aesthetic.
+### Modified Files
+- `src/components/layout/AppLayout.tsx` — Add `<BecomingGuide />` inside the layout
 
-Seed post locations are mapped to approximate `[x%, y%]` coordinates on the SVG viewport.
+## Component Design
 
-## Files to create/modify
+### Floating Button
+- Fixed position: `bottom-24 right-4` (above bottom nav)
+- Small pill button with `BookOpen` icon + "Guide" label
+- Uses `Sheet` component (side="right") to open the panel
+
+### Sheet Panel Content
+
+**Header**: "Becoming Guide" title with a short welcome line
+
+**"Start Here" section** (always visible at top, not collapsible):
+- Dynamically checks user state via existing hooks (`useIntegratorProjects`)
+- No project → "Share an idea with the Council" → links to `/council`
+- Has project → "Continue building" → links to `/creation-lab`
+- Highlight box: "You do not need to understand everything before starting. Just share an idea with the Council and begin."
+
+**Accordion sections** (using existing `Accordion` component):
+
+1. **Foundation** (icon: `Compass`)
+   - "What is Becoming" — 4-5 lines from PDR
+   - "Message from the Founder" — Cristobal's message
+   - "Example Journey" — The flow steps
+   - "The Becoming Loop" — Insight → Build → Test → Learn cycle
+
+2. **Creation Lab** (icon: `FlaskConical`)
+   - Sub-items: Project, Daily Goals, Design Thinking, Creative Space, Map, Purpose to Value
+   - Each with 3-4 line explanation from PDR
+
+3. **Becoming Path** (icon: `Sparkles`)
+   - Sub-items: Becoming Exercises, Pattern Discovery, Transmutation, Superpowers
+
+4. **Council** (icon: `Users`)
+   - Council explanation + Save Button explanation
+
+5. **Momentum** (icon: `TrendingUp`)
+   - Weekly Sprint, Accumulated Work, Capabilities
+
+### Implementation Details
+- Each section uses nested `Accordion` for sub-topics
+- Important callouts use a styled div with `bg-primary/10 border-l-2 border-primary` 
+- All text comes from the PDR content (hardcoded strings, no DB needed)
+- Sheet can be closed instantly via X or overlay click
+- No localStorage tracking needed — this is always available
+
+### Visual Examples Placeholder
+The PDR requests before/after screenshots for each major section. Since we don't have these images yet, each section will include a subtle placeholder note: "Visual examples coming soon" that can be replaced with actual images later.
+
+## Files Summary
 
 | File | Change |
 |------|--------|
-| `src/pages/CreatorsWall.tsx` | Add `Wall \| Map` toggle state, conditionally render wall or map view |
-| `src/components/creators/CreatorMap.tsx` | **New** — SVG world map with positioned pins, preview cards, expanded cards |
-| `src/components/creators/CreatorMapPin.tsx` | **New** — Individual pin component with pulse animation |
-| `src/components/creators/CreatorPreviewCard.tsx` | **New** — Lightweight popup on first tap (name, location, statement) |
-| `src/components/creators/CreatorDetailCard.tsx` | **New** — Full card on second tap (goal, next step, resonance buttons) |
-
-## Layout change in CreatorsWall
-
-```text
-Header + Mission + Counter
-┌─────────────────────────┐
-│   [ Wall ]  [ Map ]     │  ← new toggle
-├─────────────────────────┤
-│  activeView === "wall"  │  → current feed + composer
-│  activeView === "map"   │  → CreatorMap component
-└─────────────────────────┘
-```
-
-The toggle uses two simple buttons styled like tabs with `bg-primary` for the active state.
-
-## CreatorMap component
-
-- Renders a simplified SVG world map (continent paths as a static inline SVG, styled with `fill-muted stroke-border`)
-- Overlays creator pins as absolutely-positioned dots using percentage coordinates
-- Each seed post gets a hardcoded `{ x: number, y: number }` coordinate (e.g., Toronto → `{ x: 22, y: 32 }`, Berlin → `{ x: 51, y: 28 }`)
-- Real DB posts with a `location` field also get approximate coordinates via a simple city-to-coordinate lookup map
-- Pins have a subtle pulse animation and use the seed post's gradient color
-
-## Pin interaction flow
-
-1. **Tap pin** → small preview card appears near the pin (name, location, one-line statement)
-2. **Tap preview card** → bottom sheet / modal with full creator detail (goal, next step, resonance buttons, Connect/Save actions)
-3. **Tap elsewhere** → dismisses preview
-
-## Clustering
-
-For MVP: if pins overlap (within ~3% distance), show a cluster bubble with count. Tapping the cluster zooms the view (CSS transform scale) to spread them out.
-
-## Filters (lightweight MVP)
-
-A small horizontal scrollable row of filter chips above the map:
-- **Category**: All, Family, Education, Healing, Community, Environment, Art, Tech for Good
-- Filters seed posts by a new `category` field added to the `SeedPost` type
-
-## Data additions
-
-Add `coords` and `category` fields to each seed post in the `SEED_POSTS` array:
-
-```typescript
-{
-  id: "seed-1",
-  name: "James",
-  location: "Toronto",
-  coords: { x: 22, y: 32 },
-  category: "family",
-  // ...existing fields
-}
-```
-
-## Design
-
-- Map background: subtle dark/light themed SVG with soft continent fills
-- Pins: 10px colored circles with glow matching the post gradient
-- Preview card: floating card with `shadow-lg`, appears on tap
-- Detail card: bottom drawer (using Vaul `Drawer`) with full post info + resonance buttons + Connect button
-- Everything feels clean, minimal, calm, hopeful — no clutter
+| `src/components/BecomingGuide.tsx` | New — floating button + Sheet with all guide content |
+| `src/components/layout/AppLayout.tsx` | Add `<BecomingGuide />` alongside `<BottomNavigation />` |
 

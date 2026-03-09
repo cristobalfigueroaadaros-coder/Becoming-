@@ -29,6 +29,8 @@ export interface SeedPost {
   emoji: string;
   resonances: { inspires_me: number; creating_similar: number; want_to_help: number; needed_this: number };
   date: string;
+  coords?: { x: number; y: number };
+  category?: string;
 }
 
 export const SeedPostCard = ({ post }: { post: SeedPost }) => {
