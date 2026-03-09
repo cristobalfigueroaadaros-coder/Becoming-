@@ -554,7 +554,7 @@ const Council = () => {
             <MobileBackHeader />
             <div className="flex-1 overflow-hidden">
               {isIntake ? (
-                <ConsoleThread embedded />
+                <ConsoleThread embedded onProjectNameChange={setThreadProjectName} />
               ) : isConsole ? (
                 <CouncilMeetingPage embedded locationState={location.state} />
               ) : selectedMentor ? (
