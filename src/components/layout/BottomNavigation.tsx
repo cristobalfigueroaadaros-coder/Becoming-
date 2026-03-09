@@ -50,6 +50,7 @@ export const BottomNavigation = () => {
   const navigate = useNavigate();
   const { needsClarification, badgeCount, isInClarificationSession } = useProblemClarificationStatus();
   const [councilBadge, setCouncilBadge] = useState(false);
+  const [creatorRequestCount, setCreatorRequestCount] = useState(0);
 
   useEffect(() => {
     const checkCouncilBadge = async () => {
@@ -62,6 +63,14 @@ export const BottomNavigation = () => {
         .single();
       const p = data as any;
       setCouncilBadge(!!p?.onboarding_quest_completed && !p?.console_intake_completed);
+
+      // Check pending creator chat requests
+      const { count } = await supabase
+        .from("creator_chat_requests")
+        .select("*", { count: "exact", head: true })
+        .eq("receiver_id", user.id)
+        .eq("status", "pending");
+      setCreatorRequestCount(count || 0);
     };
     checkCouncilBadge();
   }, [location.pathname]);
