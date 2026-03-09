@@ -17,6 +17,13 @@ const POST_TYPE_STYLES: Record<string, { label: string; border: string; badge: s
   offering_help: { label: "Offering help", border: "border-l-emerald-500", badge: "bg-emerald-500/15 text-emerald-400" },
 };
 
+const ENGAGEMENT_PROMPTS: Record<string, string> = {
+  creating: "Are you building something similar or able to help?",
+  working_on_self: "Leave a supportive message or share if this resonates.",
+  looking_for_help: "Do you have an idea, contact, or skill that could support this?",
+  offering_help: "Could you or someone you know benefit from this?",
+};
+
 interface CreatorPostCardProps {
   post: CreatorPost;
   currentUserId: string | null;
@@ -86,6 +93,11 @@ export const CreatorPostCard = ({
 
       {/* Resonance buttons */}
       <ResonanceButtons resonances={resonances} currentUserId={currentUserId} onToggle={onToggleResonance} />
+
+      {/* Engagement prompt */}
+      <p className="text-[11px] text-muted-foreground/60 italic">
+        {ENGAGEMENT_PROMPTS[post.post_type] || "Leave a supportive message or share if this resonates."}
+      </p>
 
       {/* Expand */}
       <button
