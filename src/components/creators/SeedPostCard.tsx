@@ -18,12 +18,8 @@ const RESONANCE_CONFIG = [
   { key: "needed_this" as const, emoji: "💛", label: "Needed this" },
 ];
 
-const COMMENT_HINTS = [
-  "I love this idea",
-  "I'm working on something similar",
-  "This inspired me today",
-  "Happy to support if needed",
-];
+
+
 
 interface SeedComment {
   id: string;
