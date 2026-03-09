@@ -131,16 +131,18 @@ const BuilderTeamThread = ({ embedded = false }: BuilderTeamThreadProps) => {
       setDisplayName(name);
 
       // Load current project
+      let pName = "your project";
       const fpId = (profile as any)?.first_project_id;
       if (fpId) {
         setProjectId(fpId);
-        const { data: project } = await supabase
+        const { data: proj } = await supabase
           .from("integrator_projects")
           .select("project_title")
           .eq("id", fpId)
           .single();
-        if (project?.project_title) {
-          setProjectName(project.project_title);
+        if (proj?.project_title) {
+          pName = proj.project_title;
+          setProjectName(proj.project_title);
         }
       }
 
@@ -152,7 +154,7 @@ const BuilderTeamThread = ({ embedded = false }: BuilderTeamThreadProps) => {
       setMessages([msg1]);
 
       await showTyping("future_self", 1500);
-      addSystemMessage(`I see you're working on ${project?.project_title || "your project"}.`, "future_self");
+      addSystemMessage(`I see you're working on ${pName}.`, "future_self");
 
       await showTyping("future_self", 1800);
       addSystemMessage("If you'd like, we can bring in the Builder Team to help improve or iterate the project.", "future_self");
