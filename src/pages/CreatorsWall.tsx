@@ -130,7 +130,7 @@ const CreatorsWall = () => {
           </div>
         </>
       ) : (
-        <CreatorMap posts={SEED_POSTS} />
+        <CreatorMap posts={MAPPED_SEED_POSTS} />
       )}
 
       <div className="h-4" />
