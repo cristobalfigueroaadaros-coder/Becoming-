@@ -14,7 +14,7 @@ import { CreatorChatView } from "@/components/creators/CreatorChatView";
 import CouncilMeetingPage from "./CouncilMeeting";
 import ChatPage from "./Chat";
 import ConsoleThread from "./ConsoleThread";
-
+import BuilderTeamThread from "./BuilderTeamThread";
 // Type for location state passed from various flows
 interface LocationState {
   prefilledQuestion?: string;
@@ -108,9 +108,10 @@ const Council = () => {
   const currentView = searchParams.get("view") || "console";
   const isConsole = currentView === "console";
   const isIntake = currentView === "intake";
+  const isBuilderTeam = currentView === "builder-team";
   const isCreatorChat = currentView.startsWith("creator-chat-");
   const creatorChatId = isCreatorChat ? currentView.replace("creator-chat-", "") : null;
-  const selectedMentor = !isConsole && !isIntake && !isCreatorChat ? currentView : null;
+  const selectedMentor = !isConsole && !isIntake && !isBuilderTeam && !isCreatorChat ? currentView : null;
 
   useEffect(() => {
     loadData();
@@ -444,20 +445,25 @@ const Council = () => {
             )}
           </button>
 
-          {/* Builders Team (Group Chat) */}
+          {/* Builder Team Thread */}
           <button
-            onClick={() => navigate('/builders-team')}
+            onClick={() => {
+              setSearchParams({ view: "builder-team" });
+              setShowMobileList(false);
+            }}
             className={cn(
               "w-full flex items-center gap-3 p-3 rounded-lg transition-colors text-left",
-              "hover:bg-muted"
+              isBuilderTeam && !showMobileList
+                ? "bg-primary/10 text-primary" 
+                : "hover:bg-muted"
             )}
           >
             <div className="w-10 h-10 rounded-full bg-lime-500/20 flex items-center justify-center">
               <Hammer className="w-5 h-5 text-lime-500" />
             </div>
             <div className="flex-1 min-w-0">
-              <p className="font-medium truncate">Builders Team</p>
-              <p className="text-xs text-muted-foreground truncate">Design, UX & Gamification</p>
+              <p className="font-medium truncate">{threadProjectName ? `${threadProjectName} — Builder Team` : "Builder Team"}</p>
+              <p className="text-xs text-muted-foreground truncate">Design, UX, Gamification & more</p>
             </div>
           </button>
 
@@ -603,7 +609,7 @@ const Council = () => {
         <ArrowLeft className="w-5 h-5" />
       </Button>
       <span className="font-medium truncate">
-        {isIntake ? (threadProjectName || "New Conversation") : isConsole ? "Chats" : isCreatorChat ? (creatorChats.find((c: any) => c.id === creatorChatId)?.otherName || "Creator Chat") : mentorConfig[selectedMentor || ""]?.name || "Chat"}
+        {isIntake ? (threadProjectName || "New Conversation") : isBuilderTeam ? (threadProjectName ? `${threadProjectName} — Builder Team` : "Builder Team") : isConsole ? "Chats" : isCreatorChat ? (creatorChats.find((c: any) => c.id === creatorChatId)?.otherName || "Creator Chat") : mentorConfig[selectedMentor || ""]?.name || "Chat"}
       </span>
     </div>
   );
@@ -629,6 +635,8 @@ const Council = () => {
         <div className="flex-1 overflow-hidden h-full">
           {isIntake ? (
             <ConsoleThread embedded onProjectNameChange={setThreadProjectName} />
+          ) : isBuilderTeam ? (
+            <BuilderTeamThread embedded />
           ) : isConsole ? (
             <CouncilMeetingPage embedded locationState={location.state} />
           ) : isCreatorChat && creatorChatId && currentUserId ? (
@@ -657,6 +665,8 @@ const Council = () => {
             <div className="flex-1 overflow-hidden">
               {isIntake ? (
                 <ConsoleThread embedded onProjectNameChange={setThreadProjectName} />
+              ) : isBuilderTeam ? (
+                <BuilderTeamThread embedded />
               ) : isConsole ? (
                 <CouncilMeetingPage embedded locationState={location.state} />
               ) : isCreatorChat && creatorChatId && currentUserId ? (
