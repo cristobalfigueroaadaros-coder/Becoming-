@@ -32,8 +32,8 @@ const modeConfig: Record<CreationLabMode, { title: string; description: string; 
     color: "from-accent/20 to-accent/5",
   },
   purpose: {
-    title: "Creation Lab • Purpose to Value",
-    description: "Translate your purpose into sustainable creation",
+    title: "Creation Lab • Business Plan",
+    description: "Build your business plan step by step",
     color: "from-violet-500/20 to-violet-500/5",
   },
 };

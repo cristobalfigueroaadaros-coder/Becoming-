@@ -42,9 +42,9 @@ export const ValueMapCanvas = () => {
       {/* Header with Progress */}
       <div className="flex items-center justify-between">
         <div>
-          <h2 className="text-2xl font-semibold">Purpose to Value Map</h2>
+          <h2 className="text-2xl font-semibold">Business Plan</h2>
           <p className="text-muted-foreground text-sm mt-1">
-            Transform who you are into value that sustains you
+            Build a clear plan for your project or business
           </p>
         </div>
         <div className="flex items-center gap-3">

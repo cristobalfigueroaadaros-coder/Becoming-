@@ -34,9 +34,9 @@ const modes = [
   },
   {
     id: "purpose" as const,
-    label: "Purpose to Value",
+    label: "Business Plan",
     icon: Lightbulb,
-    description: "Translate purpose into creation",
+    description: "Build your business plan step by step",
     color: "hsl(280 75% 65%)",
     bgColor: "bg-violet-500/10",
     activeColor: "bg-violet-500 text-white",

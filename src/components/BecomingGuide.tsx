@@ -246,11 +246,11 @@ export const BecomingGuide = () => {
               />
             </GuideItem>
 
-            <GuideItem icon={DollarSign} id="cl-purpose-to-value" title="Purpose to Value" subtitle="Transform an idea into a real business or impact opportunity." expandedId={expandedId} onToggle={toggle}>
+            <GuideItem icon={DollarSign} id="cl-purpose-to-value" title="Business Plan" subtitle="Transform an idea into a real business or impact opportunity." expandedId={expandedId} onToggle={toggle}>
               <p>Transforms an idea into a real business or impact opportunity. Uses business tools to refine the idea, strengthen its structure, and make it more practical and professional.</p>
               <BeforeAfter
                 before="A passion project without a clear path to real-world impact."
-                after="A structured value proposition with audience, offering, and revenue model."
+                after="A structured business plan with audience, offering, and revenue model."
               />
             </GuideItem>
 
