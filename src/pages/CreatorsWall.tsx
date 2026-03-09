@@ -151,6 +151,7 @@ const CreatorsWall = () => {
   const handleCreatePost = async (post: Parameters<typeof createPost.mutateAsync>[0]) => {
     await createPost.mutateAsync(post);
     setJustPosted(true);
+    setShareExpanded(false);
     toast({ title: "Shared with the world! ✨" });
   };
 
