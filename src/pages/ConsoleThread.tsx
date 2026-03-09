@@ -53,9 +53,10 @@ const getIntakeQuestions = (name: string) => [
 
 interface ConsoleThreadProps {
   embedded?: boolean;
+  onProjectNameChange?: (name: string) => void;
 }
 
-const ConsoleThread = ({ embedded = false }: ConsoleThreadProps) => {
+const ConsoleThread = ({ embedded = false, onProjectNameChange }: ConsoleThreadProps) => {
   const navigate = useNavigate();
   const [phase, setPhase] = useState<Phase>("intake_q1");
   const [messages, setMessages] = useState<ChatMessage[]>([]);
