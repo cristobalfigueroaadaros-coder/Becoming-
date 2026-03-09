@@ -37,7 +37,7 @@ const SEED_POSTS: MapSeedPost[] = [
     next_step: "Organize the first gathering with 5 people.",
     gradient: { from: "#1d4ed8", to: "#93c5fd" }, emoji: "🤝",
     resonances: { inspires_me: 55, creating_similar: 17, want_to_help: 11, needed_this: 44 },
-    date: "Mar 3, 2026", coords: { x: 51, y: 20 }, category: "healing",
+    date: "Mar 3, 2026", coords: { x: 13.41, y: 52.52 }, category: "healing",
   },
   {
     id: "seed-4", name: "Leila", location: "Bali", post_type: "creating",
