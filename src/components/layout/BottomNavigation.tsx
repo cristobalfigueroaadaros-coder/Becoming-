@@ -115,7 +115,7 @@ export const BottomNavigation = () => {
                 <Icon className={cn("w-5 h-5", active && "text-primary")} />
                 {showBadge && (
                   <span className="absolute -top-1.5 -right-1.5 w-4 h-4 rounded-full bg-destructive text-destructive-foreground text-[10px] font-bold flex items-center justify-center animate-pulse">
-                    {showCouncilBadge ? "!" : badgeCount}
+                    {showCouncilBadge ? (creatorRequestCount > 0 ? creatorRequestCount : "!") : badgeCount}
                   </span>
                 )}
               </div>
