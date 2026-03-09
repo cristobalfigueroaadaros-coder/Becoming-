@@ -100,7 +100,7 @@ const SEED_POSTS: MapSeedPost[] = [
     next_step: "Interview the first group of founders.",
     gradient: { from: "#4338ca", to: "#818cf8" }, emoji: "🚀",
     resonances: { inspires_me: 53, creating_similar: 24, want_to_help: 18, needed_this: 30 },
-    date: "Mar 8, 2026", coords: { x: 43, y: 17 }, category: "tech for good",
+    date: "Mar 8, 2026", coords: { x: -0.12, y: 51.51 }, category: "tech for good",
   },
 ];
 
