@@ -194,8 +194,6 @@ export const SeedPostCard = ({ post }: { post: SeedPost }) => {
       {/* Comment Section */}
       {showComments && (
         <div className="space-y-3 pt-2">
-          </p>
-
           {/* Existing comments */}
           {comments.length > 0 && (
             <div className="space-y-2.5">
