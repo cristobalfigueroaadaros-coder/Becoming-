@@ -320,6 +320,10 @@ const App = () => {
               element={session ? <LifeDomainsPage /> : <Navigate to="/" />}
             />
             <Route
+              path="/life-assessment"
+              element={session ? <LifeAssessment /> : <Navigate to="/" />}
+            />
+            <Route
               path="/future-self/goals"
               element={session ? <GoalStructurePage /> : <Navigate to="/" />}
             />
