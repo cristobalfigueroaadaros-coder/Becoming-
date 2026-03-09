@@ -146,6 +146,7 @@ const CreatorsWall = () => {
   const navigate = useNavigate();
   const { posts, isLoading, creatorCount, currentUserId, createPost, toggleResonance, addUpdate, addComment, useResonances, useUpdates, useComments } = useCreatorPosts();
   const [justPosted, setJustPosted] = useState(false);
+  const [shareExpanded, setShareExpanded] = useState(false);
 
   const handleCreatePost = async (post: Parameters<typeof createPost.mutateAsync>[0]) => {
     await createPost.mutateAsync(post);
