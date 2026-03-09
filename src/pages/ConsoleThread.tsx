@@ -189,8 +189,25 @@ const ConsoleThread = ({ embedded = false, onProjectNameChange }: ConsoleThreadP
           setIntakeAnswers(userMsgs.slice(0, 3).map(m => m.content));
         }
       } else {
-        const questions = getIntakeQuestions(name);
-        addSystemMessage(questions[0], "future_self", "intake_q1");
+        // Multi-message opening sequence
+        const openMsg1: ChatMessage = {
+          id: crypto.randomUUID(), role: "mentor", content: `Hey ${name} 👋`,
+          mentorName: mentorConfig.future_self.name, mentorIcon: mentorConfig.future_self.icon, mentorColor: mentorConfig.future_self.color,
+        };
+        setMessages([openMsg1]);
+        persistMessage(openMsg1, "intake_q1");
+
+        await showTyping("future_self", 1500);
+        addSystemMessage("Before we begin, I want to understand where you are in your journey.", "future_self", "intake_q1");
+
+        await showTyping("future_self", 1800);
+        addSystemMessage("I'll ask you a few short questions so I can assemble the right mentor council for you.", "future_self", "intake_q1");
+
+        await showTyping("future_self", 2000);
+        addSystemMessage("Your answers will help me choose mentors who can give you the best perspective and guidance.\n\nLet's start.", "future_self", "intake_q1");
+
+        await showTyping("future_self", 1200);
+        addSystemMessage(getPhaseQuestions(profile?.entry_state || "DISCOVER")[0], "future_self", "intake_q1");
       }
 
       setInitialLoading(false);
