@@ -19,7 +19,7 @@ const SEED_POSTS: MapSeedPost[] = [
     next_step: "Record the first episode and publish it this week.",
     gradient: { from: "#f97316", to: "#fdba74" }, emoji: "🎙️",
     resonances: { inspires_me: 42, creating_similar: 8, want_to_help: 5, needed_this: 31 },
-    date: "Mar 1, 2026", coords: { x: 22, y: 32 }, category: "family",
+    date: "Mar 1, 2026", coords: { x: 21, y: 28 }, category: "family",
   },
   {
     id: "seed-2", name: "Maria", location: "Mexico City", post_type: "creating",
@@ -28,7 +28,7 @@ const SEED_POSTS: MapSeedPost[] = [
     next_step: "Find a small piece of land and organize the first volunteer day.",
     gradient: { from: "#16a34a", to: "#86efac" }, emoji: "🌱",
     resonances: { inspires_me: 38, creating_similar: 12, want_to_help: 9, needed_this: 27 },
-    date: "Mar 2, 2026", coords: { x: 18, y: 44 }, category: "community",
+    date: "Mar 2, 2026", coords: { x: 15, y: 42 }, category: "community",
   },
   {
     id: "seed-3", name: "Daniel", location: "Berlin", post_type: "creating",
@@ -37,7 +37,7 @@ const SEED_POSTS: MapSeedPost[] = [
     next_step: "Organize the first gathering with 5 people.",
     gradient: { from: "#1d4ed8", to: "#93c5fd" }, emoji: "🤝",
     resonances: { inspires_me: 55, creating_similar: 17, want_to_help: 11, needed_this: 44 },
-    date: "Mar 3, 2026", coords: { x: 52, y: 28 }, category: "healing",
+    date: "Mar 3, 2026", coords: { x: 51, y: 20 }, category: "healing",
   },
   {
     id: "seed-4", name: "Leila", location: "Bali", post_type: "creating",
@@ -46,7 +46,7 @@ const SEED_POSTS: MapSeedPost[] = [
     next_step: "Organize the first beach cleanup event.",
     gradient: { from: "#0891b2", to: "#67e8f9" }, emoji: "🌊",
     resonances: { inspires_me: 73, creating_similar: 14, want_to_help: 28, needed_this: 19 },
-    date: "Mar 4, 2026", coords: { x: 80, y: 56 }, category: "environment",
+    date: "Mar 4, 2026", coords: { x: 76, y: 53 }, category: "environment",
   },
   {
     id: "seed-5", name: "Alex", location: "California", post_type: "creating",
@@ -55,7 +55,7 @@ const SEED_POSTS: MapSeedPost[] = [
     next_step: "Test the first workshop at a local high school.",
     gradient: { from: "#7c3aed", to: "#c4b5fd" }, emoji: "🧘",
     resonances: { inspires_me: 61, creating_similar: 9, want_to_help: 7, needed_this: 52 },
-    date: "Mar 5, 2026", coords: { x: 12, y: 36 }, category: "healing",
+    date: "Mar 5, 2026", coords: { x: 10, y: 34 }, category: "healing",
   },
   {
     id: "seed-6", name: "Sofia", location: "Barcelona", post_type: "creating",
@@ -64,7 +64,7 @@ const SEED_POSTS: MapSeedPost[] = [
     next_step: "Design the first prototype of the game.",
     gradient: { from: "#db2777", to: "#fde68a" }, emoji: "🎮",
     resonances: { inspires_me: 47, creating_similar: 6, want_to_help: 13, needed_this: 38 },
-    date: "Mar 5, 2026", coords: { x: 49, y: 34 }, category: "education",
+    date: "Mar 5, 2026", coords: { x: 47, y: 24 }, category: "education",
   },
   {
     id: "seed-7", name: "Lucas", location: "Chile", post_type: "creating",
@@ -73,7 +73,7 @@ const SEED_POSTS: MapSeedPost[] = [
     next_step: "Host the first workshop for farmers.",
     gradient: { from: "#365314", to: "#84cc16" }, emoji: "🌾",
     resonances: { inspires_me: 34, creating_similar: 21, want_to_help: 16, needed_this: 22 },
-    date: "Mar 6, 2026", coords: { x: 24, y: 72 }, category: "environment",
+    date: "Mar 6, 2026", coords: { x: 20, y: 76 }, category: "environment",
   },
   {
     id: "seed-8", name: "Maya", location: "Amsterdam", post_type: "working_on_self",
@@ -82,7 +82,7 @@ const SEED_POSTS: MapSeedPost[] = [
     next_step: "Create a small local workshop with 10 participants.",
     gradient: { from: "#9333ea", to: "#f9a8d4" }, emoji: "🎨",
     resonances: { inspires_me: 89, creating_similar: 11, want_to_help: 6, needed_this: 74 },
-    date: "Mar 6, 2026", coords: { x: 51, y: 26 }, category: "art",
+    date: "Mar 6, 2026", coords: { x: 49, y: 18 }, category: "art",
   },
   {
     id: "seed-9", name: "Ahmed", location: "Cairo", post_type: "creating",
@@ -91,7 +91,7 @@ const SEED_POSTS: MapSeedPost[] = [
     next_step: "Launch a social page and invite friends to participate.",
     gradient: { from: "#d97706", to: "#fef08a" }, emoji: "💛",
     resonances: { inspires_me: 66, creating_similar: 19, want_to_help: 8, needed_this: 57 },
-    date: "Mar 7, 2026", coords: { x: 55, y: 40 }, category: "community",
+    date: "Mar 7, 2026", coords: { x: 53, y: 36 }, category: "community",
   },
   {
     id: "seed-10", name: "Emma", location: "London", post_type: "creating",
@@ -100,7 +100,7 @@ const SEED_POSTS: MapSeedPost[] = [
     next_step: "Interview the first group of founders.",
     gradient: { from: "#4338ca", to: "#818cf8" }, emoji: "🚀",
     resonances: { inspires_me: 53, creating_similar: 24, want_to_help: 18, needed_this: 30 },
-    date: "Mar 8, 2026", coords: { x: 49, y: 27 }, category: "tech for good",
+    date: "Mar 8, 2026", coords: { x: 43, y: 17 }, category: "tech for good",
   },
 ];
 
