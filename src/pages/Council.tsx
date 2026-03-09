@@ -108,7 +108,9 @@ const Council = () => {
   const currentView = searchParams.get("view") || "console";
   const isConsole = currentView === "console";
   const isIntake = currentView === "intake";
-  const selectedMentor = !isConsole && !isIntake ? currentView : null;
+  const isCreatorChat = currentView.startsWith("creator-chat-");
+  const creatorChatId = isCreatorChat ? currentView.replace("creator-chat-", "") : null;
+  const selectedMentor = !isConsole && !isIntake && !isCreatorChat ? currentView : null;
 
   useEffect(() => {
     loadData();
