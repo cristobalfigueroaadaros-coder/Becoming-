@@ -55,7 +55,7 @@ const SEED_POSTS: MapSeedPost[] = [
     next_step: "Test the first workshop at a local high school.",
     gradient: { from: "#7c3aed", to: "#c4b5fd" }, emoji: "🧘",
     resonances: { inspires_me: 61, creating_similar: 9, want_to_help: 7, needed_this: 52 },
-    date: "Mar 5, 2026", coords: { x: 10, y: 34 }, category: "healing",
+    date: "Mar 5, 2026", coords: { x: -119.42, y: 36.78 }, category: "healing",
   },
   {
     id: "seed-6", name: "Sofia", location: "Barcelona", post_type: "creating",
