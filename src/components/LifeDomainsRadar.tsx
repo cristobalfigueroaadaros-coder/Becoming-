@@ -61,8 +61,11 @@ export const LifeDomainsRadar = () => {
         <CardHeader>
           <CardTitle className="text-center">Complete Your Life Assessment</CardTitle>
         </CardHeader>
-        <CardContent className="text-center text-muted-foreground">
-          <p>Your life domains radar will appear here once you complete the onboarding assessment.</p>
+        <CardContent className="text-center text-muted-foreground space-y-4">
+          <p>Your life domains radar will appear here once you complete the assessment.</p>
+          <Button onClick={() => window.location.href = '/life-assessment'}>
+            Start Assessment
+          </Button>
         </CardContent>
       </Card>
     );
