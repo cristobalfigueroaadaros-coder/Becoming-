@@ -64,6 +64,7 @@ import PatternMap from "./pages/PatternMap";
 import SuperpowerMap from "./pages/SuperpowerMap";
 import MomentumDashboard from "./pages/MomentumDashboard";
 import CreatorsWall from "./pages/CreatorsWall";
+import CreatorProfile from "./pages/CreatorProfile";
 
 
 const queryClient = new QueryClient();
