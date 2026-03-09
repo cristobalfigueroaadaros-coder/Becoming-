@@ -1,9 +1,9 @@
 import { useState } from "react";
-import { Globe, ArrowRight, Plus } from "lucide-react";
+import { Globe, ArrowRight } from "lucide-react";
 import { useNavigate } from "react-router-dom";
 import { Button } from "@/components/ui/button";
 import { useCreatorPosts } from "@/hooks/useCreatorPosts";
-import { CreatePostForm } from "@/components/creators/CreatePostForm";
+import { PostComposer } from "@/components/creators/PostComposer";
 import { CreatorPostCard } from "@/components/creators/CreatorPostCard";
 import { SeedPostCard, type SeedPost } from "@/components/creators/SeedPostCard";
 import { toast } from "@/hooks/use-toast";
