@@ -32,6 +32,7 @@ export const CreatorPostCard = ({
   post, currentUserId, resonances, updates, comments,
   onToggleResonance, onAddUpdate, onAddComment,
 }: CreatorPostCardProps) => {
+  const navigate = useNavigate();
   const [expanded, setExpanded] = useState(false);
   const style = POST_TYPE_STYLES[post.post_type] || POST_TYPE_STYLES.creating;
   const isOwner = currentUserId === post.user_id;
