@@ -46,8 +46,8 @@ export function ValueMapUnlockCelebration({
         colors: ['#8B5CF6', '#EC4899', '#06B6D4'],
       });
       
-      toast.success(`"${detection.blockTitle}" unlocked in your Value Map!`, {
-        description: "Your purpose is becoming clearer.",
+      toast.success(`"${detection.blockTitle}" unlocked in your Business Plan!`, {
+        description: "Your plan is becoming clearer.",
         duration: 4000,
       });
     } catch (error) {
