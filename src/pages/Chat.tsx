@@ -1114,7 +1114,7 @@ const Chat = ({ mentorTypeOverride, embedded = false, locationState: propState }
               const { data: { user } } = await supabase.auth.getUser();
               if (!user) throw new Error("Not authenticated");
               await supabase.from("value_map_blocks").upsert({ user_id: user.id, block_key: blockKey, content, is_unlocked: true, unlocked_at: new Date().toISOString(), unlock_source: "mentor_chat" }, { onConflict: "user_id,block_key" });
-              await supabase.from("future_self_messages").insert({ user_id: user.id, message: `You just unlocked "${valueMapDetection.blockTitle}" in your Value Map. This clarity is building something real.`, trigger_reason: "value_map_unlock" });
+              await supabase.from("future_self_messages").insert({ user_id: user.id, message: `You just unlocked "${valueMapDetection.blockTitle}" in your Business Plan. This clarity is building something real.`, trigger_reason: "value_map_unlock" });
               setValueMapDetection(null);
             } catch (error) {
               console.error("Error saving value map block:", error);

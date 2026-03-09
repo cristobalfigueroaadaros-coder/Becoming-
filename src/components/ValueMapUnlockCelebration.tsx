@@ -80,7 +80,7 @@ export function ValueMapUnlockCelebration({
               <div className="flex-1 min-w-0">
                 <div className="flex items-center gap-2">
                   <MapPin className="w-3.5 h-3.5 text-primary" />
-                  <span className="text-xs font-medium text-primary">Value Map Discovery</span>
+                  <span className="text-xs font-medium text-primary">Business Plan Discovery</span>
                 </div>
                 <h3 className="font-semibold text-foreground mt-0.5 truncate">
                   {detection.blockTitle}
