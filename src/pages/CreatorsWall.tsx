@@ -146,12 +146,10 @@ const CreatorsWall = () => {
   const navigate = useNavigate();
   const { posts, isLoading, creatorCount, currentUserId, createPost, toggleResonance, addUpdate, addComment, useResonances, useUpdates, useComments } = useCreatorPosts();
   const [justPosted, setJustPosted] = useState(false);
-  const [shareExpanded, setShareExpanded] = useState(false);
 
   const handleCreatePost = async (post: Parameters<typeof createPost.mutateAsync>[0]) => {
     await createPost.mutateAsync(post);
     setJustPosted(true);
-    setShareExpanded(false);
     toast({ title: "Shared with the world! ✨" });
   };
 
@@ -179,7 +177,28 @@ const CreatorsWall = () => {
         </p>
       </div>
 
-      {/* Feed: seed posts first, then real user posts */}
+      {/* Guidance message */}
+      <p className="text-center text-xs text-muted-foreground/60">
+        This space is for sharing positive impact, supporting each other, and building a better world together.
+      </p>
+
+      {/* Post Composer */}
+      <PostComposer onSubmit={handleCreatePost} isSubmitting={createPost.isPending} />
+
+      {/* Integration prompt after posting */}
+      {justPosted && (
+        <div className="rounded-xl border border-primary/30 bg-primary/5 p-4 flex items-center justify-between">
+          <div>
+            <p className="text-sm font-medium text-foreground">Want help growing this creation?</p>
+            <p className="text-xs text-muted-foreground">Start building your project in Creation Lab.</p>
+          </div>
+          <Button size="sm" variant="outline" onClick={() => navigate("/creation-lab")}>
+            <ArrowRight className="w-4 h-4" />
+          </Button>
+        </div>
+      )}
+
+      {/* Feed */}
       <div className="space-y-4">
         {SEED_POSTS.map((post) => (
           <SeedPostCard key={post.id} post={post} />
@@ -207,38 +226,6 @@ const CreatorsWall = () => {
         )}
       </div>
 
-      {/* Integration prompt after posting */}
-      {justPosted && (
-        <div className="rounded-xl border border-primary/30 bg-primary/5 p-4 flex items-center justify-between">
-          <div>
-            <p className="text-sm font-medium text-foreground">Want help growing this creation?</p>
-            <p className="text-xs text-muted-foreground">Start building your project in Creation Lab.</p>
-          </div>
-          <Button size="sm" variant="outline" onClick={() => navigate("/creation-lab")}>
-            <ArrowRight className="w-4 h-4" />
-          </Button>
-        </div>
-      )}
-
-      {/* Share CTA at bottom */}
-      {!shareExpanded ? (
-        <button
-          onClick={() => setShareExpanded(true)}
-          className="w-full rounded-xl border border-primary/20 bg-primary/5 p-4 flex items-center justify-between text-left hover:bg-primary/10 transition-colors"
-        >
-          <div>
-            <p className="text-sm font-medium text-foreground">What are you creating for a better world?</p>
-            <p className="text-xs text-muted-foreground mt-0.5">Share your creation and join the movement.</p>
-          </div>
-          <div className="w-8 h-8 rounded-full bg-primary/10 flex items-center justify-center flex-shrink-0">
-            <Plus className="w-4 h-4 text-primary" />
-          </div>
-        </button>
-      ) : (
-        <CreatePostForm onSubmit={handleCreatePost} isSubmitting={createPost.isPending} />
-      )}
-
-      {/* Bottom padding */}
       <div className="h-4" />
     </div>
   );
