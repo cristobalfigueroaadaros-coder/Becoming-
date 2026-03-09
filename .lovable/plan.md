@@ -1,65 +1,70 @@
 
-## Two Changes Needed
 
-### 1. Reorder the page: Feed first, then "Share" prompt at the bottom
+# Becoming Guide — Floating Knowledge Hub
 
-Currently: Header → CreatePostForm → Feed  
-New order: Header → Feed (with seed posts) → Sticky/bottom "Share" CTA that appears after scrolling
+## Overview
+Create a floating "Becoming Guide" button and a Sheet panel that serves as an in-app reference manual. The guide contains expandable sections explaining the system's philosophy, tools, and workflow with a dynamic "Start Here" section.
 
-**UX flow:**
-- User lands → sees the counter, mission, and immediately starts scrolling posts
-- After scrolling through a few posts (or at bottom of feed), a CTA appears: "What are you creating for a better world?" with a button to expand the form
-- The `CreatePostForm` stays hidden until the user taps "Share your creation" at the bottom
+## Architecture
 
-### 2. Add 10 seed posts with AI-generated images
+### New Files
+- `src/components/BecomingGuide.tsx` — Main component with floating button + Sheet panel
 
-The 10 example posts need to be injected as static "seed" data shown alongside real DB posts. Since we can't write to DB directly, we'll render them as **static mock posts** in the UI — displayed exactly like real posts but hardcoded, with AI-generated images from the Lovable AI image endpoint.
+### Modified Files
+- `src/components/layout/AppLayout.tsx` — Add `<BecomingGuide />` inside the layout
 
-**Approach:** 
-- Create a `SEED_POSTS` constant array in `CreatorsWall.tsx` with the 10 posts
-- Each seed post gets a matching thematic image (generated via AI image generation at build time — we'll use placeholder gradient images with emoji covers per topic as a reliable fallback since AI image generation happens at runtime in edge functions, not at component render time)
-- Actually: use **themed gradient placeholder images** via CSS (styled divs) for the 10 seed posts — each with unique gradient + icon/emoji, clean and fast
-- Seed posts show at the TOP of the feed, real user posts show after them
+## Component Design
 
-**Seed post images — themed CSS gradients (no network dependency):**
-1. Podcast → warm orange gradient + 🎙️
-2. Garden → green gradient + 🌱
-3. Men's Circle → deep blue + 🤝
-4. Ocean Cleanup → cyan/teal + 🌊
-5. Meditation Teens → lavender + 🧘
-6. Emotional Intelligence Kids → yellow/pink + 🎮
-7. Farming → earthy green + 🌾
-8. Art Healing → purple/rose + 🎨
-9. Kindness → warm amber + 💛
-10. Startup Accelerator → indigo + 🚀
+### Floating Button
+- Fixed position: `bottom-24 right-4` (above bottom nav)
+- Small pill button with `BookOpen` icon + "Guide" label
+- Uses `Sheet` component (side="right") to open the panel
 
-**Seed post cards** use the exact same `CreatorPostCard` structure but with `isSeed: true` — no resonance interaction (or dummy counts), no expand/collapse needed for MVP.
+### Sheet Panel Content
 
-Actually, simpler: render seed posts EXACTLY like real posts using a `SeedPostCard` that mirrors `CreatorPostCard` but with static resonance counts and a themed image div instead of `<img>`.
+**Header**: "Becoming Guide" title with a short welcome line
 
-### Files to modify
+**"Start Here" section** (always visible at top, not collapsible):
+- Dynamically checks user state via existing hooks (`useIntegratorProjects`)
+- No project → "Share an idea with the Council" → links to `/council`
+- Has project → "Continue building" → links to `/creation-lab`
+- Highlight box: "You do not need to understand everything before starting. Just share an idea with the Council and begin."
+
+**Accordion sections** (using existing `Accordion` component):
+
+1. **Foundation** (icon: `Compass`)
+   - "What is Becoming" — 4-5 lines from PDR
+   - "Message from the Founder" — Cristobal's message
+   - "Example Journey" — The flow steps
+   - "The Becoming Loop" — Insight → Build → Test → Learn cycle
+
+2. **Creation Lab** (icon: `FlaskConical`)
+   - Sub-items: Project, Daily Goals, Design Thinking, Creative Space, Map, Purpose to Value
+   - Each with 3-4 line explanation from PDR
+
+3. **Becoming Path** (icon: `Sparkles`)
+   - Sub-items: Becoming Exercises, Pattern Discovery, Transmutation, Superpowers
+
+4. **Council** (icon: `Users`)
+   - Council explanation + Save Button explanation
+
+5. **Momentum** (icon: `TrendingUp`)
+   - Weekly Sprint, Accumulated Work, Capabilities
+
+### Implementation Details
+- Each section uses nested `Accordion` for sub-topics
+- Important callouts use a styled div with `bg-primary/10 border-l-2 border-primary` 
+- All text comes from the PDR content (hardcoded strings, no DB needed)
+- Sheet can be closed instantly via X or overlay click
+- No localStorage tracking needed — this is always available
+
+### Visual Examples Placeholder
+The PDR requests before/after screenshots for each major section. Since we don't have these images yet, each section will include a subtle placeholder note: "Visual examples coming soon" that can be replaced with actual images later.
+
+## Files Summary
 
 | File | Change |
 |------|--------|
-| `src/pages/CreatorsWall.tsx` | Reorder layout (feed first, share CTA at bottom), add seed posts array |
-| `src/components/creators/SeedPostCard.tsx` | New — static post card for seed data with themed image |
+| `src/components/BecomingGuide.tsx` | New — floating button + Sheet with all guide content |
+| `src/components/layout/AppLayout.tsx` | Add `<BecomingGuide />` alongside `<BottomNavigation />` |
 
-### Layout structure (new)
-
-```
-┌─────────────────────────┐
-│  Header + Counter       │ ← stays at top
-│  Mission statement      │
-├─────────────────────────┤
-│  Seed Post 1 (Podcast)  │ ← users see the wall immediately
-│  Seed Post 2 (Garden)   │
-│  ...10 seed posts...    │
-│  Real user posts...     │
-├─────────────────────────┤
-│  "Share your creation"  │ ← appears at bottom, tapping expands form
-│  [CreatePostForm]       │
-│  (collapsed by default) │
-└─────────────────────────┘
-```
-
-The "Share" section at the bottom uses a chevron-expand pattern: a prominent card saying "What are you creating for a better world?" with a `+` button. Tapping reveals the full `CreatePostForm`.
