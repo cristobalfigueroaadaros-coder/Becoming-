@@ -63,6 +63,7 @@ import OptimalTimingDashboard from "./pages/OptimalTimingDashboard";
 import PatternMap from "./pages/PatternMap";
 import SuperpowerMap from "./pages/SuperpowerMap";
 import MomentumDashboard from "./pages/MomentumDashboard";
+import CreatorsWall from "./pages/CreatorsWall";
 
 
 const queryClient = new QueryClient();
@@ -255,6 +256,10 @@ const App = () => {
             <Route
               path="/dashboard"
               element={session ? <AppLayout><Dashboard /></AppLayout> : <Navigate to="/" />}
+            />
+            <Route
+              path="/creators"
+              element={session ? <AppLayout><CreatorsWall /></AppLayout> : <Navigate to="/" />}
             />
             <Route
               path="/council"

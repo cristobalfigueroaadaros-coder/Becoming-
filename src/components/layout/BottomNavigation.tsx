@@ -1,5 +1,5 @@
 import { useLocation, useNavigate } from "react-router-dom";
-import { LayoutGrid, Users, FlaskConical, User } from "lucide-react";
+import { LayoutGrid, Users, FlaskConical, User, Globe } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { useProblemClarificationStatus } from "@/hooks/useProblemClarificationStatus";
 import { useEffect, useState } from "react";
@@ -18,6 +18,12 @@ const navItems: NavItem[] = [
     label: "Home",
     path: "/dashboard",
     matchPaths: ["/dashboard"],
+  },
+  {
+    icon: Globe,
+    label: "Creators",
+    path: "/creators",
+    matchPaths: ["/creators"],
   },
   {
     icon: Users,
@@ -76,7 +82,7 @@ export const BottomNavigation = () => {
 
   return (
     <nav className="fixed bottom-0 left-0 right-0 z-50 bg-background/95 backdrop-blur-sm border-t border-border safe-area-bottom">
-      <div className="flex items-center justify-around h-16 max-w-lg mx-auto px-2">
+      <div className="flex items-center justify-around h-14 max-w-lg mx-auto px-1">
         {navItems.map((item) => {
           const active = isActive(item);
           const Icon = item.icon;
@@ -97,7 +103,7 @@ export const BottomNavigation = () => {
               )}
             >
               <div className="relative">
-                <Icon className={cn("w-6 h-6", active && "text-primary")} />
+                <Icon className={cn("w-5 h-5", active && "text-primary")} />
                 {showBadge && (
                   <span className="absolute -top-1.5 -right-1.5 w-4 h-4 rounded-full bg-destructive text-destructive-foreground text-[10px] font-bold flex items-center justify-center animate-pulse">
                     {showCouncilBadge ? "!" : badgeCount}
