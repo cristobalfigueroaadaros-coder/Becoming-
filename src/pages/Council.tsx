@@ -203,6 +203,47 @@ const Council = () => {
         .is("read_at", null);
 
       setCouncilNotifications(count || 0);
+
+      setCurrentUserId(user.id);
+
+      // Load creator chats
+      const { data: chats } = await supabase
+        .from("creator_chats")
+        .select("*")
+        .or(`user1_id.eq.${user.id},user2_id.eq.${user.id}`);
+      
+      if (chats) {
+        // For each chat, get the other user's profile
+        const enriched = await Promise.all(chats.map(async (chat: any) => {
+          const otherId = chat.user1_id === user.id ? chat.user2_id : chat.user1_id;
+          const { data: profile } = await supabase
+            .from("profiles")
+            .select("display_name")
+            .eq("id", otherId)
+            .single();
+          return { ...chat, otherName: (profile as any)?.display_name || "Creator", otherId };
+        }));
+        setCreatorChats(enriched);
+      }
+
+      // Load pending chat requests
+      const { data: requests } = await supabase
+        .from("creator_chat_requests")
+        .select("*")
+        .eq("receiver_id", user.id)
+        .eq("status", "pending");
+
+      if (requests) {
+        const enrichedReqs = await Promise.all(requests.map(async (req: any) => {
+          const { data: profile } = await supabase
+            .from("profiles")
+            .select("display_name")
+            .eq("id", req.sender_id)
+            .single();
+          return { ...req, senderName: (profile as any)?.display_name || "Creator" };
+        }));
+        setChatRequests(enrichedReqs);
+      }
     } catch (error) {
       console.error("Error loading council data:", error);
     } finally {
