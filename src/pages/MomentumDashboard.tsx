@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { useNavigate } from "react-router-dom";
+import { useNavigate, useLocation } from "react-router-dom";
 import { ArrowLeft, Rocket } from "lucide-react";
 import { MicroGuide } from "@/components/MicroGuide";
 import { Button } from "@/components/ui/button";
