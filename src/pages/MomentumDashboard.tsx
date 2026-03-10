@@ -78,9 +78,13 @@ const MomentumDashboard = () => {
           <TabsContent value="growth">
             <CompoundGrowthTab pastReports={pastReports} currentStreak={currentStreak} capabilities={capabilities} />
           </TabsContent>
-          {capabilityMapUnlocked && (
+          {(capabilityMapUnlocked || forceCapabilities) && (
             <TabsContent value="capabilities">
-              <CapabilityMapTab capabilities={capabilities} onCapabilitiesChanged={refetch} />
+              <CapabilityMapTab
+                capabilities={capabilities}
+                onCapabilitiesChanged={refetch}
+                onContinueJourney={fromStarterQuest ? () => navigate("/council", { state: { view: "intake" } }) : undefined}
+              />
             </TabsContent>
           )}
         </Tabs>
