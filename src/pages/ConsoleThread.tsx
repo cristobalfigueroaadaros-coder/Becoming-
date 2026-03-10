@@ -37,6 +37,7 @@ const mentorConfig: Record<string, { name: string; color: string; icon: string }
 };
 
 type Phase =
+  | "starter_q1" | "starter_q2" | "starter_q3" | "starter_processing" | "starter_win" | "starter_return"
   | "intake_q1" | "intake_q2" | "intake_q3"
   | "processing"
   | "council_reveal" | "council_accepted"
