@@ -44,16 +44,16 @@ serve(async (req) => {
       });
     }
 
-    const prompt = `You are a capability analyst for a personal growth platform. Based on the user's onboarding answers and work context, extract exactly 3 inferred capabilities using the Mixed Precision Model:
+    const prompt = `You are a capability analyst for a personal growth platform. Based on the user's answers and context, extract exactly 3 inferred capabilities using the Mixed Precision Model:
 
 1. Anchor Capability: An obvious strength clearly stated by the user.
 2. Sharpened Capability: A reframed or elevated version of something the user mentioned.
 3. Insight Capability: A pattern-based inference — something the user didn't explicitly say but is implied.
 
-User's work background: ${intakeAnswers?.[0] || "Not provided"}
-User's story/dreams: ${intakeAnswers?.[1] || "Not provided"}
-User's project idea: ${intakeAnswers?.[2] || "Not provided"}
-Work context: ${workContext || "Not provided"}
+Answer 1 (problems they enjoy solving / work background): ${intakeAnswers?.[0] || "Not provided"}
+Answer 2 (what people come to them for / story & dreams): ${intakeAnswers?.[1] || "Not provided"}
+Answer 3 (natural role they take / project idea): ${intakeAnswers?.[2] || "Not provided"}
+Work context / entry state: ${workContext || "Not provided"}
 
 Also suggest 8-10 self-declared capabilities the user might want to add, relevant to their profile.
 
