@@ -1,47 +1,70 @@
 
 
-## Fix Council Context Labels to Match Intake Questions
+# Becoming Guide — Floating Knowledge Hub
 
-The council mentors are responding to the wrong context because the `fullIntakeContext` string (line 625 of `ConsoleThread.tsx`) uses hardcoded generic labels — "Background", "Story", "What they're building" — regardless of which entry state (DISCOVER/GROW/BUILD) the user is in.
+## Overview
+Create a floating "Becoming Guide" button and a Sheet panel that serves as an in-app reference manual. The guide contains expandable sections explaining the system's philosophy, tools, and workflow with a dynamic "Start Here" section.
 
-For example, in GROW mode:
-- Q1 asks "Tell me about the idea or project" → mislabeled as "Background"
-- Q2 asks "What problem are you solving?" → mislabeled as "Story"
-- Q3 asks "What impact would it create?" → mislabeled as "What they're building"
+## Architecture
 
-This causes the council AI to interpret a project description as "background" and ignore the actual project details.
+### New Files
+- `src/components/BecomingGuide.tsx` — Main component with floating button + Sheet panel
 
-### Fix
+### Modified Files
+- `src/components/layout/AppLayout.tsx` — Add `<BecomingGuide />` inside the layout
 
-**File: `src/pages/ConsoleThread.tsx`** (lines ~622-625)
+## Component Design
 
-Replace the hardcoded labels with phase-aware labels:
+### Floating Button
+- Fixed position: `bottom-24 right-4` (above bottom nav)
+- Small pill button with `BookOpen` icon + "Guide" label
+- Uses `Sheet` component (side="right") to open the panel
 
-```typescript
-const getIntakeLabels = (state: string): string[] => {
-  if (state === "BUILD") return [
-    "What they're building or working on",
-    "Biggest challenge right now",
-    "90-day progress goal",
-  ];
-  if (state === "GROW") return [
-    "Their project idea",
-    "The problem they're solving",
-    "The impact they envision",
-  ];
-  return [
-    "Background and experiences",
-    "Problems and topics that pull their attention",
-    "Five-year vision of meaningful work",
-  ];
-};
+### Sheet Panel Content
 
-// In runCouncilMeeting:
-const labels = getIntakeLabels(entryState);
-const fullIntakeContext = `${labels[0]}: ${intakeAnswers[0] || "Not shared"}\n\n${labels[1]}: ${intakeAnswers[1] || "Not shared"}\n\n${labels[2]}: ${intakeAnswers[2] || "Not shared"}`;
-```
+**Header**: "Becoming Guide" title with a short welcome line
 
-This ensures the council-meeting edge function receives properly labeled context that matches what the user was actually asked, so mentors focus on the project/business instead of treating everything as personal background.
+**"Start Here" section** (always visible at top, not collapsible):
+- Dynamically checks user state via existing hooks (`useIntegratorProjects`)
+- No project → "Share an idea with the Council" → links to `/council`
+- Has project → "Continue building" → links to `/creation-lab`
+- Highlight box: "You do not need to understand everything before starting. Just share an idea with the Council and begin."
 
-One file changed. No edge function or database changes needed.
+**Accordion sections** (using existing `Accordion` component):
+
+1. **Foundation** (icon: `Compass`)
+   - "What is Becoming" — 4-5 lines from PDR
+   - "Message from the Founder" — Cristobal's message
+   - "Example Journey" — The flow steps
+   - "The Becoming Loop" — Insight → Build → Test → Learn cycle
+
+2. **Creation Lab** (icon: `FlaskConical`)
+   - Sub-items: Project, Daily Goals, Design Thinking, Creative Space, Map, Purpose to Value
+   - Each with 3-4 line explanation from PDR
+
+3. **Becoming Path** (icon: `Sparkles`)
+   - Sub-items: Becoming Exercises, Pattern Discovery, Transmutation, Superpowers
+
+4. **Council** (icon: `Users`)
+   - Council explanation + Save Button explanation
+
+5. **Momentum** (icon: `TrendingUp`)
+   - Weekly Sprint, Accumulated Work, Capabilities
+
+### Implementation Details
+- Each section uses nested `Accordion` for sub-topics
+- Important callouts use a styled div with `bg-primary/10 border-l-2 border-primary` 
+- All text comes from the PDR content (hardcoded strings, no DB needed)
+- Sheet can be closed instantly via X or overlay click
+- No localStorage tracking needed — this is always available
+
+### Visual Examples Placeholder
+The PDR requests before/after screenshots for each major section. Since we don't have these images yet, each section will include a subtle placeholder note: "Visual examples coming soon" that can be replaced with actual images later.
+
+## Files Summary
+
+| File | Change |
+|------|--------|
+| `src/components/BecomingGuide.tsx` | New — floating button + Sheet with all guide content |
+| `src/components/layout/AppLayout.tsx` | Add `<BecomingGuide />` alongside `<BottomNavigation />` |
 
