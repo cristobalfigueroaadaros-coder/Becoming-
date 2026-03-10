@@ -138,10 +138,19 @@ export function CapabilityMapTab({
   selfDeclaredSuggestions,
   userName,
   onCapabilitiesChanged,
+  onContinueJourney,
 }: CapabilityMapTabProps) {
   const [showDeclareModal, setShowDeclareModal] = useState(false);
   const [selected, setSelected] = useState<Set<string>>(new Set());
   const [saving, setSaving] = useState(false);
+  const [showContinueButton, setShowContinueButton] = useState(false);
+
+  useEffect(() => {
+    if (onContinueJourney) {
+      const timer = setTimeout(() => setShowContinueButton(true), 15000);
+      return () => clearTimeout(timer);
+    }
+  }, [onContinueJourney]);
 
   const twoWeeksAgo = subDays(new Date(), 14).toISOString();
 
