@@ -1,70 +1,62 @@
 
 
-# Becoming Guide — Floating Knowledge Hub
+## Starter Quest (Builder DNA First Win)
 
-## Overview
-Create a floating "Becoming Guide" button and a Sheet panel that serves as an in-app reference manual. The guide contains expandable sections explaining the system's philosophy, tools, and workflow with a dynamic "Start Here" section.
+A pre-intake interaction layer in ConsoleThread that runs once for new users, asking 3 quick "builder DNA" questions, generating 2 capabilities via the existing `seed-initial-capabilities` edge function, and showing results in-thread before continuing to the normal onboarding flow.
 
-## Architecture
+### Changes
 
-### New Files
-- `src/components/BecomingGuide.tsx` — Main component with floating button + Sheet panel
+**1. Edit `src/pages/ConsoleThread.tsx`**
 
-### Modified Files
-- `src/components/layout/AppLayout.tsx` — Add `<BecomingGuide />` inside the layout
+- Add new phases to the `Phase` type: `"starter_q1" | "starter_q2" | "starter_q3" | "starter_processing" | "starter_win" | "starter_return"`
+- Add state: `starterAnswers: string[]`, `starterCapabilities: any[]`
+- **Init logic change**: Before showing the normal opening messages, check if user has already completed the starter quest (check `momentum_capabilities` with `acquisition_channel = 'onboarding_inferred'` or a profile flag). If not completed → start starter quest flow. If completed → skip to normal intake.
+- **Starter opening messages** (Future Self, short chat style):
+  1. "Hey [Name] 👋"
+  2. "Before we begin building something meaningful, I want to understand how you naturally think and solve problems."
+  3. "It only takes a moment, and it helps me personalize the experience for you."
+  4. Ask Question 1
+- **3 Starter Questions** with reflections between them (reuse `generateReflection` pattern):
+  - Q1: "What kind of problems do you naturally enjoy solving?"
+  - Q2: "What do people usually come to you for help with?"
+  - Q3: "When you're working on something exciting, what role do you naturally take?"
+- **After Q3 answered** (`starter_processing` phase): Call `seed-initial-capabilities` edge function with the 3 starter answers as `intakeAnswers` and entry state as `workContext`. Extract the first 2 capabilities from the response.
+- **Starter Win display**: Show Future Self reflection → "✨ Starter Quest Complete" message → In-thread card component showing the 2 unlocked capabilities with a "See Your Capabilities" button linking to `/momentum` (capabilities tab).
+- **Return mechanism**: After user views capabilities and returns (or presses a "Continue" button in the card), Future Self sends: "Now that I understand your strengths, let's build something meaningful around them." → then the normal intake flow begins (existing `intake_q1` phase).
+- **`handleSend` updates**: Add handlers for `starter_q1`, `starter_q2`, `starter_q3` phases that mirror the intake question pattern with reflections.
 
-## Component Design
+**2. New in-thread card component: `src/components/console-thread/StarterQuestWinCard.tsx`**
 
-### Floating Button
-- Fixed position: `bottom-24 right-4` (above bottom nav)
-- Small pill button with `BookOpen` icon + "Guide" label
-- Uses `Sheet` component (side="right") to open the panel
+- Shows "Your first capabilities unlocked" heading
+- Lists 2 capabilities with category icons (reuse `CATEGORY_CONFIG` from CapabilityMapTab)
+- "See Your Capabilities" button → `navigate("/momentum")` with state hint to open capabilities tab
+- "Continue Your Journey" button → triggers transition to normal intake flow
 
-### Sheet Panel Content
+**3. Edit `supabase/functions/seed-initial-capabilities/index.ts`**
 
-**Header**: "Becoming Guide" title with a short welcome line
+- Minor prompt adjustment: accept starter quest answers (which are about problem-solving style, not work background) gracefully — the current prompt already handles varied input, but tweak the prompt template to also work well with builder-DNA style answers. Change `intakeAnswers` mapping to be more generic.
 
-**"Start Here" section** (always visible at top, not collapsible):
-- Dynamically checks user state via existing hooks (`useIntegratorProjects`)
-- No project → "Share an idea with the Council" → links to `/council`
-- Has project → "Continue building" → links to `/creation-lab`
-- Highlight box: "You do not need to understand everything before starting. Just share an idea with the Council and begin."
+**4. Profile flag for persistence**
 
-**Accordion sections** (using existing `Accordion` component):
+- Use `starter_quest_completed` field on profiles. Since we can't modify DB schema instructions say, we'll use the existing check in `seed-initial-capabilities` (it already checks for `acquisition_channel = 'onboarding_inferred'` rows) to determine if starter quest was already done. No DB migration needed.
 
-1. **Foundation** (icon: `Compass`)
-   - "What is Becoming" — 4-5 lines from PDR
-   - "Message from the Founder" — Cristobal's message
-   - "Example Journey" — The flow steps
-   - "The Becoming Loop" — Insight → Build → Test → Learn cycle
+### Flow Summary
 
-2. **Creation Lab** (icon: `FlaskConical`)
-   - Sub-items: Project, Daily Goals, Design Thinking, Creative Space, Map, Purpose to Value
-   - Each with 3-4 line explanation from PDR
+```text
+New user opens New Conversation
+  → Starter Q1, Q2, Q3 (builder DNA)
+  → Call seed-initial-capabilities with starter answers
+  → Show 2 capabilities in-thread card
+  → User explores or continues
+  → Normal intake flow begins (existing logic, unchanged)
 
-3. **Becoming Path** (icon: `Sparkles`)
-   - Sub-items: Becoming Exercises, Pattern Discovery, Transmutation, Superpowers
+Returning user (capabilities already exist)
+  → Skip starter quest entirely
+  → Normal intake flow as before
+```
 
-4. **Council** (icon: `Users`)
-   - Council explanation + Save Button explanation
-
-5. **Momentum** (icon: `TrendingUp`)
-   - Weekly Sprint, Accumulated Work, Capabilities
-
-### Implementation Details
-- Each section uses nested `Accordion` for sub-topics
-- Important callouts use a styled div with `bg-primary/10 border-l-2 border-primary` 
-- All text comes from the PDR content (hardcoded strings, no DB needed)
-- Sheet can be closed instantly via X or overlay click
-- No localStorage tracking needed — this is always available
-
-### Visual Examples Placeholder
-The PDR requests before/after screenshots for each major section. Since we don't have these images yet, each section will include a subtle placeholder note: "Visual examples coming soon" that can be replaced with actual images later.
-
-## Files Summary
-
-| File | Change |
-|------|--------|
-| `src/components/BecomingGuide.tsx` | New — floating button + Sheet with all guide content |
-| `src/components/layout/AppLayout.tsx` | Add `<BecomingGuide />` alongside `<BottomNavigation />` |
+### Files
+- `src/pages/ConsoleThread.tsx` — add starter phases, questions, win flow
+- `src/components/console-thread/StarterQuestWinCard.tsx` — new card component
+- `supabase/functions/seed-initial-capabilities/index.ts` — minor prompt flexibility
 
