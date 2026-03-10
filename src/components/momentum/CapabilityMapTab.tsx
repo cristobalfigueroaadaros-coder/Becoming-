@@ -16,6 +16,7 @@ interface CapabilityMapTabProps {
   selfDeclaredSuggestions?: { name: string; category: string }[];
   userName?: string;
   onCapabilitiesChanged?: () => void;
+  onContinueJourney?: () => void;
 }
 
 const LEVEL_LABELS = ["Recognized", "Activated", "Strengthening", "Established", "Dominant"];
