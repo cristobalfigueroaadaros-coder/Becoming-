@@ -352,6 +352,15 @@ export function CapabilityMapTab({
         );
       })}
 
+      {/* Continue Journey button (starter quest flow) */}
+      {showContinueButton && onContinueJourney && (
+        <div className="animate-in fade-in slide-in-from-bottom-4 duration-500">
+          <Button onClick={onContinueJourney} className="w-full gap-2">
+            <Sparkles className="h-4 w-4" /> Build Something With These Strengths
+          </Button>
+        </div>
+      )}
+
       {/* Self-declaration modal */}
       <Dialog open={showDeclareModal} onOpenChange={setShowDeclareModal}>
         <DialogContent className="max-w-sm">

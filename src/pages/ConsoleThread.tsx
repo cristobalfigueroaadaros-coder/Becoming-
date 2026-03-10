@@ -198,9 +198,16 @@ const ConsoleThread = ({ embedded = false, onProjectNameChange }: ConsoleThreadP
 
         const savedPhase = (profile as any)?.console_thread_phase as Phase | null;
         if (savedPhase) {
-          setPhase(savedPhase);
-          const userMsgs = restored.filter(m => m.role === "user");
-          setIntakeAnswers(userMsgs.slice(0, 3).map(m => m.content));
+          if (savedPhase === "starter_return" || savedPhase === "starter_win") {
+            setPhase("starter_return");
+            setTimeout(() => {
+              transitionToIntake();
+            }, 1500);
+          } else {
+            setPhase(savedPhase);
+            const userMsgs = restored.filter(m => m.role === "user");
+            setIntakeAnswers(userMsgs.slice(0, 3).map(m => m.content));
+          }
         }
       } else {
         // Check if starter quest already done (capabilities with onboarding_inferred exist)
