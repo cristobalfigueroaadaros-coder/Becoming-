@@ -1045,7 +1045,7 @@ const ConsoleThread = ({ embedded = false, onProjectNameChange }: ConsoleThreadP
     }
   };
 
-  const isInputDisabled = loading || phase === "processing" || phase === "council_reveal" || phase === "perspectives" || phase === "banter";
+  const isInputDisabled = loading || phase === "processing" || phase === "starter_processing" || phase === "council_reveal" || phase === "perspectives" || phase === "banter";
   const showPlusButton = phase === "complete" || phase === "post_project";
 
   if (initialLoading) {
