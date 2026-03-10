@@ -12,8 +12,13 @@ import { WeeklyRitualFlow } from "@/components/momentum/WeeklyRitualFlow";
 
 const MomentumDashboard = () => {
   const navigate = useNavigate();
+  const location = useLocation();
+  const locationState = location.state as { tab?: string; fromStarterQuest?: boolean } | null;
+  const defaultTab = locationState?.tab || "sprint";
+  const fromStarterQuest = locationState?.fromStarterQuest || false;
   const { weeklyData, pastReports, capabilities, capabilityMapUnlocked, systemInsight, insightLoading, loading, refetch } = useMomentumData();
   const [ritualOpen, setRitualOpen] = useState(false);
+  const forceCapabilities = defaultTab === "capabilities";
 
   const currentStreak = pastReports.length > 0 ? pastReports[0].streak_weeks : 0;
 
