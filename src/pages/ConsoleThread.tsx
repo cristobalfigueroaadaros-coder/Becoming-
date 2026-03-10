@@ -621,8 +621,26 @@ const ConsoleThread = ({ embedded = false, onProjectNameChange }: ConsoleThreadP
     try {
       const projectIdea = intakeAnswers[2] || "I want to build something meaningful";
 
-      // Send ALL intake answers as full context, not just Q3
-      const fullIntakeContext = `Background: ${intakeAnswers[0] || "Not shared"}\\\\n\\\\nStory: ${intakeAnswers[1] || "Not shared"}\\\\n\\\\nWhat they're building/exploring: ${intakeAnswers[2] || projectIdea}`;
+      // Phase-aware labels so council focuses on the right context
+      const getIntakeLabels = (state: string): string[] => {
+        if (state === "BUILD") return [
+          "What they're building or working on",
+          "Biggest challenge right now",
+          "90-day progress goal",
+        ];
+        if (state === "GROW") return [
+          "Their project idea",
+          "The problem they're solving",
+          "The impact they envision",
+        ];
+        return [
+          "Background and experiences",
+          "Problems and topics that pull their attention",
+          "Five-year vision of meaningful work",
+        ];
+      };
+      const labels = getIntakeLabels(entryState);
+      const fullIntakeContext = `${labels[0]}: ${intakeAnswers[0] || "Not shared"}\n\n${labels[1]}: ${intakeAnswers[1] || "Not shared"}\n\n${labels[2]}: ${intakeAnswers[2] || projectIdea}`;
 
       // Pass EMPTY conversationHistory for first council call so edge function treats as Q1
       // This ensures suggestedNextQuestion is generated (isQ1 = true)
