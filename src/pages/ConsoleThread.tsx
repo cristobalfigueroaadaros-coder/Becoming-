@@ -203,31 +203,70 @@ const ConsoleThread = ({ embedded = false, onProjectNameChange }: ConsoleThreadP
           setIntakeAnswers(userMsgs.slice(0, 3).map(m => m.content));
         }
       } else {
-        // Multi-message opening sequence
-        const openMsg1: ChatMessage = {
-          id: crypto.randomUUID(), role: "mentor", content: `Hey ${name} 👋`,
-          mentorName: mentorConfig.future_self.name, mentorIcon: mentorConfig.future_self.icon, mentorColor: mentorConfig.future_self.color,
-        };
-        setMessages([openMsg1]);
-        persistMessage(openMsg1, "intake_q1");
+        // Check if starter quest already done (capabilities with onboarding_inferred exist)
+        const { data: existingCaps } = await supabase
+          .from("momentum_capabilities")
+          .select("id")
+          .eq("user_id", user.id)
+          .eq("acquisition_channel", "onboarding_inferred")
+          .limit(1);
 
-        await showTyping("future_self", 1500);
-        addSystemMessage("Before we begin, I want to understand where you are in your journey.", "future_self", "intake_q1");
+        const starterDone = existingCaps && existingCaps.length > 0;
 
-        await showTyping("future_self", 1800);
-        addSystemMessage("I'll ask you a few short questions so I can assemble the right mentor council for you.", "future_self", "intake_q1");
-
-        await showTyping("future_self", 2000);
-        addSystemMessage("Your answers will help me choose mentors who can give you the best perspective and guidance.\n\nLet's start.", "future_self", "intake_q1");
-
-        await showTyping("future_self", 1200);
-        addSystemMessage(getPhaseQuestions(profile?.entry_state || "DISCOVER")[0], "future_self", "intake_q1");
+        if (starterDone) {
+          // Skip starter quest, go straight to intake
+          setPhase("intake_q1");
+          await startIntakeFlow(name, profile?.entry_state || "DISCOVER");
+        } else {
+          // Start Starter Quest
+          setPhase("starter_q1");
+          await startStarterQuest(name);
+        }
       }
 
       setInitialLoading(false);
     };
     init();
   }, []);
+
+  const startStarterQuest = async (name: string) => {
+    const openMsg: ChatMessage = {
+      id: crypto.randomUUID(), role: "mentor", content: `Hey ${name} 👋`,
+      mentorName: mentorConfig.future_self.name, mentorIcon: mentorConfig.future_self.icon, mentorColor: mentorConfig.future_self.color,
+    };
+    setMessages([openMsg]);
+    persistMessage(openMsg, "starter_q1");
+
+    await showTyping("future_self", 1500);
+    addSystemMessage("Before we begin building something meaningful, I want to understand how you naturally think and solve problems.", "future_self", "starter_q1");
+
+    await showTyping("future_self", 1500);
+    addSystemMessage("It only takes a moment, and it helps me personalize the experience for you.", "future_self", "starter_q1");
+
+    await showTyping("future_self", 1200);
+    addSystemMessage("What kind of problems do you naturally enjoy solving?\n\nFor example: helping people, building projects, creative ideas, technical problems, or organizing systems.", "future_self", "starter_q1");
+  };
+
+  const startIntakeFlow = async (name: string, state: string) => {
+    const openMsg1: ChatMessage = {
+      id: crypto.randomUUID(), role: "mentor", content: `Hey ${name} 👋`,
+      mentorName: mentorConfig.future_self.name, mentorIcon: mentorConfig.future_self.icon, mentorColor: mentorConfig.future_self.color,
+    };
+    setMessages([openMsg1]);
+    persistMessage(openMsg1, "intake_q1");
+
+    await showTyping("future_self", 1500);
+    addSystemMessage("Before we begin, I want to understand where you are in your journey.", "future_self", "intake_q1");
+
+    await showTyping("future_self", 1800);
+    addSystemMessage("I'll ask you a few short questions so I can assemble the right mentor council for you.", "future_self", "intake_q1");
+
+    await showTyping("future_self", 2000);
+    addSystemMessage("Your answers will help me choose mentors who can give you the best perspective and guidance.\n\nLet's start.", "future_self", "intake_q1");
+
+    await showTyping("future_self", 1200);
+    addSystemMessage(getPhaseQuestions(state)[0], "future_self", "intake_q1");
+  };
 
   const addSystemMessage = (content: string, mentorType?: string, phaseForPersist?: Phase, messageType?: "perspective" | "banter" | "standard" | "notification") => {
     const config = mentorType ? mentorConfig[mentorType] : undefined;
