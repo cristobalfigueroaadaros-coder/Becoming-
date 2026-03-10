@@ -56,11 +56,11 @@ const MomentumDashboard = () => {
         </div>
 
         {/* Tabs */}
-        <Tabs defaultValue="sprint" className="w-full">
-          <TabsList className={capabilityMapUnlocked ? "w-full" : "w-full"}>
+        <Tabs defaultValue={defaultTab} className="w-full">
+          <TabsList className="w-full">
             <TabsTrigger value="sprint" className="flex-1">Sprint Review</TabsTrigger>
             <TabsTrigger value="growth" className="flex-1">Growth</TabsTrigger>
-            {capabilityMapUnlocked && (
+            {(capabilityMapUnlocked || forceCapabilities) && (
               <TabsTrigger value="capabilities" className="flex-1">Capabilities</TabsTrigger>
             )}
           </TabsList>
