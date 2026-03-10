@@ -100,12 +100,14 @@ interface ConsoleThreadProps {
 
 const ConsoleThread = ({ embedded = false, onProjectNameChange }: ConsoleThreadProps) => {
   const navigate = useNavigate();
-  const [phase, setPhase] = useState<Phase>("intake_q1");
+  const [phase, setPhase] = useState<Phase>("starter_q1");
   const [messages, setMessages] = useState<ChatMessage[]>([]);
   const [input, setInput] = useState("");
   const [loading, setLoading] = useState(false);
   const [typing, setTyping] = useState<{ name?: string; icon?: string; color?: string } | null>(null);
   const [intakeAnswers, setIntakeAnswers] = useState<string[]>([]);
+  const [starterAnswers, setStarterAnswers] = useState<string[]>([]);
+  const [starterCapabilities, setStarterCapabilities] = useState<any[]>([]);
   const [userMentors, setUserMentors] = useState<string[]>([]);
   const [entryState, setEntryState] = useState("DISCOVER");
   const [councilAccepted, setCouncilAccepted] = useState(false);
