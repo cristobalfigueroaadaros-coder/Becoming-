@@ -402,6 +402,90 @@ const ConsoleThread = ({ embedded = false, onProjectNameChange }: ConsoleThreadP
     }
   };
 
+  const processStarterQuest = async (answers: string[]) => {
+    setLoading(true);
+    try {
+      const { data: { user } } = await supabase.auth.getUser();
+      if (!user) return;
+
+      // Reflection on final answer
+      await showTyping("future_self", 1500);
+      const reflection = generateReflection(answers[2]);
+      if (reflection) {
+        addSystemMessage(reflection, "future_self", "starter_processing");
+        await showTyping("future_self", 1000);
+      }
+
+      addSystemMessage("Interesting.", "future_self", "starter_processing");
+      await showTyping("future_self", 1200);
+
+      // Build a brief reflection referencing answers
+      const q1Hint = answers[0]?.substring(0, 60) || "those problems";
+      const q2Hint = answers[1]?.substring(0, 60) || "that kind of help";
+      addSystemMessage(`You mentioned enjoying ${q1Hint.toLowerCase()} and that people often come to you for ${q2Hint.toLowerCase()}.\n\nThat combination usually creates strong builders.`, "future_self", "starter_processing");
+
+      await showTyping("future_self", 2000);
+
+      // Call seed-initial-capabilities
+      const { data, error } = await supabase.functions.invoke("seed-initial-capabilities", {
+        body: {
+          intakeAnswers: answers,
+          workContext: entryState,
+        },
+      });
+
+      if (error) throw error;
+
+      const caps = (data?.capabilities || []).slice(0, 2);
+      setStarterCapabilities(caps);
+
+      addSystemMessage("✨ Starter Quest Complete\n\nBased on what you shared, I can already see a few natural capabilities.", "future_self", "starter_win");
+
+      const winPhase: Phase = "starter_win";
+      setPhase(winPhase);
+      persistPhase(winPhase);
+
+      confetti({ particleCount: 60, spread: 50, origin: { y: 0.7 } });
+
+      addCardMessage(
+        <StarterQuestWinCard
+          capabilities={caps.map((c: any) => ({
+            capability_name: c.capability_name,
+            category: c.category || "execution",
+            description: c.description,
+          }))}
+          onContinue={() => transitionToIntake()}
+        />,
+        "future_self",
+        winPhase
+      );
+
+      setPhase("starter_return");
+      persistPhase("starter_return");
+    } catch (error: any) {
+      console.error("Starter quest error:", error);
+      toast.error("Something went wrong. Let's continue.");
+      await transitionToIntake();
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const transitionToIntake = async () => {
+    const intakePhase: Phase = "intake_q1";
+    setPhase(intakePhase);
+    persistPhase(intakePhase);
+
+    await showTyping("future_self", 1500);
+    addSystemMessage("Now that I understand your strengths, let's build something meaningful around them.", "future_self", intakePhase);
+
+    await showTyping("future_self", 1500);
+    addSystemMessage("I'll ask you a few questions so I can assemble the right mentor council for your journey.", "future_self", intakePhase);
+
+    await showTyping("future_self", 1200);
+    addSystemMessage(getPhaseQuestions(entryState)[0], "future_self", intakePhase);
+  };
+
   const processIntake = async (answers: string[]) => {
     setLoading(true);
     try {
