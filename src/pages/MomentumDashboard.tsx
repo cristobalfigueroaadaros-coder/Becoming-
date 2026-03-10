@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { useNavigate } from "react-router-dom";
+import { useNavigate, useLocation } from "react-router-dom";
 import { ArrowLeft, Rocket } from "lucide-react";
 import { MicroGuide } from "@/components/MicroGuide";
 import { Button } from "@/components/ui/button";
@@ -12,8 +12,13 @@ import { WeeklyRitualFlow } from "@/components/momentum/WeeklyRitualFlow";
 
 const MomentumDashboard = () => {
   const navigate = useNavigate();
+  const location = useLocation();
+  const locationState = location.state as { tab?: string; fromStarterQuest?: boolean } | null;
+  const defaultTab = locationState?.tab || "sprint";
+  const fromStarterQuest = locationState?.fromStarterQuest || false;
   const { weeklyData, pastReports, capabilities, capabilityMapUnlocked, systemInsight, insightLoading, loading, refetch } = useMomentumData();
   const [ritualOpen, setRitualOpen] = useState(false);
+  const forceCapabilities = defaultTab === "capabilities";
 
   const currentStreak = pastReports.length > 0 ? pastReports[0].streak_weeks : 0;
 
@@ -51,11 +56,11 @@ const MomentumDashboard = () => {
         </div>
 
         {/* Tabs */}
-        <Tabs defaultValue="sprint" className="w-full">
-          <TabsList className={capabilityMapUnlocked ? "w-full" : "w-full"}>
+        <Tabs defaultValue={defaultTab} className="w-full">
+          <TabsList className="w-full">
             <TabsTrigger value="sprint" className="flex-1">Sprint Review</TabsTrigger>
             <TabsTrigger value="growth" className="flex-1">Growth</TabsTrigger>
-            {capabilityMapUnlocked && (
+            {(capabilityMapUnlocked || forceCapabilities) && (
               <TabsTrigger value="capabilities" className="flex-1">Capabilities</TabsTrigger>
             )}
           </TabsList>
@@ -73,9 +78,13 @@ const MomentumDashboard = () => {
           <TabsContent value="growth">
             <CompoundGrowthTab pastReports={pastReports} currentStreak={currentStreak} capabilities={capabilities} />
           </TabsContent>
-          {capabilityMapUnlocked && (
+          {(capabilityMapUnlocked || forceCapabilities) && (
             <TabsContent value="capabilities">
-              <CapabilityMapTab capabilities={capabilities} onCapabilitiesChanged={refetch} />
+              <CapabilityMapTab
+                capabilities={capabilities}
+                onCapabilitiesChanged={refetch}
+                onContinueJourney={fromStarterQuest ? () => navigate("/council", { state: { view: "intake" } }) : undefined}
+              />
             </TabsContent>
           )}
         </Tabs>

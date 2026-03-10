@@ -1,4 +1,4 @@
-import { useState, useMemo } from "react";
+import { useState, useMemo, useEffect } from "react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
@@ -16,6 +16,7 @@ interface CapabilityMapTabProps {
   selfDeclaredSuggestions?: { name: string; category: string }[];
   userName?: string;
   onCapabilitiesChanged?: () => void;
+  onContinueJourney?: () => void;
 }
 
 const LEVEL_LABELS = ["Recognized", "Activated", "Strengthening", "Established", "Dominant"];
@@ -137,10 +138,19 @@ export function CapabilityMapTab({
   selfDeclaredSuggestions,
   userName,
   onCapabilitiesChanged,
+  onContinueJourney,
 }: CapabilityMapTabProps) {
   const [showDeclareModal, setShowDeclareModal] = useState(false);
   const [selected, setSelected] = useState<Set<string>>(new Set());
   const [saving, setSaving] = useState(false);
+  const [showContinueButton, setShowContinueButton] = useState(false);
+
+  useEffect(() => {
+    if (onContinueJourney) {
+      const timer = setTimeout(() => setShowContinueButton(true), 15000);
+      return () => clearTimeout(timer);
+    }
+  }, [onContinueJourney]);
 
   const twoWeeksAgo = subDays(new Date(), 14).toISOString();
 
@@ -341,6 +351,15 @@ export function CapabilityMapTab({
           </Card>
         );
       })}
+
+      {/* Continue Journey button (starter quest flow) */}
+      {showContinueButton && onContinueJourney && (
+        <div className="animate-in fade-in slide-in-from-bottom-4 duration-500">
+          <Button onClick={onContinueJourney} className="w-full gap-2">
+            <Sparkles className="h-4 w-4" /> Build Something With These Strengths
+          </Button>
+        </div>
+      )}
 
       {/* Self-declaration modal */}
       <Dialog open={showDeclareModal} onOpenChange={setShowDeclareModal}>
