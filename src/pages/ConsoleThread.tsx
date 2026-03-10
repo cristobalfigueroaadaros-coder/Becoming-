@@ -10,6 +10,7 @@ import ChatBubble, { type ChatMessage } from "@/components/console-thread/ChatBu
 import TypingIndicator from "@/components/console-thread/TypingIndicator";
 import MentorRevealCard from "@/components/console-thread/MentorRevealCard";
 import { FirstWinNamingCard } from "@/components/FirstWinNamingCard";
+import StarterQuestWinCard from "@/components/console-thread/StarterQuestWinCard";
 import confetti from "canvas-confetti";
 
 // Mentor config (reused from Council.tsx)
@@ -36,6 +37,7 @@ const mentorConfig: Record<string, { name: string; color: string; icon: string }
 };
 
 type Phase =
+  | "starter_q1" | "starter_q2" | "starter_q3" | "starter_processing" | "starter_win" | "starter_return"
   | "intake_q1" | "intake_q2" | "intake_q3"
   | "processing"
   | "council_reveal" | "council_accepted"
@@ -98,12 +100,14 @@ interface ConsoleThreadProps {
 
 const ConsoleThread = ({ embedded = false, onProjectNameChange }: ConsoleThreadProps) => {
   const navigate = useNavigate();
-  const [phase, setPhase] = useState<Phase>("intake_q1");
+  const [phase, setPhase] = useState<Phase>("starter_q1");
   const [messages, setMessages] = useState<ChatMessage[]>([]);
   const [input, setInput] = useState("");
   const [loading, setLoading] = useState(false);
   const [typing, setTyping] = useState<{ name?: string; icon?: string; color?: string } | null>(null);
   const [intakeAnswers, setIntakeAnswers] = useState<string[]>([]);
+  const [starterAnswers, setStarterAnswers] = useState<string[]>([]);
+  const [starterCapabilities, setStarterCapabilities] = useState<any[]>([]);
   const [userMentors, setUserMentors] = useState<string[]>([]);
   const [entryState, setEntryState] = useState("DISCOVER");
   const [councilAccepted, setCouncilAccepted] = useState(false);
@@ -199,31 +203,70 @@ const ConsoleThread = ({ embedded = false, onProjectNameChange }: ConsoleThreadP
           setIntakeAnswers(userMsgs.slice(0, 3).map(m => m.content));
         }
       } else {
-        // Multi-message opening sequence
-        const openMsg1: ChatMessage = {
-          id: crypto.randomUUID(), role: "mentor", content: `Hey ${name} 👋`,
-          mentorName: mentorConfig.future_self.name, mentorIcon: mentorConfig.future_self.icon, mentorColor: mentorConfig.future_self.color,
-        };
-        setMessages([openMsg1]);
-        persistMessage(openMsg1, "intake_q1");
+        // Check if starter quest already done (capabilities with onboarding_inferred exist)
+        const { data: existingCaps } = await supabase
+          .from("momentum_capabilities")
+          .select("id")
+          .eq("user_id", user.id)
+          .eq("acquisition_channel", "onboarding_inferred")
+          .limit(1);
 
-        await showTyping("future_self", 1500);
-        addSystemMessage("Before we begin, I want to understand where you are in your journey.", "future_self", "intake_q1");
+        const starterDone = existingCaps && existingCaps.length > 0;
 
-        await showTyping("future_self", 1800);
-        addSystemMessage("I'll ask you a few short questions so I can assemble the right mentor council for you.", "future_self", "intake_q1");
-
-        await showTyping("future_self", 2000);
-        addSystemMessage("Your answers will help me choose mentors who can give you the best perspective and guidance.\n\nLet's start.", "future_self", "intake_q1");
-
-        await showTyping("future_self", 1200);
-        addSystemMessage(getPhaseQuestions(profile?.entry_state || "DISCOVER")[0], "future_self", "intake_q1");
+        if (starterDone) {
+          // Skip starter quest, go straight to intake
+          setPhase("intake_q1");
+          await startIntakeFlow(name, profile?.entry_state || "DISCOVER");
+        } else {
+          // Start Starter Quest
+          setPhase("starter_q1");
+          await startStarterQuest(name);
+        }
       }
 
       setInitialLoading(false);
     };
     init();
   }, []);
+
+  const startStarterQuest = async (name: string) => {
+    const openMsg: ChatMessage = {
+      id: crypto.randomUUID(), role: "mentor", content: `Hey ${name} 👋`,
+      mentorName: mentorConfig.future_self.name, mentorIcon: mentorConfig.future_self.icon, mentorColor: mentorConfig.future_self.color,
+    };
+    setMessages([openMsg]);
+    persistMessage(openMsg, "starter_q1");
+
+    await showTyping("future_self", 1500);
+    addSystemMessage("Before we begin building something meaningful, I want to understand how you naturally think and solve problems.", "future_self", "starter_q1");
+
+    await showTyping("future_self", 1500);
+    addSystemMessage("It only takes a moment, and it helps me personalize the experience for you.", "future_self", "starter_q1");
+
+    await showTyping("future_self", 1200);
+    addSystemMessage("What kind of problems do you naturally enjoy solving?\n\nFor example: helping people, building projects, creative ideas, technical problems, or organizing systems.", "future_self", "starter_q1");
+  };
+
+  const startIntakeFlow = async (name: string, state: string) => {
+    const openMsg1: ChatMessage = {
+      id: crypto.randomUUID(), role: "mentor", content: `Hey ${name} 👋`,
+      mentorName: mentorConfig.future_self.name, mentorIcon: mentorConfig.future_self.icon, mentorColor: mentorConfig.future_self.color,
+    };
+    setMessages([openMsg1]);
+    persistMessage(openMsg1, "intake_q1");
+
+    await showTyping("future_self", 1500);
+    addSystemMessage("Before we begin, I want to understand where you are in your journey.", "future_self", "intake_q1");
+
+    await showTyping("future_self", 1800);
+    addSystemMessage("I'll ask you a few short questions so I can assemble the right mentor council for you.", "future_self", "intake_q1");
+
+    await showTyping("future_self", 2000);
+    addSystemMessage("Your answers will help me choose mentors who can give you the best perspective and guidance.\n\nLet's start.", "future_self", "intake_q1");
+
+    await showTyping("future_self", 1200);
+    addSystemMessage(getPhaseQuestions(state)[0], "future_self", "intake_q1");
+  };
 
   const addSystemMessage = (content: string, mentorType?: string, phaseForPersist?: Phase, messageType?: "perspective" | "banter" | "standard" | "notification") => {
     const config = mentorType ? mentorConfig[mentorType] : undefined;
@@ -277,7 +320,40 @@ const ConsoleThread = ({ embedded = false, onProjectNameChange }: ConsoleThreadP
     setInput("");
     addUserMessage(text);
 
-    if (phase === "intake_q1") {
+    if (phase === "starter_q1") {
+      const newAnswers = [...starterAnswers, text];
+      setStarterAnswers(newAnswers);
+      setPhase("starter_q2");
+      persistPhase("starter_q2");
+      await showTyping("future_self", 1500);
+      const reflection = generateReflection(text);
+      if (reflection) {
+        addSystemMessage(reflection, "future_self", "starter_q2");
+        await showTyping("future_self", 1200);
+      }
+      addSystemMessage("What do people usually come to you for help with?\n\nFor example: advice, ideas, solving problems, leadership, or listening and understanding.", "future_self", "starter_q2");
+    } else if (phase === "starter_q2") {
+      const newAnswers = [...starterAnswers, text];
+      setStarterAnswers(newAnswers);
+      setPhase("starter_q3");
+      persistPhase("starter_q3");
+      await showTyping("future_self", 1500);
+      const reflection = generateReflection(text);
+      if (reflection) {
+        addSystemMessage(reflection, "future_self", "starter_q3");
+        await showTyping("future_self", 1200);
+      }
+      addSystemMessage("When you're working on something exciting, what role do you naturally take?\n\nFor example: the builder who executes, the strategist, the creative, the problem solver, or the connector.", "future_self", "starter_q3");
+    } else if (phase === "starter_q3") {
+      const newAnswers = [...starterAnswers, text];
+      setStarterAnswers(newAnswers);
+      setPhase("starter_processing");
+      persistPhase("starter_processing");
+      await processStarterQuest(newAnswers);
+    } else if (phase === "starter_return") {
+      // User typed something after the win card — transition to intake
+      await transitionToIntake();
+    } else if (phase === "intake_q1") {
       const newAnswers = [...intakeAnswers, text];
       setIntakeAnswers(newAnswers);
       const nextPhase: Phase = "intake_q2";
@@ -324,6 +400,90 @@ const ConsoleThread = ({ embedded = false, onProjectNameChange }: ConsoleThreadP
     } else if (phase === "post_project") {
       await handlePostProjectMessage(text);
     }
+  };
+
+  const processStarterQuest = async (answers: string[]) => {
+    setLoading(true);
+    try {
+      const { data: { user } } = await supabase.auth.getUser();
+      if (!user) return;
+
+      // Reflection on final answer
+      await showTyping("future_self", 1500);
+      const reflection = generateReflection(answers[2]);
+      if (reflection) {
+        addSystemMessage(reflection, "future_self", "starter_processing");
+        await showTyping("future_self", 1000);
+      }
+
+      addSystemMessage("Interesting.", "future_self", "starter_processing");
+      await showTyping("future_self", 1200);
+
+      // Build a brief reflection referencing answers
+      const q1Hint = answers[0]?.substring(0, 60) || "those problems";
+      const q2Hint = answers[1]?.substring(0, 60) || "that kind of help";
+      addSystemMessage(`You mentioned enjoying ${q1Hint.toLowerCase()} and that people often come to you for ${q2Hint.toLowerCase()}.\n\nThat combination usually creates strong builders.`, "future_self", "starter_processing");
+
+      await showTyping("future_self", 2000);
+
+      // Call seed-initial-capabilities
+      const { data, error } = await supabase.functions.invoke("seed-initial-capabilities", {
+        body: {
+          intakeAnswers: answers,
+          workContext: entryState,
+        },
+      });
+
+      if (error) throw error;
+
+      const caps = (data?.capabilities || []).slice(0, 2);
+      setStarterCapabilities(caps);
+
+      addSystemMessage("✨ Starter Quest Complete\n\nBased on what you shared, I can already see a few natural capabilities.", "future_self", "starter_win");
+
+      const winPhase: Phase = "starter_win";
+      setPhase(winPhase);
+      persistPhase(winPhase);
+
+      confetti({ particleCount: 60, spread: 50, origin: { y: 0.7 } });
+
+      addCardMessage(
+        <StarterQuestWinCard
+          capabilities={caps.map((c: any) => ({
+            capability_name: c.capability_name,
+            category: c.category || "execution",
+            description: c.description,
+          }))}
+          onContinue={() => transitionToIntake()}
+        />,
+        "future_self",
+        winPhase
+      );
+
+      setPhase("starter_return");
+      persistPhase("starter_return");
+    } catch (error: any) {
+      console.error("Starter quest error:", error);
+      toast.error("Something went wrong. Let's continue.");
+      await transitionToIntake();
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const transitionToIntake = async () => {
+    const intakePhase: Phase = "intake_q1";
+    setPhase(intakePhase);
+    persistPhase(intakePhase);
+
+    await showTyping("future_self", 1500);
+    addSystemMessage("Now that I understand your strengths, let's build something meaningful around them.", "future_self", intakePhase);
+
+    await showTyping("future_self", 1500);
+    addSystemMessage("I'll ask you a few questions so I can assemble the right mentor council for your journey.", "future_self", intakePhase);
+
+    await showTyping("future_self", 1200);
+    addSystemMessage(getPhaseQuestions(entryState)[0], "future_self", intakePhase);
   };
 
   const processIntake = async (answers: string[]) => {
@@ -885,7 +1045,7 @@ const ConsoleThread = ({ embedded = false, onProjectNameChange }: ConsoleThreadP
     }
   };
 
-  const isInputDisabled = loading || phase === "processing" || phase === "council_reveal" || phase === "perspectives" || phase === "banter";
+  const isInputDisabled = loading || phase === "processing" || phase === "starter_processing" || phase === "council_reveal" || phase === "perspectives" || phase === "banter";
   const showPlusButton = phase === "complete" || phase === "post_project";
 
   if (initialLoading) {
