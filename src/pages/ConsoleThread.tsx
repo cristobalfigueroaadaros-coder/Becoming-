@@ -320,7 +320,40 @@ const ConsoleThread = ({ embedded = false, onProjectNameChange }: ConsoleThreadP
     setInput("");
     addUserMessage(text);
 
-    if (phase === "intake_q1") {
+    if (phase === "starter_q1") {
+      const newAnswers = [...starterAnswers, text];
+      setStarterAnswers(newAnswers);
+      setPhase("starter_q2");
+      persistPhase("starter_q2");
+      await showTyping("future_self", 1500);
+      const reflection = generateReflection(text);
+      if (reflection) {
+        addSystemMessage(reflection, "future_self", "starter_q2");
+        await showTyping("future_self", 1200);
+      }
+      addSystemMessage("What do people usually come to you for help with?\n\nFor example: advice, ideas, solving problems, leadership, or listening and understanding.", "future_self", "starter_q2");
+    } else if (phase === "starter_q2") {
+      const newAnswers = [...starterAnswers, text];
+      setStarterAnswers(newAnswers);
+      setPhase("starter_q3");
+      persistPhase("starter_q3");
+      await showTyping("future_self", 1500);
+      const reflection = generateReflection(text);
+      if (reflection) {
+        addSystemMessage(reflection, "future_self", "starter_q3");
+        await showTyping("future_self", 1200);
+      }
+      addSystemMessage("When you're working on something exciting, what role do you naturally take?\n\nFor example: the builder who executes, the strategist, the creative, the problem solver, or the connector.", "future_self", "starter_q3");
+    } else if (phase === "starter_q3") {
+      const newAnswers = [...starterAnswers, text];
+      setStarterAnswers(newAnswers);
+      setPhase("starter_processing");
+      persistPhase("starter_processing");
+      await processStarterQuest(newAnswers);
+    } else if (phase === "starter_return") {
+      // User typed something after the win card — transition to intake
+      await transitionToIntake();
+    } else if (phase === "intake_q1") {
       const newAnswers = [...intakeAnswers, text];
       setIntakeAnswers(newAnswers);
       const nextPhase: Phase = "intake_q2";
