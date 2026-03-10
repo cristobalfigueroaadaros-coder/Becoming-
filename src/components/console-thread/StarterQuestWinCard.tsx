@@ -59,7 +59,7 @@ const StarterQuestWinCard = ({ capabilities, onContinue }: StarterQuestWinCardPr
           <Button
             variant="outline"
             size="sm"
-            onClick={() => navigate("/momentum", { state: { tab: "capabilities" } })}
+            onClick={() => navigate("/momentum", { state: { tab: "capabilities", fromStarterQuest: true } })}
             className="w-full"
           >
             See Your Capabilities
