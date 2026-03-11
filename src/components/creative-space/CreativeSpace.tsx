@@ -110,6 +110,13 @@ export function CreativeSpace({ projectId, projectTitle }: CreativeSpaceProps) {
     }
   };
 
+  // Re-fetch suggestions when tiles load (initial fetch has empty tiles)
+  useEffect(() => {
+    if (tiles.length > 0 && keywords.length > 0 && suggestedKeywords.length === 0) {
+      fetchKeywordSuggestions(keywords);
+    }
+  }, [tiles.length]);
+
   // Check which keywords are already tiles
   const keywordsInSpace = new Set(
     tiles.filter(t => t.source_type === 'keyword').map(t => t.title.toLowerCase())
