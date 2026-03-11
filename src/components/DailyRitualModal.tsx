@@ -89,7 +89,7 @@ export const DailyRitualModal = ({ open, onClose, onComplete }: DailyRitualModal
 
   // Breathing guide effect
   useEffect(() => {
-    let interval: NodeJS.Timeout;
+    let interval: ReturnType<typeof setInterval>;
     if (step === "visualization") {
       interval = setInterval(() => {
         setBreathingCount((prev) => {

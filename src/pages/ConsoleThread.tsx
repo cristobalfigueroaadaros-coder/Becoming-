@@ -513,8 +513,11 @@ const ConsoleThread = ({ embedded = false, onProjectNameChange }: ConsoleThreadP
     await showTyping("future_self", 1500);
     addSystemMessage("Now that I understand your strengths, let's build something meaningful around them.", "future_self", intakePhase);
 
-    await showTyping("future_self", 1500);
-    addSystemMessage("I'll ask you a few questions so I can assemble the right mentor council for your journey.", "future_self", intakePhase);
+    const introMsgs = getPhaseIntroMessages(entryState);
+    for (const msg of introMsgs) {
+      await showTyping("future_self", 1500);
+      addSystemMessage(msg, "future_self", intakePhase);
+    }
 
     await showTyping("future_self", 1200);
     addSystemMessage(getPhaseQuestions(entryState)[0], "future_self", intakePhase);
