@@ -205,8 +205,19 @@ const ConsoleThread = ({ embedded = false, onProjectNameChange }: ConsoleThreadP
             }, 1500);
           } else {
             setPhase(savedPhase);
-            const userMsgs = restored.filter(m => m.role === "user");
-            setIntakeAnswers(userMsgs.slice(0, 3).map(m => m.content));
+            // Restore answers by phase prefix to avoid mixing starter/intake
+            const starterUserMsgs = savedMessages.filter((m: any) => m.role === "user" && m.phase?.startsWith("starter_"));
+            const intakeUserMsgs = savedMessages.filter((m: any) => m.role === "user" && m.phase?.startsWith("intake_"));
+            if (starterUserMsgs.length > 0) {
+              setStarterAnswers(starterUserMsgs.map((m: any) => m.content));
+            }
+            if (intakeUserMsgs.length > 0) {
+              setIntakeAnswers(intakeUserMsgs.map((m: any) => m.content));
+            } else {
+              // Fallback for older threads without phase tags
+              const userMsgs = restored.filter(m => m.role === "user");
+              setIntakeAnswers(userMsgs.slice(0, 3).map(m => m.content));
+            }
           }
         }
       } else {
