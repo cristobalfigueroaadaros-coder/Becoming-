@@ -87,7 +87,7 @@ export function CreativeSpace({ projectId, projectTitle }: CreativeSpaceProps) {
       }
     };
     loadKeywords();
-  }, []);
+  }, [projectId]);
 
   const fetchKeywordSuggestions = async (kws: UserKeyword[]) => {
     if (kws.length === 0) return;
@@ -109,6 +109,13 @@ export function CreativeSpace({ projectId, projectTitle }: CreativeSpaceProps) {
       setLoadingSuggestions(false);
     }
   };
+
+  // Re-fetch suggestions when tiles load (initial fetch has empty tiles)
+  useEffect(() => {
+    if (tiles.length > 0 && keywords.length > 0 && suggestedKeywords.length === 0) {
+      fetchKeywordSuggestions(keywords);
+    }
+  }, [tiles.length]);
 
   // Check which keywords are already tiles
   const keywordsInSpace = new Set(

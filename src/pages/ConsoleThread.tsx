@@ -46,6 +46,25 @@ type Phase =
   | "handoff_offer" | "mentor_1to1"
   | "project_detected" | "complete" | "post_project";
 
+// Phase-aware intake labels for context sent to AI
+const getIntakeLabels = (state: string): string[] => {
+  if (state === "BUILD") return [
+    "What they're building or working on",
+    "Biggest challenge right now",
+    "90-day progress goal",
+  ];
+  if (state === "GROW") return [
+    "Their project idea",
+    "The problem they're solving",
+    "The impact they envision",
+  ];
+  return [
+    "Background and experiences",
+    "Problems and topics that pull their attention",
+    "Five-year vision of meaningful work",
+  ];
+};
+
 // Phase-aware intake questions
 const getPhaseQuestions = (entryState: string): string[] => {
   if (entryState === "BUILD") return [
@@ -205,8 +224,19 @@ const ConsoleThread = ({ embedded = false, onProjectNameChange }: ConsoleThreadP
             }, 1500);
           } else {
             setPhase(savedPhase);
-            const userMsgs = restored.filter(m => m.role === "user");
-            setIntakeAnswers(userMsgs.slice(0, 3).map(m => m.content));
+            // Restore answers by phase prefix to avoid mixing starter/intake
+            const starterUserMsgs = savedMessages.filter((m: any) => m.role === "user" && m.phase?.startsWith("starter_"));
+            const intakeUserMsgs = savedMessages.filter((m: any) => m.role === "user" && m.phase?.startsWith("intake_"));
+            if (starterUserMsgs.length > 0) {
+              setStarterAnswers(starterUserMsgs.map((m: any) => m.content));
+            }
+            if (intakeUserMsgs.length > 0) {
+              setIntakeAnswers(intakeUserMsgs.map((m: any) => m.content));
+            } else {
+              // Fallback for older threads without phase tags
+              const userMsgs = restored.filter(m => m.role === "user");
+              setIntakeAnswers(userMsgs.slice(0, 3).map(m => m.content));
+            }
           }
         }
       } else {
@@ -503,7 +533,8 @@ const ConsoleThread = ({ embedded = false, onProjectNameChange }: ConsoleThreadP
         work_context: answers[0],
       }).eq("id", user.id);
 
-      const storyText = `Work background: ${answers[0]}\\\\n\\\\nMy story: ${answers[1]}\\\\n\\\\nWhat I'm building: ${answers[2]}`;
+      const intakeLabels = getIntakeLabels(entryState);
+      const storyText = `${intakeLabels[0]}: ${answers[0]}\n\n${intakeLabels[1]}: ${answers[1]}\n\n${intakeLabels[2]}: ${answers[2]}`;
       await supabase.functions.invoke("process-user-foundation", {
         body: { storyText },
       });
@@ -621,24 +652,7 @@ const ConsoleThread = ({ embedded = false, onProjectNameChange }: ConsoleThreadP
     try {
       const projectIdea = intakeAnswers[2] || "I want to build something meaningful";
 
-      // Phase-aware labels so council focuses on the right context
-      const getIntakeLabels = (state: string): string[] => {
-        if (state === "BUILD") return [
-          "What they're building or working on",
-          "Biggest challenge right now",
-          "90-day progress goal",
-        ];
-        if (state === "GROW") return [
-          "Their project idea",
-          "The problem they're solving",
-          "The impact they envision",
-        ];
-        return [
-          "Background and experiences",
-          "Problems and topics that pull their attention",
-          "Five-year vision of meaningful work",
-        ];
-      };
+      // Use module-scope getIntakeLabels
       const labels = getIntakeLabels(entryState);
       const fullIntakeContext = `${labels[0]}: ${intakeAnswers[0] || "Not shared"}\n\n${labels[1]}: ${intakeAnswers[1] || "Not shared"}\n\n${labels[2]}: ${intakeAnswers[2] || projectIdea}`;
 
