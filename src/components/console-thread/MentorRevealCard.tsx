@@ -72,7 +72,7 @@ const MentorRevealCard = ({ mentors, entryState, onAccept, accepted }: MentorRev
         </div>
 
         {!accepted ? (
-          <Button onClick={onAccept} className="w-full gap-2" size="sm">
+          <Button onClick={onAccept} className="w-full gap-2 animate-pulse" size="sm">
             <Check className="w-4 h-4" />
             Accept Your Council
           </Button>

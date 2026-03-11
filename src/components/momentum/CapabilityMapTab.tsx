@@ -355,7 +355,7 @@ export function CapabilityMapTab({
       {/* Continue Journey button (starter quest flow) */}
       {showContinueButton && onContinueJourney && (
         <div className="animate-in fade-in slide-in-from-bottom-4 duration-500">
-          <Button onClick={onContinueJourney} className="w-full gap-2">
+          <Button onClick={onContinueJourney} className="w-full gap-2 animate-pulse">
             <Sparkles className="h-4 w-4" /> Build Something With These Strengths
           </Button>
         </div>

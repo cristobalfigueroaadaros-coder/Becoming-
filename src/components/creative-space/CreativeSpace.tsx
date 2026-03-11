@@ -87,7 +87,7 @@ export function CreativeSpace({ projectId, projectTitle }: CreativeSpaceProps) {
       }
     };
     loadKeywords();
-  }, []);
+  }, [projectId]);
 
   const fetchKeywordSuggestions = async (kws: UserKeyword[]) => {
     if (kws.length === 0) return;

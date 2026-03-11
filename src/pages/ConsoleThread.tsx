@@ -46,6 +46,25 @@ type Phase =
   | "handoff_offer" | "mentor_1to1"
   | "project_detected" | "complete" | "post_project";
 
+// Phase-aware intake labels for context sent to AI
+const getIntakeLabels = (state: string): string[] => {
+  if (state === "BUILD") return [
+    "What they're building or working on",
+    "Biggest challenge right now",
+    "90-day progress goal",
+  ];
+  if (state === "GROW") return [
+    "Their project idea",
+    "The problem they're solving",
+    "The impact they envision",
+  ];
+  return [
+    "Background and experiences",
+    "Problems and topics that pull their attention",
+    "Five-year vision of meaningful work",
+  ];
+};
+
 // Phase-aware intake questions
 const getPhaseQuestions = (entryState: string): string[] => {
   if (entryState === "BUILD") return [
