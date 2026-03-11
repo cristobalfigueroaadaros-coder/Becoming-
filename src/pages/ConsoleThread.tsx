@@ -276,7 +276,7 @@ const ConsoleThread = ({ embedded = false, onProjectNameChange }: ConsoleThreadP
         if (starterDone) {
           // Skip starter quest, go straight to intake
           setPhase("intake_q1");
-          await startIntakeFlow(name, profile?.entry_state || "DISCOVER");
+          await startIntakeFlow(name, resolvedEntryState);
         } else {
           // Start Starter Quest
           setPhase("starter_q1");
