@@ -85,7 +85,26 @@ const getPhaseQuestions = (entryState: string): string[] => {
   ];
 };
 
-// Generate a brief reflection on the user's answer (local, no AI call needed)
+// Phase-aware intro messages for Future Self
+const getPhaseIntroMessages = (state: string): string[] => {
+  if (state === "BUILD") return [
+    "It sounds like you're already building something.",
+    "Before we dive in, I want to understand your project and where you are right now so I can assemble the right mentor council to help you move forward.",
+    "I'll ask you three quick questions.",
+  ];
+  if (state === "GROW") return [
+    "It sounds like you already have an idea or direction you're interested in exploring.",
+    "Before we take the next step, I want to understand your idea a bit better so I can bring in the right mentors to help you develop it.",
+    "I'll ask you three questions.",
+  ];
+  // DISCOVER
+  return [
+    "Right now it sounds like you're still exploring what direction might feel meaningful for you. That's completely fine.",
+    "Before we decide what to build, I'd like to understand a bit more about you, your experiences, and what naturally interests you.",
+    "I'll ask you three questions.",
+  ];
+};
+
 const generateReflection = (answer: string): string | null => {
   const lower = answer.toLowerCase();
   const len = answer.length;
