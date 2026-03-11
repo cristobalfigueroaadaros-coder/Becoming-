@@ -85,7 +85,26 @@ const getPhaseQuestions = (entryState: string): string[] => {
   ];
 };
 
-// Generate a brief reflection on the user's answer (local, no AI call needed)
+// Phase-aware intro messages for Future Self
+const getPhaseIntroMessages = (state: string): string[] => {
+  if (state === "BUILD") return [
+    "It sounds like you're already building something.",
+    "Before we dive in, I want to understand your project and where you are right now so I can assemble the right mentor council to help you move forward.",
+    "I'll ask you three quick questions.",
+  ];
+  if (state === "GROW") return [
+    "It sounds like you already have an idea or direction you're interested in exploring.",
+    "Before we take the next step, I want to understand your idea a bit better so I can bring in the right mentors to help you develop it.",
+    "I'll ask you three questions.",
+  ];
+  // DISCOVER
+  return [
+    "Right now it sounds like you're still exploring what direction might feel meaningful for you. That's completely fine.",
+    "Before we decide what to build, I'd like to understand a bit more about you, your experiences, and what naturally interests you.",
+    "I'll ask you three questions.",
+  ];
+};
+
 const generateReflection = (answer: string): string | null => {
   const lower = answer.toLowerCase();
   const len = answer.length;
@@ -292,14 +311,11 @@ const ConsoleThread = ({ embedded = false, onProjectNameChange }: ConsoleThreadP
     setMessages([openMsg1]);
     persistMessage(openMsg1, "intake_q1");
 
-    await showTyping("future_self", 1500);
-    addSystemMessage("Before we begin, I want to understand where you are in your journey.", "future_self", "intake_q1");
-
-    await showTyping("future_self", 1800);
-    addSystemMessage("I'll ask you a few short questions so I can assemble the right mentor council for you.", "future_self", "intake_q1");
-
-    await showTyping("future_self", 2000);
-    addSystemMessage("Your answers will help me choose mentors who can give you the best perspective and guidance.\n\nLet's start.", "future_self", "intake_q1");
+    const introMsgs = getPhaseIntroMessages(state);
+    for (const msg of introMsgs) {
+      await showTyping("future_self", 1500);
+      addSystemMessage(msg, "future_self", "intake_q1");
+    }
 
     await showTyping("future_self", 1200);
     addSystemMessage(getPhaseQuestions(state)[0], "future_self", "intake_q1");
@@ -516,8 +532,11 @@ const ConsoleThread = ({ embedded = false, onProjectNameChange }: ConsoleThreadP
     await showTyping("future_self", 1500);
     addSystemMessage("Now that I understand your strengths, let's build something meaningful around them.", "future_self", intakePhase);
 
-    await showTyping("future_self", 1500);
-    addSystemMessage("I'll ask you a few questions so I can assemble the right mentor council for your journey.", "future_self", intakePhase);
+    const introMsgs = getPhaseIntroMessages(entryState);
+    for (const msg of introMsgs) {
+      await showTyping("future_self", 1500);
+      addSystemMessage(msg, "future_self", intakePhase);
+    }
 
     await showTyping("future_self", 1200);
     addSystemMessage(getPhaseQuestions(entryState)[0], "future_self", intakePhase);

@@ -1,56 +1,70 @@
 
 
-## Three Fixes: Build Error, Phase-Aware Future Self Tone, Keywords
+# Becoming Guide — Floating Knowledge Hub
 
-### 1. Build Error Fix — `NodeJS.Timeout` in DailyRitualModal
+## Overview
+Create a floating "Becoming Guide" button and a Sheet panel that serves as an in-app reference manual. The guide contains expandable sections explaining the system's philosophy, tools, and workflow with a dynamic "Start Here" section.
 
-**File: `src/components/DailyRitualModal.tsx`** (lines 74, 92)
+## Architecture
 
-Replace `NodeJS.Timeout` with `ReturnType<typeof setInterval>` — standard browser-compatible typing.
+### New Files
+- `src/components/BecomingGuide.tsx` — Main component with floating button + Sheet panel
 
-### 2. Phase-Aware Future Self Introduction in `startIntakeFlow` and `transitionToIntake`
+### Modified Files
+- `src/components/layout/AppLayout.tsx` — Add `<BecomingGuide />` inside the layout
 
-The intake flow currently uses the same generic introduction regardless of phase. Need to add phase-specific introductions per the user's spec.
+## Component Design
 
-**File: `src/pages/ConsoleThread.tsx`**
+### Floating Button
+- Fixed position: `bottom-24 right-4` (above bottom nav)
+- Small pill button with `BookOpen` icon + "Guide" label
+- Uses `Sheet` component (side="right") to open the panel
 
-Add a helper function for phase-specific intro messages:
+### Sheet Panel Content
 
-```typescript
-const getPhaseIntroMessages = (state: string): string[] => {
-  if (state === "BUILD") return [
-    "It sounds like you're already building something.",
-    "Before we dive in, I want to understand your project and where you are right now so I can assemble the right mentor council to help you move forward.",
-    "I'll ask you three quick questions.",
-  ];
-  if (state === "GROW") return [
-    "It sounds like you already have an idea or direction you're interested in exploring.",
-    "Before we take the next step, I want to understand your idea a bit better so I can bring in the right mentors to help you develop it.",
-    "I'll ask you three questions.",
-  ];
-  // DISCOVER
-  return [
-    "Right now it sounds like you're still exploring what direction might feel meaningful for you. That's completely fine.",
-    "Before we decide what to build, I'd like to understand a bit more about you, your experiences, and what naturally interests you.",
-    "I'll ask you three questions.",
-  ];
-};
-```
+**Header**: "Becoming Guide" title with a short welcome line
 
-Update `startIntakeFlow` (line 287-306): Replace the generic "Before we begin..." messages with `getPhaseIntroMessages(state)`.
+**"Start Here" section** (always visible at top, not collapsible):
+- Dynamically checks user state via existing hooks (`useIntegratorProjects`)
+- No project → "Share an idea with the Council" → links to `/council`
+- Has project → "Continue building" → links to `/creation-lab`
+- Highlight box: "You do not need to understand everything before starting. Just share an idea with the Council and begin."
 
-Update `transitionToIntake` (line 511-524): Replace generic transition text with phase-aware intro. The first message becomes "Now that I understand your strengths..." followed by the phase-specific intro messages.
+**Accordion sections** (using existing `Accordion` component):
 
-**Questions remain unchanged.** Only the framing/introduction adapts to the phase.
+1. **Foundation** (icon: `Compass`)
+   - "What is Becoming" — 4-5 lines from PDR
+   - "Message from the Founder" — Cristobal's message
+   - "Example Journey" — The flow steps
+   - "The Becoming Loop" — Insight → Build → Test → Learn cycle
 
-### 3. Keywords in Creative Space
+2. **Creation Lab** (icon: `FlaskConical`)
+   - Sub-items: Project, Daily Goals, Design Thinking, Creative Space, Map, Purpose to Value
+   - Each with 3-4 line explanation from PDR
 
-The `useEffect` at line 71 already depends on `projectId` and loads keywords correctly. The secondary issue is that `fetchKeywordSuggestions` sends `tiles` which may be empty at load time.
+3. **Becoming Path** (icon: `Sparkles`)
+   - Sub-items: Becoming Exercises, Pattern Discovery, Transmutation, Superpowers
 
-Add a second `useEffect` that re-runs `fetchKeywordSuggestions` when `tiles` change and keywords are already loaded (if not already present from previous edit). Will verify and ensure it's there.
+4. **Council** (icon: `Users`)
+   - Council explanation + Save Button explanation
 
-### Files to Edit
-- `src/components/DailyRitualModal.tsx` — Fix `NodeJS.Timeout` type (2 lines)
-- `src/pages/ConsoleThread.tsx` — Add `getPhaseIntroMessages`, update `startIntakeFlow` and `transitionToIntake`
-- `src/components/creative-space/CreativeSpace.tsx` — Verify tiles-dependent keyword suggestion effect
+5. **Momentum** (icon: `TrendingUp`)
+   - Weekly Sprint, Accumulated Work, Capabilities
+
+### Implementation Details
+- Each section uses nested `Accordion` for sub-topics
+- Important callouts use a styled div with `bg-primary/10 border-l-2 border-primary` 
+- All text comes from the PDR content (hardcoded strings, no DB needed)
+- Sheet can be closed instantly via X or overlay click
+- No localStorage tracking needed — this is always available
+
+### Visual Examples Placeholder
+The PDR requests before/after screenshots for each major section. Since we don't have these images yet, each section will include a subtle placeholder note: "Visual examples coming soon" that can be replaced with actual images later.
+
+## Files Summary
+
+| File | Change |
+|------|--------|
+| `src/components/BecomingGuide.tsx` | New — floating button + Sheet with all guide content |
+| `src/components/layout/AppLayout.tsx` | Add `<BecomingGuide />` alongside `<BottomNavigation />` |
 
