@@ -71,7 +71,7 @@ export const DailyRitualModal = ({ open, onClose, onComplete }: DailyRitualModal
 
   // Meditation timer effect
   useEffect(() => {
-    let interval: NodeJS.Timeout;
+    let interval: ReturnType<typeof setInterval>;
     if (isMeditating && meditationCountdown > 0) {
       interval = setInterval(() => {
         setMeditationCountdown((prev) => {
