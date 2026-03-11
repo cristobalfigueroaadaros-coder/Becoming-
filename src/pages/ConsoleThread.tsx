@@ -292,14 +292,11 @@ const ConsoleThread = ({ embedded = false, onProjectNameChange }: ConsoleThreadP
     setMessages([openMsg1]);
     persistMessage(openMsg1, "intake_q1");
 
-    await showTyping("future_self", 1500);
-    addSystemMessage("Before we begin, I want to understand where you are in your journey.", "future_self", "intake_q1");
-
-    await showTyping("future_self", 1800);
-    addSystemMessage("I'll ask you a few short questions so I can assemble the right mentor council for you.", "future_self", "intake_q1");
-
-    await showTyping("future_self", 2000);
-    addSystemMessage("Your answers will help me choose mentors who can give you the best perspective and guidance.\n\nLet's start.", "future_self", "intake_q1");
+    const introMsgs = getPhaseIntroMessages(state);
+    for (const msg of introMsgs) {
+      await showTyping("future_self", 1500);
+      addSystemMessage(msg, "future_self", "intake_q1");
+    }
 
     await showTyping("future_self", 1200);
     addSystemMessage(getPhaseQuestions(state)[0], "future_self", "intake_q1");
