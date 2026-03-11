@@ -58,10 +58,13 @@ const OnboardingStep2 = () => {
 
       const { data: { user } } = await supabase.auth.getUser();
       if (user) {
-        await supabase
+        const { error } = await supabase
           .from("profiles")
-          .update({ entry_state: selected.entryState } as any)
+          .update({ entry_state: selected.entryState })
           .eq("id", user.id);
+        if (error) {
+          console.error("Failed to save entry_state:", error);
+        }
       }
 
       navigate("/onboarding/step4");

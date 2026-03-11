@@ -206,7 +206,11 @@ const ConsoleThread = ({ embedded = false, onProjectNameChange }: ConsoleThreadP
 
       const name = (profile as any)?.display_name || "friend";
       setDisplayName(name);
-      setEntryState(profile?.entry_state || "DISCOVER");
+      // Use profile entry_state, fall back to localStorage (set during onboarding step 2)
+      const lsFocus = localStorage.getItem("onboarding_focus");
+      const lsEntryState = lsFocus === "grow_purpose" ? "GROW" : lsFocus === "already_working" ? "BUILD" : lsFocus === "discover_purpose" ? "DISCOVER" : null;
+      const resolvedEntryState = profile?.entry_state || lsEntryState || "DISCOVER";
+      setEntryState(resolvedEntryState);
 
       // Load mentors
       const { data: mentors } = await supabase
