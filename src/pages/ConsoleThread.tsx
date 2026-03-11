@@ -514,7 +514,8 @@ const ConsoleThread = ({ embedded = false, onProjectNameChange }: ConsoleThreadP
         work_context: answers[0],
       }).eq("id", user.id);
 
-      const storyText = `Work background: ${answers[0]}\\\\n\\\\nMy story: ${answers[1]}\\\\n\\\\nWhat I'm building: ${answers[2]}`;
+      const intakeLabels = getIntakeLabels(entryState);
+      const storyText = `${intakeLabels[0]}: ${answers[0]}\n\n${intakeLabels[1]}: ${answers[1]}\n\n${intakeLabels[2]}: ${answers[2]}`;
       await supabase.functions.invoke("process-user-foundation", {
         body: { storyText },
       });
