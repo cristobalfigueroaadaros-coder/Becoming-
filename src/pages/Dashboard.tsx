@@ -3,8 +3,6 @@ import { useNavigate } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
 import { DailyRitualModal } from "@/components/DailyRitualModal";
-import { MentorWhisperNotification } from "@/components/MentorWhisperNotification";
-import { useMentorWhisper } from "@/hooks/useMentorWhisper";
 import { useMentorOutreach } from "@/hooks/useMentorOutreach";
 import { VoiceOfSystemModal } from "@/components/voice/VoiceOfSystemModal";
 import IntakeNotification from "@/components/console-thread/IntakeNotification";
