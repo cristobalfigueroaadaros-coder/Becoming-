@@ -46,8 +46,8 @@ const Dashboard = () => {
     }, 3000);
 
     return () => {
-      clearTimeout(whisperTimer);
-      clearTimeout(outreachTimer);
+
+
     };
   }, []);
 
