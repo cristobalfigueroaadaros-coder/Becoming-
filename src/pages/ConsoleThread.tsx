@@ -817,6 +817,11 @@ const ConsoleThread = ({ embedded = false, onProjectNameChange }: ConsoleThreadP
           addSystemMessage(perspective as string, mentorType, "user_reply", "perspective");
         }
 
+        // Save bold keywords from 2nd round perspectives (non-blocking)
+        supabase.auth.getUser().then(({ data: { user } }) => {
+          if (user) saveCouncilKeywords(perspectives, user.id);
+        });
+
         if (data.banterLines?.length > 0) {
           for (const line of data.banterLines) {
             await showTyping(line.mentor, 4000 + Math.random() * 10000);
