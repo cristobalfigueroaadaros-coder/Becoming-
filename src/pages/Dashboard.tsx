@@ -40,9 +40,6 @@ const Dashboard = () => {
     checkFirstTimeUser();
     checkReengagementNotifications();
 
-    const whisperTimer = setTimeout(() => {
-      checkAndGenerateWhisper();
-    }, 2000);
 
     const outreachTimer = setTimeout(() => {
       generateOutreach().catch(() => {});
