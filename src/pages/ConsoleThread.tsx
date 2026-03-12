@@ -747,6 +747,11 @@ const ConsoleThread = ({ embedded = false, onProjectNameChange }: ConsoleThreadP
         addSystemMessage(perspective as string, mentorType, perspPhase, "perspective");
       }
 
+      // Save bold keywords from perspectives to user_keywords (non-blocking)
+      supabase.auth.getUser().then(({ data: { user } }) => {
+        if (user) saveCouncilKeywords(perspectives, user.id);
+      });
+
       const banterLines = data.banterLines || [];
       if (banterLines.length > 0) {
         const banterPhase: Phase = "banter";
