@@ -151,11 +151,6 @@ const Dashboard = () => {
     }
   };
 
-  useEffect(() => {
-    if (unreadWhisper && !showWhisperNotification) {
-      setShowWhisperNotification(true);
-    }
-  }, [unreadWhisper]);
 
   const loadDashboardData = async () => {
     try {
