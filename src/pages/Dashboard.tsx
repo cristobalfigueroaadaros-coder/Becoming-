@@ -278,21 +278,6 @@ const Dashboard = () => {
           setRitualModalOpen(false);
         }}
       />
-      {/* Whisper Notification */}
-      {showWhisperNotification && latestWhisper && (
-        <MentorWhisperNotification
-          whisper={latestWhisper}
-          onDismiss={() => {
-            markAsRead(latestWhisper.id);
-            setShowWhisperNotification(false);
-          }}
-          onReply={() => {
-            markAsRead(latestWhisper.id);
-            setShowWhisperNotification(false);
-            navigate(`/chat/${latestWhisper.mentor_type}`);
-          }}
-        />
-      )}
       
       {/* Voice of the System Modal */}
       <VoiceOfSystemModal 
