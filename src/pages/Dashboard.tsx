@@ -24,7 +24,7 @@ const Dashboard = () => {
   const [currentStreak, setCurrentStreak] = useState(0);
   const [todayGoal, setTodayGoal] = useState<string | null>(null);
   const [displayName, setDisplayName] = useState<string | undefined>();
-  const [showWhisperNotification, setShowWhisperNotification] = useState(false);
+  
   const [hasQuestPending, setHasQuestPending] = useState(false);
   const [showVoiceModal, setShowVoiceModal] = useState(false);
   const [showIntakeNotification, setShowIntakeNotification] = useState(false);
