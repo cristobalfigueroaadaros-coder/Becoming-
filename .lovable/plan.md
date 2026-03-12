@@ -1,70 +1,54 @@
 
+I found the root cause and it explains why this keeps happening:
 
-# Becoming Guide — Floating Knowledge Hub
+1) The intake thread is being mounted twice on desktop (one visible, one hidden), so two flows run in parallel and race each other.  
+2) The first intake question can still be generated from a stale default state (`DISCOVER`) in resume/transition paths, while later questions use updated state (`GROW`), creating the mixed behavior you saw.
 
-## Overview
-Create a floating "Becoming Guide" button and a Sheet panel that serves as an in-app reference manual. The guide contains expandable sections explaining the system's philosophy, tools, and workflow with a dynamic "Start Here" section.
+### What I will implement
 
-## Architecture
+## 1) Stop duplicate intake flow execution
+**File:** `src/pages/Council.tsx`
 
-### New Files
-- `src/components/BecomingGuide.tsx` — Main component with floating button + Sheet panel
+- Render only one conversation component at runtime (not both desktop + mobile trees at once with CSS hiding).
+- Keep the same UI layout, but ensure only the active layout mounts `ConsoleThread`.
 
-### Modified Files
-- `src/components/layout/AppLayout.tsx` — Add `<BecomingGuide />` inside the layout
+This removes duplicate message inserts and race conditions.
 
-## Component Design
+## 2) Make intake phase state deterministic in all paths
+**File:** `src/pages/ConsoleThread.tsx`
 
-### Floating Button
-- Fixed position: `bottom-24 right-4` (above bottom nav)
-- Small pill button with `BookOpen` icon + "Guide" label
-- Uses `Sheet` component (side="right") to open the panel
+- Add a normalized resolver for phase state (`DISCOVER | GROW | BUILD`) from profile/local storage.
+- Store latest resolved state in a ref so async callbacks never use stale defaults.
+- Update intake entry points to always use explicit resolved state:
+  - `startIntakeFlow(...)`
+  - `transitionToIntake(...)`
+  - first question generation
+  - second/third intake question generation
+  - intake context labels sent to backend
+- Keep onboarding structure exactly the same.
+- Keep question sets exactly the same; only fix which set is chosen.
 
-### Sheet Panel Content
+## 3) Auto-heal already-broken saved threads
+**File:** `src/pages/ConsoleThread.tsx`
 
-**Header**: "Becoming Guide" title with a short welcome line
+- On restore, detect mismatch between:
+  - expected first question for resolved phase, and
+  - persisted `intake_q1` first question.
+- If mismatch is found, reset only the intake segment (not starter quest), then replay correct phase intro + correct Q1.
 
-**"Start Here" section** (always visible at top, not collapsible):
-- Dynamically checks user state via existing hooks (`useIntegratorProjects`)
-- No project → "Share an idea with the Council" → links to `/council`
-- Has project → "Continue building" → links to `/creation-lab`
-- Highlight box: "You do not need to understand everything before starting. Just share an idea with the Council and begin."
+This ensures users already stuck with wrong first question are fixed immediately without manual reset.
 
-**Accordion sections** (using existing `Accordion` component):
+## 4) Validate all three phases explicitly
+I’ll verify phase routing against exact first-three questions:
 
-1. **Foundation** (icon: `Compass`)
-   - "What is Becoming" — 4-5 lines from PDR
-   - "Message from the Founder" — Cristobal's message
-   - "Example Journey" — The flow steps
-   - "The Becoming Loop" — Insight → Build → Test → Learn cycle
+- **DISCOVER**: background / curiosity / 5-year meaningful work
+- **GROW**: idea/project / problem to solve / intended impact
+- **BUILD**: what building now / biggest challenge / 90-day progress
 
-2. **Creation Lab** (icon: `FlaskConical`)
-   - Sub-items: Project, Daily Goals, Design Thinking, Creative Space, Map, Purpose to Value
-   - Each with 3-4 line explanation from PDR
-
-3. **Becoming Path** (icon: `Sparkles`)
-   - Sub-items: Becoming Exercises, Pattern Discovery, Transmutation, Superpowers
-
-4. **Council** (icon: `Users`)
-   - Council explanation + Save Button explanation
-
-5. **Momentum** (icon: `TrendingUp`)
-   - Weekly Sprint, Accumulated Work, Capabilities
-
-### Implementation Details
-- Each section uses nested `Accordion` for sub-topics
-- Important callouts use a styled div with `bg-primary/10 border-l-2 border-primary` 
-- All text comes from the PDR content (hardcoded strings, no DB needed)
-- Sheet can be closed instantly via X or overlay click
-- No localStorage tracking needed — this is always available
-
-### Visual Examples Placeholder
-The PDR requests before/after screenshots for each major section. Since we don't have these images yet, each section will include a subtle placeholder note: "Visual examples coming soon" that can be replaced with actual images later.
-
-## Files Summary
-
-| File | Change |
-|------|--------|
-| `src/components/BecomingGuide.tsx` | New — floating button + Sheet with all guide content |
-| `src/components/layout/AppLayout.tsx` | Add `<BecomingGuide />` alongside `<BottomNavigation />` |
-
+### Technical details
+- No database schema changes.
+- No onboarding question text changes.
+- No flow restructuring (Starter Quest → Intake → Council remains intact).
+- Main code touchpoints:
+  - `src/pages/Council.tsx`
+  - `src/pages/ConsoleThread.tsx`
