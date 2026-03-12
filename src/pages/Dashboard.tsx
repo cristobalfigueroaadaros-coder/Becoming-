@@ -29,12 +29,8 @@ const Dashboard = () => {
   const [showVoiceModal, setShowVoiceModal] = useState(false);
   const [showIntakeNotification, setShowIntakeNotification] = useState(false);
 
-  const {
-    unreadWhisper,
-    checkAndGenerateWhisper,
-    markAsRead,
-    latestWhisper,
-  } = useMentorWhisper();
+
+
 
   const { generateOutreach } = useMentorOutreach();
 
