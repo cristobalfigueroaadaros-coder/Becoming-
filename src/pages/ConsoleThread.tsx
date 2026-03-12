@@ -28,6 +28,52 @@ const mentorConfig: Record<string, { name: string; color: string; icon: string }
   alignment_mentor: { name: "Alignment Mentor", color: "bg-emerald-500", icon: "🧭" },
   oracle_mother: { name: "Oracle Mother", color: "bg-violet-500", icon: "🌙" },
   future_self: { name: "Future Self", color: "bg-primary", icon: "✨" },
+};
+
+// Extract bold keywords from mentor perspectives (text wrapped in **)
+const extractBoldKeywords = (text: string): string[] => {
+  const matches = text.match(/\*\*([^*]+)\*\*/g);
+  if (!matches) return [];
+  return matches.map(m => m.replace(/\*\*/g, '').trim().toLowerCase()).filter(k => k.length > 2 && k.length < 50);
+};
+
+// Save keywords from council perspectives to user_keywords table (non-blocking)
+const saveCouncilKeywords = async (perspectives: Record<string, string>, userId: string) => {
+  try {
+    const allKeywords = new Set<string>();
+    for (const text of Object.values(perspectives)) {
+      for (const kw of extractBoldKeywords(text as string)) {
+        allKeywords.add(kw);
+      }
+    }
+    if (allKeywords.size === 0) return;
+
+    for (const keyword of allKeywords) {
+      const { data: existing } = await supabase
+        .from("user_keywords")
+        .select("id, frequency_count")
+        .eq("user_id", userId)
+        .eq("keyword", keyword)
+        .maybeSingle();
+
+      if (existing) {
+        await supabase
+          .from("user_keywords")
+          .update({ frequency_count: (existing.frequency_count || 1) + 1, last_seen_at: new Date().toISOString() })
+          .eq("id", existing.id);
+      } else {
+        await supabase.from("user_keywords").insert({
+          user_id: userId,
+          keyword,
+          keyword_type: "concept",
+          source: "council",
+        });
+      }
+    }
+  } catch (err) {
+    console.error("Error saving council keywords (non-fatal):", err);
+  }
+};
   perspective_mentor: { name: "Perspective Mentor", color: "bg-sky-500", icon: "🗺️" },
   challenger_mentor: { name: "Challenger Mentor", color: "bg-red-600", icon: "⚔️" },
   design_thinking_mentor: { name: "Design Thinking Mentor", color: "bg-lime-500", icon: "🧪" },
