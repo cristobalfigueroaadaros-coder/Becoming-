@@ -28,6 +28,12 @@ const mentorConfig: Record<string, { name: string; color: string; icon: string }
   alignment_mentor: { name: "Alignment Mentor", color: "bg-emerald-500", icon: "🧭" },
   oracle_mother: { name: "Oracle Mother", color: "bg-violet-500", icon: "🌙" },
   future_self: { name: "Future Self", color: "bg-primary", icon: "✨" },
+  perspective_mentor: { name: "Perspective Mentor", color: "bg-sky-500", icon: "🗺️" },
+  challenger_mentor: { name: "Challenger Mentor", color: "bg-red-600", icon: "⚔️" },
+  design_thinking_mentor: { name: "Design Thinking Mentor", color: "bg-lime-500", icon: "🧪" },
+  problem_mentor: { name: "Problem Mentor", color: "bg-slate-600", icon: "🔍" },
+  inner_clarity_mentor: { name: "Inner Clarity Mentor", color: "bg-indigo-600", icon: "🪞" },
+  release_mentor: { name: "Release Mentor", color: "bg-teal-600", icon: "🌊" },
 };
 
 // Extract bold keywords from mentor perspectives (text wrapped in **)
@@ -73,13 +79,6 @@ const saveCouncilKeywords = async (perspectives: Record<string, string>, userId:
   } catch (err) {
     console.error("Error saving council keywords (non-fatal):", err);
   }
-};
-  perspective_mentor: { name: "Perspective Mentor", color: "bg-sky-500", icon: "🗺️" },
-  challenger_mentor: { name: "Challenger Mentor", color: "bg-red-600", icon: "⚔️" },
-  design_thinking_mentor: { name: "Design Thinking Mentor", color: "bg-lime-500", icon: "🧪" },
-  problem_mentor: { name: "Problem Mentor", color: "bg-slate-600", icon: "🔍" },
-  inner_clarity_mentor: { name: "Inner Clarity Mentor", color: "bg-indigo-600", icon: "🪞" },
-  release_mentor: { name: "Release Mentor", color: "bg-teal-600", icon: "🌊" },
 };
 
 type Phase =
