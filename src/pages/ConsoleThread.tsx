@@ -36,6 +36,51 @@ const mentorConfig: Record<string, { name: string; color: string; icon: string }
   release_mentor: { name: "Release Mentor", color: "bg-teal-600", icon: "🌊" },
 };
 
+// Extract bold keywords from mentor perspectives (text wrapped in **)
+const extractBoldKeywords = (text: string): string[] => {
+  const matches = text.match(/\*\*([^*]+)\*\*/g);
+  if (!matches) return [];
+  return matches.map(m => m.replace(/\*\*/g, '').trim().toLowerCase()).filter(k => k.length > 2 && k.length < 50);
+};
+
+// Save keywords from council perspectives to user_keywords table (non-blocking)
+const saveCouncilKeywords = async (perspectives: Record<string, string>, userId: string) => {
+  try {
+    const allKeywords = new Set<string>();
+    for (const text of Object.values(perspectives)) {
+      for (const kw of extractBoldKeywords(text as string)) {
+        allKeywords.add(kw);
+      }
+    }
+    if (allKeywords.size === 0) return;
+
+    for (const keyword of allKeywords) {
+      const { data: existing } = await supabase
+        .from("user_keywords")
+        .select("id, frequency_count")
+        .eq("user_id", userId)
+        .eq("keyword", keyword)
+        .maybeSingle();
+
+      if (existing) {
+        await supabase
+          .from("user_keywords")
+          .update({ frequency_count: (existing.frequency_count || 1) + 1, last_seen_at: new Date().toISOString() })
+          .eq("id", existing.id);
+      } else {
+        await supabase.from("user_keywords").insert({
+          user_id: userId,
+          keyword,
+          keyword_type: "concept",
+          source: "council",
+        });
+      }
+    }
+  } catch (err) {
+    console.error("Error saving council keywords (non-fatal):", err);
+  }
+};
+
 type Phase =
   | "starter_q1" | "starter_q2" | "starter_q3" | "starter_processing" | "starter_win" | "starter_return"
   | "intake_q1" | "intake_q2" | "intake_q3"
@@ -702,6 +747,11 @@ const ConsoleThread = ({ embedded = false, onProjectNameChange }: ConsoleThreadP
         addSystemMessage(perspective as string, mentorType, perspPhase, "perspective");
       }
 
+      // Save bold keywords from perspectives to user_keywords (non-blocking)
+      supabase.auth.getUser().then(({ data: { user } }) => {
+        if (user) saveCouncilKeywords(perspectives, user.id);
+      });
+
       const banterLines = data.banterLines || [];
       if (banterLines.length > 0) {
         const banterPhase: Phase = "banter";
@@ -766,6 +816,11 @@ const ConsoleThread = ({ embedded = false, onProjectNameChange }: ConsoleThreadP
           await showTyping(mentorType, 5000 + Math.random() * 12000);
           addSystemMessage(perspective as string, mentorType, "user_reply", "perspective");
         }
+
+        // Save bold keywords from 2nd round perspectives (non-blocking)
+        supabase.auth.getUser().then(({ data: { user } }) => {
+          if (user) saveCouncilKeywords(perspectives, user.id);
+        });
 
         if (data.banterLines?.length > 0) {
           for (const line of data.banterLines) {

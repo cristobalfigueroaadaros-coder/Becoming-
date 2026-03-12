@@ -3,8 +3,6 @@ import { useNavigate } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
 import { DailyRitualModal } from "@/components/DailyRitualModal";
-import { MentorWhisperNotification } from "@/components/MentorWhisperNotification";
-import { useMentorWhisper } from "@/hooks/useMentorWhisper";
 import { useMentorOutreach } from "@/hooks/useMentorOutreach";
 import { VoiceOfSystemModal } from "@/components/voice/VoiceOfSystemModal";
 import IntakeNotification from "@/components/console-thread/IntakeNotification";
@@ -26,17 +24,13 @@ const Dashboard = () => {
   const [currentStreak, setCurrentStreak] = useState(0);
   const [todayGoal, setTodayGoal] = useState<string | null>(null);
   const [displayName, setDisplayName] = useState<string | undefined>();
-  const [showWhisperNotification, setShowWhisperNotification] = useState(false);
+  
   const [hasQuestPending, setHasQuestPending] = useState(false);
   const [showVoiceModal, setShowVoiceModal] = useState(false);
   const [showIntakeNotification, setShowIntakeNotification] = useState(false);
 
-  const {
-    unreadWhisper,
-    checkAndGenerateWhisper,
-    markAsRead,
-    latestWhisper,
-  } = useMentorWhisper();
+
+
 
   const { generateOutreach } = useMentorOutreach();
 
@@ -46,17 +40,14 @@ const Dashboard = () => {
     checkFirstTimeUser();
     checkReengagementNotifications();
 
-    const whisperTimer = setTimeout(() => {
-      checkAndGenerateWhisper();
-    }, 2000);
 
     const outreachTimer = setTimeout(() => {
       generateOutreach().catch(() => {});
     }, 3000);
 
     return () => {
-      clearTimeout(whisperTimer);
-      clearTimeout(outreachTimer);
+
+
     };
   }, []);
 
@@ -160,11 +151,6 @@ const Dashboard = () => {
     }
   };
 
-  useEffect(() => {
-    if (unreadWhisper && !showWhisperNotification) {
-      setShowWhisperNotification(true);
-    }
-  }, [unreadWhisper]);
 
   const loadDashboardData = async () => {
     try {
@@ -292,21 +278,6 @@ const Dashboard = () => {
           setRitualModalOpen(false);
         }}
       />
-      {/* Whisper Notification */}
-      {showWhisperNotification && latestWhisper && (
-        <MentorWhisperNotification
-          whisper={latestWhisper}
-          onDismiss={() => {
-            markAsRead(latestWhisper.id);
-            setShowWhisperNotification(false);
-          }}
-          onReply={() => {
-            markAsRead(latestWhisper.id);
-            setShowWhisperNotification(false);
-            navigate(`/chat/${latestWhisper.mentor_type}`);
-          }}
-        />
-      )}
       
       {/* Voice of the System Modal */}
       <VoiceOfSystemModal 

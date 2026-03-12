@@ -1,38 +1,70 @@
 
 
-## Two Fixes: Disable Future Self Whisper Pop-up + Fix Keywords in Creative Space
+# Becoming Guide — Floating Knowledge Hub
 
-### Issue 1: Future Self Whisper Notification Appearing on Dashboard
+## Overview
+Create a floating "Becoming Guide" button and a Sheet panel that serves as an in-app reference manual. The guide contains expandable sections explaining the system's philosophy, tools, and workflow with a dynamic "Start Here" section.
 
-The pink "Private Whisper" notification appears every time the user visits the Dashboard because `useMentorWhisper` loads the latest unread whisper and the Dashboard automatically shows it. When the user dismisses it, it marks as read, but the next generated whisper will pop up again.
+## Architecture
 
-**Fix**: Remove the whisper notification from the Dashboard entirely. The user has asked for this popup to not appear. The Future Self guidance channel should remain through the chat, not a floating popup on the home screen.
+### New Files
+- `src/components/BecomingGuide.tsx` — Main component with floating button + Sheet panel
 
-**File: `src/pages/Dashboard.tsx`**
-- Remove the `MentorWhisperNotification` import
-- Remove `showWhisperNotification` state
-- Remove the `useEffect` that triggers `showWhisperNotification`
-- Remove the whisper notification JSX block (lines 295-308)
-- Keep `useMentorWhisper` hook if other parts use it, or remove if only used for the popup
+### Modified Files
+- `src/components/layout/AppLayout.tsx` — Add `<BecomingGuide />` inside the layout
 
-### Issue 2: Keywords Not Showing in Creative Space
+## Component Design
 
-The network request to `user_keywords` returns an empty array `[]`. The user genuinely has zero keywords in the database. Keywords are only inserted in two places:
-1. `Chat.tsx` — extracted from mentor chat AI responses (bold keywords)
-2. `KeywordHighlighter.tsx` — manual text selection by user
+### Floating Button
+- Fixed position: `bottom-24 right-4` (above bottom nav)
+- Small pill button with `BookOpen` icon + "Guide" label
+- Uses `Sheet` component (side="right") to open the panel
 
-The council meeting flow (`ConsoleThread.tsx`) extracts `extractedTags` but **never writes them to `user_keywords`**. So users who go through the council flow and don't do separate mentor chats will never have keywords.
+### Sheet Panel Content
 
-**Fix**: After the council meeting completes in `ConsoleThread.tsx`, extract the `extractedTags` and bold keywords from mentor perspectives, then insert them into `user_keywords`. This bridges the gap between council meetings and the Creative Space keyword library.
+**Header**: "Becoming Guide" title with a short welcome line
 
-**File: `src/pages/ConsoleThread.tsx`**
-- In the council meeting response handler (where `councilData` is received), extract:
-  - `extractedTags` from the response
-  - Bold keywords from mentor perspectives using `extractKeywordsFromText` 
-- Insert unique keywords into `user_keywords` table with source `"council"`
-- This is a non-blocking background operation (no UI changes needed)
+**"Start Here" section** (always visible at top, not collapsible):
+- Dynamically checks user state via existing hooks (`useIntegratorProjects`)
+- No project → "Share an idea with the Council" → links to `/council`
+- Has project → "Continue building" → links to `/creation-lab`
+- Highlight box: "You do not need to understand everything before starting. Just share an idea with the Council and begin."
 
-### Files to Edit
-- `src/pages/Dashboard.tsx` — Remove whisper notification popup
-- `src/pages/ConsoleThread.tsx` — Add keyword extraction from council meeting responses into `user_keywords`
+**Accordion sections** (using existing `Accordion` component):
+
+1. **Foundation** (icon: `Compass`)
+   - "What is Becoming" — 4-5 lines from PDR
+   - "Message from the Founder" — Cristobal's message
+   - "Example Journey" — The flow steps
+   - "The Becoming Loop" — Insight → Build → Test → Learn cycle
+
+2. **Creation Lab** (icon: `FlaskConical`)
+   - Sub-items: Project, Daily Goals, Design Thinking, Creative Space, Map, Purpose to Value
+   - Each with 3-4 line explanation from PDR
+
+3. **Becoming Path** (icon: `Sparkles`)
+   - Sub-items: Becoming Exercises, Pattern Discovery, Transmutation, Superpowers
+
+4. **Council** (icon: `Users`)
+   - Council explanation + Save Button explanation
+
+5. **Momentum** (icon: `TrendingUp`)
+   - Weekly Sprint, Accumulated Work, Capabilities
+
+### Implementation Details
+- Each section uses nested `Accordion` for sub-topics
+- Important callouts use a styled div with `bg-primary/10 border-l-2 border-primary` 
+- All text comes from the PDR content (hardcoded strings, no DB needed)
+- Sheet can be closed instantly via X or overlay click
+- No localStorage tracking needed — this is always available
+
+### Visual Examples Placeholder
+The PDR requests before/after screenshots for each major section. Since we don't have these images yet, each section will include a subtle placeholder note: "Visual examples coming soon" that can be replaced with actual images later.
+
+## Files Summary
+
+| File | Change |
+|------|--------|
+| `src/components/BecomingGuide.tsx` | New — floating button + Sheet with all guide content |
+| `src/components/layout/AppLayout.tsx` | Add `<BecomingGuide />` alongside `<BottomNavigation />` |
 
