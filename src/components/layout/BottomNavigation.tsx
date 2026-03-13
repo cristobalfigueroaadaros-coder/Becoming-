@@ -1,5 +1,5 @@
 import { useLocation, useNavigate } from "react-router-dom";
-import { LayoutGrid, Users, FlaskConical, User, Globe } from "lucide-react";
+import { LayoutGrid, Users, FlaskConical, Globe, Compass } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { useProblemClarificationStatus } from "@/hooks/useProblemClarificationStatus";
 import { useEffect, useState } from "react";
@@ -20,6 +20,12 @@ const navItems: NavItem[] = [
     matchPaths: ["/dashboard"],
   },
   {
+    icon: Compass,
+    label: "Atlas",
+    path: "/atlas",
+    matchPaths: ["/atlas"],
+  },
+  {
     icon: Globe,
     label: "Creators",
     path: "/creators",
@@ -33,15 +39,9 @@ const navItems: NavItem[] = [
   },
   {
     icon: FlaskConical,
-    label: "Creation Lab",
+    label: "Projects",
     path: "/creation-lab",
     matchPaths: ["/creation-lab", "/future-self"],
-  },
-  {
-    icon: User,
-    label: "Profile",
-    path: "/profile",
-    matchPaths: ["/profile"],
   },
 ];
 

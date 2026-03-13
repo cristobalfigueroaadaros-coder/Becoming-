@@ -1,202 +1,70 @@
 
 
-# Atlas Core Architecture + Navigation Integration
+# Becoming Guide — Floating Knowledge Hub
 
-## Summary
+## Overview
+Create a floating "Becoming Guide" button and a Sheet panel that serves as an in-app reference manual. The guide contains expandable sections explaining the system's philosophy, tools, and workflow with a dynamic "Start Here" section.
 
-Introduce the Atlas as a new core feature: a visual identity map with 13 discovery clusters organized into 4 meta domains. Add it to bottom navigation, create the database schema, seed initial data, and build the Atlas screen with cluster/dot interaction.
+## Architecture
 
-## Database Schema
+### New Files
+- `src/components/BecomingGuide.tsx` — Main component with floating button + Sheet panel
 
-Create 5 tables via migration:
+### Modified Files
+- `src/components/layout/AppLayout.tsx` — Add `<BecomingGuide />` inside the layout
 
-```sql
--- Meta domains (4 structural categories)
-CREATE TABLE public.atlas_meta_domains (
-  id uuid PRIMARY KEY DEFAULT gen_random_uuid(),
-  name text NOT NULL,
-  description text,
-  sort_order int NOT NULL DEFAULT 0,
-  created_at timestamptz DEFAULT now()
-);
+## Component Design
 
--- 13 discovery clusters
-CREATE TABLE public.atlas_clusters (
-  id uuid PRIMARY KEY DEFAULT gen_random_uuid(),
-  name text NOT NULL,
-  slug text NOT NULL UNIQUE,
-  meta_domain_id uuid REFERENCES public.atlas_meta_domains(id),
-  description text,
-  state text NOT NULL DEFAULT 'available', -- locked, available, activated, growing, rich
-  sort_order int NOT NULL DEFAULT 0,
-  created_at timestamptz DEFAULT now()
-);
+### Floating Button
+- Fixed position: `bottom-24 right-4` (above bottom nav)
+- Small pill button with `BookOpen` icon + "Guide" label
+- Uses `Sheet` component (side="right") to open the panel
 
--- Dots (discoveries/insights per user per cluster)
-CREATE TABLE public.atlas_dots (
-  id uuid PRIMARY KEY DEFAULT gen_random_uuid(),
-  user_id uuid NOT NULL,
-  cluster_id uuid REFERENCES public.atlas_clusters(id) ON DELETE CASCADE,
-  title text NOT NULL,
-  short_description text,
-  confidence_score float,
-  dot_type text,
-  created_at timestamptz DEFAULT now()
-);
+### Sheet Panel Content
 
--- Future-ready: project nodes
-CREATE TABLE public.atlas_project_nodes (
-  id uuid PRIMARY KEY DEFAULT gen_random_uuid(),
-  user_id uuid NOT NULL,
-  title text NOT NULL,
-  description text,
-  created_at timestamptz DEFAULT now()
-);
+**Header**: "Becoming Guide" title with a short welcome line
 
--- Future-ready: dot-project connections
-CREATE TABLE public.atlas_dot_project_connections (
-  id uuid PRIMARY KEY DEFAULT gen_random_uuid(),
-  dot_id uuid REFERENCES public.atlas_dots(id) ON DELETE CASCADE,
-  project_id uuid REFERENCES public.atlas_project_nodes(id) ON DELETE CASCADE,
-  created_at timestamptz DEFAULT now()
-);
+**"Start Here" section** (always visible at top, not collapsible):
+- Dynamically checks user state via existing hooks (`useIntegratorProjects`)
+- No project → "Share an idea with the Council" → links to `/council`
+- Has project → "Continue building" → links to `/creation-lab`
+- Highlight box: "You do not need to understand everything before starting. Just share an idea with the Council and begin."
 
--- Future-ready: cluster-project connections
-CREATE TABLE public.atlas_cluster_project_connections (
-  id uuid PRIMARY KEY DEFAULT gen_random_uuid(),
-  cluster_id uuid REFERENCES public.atlas_clusters(id) ON DELETE CASCADE,
-  project_id uuid REFERENCES public.atlas_project_nodes(id) ON DELETE CASCADE,
-  created_at timestamptz DEFAULT now()
-);
+**Accordion sections** (using existing `Accordion` component):
 
--- RLS
-ALTER TABLE public.atlas_meta_domains ENABLE ROW LEVEL SECURITY;
-ALTER TABLE public.atlas_clusters ENABLE ROW LEVEL SECURITY;
-ALTER TABLE public.atlas_dots ENABLE ROW LEVEL SECURITY;
-ALTER TABLE public.atlas_project_nodes ENABLE ROW LEVEL SECURITY;
-ALTER TABLE public.atlas_dot_project_connections ENABLE ROW LEVEL SECURITY;
-ALTER TABLE public.atlas_cluster_project_connections ENABLE ROW LEVEL SECURITY;
+1. **Foundation** (icon: `Compass`)
+   - "What is Becoming" — 4-5 lines from PDR
+   - "Message from the Founder" — Cristobal's message
+   - "Example Journey" — The flow steps
+   - "The Becoming Loop" — Insight → Build → Test → Learn cycle
 
--- Meta domains & clusters are public read (reference data)
-CREATE POLICY "Anyone can read meta domains" ON public.atlas_meta_domains FOR SELECT USING (true);
-CREATE POLICY "Anyone can read clusters" ON public.atlas_clusters FOR SELECT USING (true);
+2. **Creation Lab** (icon: `FlaskConical`)
+   - Sub-items: Project, Daily Goals, Design Thinking, Creative Space, Map, Purpose to Value
+   - Each with 3-4 line explanation from PDR
 
--- Dots: users see only their own
-CREATE POLICY "Users read own dots" ON public.atlas_dots FOR SELECT TO authenticated USING (user_id = auth.uid());
-CREATE POLICY "Users insert own dots" ON public.atlas_dots FOR INSERT TO authenticated WITH CHECK (user_id = auth.uid());
-CREATE POLICY "Users update own dots" ON public.atlas_dots FOR UPDATE TO authenticated USING (user_id = auth.uid());
-CREATE POLICY "Users delete own dots" ON public.atlas_dots FOR DELETE TO authenticated USING (user_id = auth.uid());
+3. **Becoming Path** (icon: `Sparkles`)
+   - Sub-items: Becoming Exercises, Pattern Discovery, Transmutation, Superpowers
 
--- Project nodes: users see only their own
-CREATE POLICY "Users read own project nodes" ON public.atlas_project_nodes FOR SELECT TO authenticated USING (user_id = auth.uid());
-CREATE POLICY "Users insert own project nodes" ON public.atlas_project_nodes FOR INSERT TO authenticated WITH CHECK (user_id = auth.uid());
+4. **Council** (icon: `Users`)
+   - Council explanation + Save Button explanation
 
--- Connections: users manage via dot/project ownership (simplified)
-CREATE POLICY "Users read own dot-project connections" ON public.atlas_dot_project_connections FOR SELECT TO authenticated
-  USING (EXISTS (SELECT 1 FROM public.atlas_dots WHERE id = dot_id AND user_id = auth.uid()));
-CREATE POLICY "Users insert own dot-project connections" ON public.atlas_dot_project_connections FOR INSERT TO authenticated
-  WITH CHECK (EXISTS (SELECT 1 FROM public.atlas_dots WHERE id = dot_id AND user_id = auth.uid()));
+5. **Momentum** (icon: `TrendingUp`)
+   - Weekly Sprint, Accumulated Work, Capabilities
 
-CREATE POLICY "Users read own cluster-project connections" ON public.atlas_cluster_project_connections FOR SELECT TO authenticated
-  USING (EXISTS (SELECT 1 FROM public.atlas_project_nodes WHERE id = project_id AND user_id = auth.uid()));
-CREATE POLICY "Users insert own cluster-project connections" ON public.atlas_cluster_project_connections FOR INSERT TO authenticated
-  WITH CHECK (EXISTS (SELECT 1 FROM public.atlas_project_nodes WHERE id = project_id AND user_id = auth.uid()));
-```
+### Implementation Details
+- Each section uses nested `Accordion` for sub-topics
+- Important callouts use a styled div with `bg-primary/10 border-l-2 border-primary` 
+- All text comes from the PDR content (hardcoded strings, no DB needed)
+- Sheet can be closed instantly via X or overlay click
+- No localStorage tracking needed — this is always available
 
-## Seed Data (via insert tool)
+### Visual Examples Placeholder
+The PDR requests before/after screenshots for each major section. Since we don't have these images yet, each section will include a subtle placeholder note: "Visual examples coming soon" that can be replaced with actual images later.
 
-Insert 4 meta domains: Person, Process, Product, Environment.
+## Files Summary
 
-Insert 13 clusters mapped to domains:
-- **Person**: Life Events, Passions, Values, Natural Talents, Childhood Signals
-- **Process**: Skills, Aha Moments, Experiments
-- **Product**: Vision for a Better World, Ideal Life
-- **Environment**: Personal Frustrations, Inspirations, External Reflections
-
-Insert sample dots (7-8 dots across several clusters) for visual testing.
-
-## Navigation Update
-
-**File: `src/components/layout/BottomNavigation.tsx`**
-
-Update `navItems` to 5 tabs in new order:
-1. Home → `/dashboard` (LayoutGrid icon)
-2. Atlas → `/atlas` (Compass icon from lucide)
-3. Creators → `/creators` (Globe icon)
-4. Chats → `/council` (Users icon)
-5. Projects → `/creation-lab` (FlaskConical icon, label changed from "Creation Lab" to "Projects")
-
-Remove Profile from bottom nav (accessible from Dashboard header or settings).
-
-## New Files
-
-### `src/pages/AtlasPage.tsx`
-Main Atlas screen. Fetches clusters + user dots from database. Renders cluster map as an organic visual layout (not a grid/spreadsheet). Each cluster is a visual node showing name, dot count, and state-based styling.
-
-### `src/components/atlas/AtlasClusterNode.tsx`
-Visual cluster component. Props: cluster data + dot count. States:
-- **Locked**: dimmed, lock icon
-- **Available**: subtle glow, tap to explore
-- **Activated**: small dots visible, gentle pulse
-- **Growing**: more dots, brighter glow
-- **Rich**: full glow, particle effect
-
-Tap opens cluster detail panel.
-
-### `src/components/atlas/AtlasClusterDetail.tsx`
-Slide-up panel (using Sheet/Drawer). Shows:
-- Cluster title + description
-- List of dots collected
-- Empty state: "This area will grow as you explore yourself."
-- Placeholder sections for future quests/insights
-
-### `src/components/atlas/AtlasDotCard.tsx`
-Individual dot display. Shows title, short description, timestamp. Tap opens dot detail modal.
-
-### `src/components/atlas/AtlasDotDetailModal.tsx`
-Dialog showing full dot info: title, cluster source, explanation, created date.
-
-### `src/components/atlas/index.ts`
-Barrel exports.
-
-### `src/hooks/useAtlas.tsx`
-Custom hook. Fetches:
-- All clusters (with meta domain join)
-- User's dots (grouped by cluster_id)
-- Computes cluster states based on dot count (0=available, 1=activated, 2-3=growing, 4+=rich)
-- Returns clusters with computed state + dot counts
-
-## Route Addition
-
-**File: `src/App.tsx`**
-
-Add route:
-```tsx
-<Route path="/atlas" element={session ? <AppLayout><AtlasPage /></AppLayout> : <Navigate to="/" />} />
-```
-
-## Visual Design Direction
-
-The Atlas screen layout:
-- Dark background with subtle radial gradient
-- Clusters arranged in an organic scattered layout (not a rigid grid)
-- 4 meta-domain color families: Person (violet), Process (blue), Product (emerald), Environment (amber)
-- Clusters use soft glowing circles/cards with the domain color
-- Dots rendered as small luminous circles around their parent cluster
-- Framer Motion animations for entrance and state transitions
-- Empty clusters show a soft dashed outline with muted text
-
-## Files to Create/Edit
-
-| File | Action |
+| File | Change |
 |------|--------|
-| `src/pages/AtlasPage.tsx` | Create |
-| `src/components/atlas/AtlasClusterNode.tsx` | Create |
-| `src/components/atlas/AtlasClusterDetail.tsx` | Create |
-| `src/components/atlas/AtlasDotCard.tsx` | Create |
-| `src/components/atlas/AtlasDotDetailModal.tsx` | Create |
-| `src/components/atlas/index.ts` | Create |
-| `src/hooks/useAtlas.tsx` | Create |
-| `src/components/layout/BottomNavigation.tsx` | Edit (new nav structure) |
-| `src/App.tsx` | Edit (add Atlas route) |
+| `src/components/BecomingGuide.tsx` | New — floating button + Sheet with all guide content |
+| `src/components/layout/AppLayout.tsx` | Add `<BecomingGuide />` alongside `<BottomNavigation />` |
 

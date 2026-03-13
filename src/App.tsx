@@ -66,6 +66,7 @@ import MomentumDashboard from "./pages/MomentumDashboard";
 import CreatorsWall from "./pages/CreatorsWall";
 import CreatorProfile from "./pages/CreatorProfile";
 import LifeAssessment from "./pages/LifeAssessment";
+import AtlasPage from "./pages/AtlasPage";
 
 
 const queryClient = new QueryClient();
@@ -258,6 +259,10 @@ const App = () => {
             <Route
               path="/dashboard"
               element={session ? <AppLayout><Dashboard /></AppLayout> : <Navigate to="/" />}
+            />
+            <Route
+              path="/atlas"
+              element={session ? <AppLayout><AtlasPage /></AppLayout> : <Navigate to="/" />}
             />
             <Route
               path="/creators"
