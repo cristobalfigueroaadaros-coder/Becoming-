@@ -151,6 +151,208 @@ export type Database = {
           },
         ]
       }
+      atlas_cluster_project_connections: {
+        Row: {
+          cluster_id: string | null
+          created_at: string | null
+          id: string
+          project_id: string | null
+        }
+        Insert: {
+          cluster_id?: string | null
+          created_at?: string | null
+          id?: string
+          project_id?: string | null
+        }
+        Update: {
+          cluster_id?: string | null
+          created_at?: string | null
+          id?: string
+          project_id?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "atlas_cluster_project_connections_cluster_id_fkey"
+            columns: ["cluster_id"]
+            isOneToOne: false
+            referencedRelation: "atlas_clusters"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "atlas_cluster_project_connections_project_id_fkey"
+            columns: ["project_id"]
+            isOneToOne: false
+            referencedRelation: "atlas_project_nodes"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      atlas_clusters: {
+        Row: {
+          created_at: string | null
+          description: string | null
+          id: string
+          meta_domain_id: string | null
+          name: string
+          slug: string
+          sort_order: number
+          state: string
+        }
+        Insert: {
+          created_at?: string | null
+          description?: string | null
+          id?: string
+          meta_domain_id?: string | null
+          name: string
+          slug: string
+          sort_order?: number
+          state?: string
+        }
+        Update: {
+          created_at?: string | null
+          description?: string | null
+          id?: string
+          meta_domain_id?: string | null
+          name?: string
+          slug?: string
+          sort_order?: number
+          state?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "atlas_clusters_meta_domain_id_fkey"
+            columns: ["meta_domain_id"]
+            isOneToOne: false
+            referencedRelation: "atlas_meta_domains"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      atlas_dot_project_connections: {
+        Row: {
+          created_at: string | null
+          dot_id: string | null
+          id: string
+          project_id: string | null
+        }
+        Insert: {
+          created_at?: string | null
+          dot_id?: string | null
+          id?: string
+          project_id?: string | null
+        }
+        Update: {
+          created_at?: string | null
+          dot_id?: string | null
+          id?: string
+          project_id?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "atlas_dot_project_connections_dot_id_fkey"
+            columns: ["dot_id"]
+            isOneToOne: false
+            referencedRelation: "atlas_dots"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "atlas_dot_project_connections_project_id_fkey"
+            columns: ["project_id"]
+            isOneToOne: false
+            referencedRelation: "atlas_project_nodes"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      atlas_dots: {
+        Row: {
+          cluster_id: string | null
+          confidence_score: number | null
+          created_at: string | null
+          dot_type: string | null
+          id: string
+          short_description: string | null
+          title: string
+          user_id: string
+        }
+        Insert: {
+          cluster_id?: string | null
+          confidence_score?: number | null
+          created_at?: string | null
+          dot_type?: string | null
+          id?: string
+          short_description?: string | null
+          title: string
+          user_id: string
+        }
+        Update: {
+          cluster_id?: string | null
+          confidence_score?: number | null
+          created_at?: string | null
+          dot_type?: string | null
+          id?: string
+          short_description?: string | null
+          title?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "atlas_dots_cluster_id_fkey"
+            columns: ["cluster_id"]
+            isOneToOne: false
+            referencedRelation: "atlas_clusters"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      atlas_meta_domains: {
+        Row: {
+          created_at: string | null
+          description: string | null
+          id: string
+          name: string
+          sort_order: number
+        }
+        Insert: {
+          created_at?: string | null
+          description?: string | null
+          id?: string
+          name: string
+          sort_order?: number
+        }
+        Update: {
+          created_at?: string | null
+          description?: string | null
+          id?: string
+          name?: string
+          sort_order?: number
+        }
+        Relationships: []
+      }
+      atlas_project_nodes: {
+        Row: {
+          created_at: string | null
+          description: string | null
+          id: string
+          title: string
+          user_id: string
+        }
+        Insert: {
+          created_at?: string | null
+          description?: string | null
+          id?: string
+          title: string
+          user_id: string
+        }
+        Update: {
+          created_at?: string | null
+          description?: string | null
+          id?: string
+          title?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
       becoming_discoveries: {
         Row: {
           created_at: string | null
