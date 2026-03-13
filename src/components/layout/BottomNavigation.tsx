@@ -1,5 +1,5 @@
 import { useLocation, useNavigate } from "react-router-dom";
-import { LayoutGrid, Users, FlaskConical, User, Globe } from "lucide-react";
+import { LayoutGrid, Users, FlaskConical, Globe, Compass } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { useProblemClarificationStatus } from "@/hooks/useProblemClarificationStatus";
 import { useEffect, useState } from "react";
