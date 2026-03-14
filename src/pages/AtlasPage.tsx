@@ -24,6 +24,7 @@ const CLUSTER_POSITIONS: { x: number; y: number }[] = [
 ];
 
 const AtlasPage = () => {
+  const navigate = useNavigate();
   const { clusters, domains, isLoading } = useAtlas();
   const [selectedCluster, setSelectedCluster] = useState<ClusterWithState | null>(null);
 
