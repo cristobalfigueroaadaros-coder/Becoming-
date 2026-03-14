@@ -1,6 +1,8 @@
 import { useState } from "react";
+import { useNavigate } from "react-router-dom";
 import { Sheet, SheetContent, SheetHeader, SheetTitle, SheetDescription } from "@/components/ui/sheet";
-import { Sparkles } from "lucide-react";
+import { Button } from "@/components/ui/button";
+import { Sparkles, Compass } from "lucide-react";
 import type { ClusterWithState, AtlasDot } from "@/hooks/useAtlas";
 import { DOMAIN_COLORS } from "@/hooks/useAtlas";
 import { AtlasDotCard } from "./AtlasDotCard";
