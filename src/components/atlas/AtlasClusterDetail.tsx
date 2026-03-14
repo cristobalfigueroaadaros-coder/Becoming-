@@ -15,6 +15,7 @@ interface AtlasClusterDetailProps {
 }
 
 export const AtlasClusterDetail = ({ cluster, open, onOpenChange }: AtlasClusterDetailProps) => {
+  const navigate = useNavigate();
   const [selectedDot, setSelectedDot] = useState<AtlasDot | null>(null);
 
   if (!cluster) return null;
