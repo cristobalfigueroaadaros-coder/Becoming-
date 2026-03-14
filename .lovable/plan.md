@@ -1,118 +1,70 @@
 
 
-# Atlas Quest Discovery System
+# Becoming Guide — Floating Knowledge Hub
 
 ## Overview
+Create a floating "Becoming Guide" button and a Sheet panel that serves as an in-app reference manual. The guide contains expandable sections explaining the system's philosophy, tools, and workflow with a dynamic "Start Here" section.
 
-Build a quest engine that generates Atlas Dots through 4-interaction gamified quests. Each quest targets a cluster, uses varied interaction mechanics, and culminates in a Winning Card celebration that inserts a new dot into the Atlas.
+## Architecture
 
-## Database
+### New Files
+- `src/components/BecomingGuide.tsx` — Main component with floating button + Sheet panel
 
-**New table: `atlas_quests`** — tracks quest completion per user
+### Modified Files
+- `src/components/layout/AppLayout.tsx` — Add `<BecomingGuide />` inside the layout
 
-```sql
-CREATE TABLE public.atlas_quests (
-  id uuid PRIMARY KEY DEFAULT gen_random_uuid(),
-  user_id uuid NOT NULL,
-  cluster_id uuid REFERENCES public.atlas_clusters(id),
-  quest_key text NOT NULL,           -- e.g. "passions_q1"
-  interactions jsonb DEFAULT '[]',   -- stores user responses per step
-  status text DEFAULT 'in_progress', -- in_progress | completed
-  generated_dot_id uuid REFERENCES public.atlas_dots(id),
-  created_at timestamptz DEFAULT now(),
-  completed_at timestamptz
-);
+## Component Design
 
-ALTER TABLE public.atlas_quests ENABLE ROW LEVEL SECURITY;
--- Standard user-owns-row policies (SELECT/INSERT/UPDATE)
-```
+### Floating Button
+- Fixed position: `bottom-24 right-4` (above bottom nav)
+- Small pill button with `BookOpen` icon + "Guide" label
+- Uses `Sheet` component (side="right") to open the panel
 
-No edge function needed — dot interpretation will use a deterministic client-side mapping (quest answers → dot title/description), matching the existing capability/superpower pattern.
+### Sheet Panel Content
 
-## Quest Content Data
+**Header**: "Becoming Guide" title with a short welcome line
 
-**New file: `src/data/atlasQuests.ts`**
+**"Start Here" section** (always visible at top, not collapsible):
+- Dynamically checks user state via existing hooks (`useIntegratorProjects`)
+- No project → "Share an idea with the Council" → links to `/council`
+- Has project → "Continue building" → links to `/creation-lab`
+- Highlight box: "You do not need to understand everything before starting. Just share an idea with the Council and begin."
 
-Static quest definitions for all 13 clusters. Each quest has:
-- `clusterId` (matched by slug)
-- `interactions`: array of 4 steps, each with a `type` and `options`
+**Accordion sections** (using existing `Accordion` component):
 
-Interaction types (reusable):
-- `multi_select` — pick 2-3 from 5-6 options
-- `ranking` — order 4 items by priority
-- `scenario` — choose between 2-3 scenarios
-- `card_pick` — select 1 card from 4 visual cards
-- `energy_slider` — rate 3 items on a 1-5 scale
-- `reflection` — short text input (1-2 sentences)
+1. **Foundation** (icon: `Compass`)
+   - "What is Becoming" — 4-5 lines from PDR
+   - "Message from the Founder" — Cristobal's message
+   - "Example Journey" — The flow steps
+   - "The Becoming Loop" — Insight → Build → Test → Learn cycle
 
-Each cluster gets one quest initially (13 quests total). The interpretation mapping (answers → dot title) is embedded in the quest definition.
+2. **Creation Lab** (icon: `FlaskConical`)
+   - Sub-items: Project, Daily Goals, Design Thinking, Creative Space, Map, Purpose to Value
+   - Each with 3-4 line explanation from PDR
 
-## New Components
+3. **Becoming Path** (icon: `Sparkles`)
+   - Sub-items: Becoming Exercises, Pattern Discovery, Transmutation, Superpowers
 
-### `src/components/atlas/AtlasQuestFlow.tsx`
-Full-screen quest experience. Renders 4 sequential interactions with animated transitions. Props: `quest definition`, `onComplete(dotData)`. Manages step state, validates each step, and triggers the Winning Card after step 4.
+4. **Council** (icon: `Users`)
+   - Council explanation + Save Button explanation
 
-### `src/components/atlas/AtlasQuestInteraction.tsx`
-Renders a single interaction step based on type. Handles `multi_select`, `ranking`, `scenario`, `card_pick`, `energy_slider`, `reflection`. Each returns structured response data.
+5. **Momentum** (icon: `TrendingUp`)
+   - Weekly Sprint, Accumulated Work, Capabilities
 
-### `src/components/atlas/AtlasWinningCard.tsx`
-Celebration modal shown after interaction 4. Displays:
-- "We discovered a new Atlas signal"
-- Generated dot title + short explanation
-- Confetti animation (reuse existing `canvas-confetti`)
-- "Add to Atlas" button
+### Implementation Details
+- Each section uses nested `Accordion` for sub-topics
+- Important callouts use a styled div with `bg-primary/10 border-l-2 border-primary` 
+- All text comes from the PDR content (hardcoded strings, no DB needed)
+- Sheet can be closed instantly via X or overlay click
+- No localStorage tracking needed — this is always available
 
-On confirm: inserts dot into `atlas_dots`, saves quest to `atlas_quests`, navigates to Atlas page, and invalidates react-query cache so the new dot appears.
+### Visual Examples Placeholder
+The PDR requests before/after screenshots for each major section. Since we don't have these images yet, each section will include a subtle placeholder note: "Visual examples coming soon" that can be replaced with actual images later.
 
-## Quest Entry Points
+## Files Summary
 
-### From Atlas Page (`AtlasPage.tsx`)
-- Add a floating "Start Quest" button at bottom of Atlas screen
-- When tapped, system picks a random cluster (avoiding last completed cluster, preferring clusters with fewer dots)
-- Opens `AtlasQuestFlow` full-screen
-
-### From Cluster Detail (`AtlasClusterDetail.tsx`)
-- Add "Explore" button in empty cluster state and as secondary action in populated clusters
-- Starts a quest specifically for that cluster
-
-## Quest Assignment Logic
-
-**In `src/hooks/useAtlasQuests.tsx`:**
-- Fetch completed quests for user
-- `getNextQuest()`: picks random cluster weighted toward least-explored clusters, avoids last-completed cluster
-- Returns the quest definition for the selected cluster
-
-## Route
-
-Add `/atlas/quest` route in `App.tsx` pointing to a wrapper page that loads `AtlasQuestFlow`.
-
-## Flow Summary
-
-```text
-User taps "Start Quest" on Atlas
-  → system picks cluster (random, weighted)
-  → AtlasQuestFlow renders interaction 1
-  → user completes interaction 1-4
-  → AtlasWinningCard appears with confetti
-  → user taps "Add to Atlas"
-  → dot inserted into atlas_dots
-  → quest saved to atlas_quests
-  → navigate to /atlas (dot visible in cluster)
-```
-
-## Files to Create/Edit
-
-| File | Action |
+| File | Change |
 |------|--------|
-| Migration (atlas_quests table) | Create |
-| `src/data/atlasQuests.ts` | Create (13 quest definitions) |
-| `src/components/atlas/AtlasQuestFlow.tsx` | Create |
-| `src/components/atlas/AtlasQuestInteraction.tsx` | Create |
-| `src/components/atlas/AtlasWinningCard.tsx` | Create |
-| `src/hooks/useAtlasQuests.tsx` | Create |
-| `src/pages/AtlasQuestPage.tsx` | Create (route wrapper) |
-| `src/pages/AtlasPage.tsx` | Edit (add Start Quest button) |
-| `src/components/atlas/AtlasClusterDetail.tsx` | Edit (add Explore button) |
-| `src/components/atlas/index.ts` | Edit (add exports) |
-| `src/App.tsx` | Edit (add /atlas/quest route) |
+| `src/components/BecomingGuide.tsx` | New — floating button + Sheet with all guide content |
+| `src/components/layout/AppLayout.tsx` | Add `<BecomingGuide />` alongside `<BottomNavigation />` |
 

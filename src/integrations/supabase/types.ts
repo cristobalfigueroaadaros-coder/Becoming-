@@ -353,6 +353,57 @@ export type Database = {
         }
         Relationships: []
       }
+      atlas_quests: {
+        Row: {
+          cluster_id: string | null
+          completed_at: string | null
+          created_at: string | null
+          generated_dot_id: string | null
+          id: string
+          interactions: Json | null
+          quest_key: string
+          status: string
+          user_id: string
+        }
+        Insert: {
+          cluster_id?: string | null
+          completed_at?: string | null
+          created_at?: string | null
+          generated_dot_id?: string | null
+          id?: string
+          interactions?: Json | null
+          quest_key: string
+          status?: string
+          user_id: string
+        }
+        Update: {
+          cluster_id?: string | null
+          completed_at?: string | null
+          created_at?: string | null
+          generated_dot_id?: string | null
+          id?: string
+          interactions?: Json | null
+          quest_key?: string
+          status?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "atlas_quests_cluster_id_fkey"
+            columns: ["cluster_id"]
+            isOneToOne: false
+            referencedRelation: "atlas_clusters"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "atlas_quests_generated_dot_id_fkey"
+            columns: ["generated_dot_id"]
+            isOneToOne: false
+            referencedRelation: "atlas_dots"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       becoming_discoveries: {
         Row: {
           created_at: string | null

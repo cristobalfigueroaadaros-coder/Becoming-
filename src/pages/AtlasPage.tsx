@@ -1,6 +1,8 @@
 import { useState } from "react";
 import { motion } from "framer-motion";
-import { Compass } from "lucide-react";
+import { useNavigate } from "react-router-dom";
+import { Compass, Sparkles } from "lucide-react";
+import { Button } from "@/components/ui/button";
 import { useAtlas, ClusterWithState, DOMAIN_COLORS } from "@/hooks/useAtlas";
 import { AtlasClusterNode, AtlasClusterDetail } from "@/components/atlas";
 
@@ -22,6 +24,7 @@ const CLUSTER_POSITIONS: { x: number; y: number }[] = [
 ];
 
 const AtlasPage = () => {
+  const navigate = useNavigate();
   const { clusters, domains, isLoading } = useAtlas();
   const [selectedCluster, setSelectedCluster] = useState<ClusterWithState | null>(null);
 
@@ -122,6 +125,18 @@ const AtlasPage = () => {
             return lines;
           })}
         </svg>
+      </div>
+
+      {/* Start Quest floating button */}
+      <div className="fixed bottom-20 right-4 z-20">
+        <Button
+          onClick={() => navigate("/atlas/quest")}
+          className="rounded-full gap-2 shadow-lg"
+          size="lg"
+        >
+          <Sparkles className="w-4 h-4" />
+          Start Quest
+        </Button>
       </div>
 
       {/* Cluster detail sheet */}

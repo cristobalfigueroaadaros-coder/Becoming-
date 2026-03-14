@@ -1,6 +1,8 @@
 import { useState } from "react";
+import { useNavigate } from "react-router-dom";
 import { Sheet, SheetContent, SheetHeader, SheetTitle, SheetDescription } from "@/components/ui/sheet";
-import { Sparkles } from "lucide-react";
+import { Button } from "@/components/ui/button";
+import { Sparkles, Compass } from "lucide-react";
 import type { ClusterWithState, AtlasDot } from "@/hooks/useAtlas";
 import { DOMAIN_COLORS } from "@/hooks/useAtlas";
 import { AtlasDotCard } from "./AtlasDotCard";
@@ -13,6 +15,7 @@ interface AtlasClusterDetailProps {
 }
 
 export const AtlasClusterDetail = ({ cluster, open, onOpenChange }: AtlasClusterDetailProps) => {
+  const navigate = useNavigate();
   const [selectedDot, setSelectedDot] = useState<AtlasDot | null>(null);
 
   if (!cluster) return null;
@@ -39,9 +42,14 @@ export const AtlasClusterDetail = ({ cluster, open, onOpenChange }: AtlasCluster
                 <p className="text-sm text-muted-foreground">
                   This area will grow as you explore yourself.
                 </p>
-                <p className="text-xs text-muted-foreground/60 mt-1">
-                  Future quests will help you discover insights here.
-                </p>
+                <Button
+                  variant="outline"
+                  size="sm"
+                  className="mt-4 gap-2"
+                  onClick={() => { onOpenChange(false); navigate(`/atlas/quest?cluster=${cluster.id}`); }}
+                >
+                  <Compass className="w-4 h-4" /> Explore
+                </Button>
               </div>
             ) : (
               <>
@@ -56,6 +64,14 @@ export const AtlasClusterDetail = ({ cluster, open, onOpenChange }: AtlasCluster
                     onTap={() => setSelectedDot(dot)}
                   />
                 ))}
+                <Button
+                  variant="ghost"
+                  size="sm"
+                  className="mt-2 gap-2 text-muted-foreground"
+                  onClick={() => { onOpenChange(false); navigate(`/atlas/quest?cluster=${cluster.id}`); }}
+                >
+                  <Compass className="w-4 h-4" /> Explore more
+                </Button>
               </>
             )}
           </div>

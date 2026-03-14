@@ -67,6 +67,7 @@ import CreatorsWall from "./pages/CreatorsWall";
 import CreatorProfile from "./pages/CreatorProfile";
 import LifeAssessment from "./pages/LifeAssessment";
 import AtlasPage from "./pages/AtlasPage";
+import AtlasQuestPage from "./pages/AtlasQuestPage";
 
 
 const queryClient = new QueryClient();
@@ -263,6 +264,10 @@ const App = () => {
             <Route
               path="/atlas"
               element={session ? <AppLayout><AtlasPage /></AppLayout> : <Navigate to="/" />}
+            />
+            <Route
+              path="/atlas/quest"
+              element={session ? <AtlasQuestPage /> : <Navigate to="/" />}
             />
             <Route
               path="/creators"
