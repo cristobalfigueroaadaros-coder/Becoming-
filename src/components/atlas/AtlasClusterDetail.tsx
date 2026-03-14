@@ -64,6 +64,14 @@ export const AtlasClusterDetail = ({ cluster, open, onOpenChange }: AtlasCluster
                     onTap={() => setSelectedDot(dot)}
                   />
                 ))}
+                <Button
+                  variant="ghost"
+                  size="sm"
+                  className="mt-2 gap-2 text-muted-foreground"
+                  onClick={() => { onOpenChange(false); navigate(`/atlas/quest?cluster=${cluster.id}`); }}
+                >
+                  <Compass className="w-4 h-4" /> Explore more
+                </Button>
               </>
             )}
           </div>

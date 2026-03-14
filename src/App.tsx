@@ -266,6 +266,10 @@ const App = () => {
               element={session ? <AppLayout><AtlasPage /></AppLayout> : <Navigate to="/" />}
             />
             <Route
+              path="/atlas/quest"
+              element={session ? <AtlasQuestPage /> : <Navigate to="/" />}
+            />
+            <Route
               path="/creators"
               element={session ? <AppLayout><CreatorsWall /></AppLayout> : <Navigate to="/" />}
             />

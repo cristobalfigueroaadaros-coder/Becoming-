@@ -127,6 +127,18 @@ const AtlasPage = () => {
         </svg>
       </div>
 
+      {/* Start Quest floating button */}
+      <div className="fixed bottom-20 right-4 z-20">
+        <Button
+          onClick={() => navigate("/atlas/quest")}
+          className="rounded-full gap-2 shadow-lg"
+          size="lg"
+        >
+          <Sparkles className="w-4 h-4" />
+          Start Quest
+        </Button>
+      </div>
+
       {/* Cluster detail sheet */}
       <AtlasClusterDetail
         cluster={selectedCluster}
