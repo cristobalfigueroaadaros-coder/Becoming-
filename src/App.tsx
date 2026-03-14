@@ -67,6 +67,7 @@ import CreatorsWall from "./pages/CreatorsWall";
 import CreatorProfile from "./pages/CreatorProfile";
 import LifeAssessment from "./pages/LifeAssessment";
 import AtlasPage from "./pages/AtlasPage";
+import AtlasQuestPage from "./pages/AtlasQuestPage";
 
 
 const queryClient = new QueryClient();
