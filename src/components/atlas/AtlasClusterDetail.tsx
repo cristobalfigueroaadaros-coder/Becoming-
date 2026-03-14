@@ -42,9 +42,14 @@ export const AtlasClusterDetail = ({ cluster, open, onOpenChange }: AtlasCluster
                 <p className="text-sm text-muted-foreground">
                   This area will grow as you explore yourself.
                 </p>
-                <p className="text-xs text-muted-foreground/60 mt-1">
-                  Future quests will help you discover insights here.
-                </p>
+                <Button
+                  variant="outline"
+                  size="sm"
+                  className="mt-4 gap-2"
+                  onClick={() => { onOpenChange(false); navigate(`/atlas/quest?cluster=${cluster.id}`); }}
+                >
+                  <Compass className="w-4 h-4" /> Explore
+                </Button>
               </div>
             ) : (
               <>
