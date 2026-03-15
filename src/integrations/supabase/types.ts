@@ -329,6 +329,53 @@ export type Database = {
         }
         Relationships: []
       }
+      atlas_patterns: {
+        Row: {
+          cluster_slug: string
+          created_at: string | null
+          generated_dot_id: string | null
+          id: string
+          pattern_description: string | null
+          pattern_key: string
+          pattern_title: string
+          signal_names: string[]
+          total_strength: number
+          user_id: string
+        }
+        Insert: {
+          cluster_slug: string
+          created_at?: string | null
+          generated_dot_id?: string | null
+          id?: string
+          pattern_description?: string | null
+          pattern_key: string
+          pattern_title: string
+          signal_names: string[]
+          total_strength: number
+          user_id: string
+        }
+        Update: {
+          cluster_slug?: string
+          created_at?: string | null
+          generated_dot_id?: string | null
+          id?: string
+          pattern_description?: string | null
+          pattern_key?: string
+          pattern_title?: string
+          signal_names?: string[]
+          total_strength?: number
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "atlas_patterns_generated_dot_id_fkey"
+            columns: ["generated_dot_id"]
+            isOneToOne: false
+            referencedRelation: "atlas_dots"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       atlas_project_nodes: {
         Row: {
           created_at: string | null
@@ -400,6 +447,50 @@ export type Database = {
             columns: ["generated_dot_id"]
             isOneToOne: false
             referencedRelation: "atlas_dots"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      atlas_signals: {
+        Row: {
+          cluster_id: string | null
+          created_at: string | null
+          id: string
+          signal_category: string
+          signal_name: string
+          source_interaction_index: number
+          source_quest_key: string
+          strength: number
+          user_id: string
+        }
+        Insert: {
+          cluster_id?: string | null
+          created_at?: string | null
+          id?: string
+          signal_category: string
+          signal_name: string
+          source_interaction_index: number
+          source_quest_key: string
+          strength?: number
+          user_id: string
+        }
+        Update: {
+          cluster_id?: string | null
+          created_at?: string | null
+          id?: string
+          signal_category?: string
+          signal_name?: string
+          source_interaction_index?: number
+          source_quest_key?: string
+          strength?: number
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "atlas_signals_cluster_id_fkey"
+            columns: ["cluster_id"]
+            isOneToOne: false
+            referencedRelation: "atlas_clusters"
             referencedColumns: ["id"]
           },
         ]

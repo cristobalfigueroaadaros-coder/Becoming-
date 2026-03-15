@@ -1,6 +1,6 @@
 import { useEffect } from "react";
 import { motion } from "framer-motion";
-import { Sparkles, ArrowRight } from "lucide-react";
+import { Sparkles, Zap, ArrowRight } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import confetti from "canvas-confetti";
 import type { DotInterpretation } from "@/data/atlasQuests";
@@ -10,15 +10,23 @@ interface Props {
   clusterName: string;
   onConfirm: () => void;
   isLoading?: boolean;
+  isPatternBased?: boolean;
 }
 
-export const AtlasWinningCard = ({ dot, clusterName, onConfirm, isLoading }: Props) => {
+export const AtlasWinningCard = ({ dot, clusterName, onConfirm, isLoading, isPatternBased }: Props) => {
   useEffect(() => {
     const timer = setTimeout(() => {
-      confetti({ particleCount: 80, spread: 70, origin: { y: 0.6 } });
+      confetti({
+        particleCount: isPatternBased ? 120 : 80,
+        spread: isPatternBased ? 90 : 70,
+        origin: { y: 0.6 },
+      });
     }, 400);
     return () => clearTimeout(timer);
-  }, []);
+  }, [isPatternBased]);
+
+  const Icon = isPatternBased ? Zap : Sparkles;
+  const label = isPatternBased ? "Pattern Detected" : "New Atlas Signal";
 
   return (
     <motion.div
@@ -30,11 +38,11 @@ export const AtlasWinningCard = ({ dot, clusterName, onConfirm, isLoading }: Pro
         animate={{ rotate: [0, 10, -10, 0] }}
         transition={{ duration: 1.5, repeat: Infinity, repeatDelay: 2 }}
       >
-        <Sparkles className="w-12 h-12 text-primary" />
+        <Icon className="w-12 h-12 text-primary" />
       </motion.div>
 
       <div className="space-y-2">
-        <p className="text-sm text-muted-foreground uppercase tracking-wider">New Atlas Signal</p>
+        <p className="text-sm text-muted-foreground uppercase tracking-wider">{label}</p>
         <h2 className="text-2xl font-bold text-foreground">{dot.title}</h2>
         <p className="text-sm text-muted-foreground">{dot.description}</p>
       </div>

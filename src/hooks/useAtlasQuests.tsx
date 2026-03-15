@@ -2,6 +2,7 @@ import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { ATLAS_QUESTS, AtlasQuestDefinition } from "@/data/atlasQuests";
 import { useAtlas } from "./useAtlas";
+import type { AggregatedSignal } from "@/lib/atlasSignalEngine";
 
 export function useAtlasQuests() {
   const { clusters } = useAtlas();
@@ -21,6 +22,50 @@ export function useAtlasQuests() {
     },
   });
 
+  const signalsQuery = useQuery({
+    queryKey: ["atlas-signals"],
+    queryFn: async () => {
+      const { data: { user } } = await supabase.auth.getUser();
+      if (!user) return [];
+      const { data, error } = await supabase
+        .from("atlas_signals")
+        .select("signal_name, strength")
+        .eq("user_id", user.id);
+      if (error) throw error;
+      return data || [];
+    },
+  });
+
+  const patternsQuery = useQuery({
+    queryKey: ["atlas-patterns"],
+    queryFn: async () => {
+      const { data: { user } } = await supabase.auth.getUser();
+      if (!user) return [];
+      const { data, error } = await supabase
+        .from("atlas_patterns")
+        .select("pattern_key")
+        .eq("user_id", user.id);
+      if (error) throw error;
+      return data || [];
+    },
+  });
+
+  // Aggregate signals by name
+  const aggregatedSignals: AggregatedSignal[] = (() => {
+    const map = new Map<string, number>();
+    for (const s of signalsQuery.data || []) {
+      map.set(s.signal_name, (map.get(s.signal_name) || 0) + s.strength);
+    }
+    return Array.from(map.entries()).map(([signalName, totalStrength]) => ({
+      signalName,
+      totalStrength,
+    }));
+  })();
+
+  const detectedPatternKeys = new Set(
+    (patternsQuery.data || []).map((p: any) => p.pattern_key)
+  );
+
   const completedKeys = new Set((completedQuery.data || []).map((q: any) => q.quest_key));
   const lastCompletedCluster = (completedQuery.data || [])
     .sort((a: any, b: any) => new Date(b.completed_at).getTime() - new Date(a.completed_at).getTime())[0]
@@ -30,7 +75,6 @@ export function useAtlasQuests() {
     const available = ATLAS_QUESTS.filter(q => !completedKeys.has(q.questKey));
     if (available.length === 0) return null;
 
-    // Weight toward clusters with fewer dots, avoid last completed
     const weighted = available.map(q => {
       const cluster = clusters.find(c => c.slug === q.clusterSlug);
       if (!cluster) return { quest: q, clusterId: "", weight: 1 };
@@ -61,6 +105,8 @@ export function useAtlasQuests() {
   return {
     completedQuests: completedQuery.data || [],
     completedKeys,
+    aggregatedSignals,
+    detectedPatternKeys,
     isLoading: completedQuery.isLoading,
     getNextQuest,
     getQuestForCluster,
