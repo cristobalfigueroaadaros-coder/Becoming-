@@ -7,6 +7,8 @@ import { supabase } from "@/integrations/supabase/client";
 import { toast } from "@/hooks/use-toast";
 import { AtlasQuestInteraction } from "./AtlasQuestInteraction";
 import { AtlasWinningCard } from "./AtlasWinningCard";
+import { interpretQuestResult, type ExtractedSignal, type DetectedPattern } from "@/lib/atlasSignalEngine";
+import { useAtlasQuests } from "@/hooks/useAtlasQuests";
 import type { AtlasQuestDefinition, DotInterpretation } from "@/data/atlasQuests";
 
 interface Props {
@@ -17,9 +19,13 @@ interface Props {
 export const AtlasQuestFlow = ({ quest, clusterId }: Props) => {
   const navigate = useNavigate();
   const queryClient = useQueryClient();
-  const [step, setStep] = useState(0); // 0-3 = interactions, 4 = winning card
+  const { aggregatedSignals, detectedPatternKeys } = useAtlasQuests();
+  const [step, setStep] = useState(0);
   const [responses, setResponses] = useState<any[]>([]);
   const [dotResult, setDotResult] = useState<DotInterpretation | null>(null);
+  const [isPatternBased, setIsPatternBased] = useState(false);
+  const [newSignals, setNewSignals] = useState<ExtractedSignal[]>([]);
+  const [detectedPattern, setDetectedPattern] = useState<DetectedPattern | null>(null);
   const [isSaving, setIsSaving] = useState(false);
 
   const handleInteractionSubmit = (response: any) => {
@@ -29,9 +35,18 @@ export const AtlasQuestFlow = ({ quest, clusterId }: Props) => {
     if (step < 3) {
       setStep(step + 1);
     } else {
-      // Step 4 complete — interpret and show winning card
-      const result = quest.interpret(newResponses);
-      setDotResult(result);
+      // All 4 interactions complete — run signal detection
+      const result = interpretQuestResult(
+        quest.questKey,
+        newResponses,
+        aggregatedSignals,
+        detectedPatternKeys,
+        quest.interpret
+      );
+      setDotResult(result.dot);
+      setIsPatternBased(result.isPatternBased);
+      setNewSignals(result.newSignals);
+      setDetectedPattern(result.detectedPattern);
       setStep(4);
     }
   };
@@ -44,16 +59,28 @@ export const AtlasQuestFlow = ({ quest, clusterId }: Props) => {
       const { data: { user } } = await supabase.auth.getUser();
       if (!user) throw new Error("Not authenticated");
 
+      // Determine cluster for the dot
+      let dotClusterId = clusterId;
+      if (isPatternBased && detectedPattern) {
+        // Pattern may target a different cluster
+        const { data: patternCluster } = await supabase
+          .from("atlas_clusters")
+          .select("id")
+          .eq("slug", detectedPattern.pattern.clusterSlug)
+          .single();
+        if (patternCluster) dotClusterId = patternCluster.id;
+      }
+
       // Insert dot
       const { data: dot, error: dotErr } = await supabase
         .from("atlas_dots")
         .insert({
           user_id: user.id,
-          cluster_id: clusterId,
+          cluster_id: dotClusterId,
           title: dotResult.title,
           short_description: dotResult.description,
-          dot_type: "quest_discovery",
-          confidence_score: 0.8,
+          dot_type: isPatternBased ? "pattern_discovery" : "quest_discovery",
+          confidence_score: isPatternBased ? 0.9 : 0.8,
         })
         .select("id")
         .single();
@@ -73,8 +100,38 @@ export const AtlasQuestFlow = ({ quest, clusterId }: Props) => {
         });
       if (questErr) throw questErr;
 
+      // Insert signals
+      if (newSignals.length > 0) {
+        const signalRows = newSignals.map(s => ({
+          user_id: user.id,
+          signal_name: s.signalName,
+          signal_category: s.signalCategory,
+          strength: s.strength,
+          source_quest_key: s.sourceQuestKey,
+          source_interaction_index: s.sourceInteractionIndex,
+          cluster_id: clusterId,
+        }));
+        await supabase.from("atlas_signals").insert(signalRows);
+      }
+
+      // Insert pattern if detected
+      if (isPatternBased && detectedPattern) {
+        await supabase.from("atlas_patterns").insert({
+          user_id: user.id,
+          pattern_key: detectedPattern.pattern.patternKey,
+          pattern_title: detectedPattern.pattern.title,
+          pattern_description: detectedPattern.pattern.description,
+          signal_names: detectedPattern.pattern.requiredSignals.map(s => s.signalName),
+          total_strength: detectedPattern.totalStrength,
+          cluster_slug: detectedPattern.pattern.clusterSlug,
+          generated_dot_id: dot.id,
+        });
+      }
+
       queryClient.invalidateQueries({ queryKey: ["atlas-dots"] });
       queryClient.invalidateQueries({ queryKey: ["atlas-quests-completed"] });
+      queryClient.invalidateQueries({ queryKey: ["atlas-signals"] });
+      queryClient.invalidateQueries({ queryKey: ["atlas-patterns"] });
 
       toast({ title: "Discovery added to Atlas!", description: dotResult.title });
       navigate("/atlas");
@@ -90,7 +147,6 @@ export const AtlasQuestFlow = ({ quest, clusterId }: Props) => {
 
   return (
     <div className="min-h-screen bg-background flex flex-col">
-      {/* Header */}
       <div className="px-4 pt-5 pb-3 flex items-center gap-3">
         <button onClick={() => navigate("/atlas")} className="text-muted-foreground">
           <ArrowLeft className="w-5 h-5" />
@@ -109,7 +165,6 @@ export const AtlasQuestFlow = ({ quest, clusterId }: Props) => {
         </div>
       </div>
 
-      {/* Content */}
       <div className="flex-1 flex items-center justify-center px-5 py-8">
         <AnimatePresence mode="wait">
           {step < 4 ? (
@@ -125,6 +180,7 @@ export const AtlasQuestFlow = ({ quest, clusterId }: Props) => {
               clusterName={quest.clusterName}
               onConfirm={handleConfirm}
               isLoading={isSaving}
+              isPatternBased={isPatternBased}
             />
           ) : null}
         </AnimatePresence>
