@@ -269,9 +269,13 @@ export type Database = {
           cluster_id: string | null
           confidence_score: number | null
           created_at: string | null
+          dot_category: string
           dot_type: string | null
           id: string
           short_description: string | null
+          signal_sources: Json | null
+          signal_strength: number | null
+          source_system: string
           title: string
           user_id: string
         }
@@ -279,9 +283,13 @@ export type Database = {
           cluster_id?: string | null
           confidence_score?: number | null
           created_at?: string | null
+          dot_category?: string
           dot_type?: string | null
           id?: string
           short_description?: string | null
+          signal_sources?: Json | null
+          signal_strength?: number | null
+          source_system?: string
           title: string
           user_id: string
         }
@@ -289,9 +297,13 @@ export type Database = {
           cluster_id?: string | null
           confidence_score?: number | null
           created_at?: string | null
+          dot_category?: string
           dot_type?: string | null
           id?: string
           short_description?: string | null
+          signal_sources?: Json | null
+          signal_strength?: number | null
+          source_system?: string
           title?: string
           user_id?: string
         }
