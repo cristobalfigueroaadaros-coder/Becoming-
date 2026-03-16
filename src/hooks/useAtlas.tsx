@@ -1,5 +1,6 @@
 import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
+import type { DotCategory } from "@/data/atlasSignals";
 
 export interface AtlasMetaDomain {
   id: string;
@@ -26,6 +27,10 @@ export interface AtlasDot {
   short_description: string | null;
   confidence_score: number | null;
   dot_type: string | null;
+  dot_category: string | null;
+  signal_sources: any;
+  signal_strength: number | null;
+  source_system: string | null;
   created_at: string | null;
 }
 
@@ -50,6 +55,17 @@ export const DOMAIN_COLORS: Record<string, { bg: string; text: string; glow: str
   Product: { bg: "hsl(155 60% 45%)", text: "hsl(155 60% 85%)", glow: "hsl(155 60% 45% / 0.3)", border: "hsl(155 60% 35%)" },
   Environment: { bg: "hsl(35 80% 55%)", text: "hsl(35 80% 85%)", glow: "hsl(35 80% 55% / 0.3)", border: "hsl(35 80% 45%)" },
 };
+
+export const DOT_TYPE_COLORS: Record<string, string> = {
+  strength: "hsl(195 80% 55%)",
+  shadow: "hsl(280 60% 50%)",
+  life_imprint: "hsl(40 80% 55%)",
+};
+
+export function getDotColor(dot: AtlasDot): string {
+  const cat = dot.dot_category || "strength";
+  return DOT_TYPE_COLORS[cat] || DOT_TYPE_COLORS.strength;
+}
 
 export function useAtlas() {
   const domainsQuery = useQuery({

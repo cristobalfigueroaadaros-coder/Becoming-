@@ -4,6 +4,10 @@ import { ATLAS_QUESTS, AtlasQuestDefinition } from "@/data/atlasQuests";
 import { useAtlas } from "./useAtlas";
 import type { AggregatedSignal } from "@/lib/atlasSignalEngine";
 
+const STRENGTH_CLUSTERS = new Set(["passions", "skills", "natural-talents", "experiments", "values", "inspirations", "ideal-life", "vision-for-a-better-world"]);
+const LIFE_IMPRINT_CLUSTERS = new Set(["life-events", "childhood-signals", "aha-moments"]);
+const SHADOW_CLUSTERS = new Set(["personal-frustrations", "external-reflections"]);
+
 export function useAtlasQuests() {
   const { clusters } = useAtlas();
 
@@ -67,20 +71,32 @@ export function useAtlasQuests() {
   );
 
   const completedKeys = new Set((completedQuery.data || []).map((q: any) => q.quest_key));
+  const completedCount = completedKeys.size;
   const lastCompletedCluster = (completedQuery.data || [])
     .sort((a: any, b: any) => new Date(b.completed_at).getTime() - new Date(a.completed_at).getTime())[0]
     ?.cluster_id;
+
+  function getPreferredClusterSlugs(): Set<string> {
+    // Progressive discovery ordering
+    if (completedCount < 3) return STRENGTH_CLUSTERS;
+    if (completedCount === 3) return LIFE_IMPRINT_CLUSTERS;
+    if (completedCount >= 5 && completedCount % 4 === 1) return SHADOW_CLUSTERS;
+    return STRENGTH_CLUSTERS;
+  }
 
   function getNextQuest(): { quest: AtlasQuestDefinition; clusterId: string } | null {
     const available = ATLAS_QUESTS.filter(q => !completedKeys.has(q.questKey));
     if (available.length === 0) return null;
 
+    const preferredSlugs = getPreferredClusterSlugs();
+
     const weighted = available.map(q => {
       const cluster = clusters.find(c => c.slug === q.clusterSlug);
-      if (!cluster) return { quest: q, clusterId: "", weight: 1 };
+      if (!cluster) return { quest: q, clusterId: "", weight: 0 };
       const dotPenalty = cluster.dotCount * 2;
       const lastPenalty = cluster.id === lastCompletedCluster ? 5 : 0;
-      return { quest: q, clusterId: cluster.id, weight: Math.max(1, 10 - dotPenalty - lastPenalty) };
+      const preferenceBonus = preferredSlugs.has(q.clusterSlug) ? 8 : 0;
+      return { quest: q, clusterId: cluster.id, weight: Math.max(1, 10 - dotPenalty - lastPenalty + preferenceBonus) };
     }).filter(w => w.clusterId);
 
     if (weighted.length === 0) return null;
@@ -105,6 +121,7 @@ export function useAtlasQuests() {
   return {
     completedQuests: completedQuery.data || [],
     completedKeys,
+    completedCount,
     aggregatedSignals,
     detectedPatternKeys,
     isLoading: completedQuery.isLoading,
