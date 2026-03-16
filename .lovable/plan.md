@@ -1,70 +1,114 @@
 
 
-# Becoming Guide — Floating Knowledge Hub
+# Atlas Dot System (Discovery Structure)
 
-## Overview
-Create a floating "Becoming Guide" button and a Sheet panel that serves as an in-app reference manual. The guide contains expandable sections explaining the system's philosophy, tools, and workflow with a dynamic "Start Here" section.
+## Summary
 
-## Architecture
+Extend the Atlas Dot system with three discovery types (strength, shadow, life_imprint), add `source_system` and `signal_sources` fields to `atlas_dots`, implement duplicate detection with confidence reinforcement, add visual type-based coloring, expand quest content for variety, and introduce progressive discovery ordering.
 
-### New Files
-- `src/components/BecomingGuide.tsx` — Main component with floating button + Sheet panel
+## Database Changes
 
-### Modified Files
-- `src/components/layout/AppLayout.tsx` — Add `<BecomingGuide />` inside the layout
+**Migration: Add columns to `atlas_dots`**
 
-## Component Design
+```sql
+ALTER TABLE public.atlas_dots 
+  ADD COLUMN IF NOT EXISTS dot_category text NOT NULL DEFAULT 'strength',
+  ADD COLUMN IF NOT EXISTS signal_sources jsonb DEFAULT '[]',
+  ADD COLUMN IF NOT EXISTS signal_strength int DEFAULT 0,
+  ADD COLUMN IF NOT EXISTS source_system text NOT NULL DEFAULT 'quest_system';
+```
 
-### Floating Button
-- Fixed position: `bottom-24 right-4` (above bottom nav)
-- Small pill button with `BookOpen` icon + "Guide" label
-- Uses `Sheet` component (side="right") to open the panel
+- `dot_category`: `strength` | `shadow` | `life_imprint` (the PDR's `dot_type` concept — we keep existing `dot_type` for quest_discovery/pattern_discovery and add this new semantic category)
+- `signal_sources`: JSON array of signal names that generated the dot
+- `signal_strength`: combined signal score
+- `source_system`: `quest_system` | `capability_map` | `superpower_map` | `transmutation_map`
 
-### Sheet Panel Content
+## Duplicate Detection
 
-**Header**: "Becoming Guide" title with a short welcome line
+**In `AtlasQuestFlow.tsx` (before insert):**
 
-**"Start Here" section** (always visible at top, not collapsible):
-- Dynamically checks user state via existing hooks (`useIntegratorProjects`)
-- No project → "Share an idea with the Council" → links to `/council`
-- Has project → "Continue building" → links to `/creation-lab`
-- Highlight box: "You do not need to understand everything before starting. Just share an idea with the Council and begin."
+Query existing dots for the user with matching title. If found:
+- UPDATE existing dot: increment `confidence_score` by 0.1, update `signal_strength`, skip insert
+- Show modified Winning Card: "Pattern reinforced" instead of "New discovery"
 
-**Accordion sections** (using existing `Accordion` component):
+## Dot Type Classification
 
-1. **Foundation** (icon: `Compass`)
-   - "What is Becoming" — 4-5 lines from PDR
-   - "Message from the Founder" — Cristobal's message
-   - "Example Journey" — The flow steps
-   - "The Becoming Loop" — Insight → Build → Test → Learn cycle
+**In `src/data/atlasSignals.ts`:**
 
-2. **Creation Lab** (icon: `FlaskConical`)
-   - Sub-items: Project, Daily Goals, Design Thinking, Creative Space, Map, Purpose to Value
-   - Each with 3-4 line explanation from PDR
+Add `dotCategory` field to `PatternDefinition`:
+- Most patterns → `"strength"`
+- Add 3-4 new shadow patterns (e.g., `fear_of_failure`, `perfectionism_loop`, `avoidance_pattern`) that emit from frustrations/reflections clusters → `"shadow"`
+- Add 2-3 life imprint patterns (e.g., `mentor_influence`, `turning_point`, `creative_awakening`) from life-events/childhood clusters → `"life_imprint"`
 
-3. **Becoming Path** (icon: `Sparkles`)
-   - Sub-items: Becoming Exercises, Pattern Discovery, Transmutation, Superpowers
+**In `src/data/atlasQuests.ts`:**
 
-4. **Council** (icon: `Users`)
-   - Council explanation + Save Button explanation
+Add `dotCategory` to the fallback `interpret()` return type so even non-pattern dots get categorized. Default all current quests to `"strength"`. Add quest progression ordering:
+- Quests 1-3: strength-oriented clusters
+- Quest 4: life imprint cluster
+- Quest 5: strength
+- Quest 6+: may include shadow clusters
 
-5. **Momentum** (icon: `TrendingUp`)
-   - Weekly Sprint, Accumulated Work, Capabilities
+**In `useAtlasQuests.tsx`:**
 
-### Implementation Details
-- Each section uses nested `Accordion` for sub-topics
-- Important callouts use a styled div with `bg-primary/10 border-l-2 border-primary` 
-- All text comes from the PDR content (hardcoded strings, no DB needed)
-- Sheet can be closed instantly via X or overlay click
-- No localStorage tracking needed — this is always available
+Update `getNextQuest()` to factor in completed quest count for progressive discovery:
+- If completedCount < 4: prefer strength clusters (passions, skills, natural-talents, experiments, values)
+- If completedCount === 3: pick a life-imprint cluster (life-events, childhood-signals, aha-moments)
+- If completedCount >= 5 and completedCount % 4 === 1: pick shadow cluster (personal-frustrations, external-reflections)
 
-### Visual Examples Placeholder
-The PDR requests before/after screenshots for each major section. Since we don't have these images yet, each section will include a subtle placeholder note: "Visual examples coming soon" that can be replaced with actual images later.
+## Quest Variation (39 more quests)
 
-## Files Summary
+**In `src/data/atlasQuests.ts`:**
 
-| File | Change |
+Expand from 13 quests to 52 (4 per cluster). Each variation explores the same cluster from a different angle with different wording and mechanics. Add helper `getQuestsForCluster(slug)` that returns all quests for a cluster. Update `getQuestForCluster` to pick one the user hasn't completed yet.
+
+## Visual Updates
+
+**`src/hooks/useAtlas.tsx`:**
+
+Add `DOT_TYPE_COLORS` mapping:
+- strength: `hsl(195 80% 55%)` (teal)
+- shadow: `hsl(280 60% 50%)` (purple)  
+- life_imprint: `hsl(40 80% 55%)` (amber/gold)
+
+**`src/components/atlas/AtlasDotCard.tsx`:**
+
+Use `dot.dot_category` to pick dot color instead of cluster color.
+
+**`src/components/atlas/AtlasDotDetailModal.tsx`:**
+
+Show dot category badge (Strength / Shadow / Life Imprint), signal sources list, and detection explanation text.
+
+**`src/components/atlas/AtlasClusterNode.tsx`:**
+
+Color mini-dot indicators by `dot_category` instead of uniform cluster color.
+
+**`src/components/atlas/AtlasWinningCard.tsx`:**
+
+Add third variant for reinforced discoveries. Show dot category label. Vary icon: Sparkles (strength), Shield (shadow), Star (life_imprint).
+
+## Updated DotInterpretation Type
+
+```typescript
+export interface DotInterpretation {
+  title: string;
+  description: string;
+  dotCategory: "strength" | "shadow" | "life_imprint";
+}
+```
+
+## Files to Create/Edit
+
+| File | Action |
 |------|--------|
-| `src/components/BecomingGuide.tsx` | New — floating button + Sheet with all guide content |
-| `src/components/layout/AppLayout.tsx` | Add `<BecomingGuide />` alongside `<BottomNavigation />` |
+| Migration (add columns to atlas_dots) | Create |
+| `src/data/atlasQuests.ts` | Edit — add dotCategory to interpret, add 39 quest variations |
+| `src/data/atlasSignals.ts` | Edit — add dotCategory to patterns, add shadow + life_imprint patterns |
+| `src/lib/atlasSignalEngine.ts` | Edit — pass dotCategory through |
+| `src/hooks/useAtlas.tsx` | Edit — add DOT_TYPE_COLORS |
+| `src/hooks/useAtlasQuests.tsx` | Edit — progressive discovery ordering |
+| `src/components/atlas/AtlasQuestFlow.tsx` | Edit — duplicate detection, dot_category insert |
+| `src/components/atlas/AtlasWinningCard.tsx` | Edit — category visuals, reinforcement variant |
+| `src/components/atlas/AtlasDotCard.tsx` | Edit — type-based coloring |
+| `src/components/atlas/AtlasDotDetailModal.tsx` | Edit — category badge, signal sources |
+| `src/components/atlas/AtlasClusterNode.tsx` | Edit — type-colored dot indicators |
 
