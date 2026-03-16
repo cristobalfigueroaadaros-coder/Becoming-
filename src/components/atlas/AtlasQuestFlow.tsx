@@ -24,6 +24,7 @@ export const AtlasQuestFlow = ({ quest, clusterId }: Props) => {
   const [responses, setResponses] = useState<any[]>([]);
   const [dotResult, setDotResult] = useState<DotInterpretation | null>(null);
   const [isPatternBased, setIsPatternBased] = useState(false);
+  const [isReinforced, setIsReinforced] = useState(false);
   const [newSignals, setNewSignals] = useState<ExtractedSignal[]>([]);
   const [detectedPattern, setDetectedPattern] = useState<DetectedPattern | null>(null);
   const [isSaving, setIsSaving] = useState(false);
@@ -62,7 +63,6 @@ export const AtlasQuestFlow = ({ quest, clusterId }: Props) => {
       // Determine cluster for the dot
       let dotClusterId = clusterId;
       if (isPatternBased && detectedPattern) {
-        // Pattern may target a different cluster
         const { data: patternCluster } = await supabase
           .from("atlas_clusters")
           .select("id")
@@ -71,20 +71,55 @@ export const AtlasQuestFlow = ({ quest, clusterId }: Props) => {
         if (patternCluster) dotClusterId = patternCluster.id;
       }
 
-      // Insert dot
-      const { data: dot, error: dotErr } = await supabase
+      const dotCategory = dotResult.dotCategory || "strength";
+      const signalSourceNames = newSignals.map(s => s.signalName);
+      const totalStrength = newSignals.reduce((sum, s) => sum + s.strength, 0);
+
+      // Duplicate detection: check for existing dot with same title
+      const { data: existingDots } = await supabase
         .from("atlas_dots")
-        .insert({
-          user_id: user.id,
-          cluster_id: dotClusterId,
-          title: dotResult.title,
-          short_description: dotResult.description,
-          dot_type: isPatternBased ? "pattern_discovery" : "quest_discovery",
-          confidence_score: isPatternBased ? 0.9 : 0.8,
-        })
-        .select("id")
-        .single();
-      if (dotErr) throw dotErr;
+        .select("id, confidence_score, signal_strength")
+        .eq("user_id", user.id)
+        .eq("title", dotResult.title)
+        .limit(1);
+
+      let dotId: string;
+
+      if (existingDots && existingDots.length > 0) {
+        // Reinforce existing dot
+        const existing = existingDots[0];
+        const newConfidence = Math.min(1, (existing.confidence_score || 0.8) + 0.1);
+        const newStrength = (existing.signal_strength || 0) + totalStrength;
+        await supabase
+          .from("atlas_dots")
+          .update({
+            confidence_score: newConfidence,
+            signal_strength: newStrength,
+          })
+          .eq("id", existing.id);
+        dotId = existing.id;
+        setIsReinforced(true);
+      } else {
+        // Insert new dot
+        const { data: dot, error: dotErr } = await supabase
+          .from("atlas_dots")
+          .insert({
+            user_id: user.id,
+            cluster_id: dotClusterId,
+            title: dotResult.title,
+            short_description: dotResult.description,
+            dot_type: isPatternBased ? "pattern_discovery" : "quest_discovery",
+            dot_category: dotCategory,
+            signal_sources: signalSourceNames,
+            signal_strength: totalStrength,
+            source_system: "quest_system",
+            confidence_score: isPatternBased ? 0.9 : 0.8,
+          })
+          .select("id")
+          .single();
+        if (dotErr) throw dotErr;
+        dotId = dot.id;
+      }
 
       // Insert quest record
       const { error: questErr } = await supabase
@@ -95,7 +130,7 @@ export const AtlasQuestFlow = ({ quest, clusterId }: Props) => {
           quest_key: quest.questKey,
           interactions: responses as any,
           status: "completed",
-          generated_dot_id: dot.id,
+          generated_dot_id: dotId,
           completed_at: new Date().toISOString(),
         });
       if (questErr) throw questErr;
@@ -124,7 +159,7 @@ export const AtlasQuestFlow = ({ quest, clusterId }: Props) => {
           signal_names: detectedPattern.pattern.requiredSignals.map(s => s.signalName),
           total_strength: detectedPattern.totalStrength,
           cluster_slug: detectedPattern.pattern.clusterSlug,
-          generated_dot_id: dot.id,
+          generated_dot_id: dotId,
         });
       }
 
@@ -133,7 +168,7 @@ export const AtlasQuestFlow = ({ quest, clusterId }: Props) => {
       queryClient.invalidateQueries({ queryKey: ["atlas-signals"] });
       queryClient.invalidateQueries({ queryKey: ["atlas-patterns"] });
 
-      toast({ title: "Discovery added to Atlas!", description: dotResult.title });
+      toast({ title: isReinforced ? "Discovery reinforced!" : "Discovery added to Atlas!", description: dotResult.title });
       navigate("/atlas");
     } catch (err: any) {
       console.error(err);
@@ -181,6 +216,7 @@ export const AtlasQuestFlow = ({ quest, clusterId }: Props) => {
               onConfirm={handleConfirm}
               isLoading={isSaving}
               isPatternBased={isPatternBased}
+              isReinforced={isReinforced}
             />
           ) : null}
         </AnimatePresence>

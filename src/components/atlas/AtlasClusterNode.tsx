@@ -1,7 +1,7 @@
 import { motion } from "framer-motion";
 import { Lock } from "lucide-react";
 import type { ClusterWithState } from "@/hooks/useAtlas";
-import { DOMAIN_COLORS } from "@/hooks/useAtlas";
+import { DOMAIN_COLORS, getDotColor } from "@/hooks/useAtlas";
 
 interface AtlasClusterNodeProps {
   cluster: ClusterWithState;
@@ -63,14 +63,14 @@ export const AtlasClusterNode = ({ cluster, index, onTap }: AtlasClusterNodeProp
         }}
       />
 
-      {/* Dot indicators */}
-      {cluster.dotCount > 0 && (
+      {/* Dot indicators — colored by dot_category */}
+      {cluster.dots.length > 0 && (
         <div className="absolute -top-0.5 -right-0.5 flex gap-0.5">
-          {Array.from({ length: Math.min(cluster.dotCount, 4) }).map((_, i) => (
+          {cluster.dots.slice(0, 4).map((dot, i) => (
             <span
               key={i}
               className="w-1.5 h-1.5 rounded-full"
-              style={{ backgroundColor: colors.bg }}
+              style={{ backgroundColor: getDotColor(dot) }}
             />
           ))}
         </div>

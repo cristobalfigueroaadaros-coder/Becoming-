@@ -1,4 +1,4 @@
-import { OPTION_SIGNAL_MAP, PATTERN_DEFINITIONS, SIGNAL_CATALOG, type SignalEmission, type PatternDefinition } from "@/data/atlasSignals";
+import { OPTION_SIGNAL_MAP, PATTERN_DEFINITIONS, SIGNAL_CATALOG, type SignalEmission, type PatternDefinition, type DotCategory } from "@/data/atlasSignals";
 import type { DotInterpretation } from "@/data/atlasQuests";
 
 export interface ExtractedSignal {
@@ -55,7 +55,6 @@ export function extractSignals(
   // Slider type — use _slider key, scale by slider values
   if (mapping["_slider"] && typeof response === "object" && !Array.isArray(response)) {
     const sliderEmissions = mapping["_slider"];
-    // For sliders, multiply base strength by average value / 3
     const values = Object.values(response) as number[];
     const avgFactor = values.length > 0 ? values.reduce((s, v) => s + v, 0) / (values.length * 3) : 1;
     for (const e of sliderEmissions) {
@@ -187,7 +186,11 @@ export function interpretQuestResult(
   if (newPatterns.length > 0) {
     const best = newPatterns[0];
     return {
-      dot: { title: best.pattern.title, description: best.pattern.description },
+      dot: {
+        title: best.pattern.title,
+        description: best.pattern.description,
+        dotCategory: best.pattern.dotCategory,
+      },
       newSignals,
       detectedPattern: best,
       isPatternBased: true,

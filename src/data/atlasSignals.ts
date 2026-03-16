@@ -1,6 +1,7 @@
 // Atlas Signal Catalog & Pattern Definitions
 
 export type SignalCategory = "motivation" | "behavior" | "cognitive" | "creative" | "social";
+export type DotCategory = "strength" | "shadow" | "life_imprint";
 
 export interface SignalDefinition {
   name: string;
@@ -311,11 +312,13 @@ export interface PatternDefinition {
   title: string;
   description: string;
   requiredSignals: { signalName: string; minStrength: number }[];
-  threshold: number; // total combined strength needed
-  clusterSlug: string; // which cluster the dot goes into
+  threshold: number;
+  clusterSlug: string;
+  dotCategory: DotCategory;
 }
 
 export const PATTERN_DEFINITIONS: PatternDefinition[] = [
+  // === STRENGTH patterns ===
   {
     patternKey: "explorer_mindset",
     title: "Explorer Mindset",
@@ -327,6 +330,7 @@ export const PATTERN_DEFINITIONS: PatternDefinition[] = [
     ],
     threshold: 8,
     clusterSlug: "passions",
+    dotCategory: "strength",
   },
   {
     patternKey: "community_builder",
@@ -339,6 +343,7 @@ export const PATTERN_DEFINITIONS: PatternDefinition[] = [
     ],
     threshold: 8,
     clusterSlug: "natural-talents",
+    dotCategory: "strength",
   },
   {
     patternKey: "creative_starter",
@@ -351,6 +356,7 @@ export const PATTERN_DEFINITIONS: PatternDefinition[] = [
     ],
     threshold: 7,
     clusterSlug: "experiments",
+    dotCategory: "strength",
   },
   {
     patternKey: "pattern_thinker",
@@ -363,6 +369,7 @@ export const PATTERN_DEFINITIONS: PatternDefinition[] = [
     ],
     threshold: 7,
     clusterSlug: "aha-moments",
+    dotCategory: "strength",
   },
   {
     patternKey: "empathy_signal",
@@ -374,6 +381,7 @@ export const PATTERN_DEFINITIONS: PatternDefinition[] = [
     ],
     threshold: 6,
     clusterSlug: "external-reflections",
+    dotCategory: "strength",
   },
   {
     patternKey: "visionary_architect",
@@ -386,6 +394,7 @@ export const PATTERN_DEFINITIONS: PatternDefinition[] = [
     ],
     threshold: 8,
     clusterSlug: "vision-for-a-better-world",
+    dotCategory: "strength",
   },
   {
     patternKey: "resilient_navigator",
@@ -397,6 +406,7 @@ export const PATTERN_DEFINITIONS: PatternDefinition[] = [
     ],
     threshold: 6,
     clusterSlug: "life-events",
+    dotCategory: "strength",
   },
   {
     patternKey: "natural_leader",
@@ -409,6 +419,7 @@ export const PATTERN_DEFINITIONS: PatternDefinition[] = [
     ],
     threshold: 7,
     clusterSlug: "skills",
+    dotCategory: "strength",
   },
   {
     patternKey: "reflective_depth",
@@ -420,6 +431,7 @@ export const PATTERN_DEFINITIONS: PatternDefinition[] = [
     ],
     threshold: 6,
     clusterSlug: "childhood-signals",
+    dotCategory: "strength",
   },
   {
     patternKey: "purpose_engine",
@@ -431,6 +443,7 @@ export const PATTERN_DEFINITIONS: PatternDefinition[] = [
     ],
     threshold: 6,
     clusterSlug: "values",
+    dotCategory: "strength",
   },
   {
     patternKey: "freedom_designer",
@@ -443,6 +456,7 @@ export const PATTERN_DEFINITIONS: PatternDefinition[] = [
     ],
     threshold: 7,
     clusterSlug: "ideal-life",
+    dotCategory: "strength",
   },
   {
     patternKey: "wisdom_seeker",
@@ -454,5 +468,96 @@ export const PATTERN_DEFINITIONS: PatternDefinition[] = [
     ],
     threshold: 6,
     clusterSlug: "inspirations",
+    dotCategory: "strength",
+  },
+
+  // === SHADOW patterns ===
+  {
+    patternKey: "fear_of_failure",
+    title: "Fear of Failure",
+    description: "A protective pattern that holds you back from taking risks. Your high standards create invisible barriers.",
+    requiredSignals: [
+      { signalName: "reflection", minStrength: 4 },
+      { signalName: "purpose_drive", minStrength: 3 },
+    ],
+    threshold: 7,
+    clusterSlug: "personal-frustrations",
+    dotCategory: "shadow",
+  },
+  {
+    patternKey: "perfectionism_loop",
+    title: "Perfectionism Loop",
+    description: "You set impossibly high standards. This drive for excellence can become a cage that prevents action.",
+    requiredSignals: [
+      { signalName: "systems_thinking", minStrength: 3 },
+      { signalName: "reflection", minStrength: 3 },
+      { signalName: "problem_solving", minStrength: 2 },
+    ],
+    threshold: 8,
+    clusterSlug: "personal-frustrations",
+    dotCategory: "shadow",
+  },
+  {
+    patternKey: "avoidance_pattern",
+    title: "Avoidance Pattern",
+    description: "You explore endlessly but sometimes avoid commitment. Freedom becomes a way to escape depth.",
+    requiredSignals: [
+      { signalName: "exploration", minStrength: 4 },
+      { signalName: "experimentation", minStrength: 3 },
+    ],
+    threshold: 7,
+    clusterSlug: "external-reflections",
+    dotCategory: "shadow",
+  },
+  {
+    patternKey: "overgiving_tendency",
+    title: "Overgiving Tendency",
+    description: "Your deep empathy can lead to giving more than you receive, depleting your own reserves.",
+    requiredSignals: [
+      { signalName: "empathy", minStrength: 5 },
+      { signalName: "community_orientation", minStrength: 3 },
+    ],
+    threshold: 8,
+    clusterSlug: "external-reflections",
+    dotCategory: "shadow",
+  },
+
+  // === LIFE IMPRINT patterns ===
+  {
+    patternKey: "mentor_influence",
+    title: "Mentor Influence",
+    description: "A significant person shaped how you see the world. Their impact lives on in your values and choices.",
+    requiredSignals: [
+      { signalName: "teaching_impulse", minStrength: 3 },
+      { signalName: "connection", minStrength: 3 },
+    ],
+    threshold: 6,
+    clusterSlug: "life-events",
+    dotCategory: "life_imprint",
+  },
+  {
+    patternKey: "turning_point",
+    title: "Turning Point Experience",
+    description: "A pivotal moment redirected your path. This experience still shapes your decisions today.",
+    requiredSignals: [
+      { signalName: "resilience", minStrength: 3 },
+      { signalName: "reflection", minStrength: 3 },
+      { signalName: "exploration", minStrength: 2 },
+    ],
+    threshold: 8,
+    clusterSlug: "life-events",
+    dotCategory: "life_imprint",
+  },
+  {
+    patternKey: "creative_awakening",
+    title: "Creative Awakening",
+    description: "A moment when your creative nature first revealed itself. This spark continues to define you.",
+    requiredSignals: [
+      { signalName: "creativity", minStrength: 4 },
+      { signalName: "expression", minStrength: 3 },
+    ],
+    threshold: 7,
+    clusterSlug: "childhood-signals",
+    dotCategory: "life_imprint",
   },
 ];
