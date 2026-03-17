@@ -19,6 +19,14 @@ const GROWTH_MESSAGES: Record<string, string> = {
   mature: "This cluster has reached maturity — a core part of your identity map.",
 };
 
+function getGrowthLevelName(dotCount: number): string {
+  if (dotCount === 0) return "dormant";
+  if (dotCount === 1) return "activated";
+  if (dotCount <= 4) return "growing";
+  if (dotCount <= 8) return "resonant";
+  return "mature";
+}
+
 interface Props {
   quest: AtlasQuestDefinition;
   clusterId: string;
