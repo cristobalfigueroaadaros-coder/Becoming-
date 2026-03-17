@@ -9,7 +9,23 @@ import { AtlasQuestInteraction } from "./AtlasQuestInteraction";
 import { AtlasWinningCard } from "./AtlasWinningCard";
 import { interpretQuestResult, type ExtractedSignal, type DetectedPattern } from "@/lib/atlasSignalEngine";
 import { useAtlasQuests } from "@/hooks/useAtlasQuests";
+import { useAtlas } from "@/hooks/useAtlas";
 import type { AtlasQuestDefinition, DotInterpretation } from "@/data/atlasQuests";
+
+const GROWTH_MESSAGES: Record<string, string> = {
+  activated: "This area of your identity is awakening.",
+  growing: "This cluster is growing — patterns are forming.",
+  resonant: "Deep resonance detected — this area is becoming central to who you are.",
+  mature: "This cluster has reached maturity — a core part of your identity map.",
+};
+
+function getGrowthLevelName(dotCount: number): string {
+  if (dotCount === 0) return "dormant";
+  if (dotCount === 1) return "activated";
+  if (dotCount <= 4) return "growing";
+  if (dotCount <= 8) return "resonant";
+  return "mature";
+}
 
 interface Props {
   quest: AtlasQuestDefinition;
@@ -20,6 +36,7 @@ export const AtlasQuestFlow = ({ quest, clusterId }: Props) => {
   const navigate = useNavigate();
   const queryClient = useQueryClient();
   const { aggregatedSignals, detectedPatternKeys } = useAtlasQuests();
+  const { clusters } = useAtlas();
   const [step, setStep] = useState(0);
   const [responses, setResponses] = useState<any[]>([]);
   const [dotResult, setDotResult] = useState<DotInterpretation | null>(null);
@@ -163,12 +180,29 @@ export const AtlasQuestFlow = ({ quest, clusterId }: Props) => {
         });
       }
 
+      // Detect growth level transition
+      const targetCluster = clusters.find(c => c.id === dotClusterId);
+      const prevDotCount = targetCluster?.dotCount || 0;
+      const newDotCount = isReinforced ? prevDotCount : prevDotCount + 1;
+      const prevLevel = getGrowthLevelName(prevDotCount);
+      const newLevel = getGrowthLevelName(newDotCount);
+
       queryClient.invalidateQueries({ queryKey: ["atlas-dots"] });
       queryClient.invalidateQueries({ queryKey: ["atlas-quests-completed"] });
       queryClient.invalidateQueries({ queryKey: ["atlas-signals"] });
       queryClient.invalidateQueries({ queryKey: ["atlas-patterns"] });
 
       toast({ title: isReinforced ? "Discovery reinforced!" : "Discovery added to Atlas!", description: dotResult.title });
+
+      if (newLevel !== prevLevel && GROWTH_MESSAGES[newLevel]) {
+        setTimeout(() => {
+          toast({
+            title: `${targetCluster?.name || "Cluster"} — ${newLevel.charAt(0).toUpperCase() + newLevel.slice(1)}`,
+            description: GROWTH_MESSAGES[newLevel],
+          });
+        }, 1500);
+      }
+
       navigate("/atlas");
     } catch (err: any) {
       console.error(err);

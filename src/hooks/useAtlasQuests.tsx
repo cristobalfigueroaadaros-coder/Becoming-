@@ -9,7 +9,7 @@ const LIFE_IMPRINT_CLUSTERS = new Set(["life-events", "childhood-signals", "aha-
 const SHADOW_CLUSTERS = new Set(["personal-frustrations", "external-reflections"]);
 
 export function useAtlasQuests() {
-  const { clusters } = useAtlas();
+  const { clusters, totalDots } = useAtlas();
 
   const completedQuery = useQuery({
     queryKey: ["atlas-quests-completed"],
@@ -54,7 +54,6 @@ export function useAtlasQuests() {
     },
   });
 
-  // Aggregate signals by name
   const aggregatedSignals: AggregatedSignal[] = (() => {
     const map = new Map<string, number>();
     for (const s of signalsQuery.data || []) {
@@ -77,7 +76,6 @@ export function useAtlasQuests() {
     ?.cluster_id;
 
   function getPreferredClusterSlugs(): Set<string> {
-    // Progressive discovery ordering
     if (completedCount < 3) return STRENGTH_CLUSTERS;
     if (completedCount === 3) return LIFE_IMPRINT_CLUSTERS;
     if (completedCount >= 5 && completedCount % 4 === 1) return SHADOW_CLUSTERS;
@@ -85,7 +83,14 @@ export function useAtlasQuests() {
   }
 
   function getNextQuest(): { quest: AtlasQuestDefinition; clusterId: string } | null {
-    const available = ATLAS_QUESTS.filter(q => !completedKeys.has(q.questKey));
+    // Only consider quests for unlocked clusters
+    const unlockedSlugs = new Set(
+      clusters.filter(c => c.computedState !== "locked").map(c => c.slug)
+    );
+
+    const available = ATLAS_QUESTS.filter(q =>
+      !completedKeys.has(q.questKey) && unlockedSlugs.has(q.clusterSlug)
+    );
     if (available.length === 0) return null;
 
     const preferredSlugs = getPreferredClusterSlugs();
@@ -96,7 +101,9 @@ export function useAtlasQuests() {
       const dotPenalty = cluster.dotCount * 2;
       const lastPenalty = cluster.id === lastCompletedCluster ? 5 : 0;
       const preferenceBonus = preferredSlugs.has(q.clusterSlug) ? 8 : 0;
-      return { quest: q, clusterId: cluster.id, weight: Math.max(1, 10 - dotPenalty - lastPenalty + preferenceBonus) };
+      // Boost weight for newly unlocked clusters (activated/dormant with 0-1 dots)
+      const newlyUnlockedBonus = cluster.dotCount <= 1 && cluster.computedState !== "locked" ? 4 : 0;
+      return { quest: q, clusterId: cluster.id, weight: Math.max(1, 10 - dotPenalty - lastPenalty + preferenceBonus + newlyUnlockedBonus) };
     }).filter(w => w.clusterId);
 
     if (weighted.length === 0) return null;
@@ -112,7 +119,7 @@ export function useAtlasQuests() {
 
   function getQuestForCluster(clusterId: string): { quest: AtlasQuestDefinition; clusterId: string } | null {
     const cluster = clusters.find(c => c.id === clusterId);
-    if (!cluster) return null;
+    if (!cluster || cluster.computedState === "locked") return null;
     const quest = ATLAS_QUESTS.find(q => q.clusterSlug === cluster.slug && !completedKeys.has(q.questKey));
     if (!quest) return null;
     return { quest, clusterId };

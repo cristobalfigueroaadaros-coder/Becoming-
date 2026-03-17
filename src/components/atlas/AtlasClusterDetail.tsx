@@ -2,9 +2,10 @@ import { useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { Sheet, SheetContent, SheetHeader, SheetTitle, SheetDescription } from "@/components/ui/sheet";
 import { Button } from "@/components/ui/button";
+import { Badge } from "@/components/ui/badge";
 import { Sparkles, Compass } from "lucide-react";
 import type { ClusterWithState, AtlasDot } from "@/hooks/useAtlas";
-import { DOMAIN_COLORS } from "@/hooks/useAtlas";
+import { DOMAIN_COLORS, GROWTH_LEVEL_LABELS } from "@/hooks/useAtlas";
 import { AtlasDotCard } from "./AtlasDotCard";
 import { AtlasDotDetailModal } from "./AtlasDotDetailModal";
 
@@ -14,6 +15,14 @@ interface AtlasClusterDetailProps {
   onOpenChange: (open: boolean) => void;
 }
 
+const GROWTH_COLORS: Record<string, string> = {
+  dormant: "bg-muted text-muted-foreground",
+  activated: "bg-primary/20 text-primary",
+  growing: "bg-primary/30 text-primary",
+  resonant: "bg-accent text-accent-foreground",
+  mature: "bg-primary text-primary-foreground",
+};
+
 export const AtlasClusterDetail = ({ cluster, open, onOpenChange }: AtlasClusterDetailProps) => {
   const navigate = useNavigate();
   const [selectedDot, setSelectedDot] = useState<AtlasDot | null>(null);
@@ -22,6 +31,7 @@ export const AtlasClusterDetail = ({ cluster, open, onOpenChange }: AtlasCluster
 
   const domainName = cluster.meta_domain?.name || "Person";
   const colors = DOMAIN_COLORS[domainName] || DOMAIN_COLORS.Person;
+  const growthLabel = GROWTH_LEVEL_LABELS[cluster.growthLevel];
 
   return (
     <>
@@ -31,6 +41,9 @@ export const AtlasClusterDetail = ({ cluster, open, onOpenChange }: AtlasCluster
             <div className="flex items-center gap-2">
               <span className="w-3 h-3 rounded-full" style={{ backgroundColor: colors.bg }} />
               <SheetTitle>{cluster.name}</SheetTitle>
+              <Badge variant="outline" className={`text-[10px] ${GROWTH_COLORS[cluster.growthLevel]}`}>
+                {growthLabel}
+              </Badge>
             </div>
             <SheetDescription>{cluster.description}</SheetDescription>
           </SheetHeader>

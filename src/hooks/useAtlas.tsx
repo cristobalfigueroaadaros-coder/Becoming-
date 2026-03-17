@@ -1,6 +1,5 @@
 import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
-import type { DotCategory } from "@/data/atlasSignals";
 
 export interface AtlasMetaDomain {
   id: string;
@@ -16,6 +15,7 @@ export interface AtlasCluster {
   meta_domain_id: string | null;
   description: string | null;
   sort_order: number;
+  cluster_category: string | null;
   meta_domain?: AtlasMetaDomain;
 }
 
@@ -34,19 +34,50 @@ export interface AtlasDot {
   created_at: string | null;
 }
 
-export type ClusterState = "locked" | "available" | "activated" | "growing" | "rich";
+export type GrowthLevel = "dormant" | "activated" | "growing" | "resonant" | "mature";
+export type ClusterState = "locked" | "dormant" | "activated" | "growing" | "resonant" | "mature";
 
 export interface ClusterWithState extends AtlasCluster {
   dots: AtlasDot[];
   dotCount: number;
   computedState: ClusterState;
+  growthLevel: GrowthLevel;
+  unlockPhase: number;
 }
 
-function computeState(dotCount: number): ClusterState {
-  if (dotCount === 0) return "available";
+// Phase unlock thresholds (total dots across all clusters)
+const PHASE_THRESHOLDS = [0, 0, 3, 6, 10]; // phase 1 always, 2 at 3+, 3 at 6+, 4 at 10+
+
+const PHASE_SLUGS: Record<number, Set<string>> = {
+  1: new Set(["passions", "skills", "life-events", "personal-frustrations"]),
+  2: new Set(["natural-talents", "values", "experiments"]),
+  3: new Set(["childhood-signals", "inspirations", "aha-moments"]),
+  4: new Set(["ideal-life", "vision-for-a-better-world", "external-reflections"]),
+};
+
+function getUnlockPhase(slug: string): number {
+  for (const [phase, slugs] of Object.entries(PHASE_SLUGS)) {
+    if (slugs.has(slug)) return Number(phase);
+  }
+  return 4;
+}
+
+function isClusterUnlocked(slug: string, totalDots: number): boolean {
+  const phase = getUnlockPhase(slug);
+  return totalDots >= PHASE_THRESHOLDS[phase];
+}
+
+function computeGrowthLevel(dotCount: number): GrowthLevel {
+  if (dotCount === 0) return "dormant";
   if (dotCount === 1) return "activated";
-  if (dotCount <= 3) return "growing";
-  return "rich";
+  if (dotCount <= 4) return "growing";
+  if (dotCount <= 8) return "resonant";
+  return "mature";
+}
+
+function computeState(dotCount: number, unlocked: boolean): ClusterState {
+  if (!unlocked) return "locked";
+  return computeGrowthLevel(dotCount);
 }
 
 export const DOMAIN_COLORS: Record<string, { bg: string; text: string; glow: string; border: string }> = {
@@ -65,6 +96,28 @@ export const DOT_TYPE_COLORS: Record<string, string> = {
 export function getDotColor(dot: AtlasDot): string {
   const cat = dot.dot_category || "strength";
   return DOT_TYPE_COLORS[cat] || DOT_TYPE_COLORS.strength;
+}
+
+export const GROWTH_LEVEL_LABELS: Record<GrowthLevel, string> = {
+  dormant: "Dormant",
+  activated: "Activated",
+  growing: "Growing",
+  resonant: "Resonant",
+  mature: "Mature",
+};
+
+export function getCurrentPhase(totalDots: number): number {
+  if (totalDots >= PHASE_THRESHOLDS[4]) return 4;
+  if (totalDots >= PHASE_THRESHOLDS[3]) return 3;
+  if (totalDots >= PHASE_THRESHOLDS[2]) return 2;
+  return 1;
+}
+
+export function getNextPhaseThreshold(totalDots: number): number | null {
+  for (let i = 2; i <= 4; i++) {
+    if (totalDots < PHASE_THRESHOLDS[i]) return PHASE_THRESHOLDS[i];
+  }
+  return null;
 }
 
 export function useAtlas() {
@@ -104,8 +157,13 @@ export function useAtlas() {
     },
   });
 
+  const allDots = dotsQuery.data || [];
+  const totalDots = allDots.length;
+
   const clusters: ClusterWithState[] = (clustersQuery.data || []).map((c: any) => {
-    const clusterDots = (dotsQuery.data || []).filter((d) => d.cluster_id === c.id);
+    const clusterDots = allDots.filter((d) => d.cluster_id === c.id);
+    const unlocked = isClusterUnlocked(c.slug, totalDots);
+    const phase = getUnlockPhase(c.slug);
     return {
       id: c.id,
       name: c.name,
@@ -113,17 +171,21 @@ export function useAtlas() {
       meta_domain_id: c.meta_domain_id,
       description: c.description,
       sort_order: c.sort_order,
+      cluster_category: c.cluster_category || "identity",
       meta_domain: c.atlas_meta_domains || undefined,
       dots: clusterDots,
       dotCount: clusterDots.length,
-      computedState: computeState(clusterDots.length),
+      computedState: computeState(clusterDots.length, unlocked),
+      growthLevel: unlocked ? computeGrowthLevel(clusterDots.length) : "dormant",
+      unlockPhase: phase,
     };
   });
 
   return {
     domains: domainsQuery.data || [],
     clusters,
-    dots: dotsQuery.data || [],
+    dots: allDots,
+    totalDots,
     isLoading: domainsQuery.isLoading || clustersQuery.isLoading || dotsQuery.isLoading,
     error: domainsQuery.error || clustersQuery.error || dotsQuery.error,
   };
