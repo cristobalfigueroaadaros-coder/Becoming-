@@ -151,6 +151,47 @@ export type Database = {
           },
         ]
       }
+      atlas_cluster_progress: {
+        Row: {
+          activated_at: string | null
+          cluster_id: string | null
+          created_at: string | null
+          growth_level: number
+          id: string
+          last_interaction_at: string | null
+          unlock_phase: number
+          user_id: string
+        }
+        Insert: {
+          activated_at?: string | null
+          cluster_id?: string | null
+          created_at?: string | null
+          growth_level?: number
+          id?: string
+          last_interaction_at?: string | null
+          unlock_phase?: number
+          user_id: string
+        }
+        Update: {
+          activated_at?: string | null
+          cluster_id?: string | null
+          created_at?: string | null
+          growth_level?: number
+          id?: string
+          last_interaction_at?: string | null
+          unlock_phase?: number
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "atlas_cluster_progress_cluster_id_fkey"
+            columns: ["cluster_id"]
+            isOneToOne: false
+            referencedRelation: "atlas_clusters"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       atlas_cluster_project_connections: {
         Row: {
           cluster_id: string | null
@@ -189,6 +230,7 @@ export type Database = {
       }
       atlas_clusters: {
         Row: {
+          cluster_category: string | null
           created_at: string | null
           description: string | null
           id: string
@@ -199,6 +241,7 @@ export type Database = {
           state: string
         }
         Insert: {
+          cluster_category?: string | null
           created_at?: string | null
           description?: string | null
           id?: string
@@ -209,6 +252,7 @@ export type Database = {
           state?: string
         }
         Update: {
+          cluster_category?: string | null
           created_at?: string | null
           description?: string | null
           id?: string
