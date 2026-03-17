@@ -172,12 +172,29 @@ export const AtlasQuestFlow = ({ quest, clusterId }: Props) => {
         });
       }
 
+      // Detect growth level transition
+      const targetCluster = clusters.find(c => c.id === dotClusterId);
+      const prevDotCount = targetCluster?.dotCount || 0;
+      const newDotCount = isReinforced ? prevDotCount : prevDotCount + 1;
+      const prevLevel = getGrowthLevelName(prevDotCount);
+      const newLevel = getGrowthLevelName(newDotCount);
+
       queryClient.invalidateQueries({ queryKey: ["atlas-dots"] });
       queryClient.invalidateQueries({ queryKey: ["atlas-quests-completed"] });
       queryClient.invalidateQueries({ queryKey: ["atlas-signals"] });
       queryClient.invalidateQueries({ queryKey: ["atlas-patterns"] });
 
       toast({ title: isReinforced ? "Discovery reinforced!" : "Discovery added to Atlas!", description: dotResult.title });
+
+      if (newLevel !== prevLevel && GROWTH_MESSAGES[newLevel]) {
+        setTimeout(() => {
+          toast({
+            title: `${targetCluster?.name || "Cluster"} — ${newLevel.charAt(0).toUpperCase() + newLevel.slice(1)}`,
+            description: GROWTH_MESSAGES[newLevel],
+          });
+        }, 1500);
+      }
+
       navigate("/atlas");
     } catch (err: any) {
       console.error(err);
