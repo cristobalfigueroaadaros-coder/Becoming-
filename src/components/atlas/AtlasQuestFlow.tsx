@@ -28,6 +28,7 @@ export const AtlasQuestFlow = ({ quest, clusterId }: Props) => {
   const navigate = useNavigate();
   const queryClient = useQueryClient();
   const { aggregatedSignals, detectedPatternKeys } = useAtlasQuests();
+  const { clusters } = useAtlas();
   const [step, setStep] = useState(0);
   const [responses, setResponses] = useState<any[]>([]);
   const [dotResult, setDotResult] = useState<DotInterpretation | null>(null);
