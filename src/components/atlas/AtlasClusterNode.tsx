@@ -9,28 +9,45 @@ interface AtlasClusterNodeProps {
   onTap: () => void;
 }
 
+// Compute positions for dots in concentric orbits around the cluster center
+function getOrbitPositions(dotCount: number): { x: number; y: number }[] {
+  const orbits = [
+    { radius: 20, maxDots: 6 },
+    { radius: 34, maxDots: 8 },
+    { radius: 48, maxDots: 12 },
+  ];
+  const positions: { x: number; y: number }[] = [];
+  let remaining = dotCount;
+  for (const orbit of orbits) {
+    if (remaining <= 0) break;
+    const count = Math.min(remaining, orbit.maxDots);
+    for (let i = 0; i < count; i++) {
+      const angle = (2 * Math.PI * i) / count - Math.PI / 2;
+      positions.push({
+        x: Math.cos(angle) * orbit.radius,
+        y: Math.sin(angle) * orbit.radius,
+      });
+    }
+    remaining -= count;
+  }
+  return positions;
+}
+
+const GROWTH_STYLES: Record<string, { size: number; opacity: string; glowSize: number; pulse: boolean }> = {
+  locked:    { size: 64, opacity: "opacity-30", glowSize: 0, pulse: false },
+  dormant:   { size: 72, opacity: "opacity-50", glowSize: 0, pulse: false },
+  activated: { size: 80, opacity: "opacity-75", glowSize: 8, pulse: true },
+  growing:   { size: 88, opacity: "opacity-85", glowSize: 14, pulse: true },
+  resonant:  { size: 96, opacity: "opacity-95", glowSize: 20, pulse: true },
+  mature:    { size: 108, opacity: "opacity-100", glowSize: 28, pulse: true },
+};
+
 export const AtlasClusterNode = ({ cluster, index, onTap }: AtlasClusterNodeProps) => {
   const domainName = cluster.meta_domain?.name || "Person";
   const colors = DOMAIN_COLORS[domainName] || DOMAIN_COLORS.Person;
   const state = cluster.computedState;
-
-  const stateStyles: Record<string, string> = {
-    locked: "opacity-40 cursor-not-allowed",
-    available: "opacity-70",
-    activated: "opacity-90",
-    growing: "opacity-100",
-    rich: "opacity-100",
-  };
-
-  const sizeMap: Record<string, number> = {
-    locked: 72,
-    available: 76,
-    activated: 84,
-    growing: 92,
-    rich: 100,
-  };
-
-  const size = sizeMap[state];
+  const style = GROWTH_STYLES[state] || GROWTH_STYLES.dormant;
+  const orbitPositions = getOrbitPositions(cluster.dots.length);
 
   return (
     <motion.button
@@ -38,43 +55,56 @@ export const AtlasClusterNode = ({ cluster, index, onTap }: AtlasClusterNodeProp
       initial={{ opacity: 0, scale: 0.6 }}
       animate={{ opacity: 1, scale: 1 }}
       transition={{ delay: index * 0.05, type: "spring", stiffness: 200, damping: 20 }}
-      className={`relative flex flex-col items-center justify-center rounded-full transition-all ${stateStyles[state]}`}
-      style={{ width: size, height: size }}
+      className={`relative flex items-center justify-center ${style.opacity} ${state === "locked" ? "cursor-not-allowed" : ""}`}
+      style={{ width: style.size + 60, height: style.size + 60 }}
     >
-      {/* Glow ring */}
-      {(state === "growing" || state === "rich") && (
+      {/* Glow ring for activated+ */}
+      {style.pulse && (
         <motion.div
-          className="absolute inset-0 rounded-full"
+          className="absolute rounded-full"
           style={{
-            boxShadow: `0 0 ${state === "rich" ? 20 : 12}px ${colors.glow}`,
+            width: style.size + 8,
+            height: style.size + 8,
+            boxShadow: `0 0 ${style.glowSize}px ${colors.glow}`,
             border: `1.5px solid ${colors.border}`,
           }}
-          animate={{ opacity: [0.5, 1, 0.5] }}
+          animate={{ opacity: [0.4, 0.9, 0.4] }}
           transition={{ duration: 3, repeat: Infinity }}
         />
       )}
 
       {/* Main circle */}
       <div
-        className="absolute inset-0 rounded-full"
+        className="absolute rounded-full"
         style={{
-          background: `radial-gradient(circle at 40% 35%, ${colors.glow}, transparent 70%)`,
-          border: `1px solid ${state === "available" ? "hsl(var(--border))" : colors.border}`,
+          width: style.size,
+          height: style.size,
+          background: state === "locked"
+            ? "hsl(var(--muted))"
+            : `radial-gradient(circle at 40% 35%, ${colors.glow}, transparent 70%)`,
+          border: `1px solid ${state === "locked" || state === "dormant" ? "hsl(var(--border))" : colors.border}`,
         }}
       />
 
-      {/* Dot indicators — colored by dot_category */}
-      {cluster.dots.length > 0 && (
-        <div className="absolute -top-0.5 -right-0.5 flex gap-0.5">
-          {cluster.dots.slice(0, 4).map((dot, i) => (
-            <span
-              key={i}
-              className="w-1.5 h-1.5 rounded-full"
-              style={{ backgroundColor: getDotColor(dot) }}
-            />
-          ))}
-        </div>
-      )}
+      {/* Multi-orbit dots */}
+      {cluster.dots.map((dot, i) => {
+        const pos = orbitPositions[i];
+        if (!pos) return null;
+        return (
+          <motion.span
+            key={dot.id}
+            className="absolute w-2 h-2 rounded-full"
+            style={{
+              backgroundColor: getDotColor(dot),
+              left: `calc(50% + ${pos.x}px - 4px)`,
+              top: `calc(50% + ${pos.y}px - 4px)`,
+            }}
+            initial={{ opacity: 0, scale: 0 }}
+            animate={{ opacity: 1, scale: 1 }}
+            transition={{ delay: index * 0.05 + i * 0.03 }}
+          />
+        );
+      })}
 
       {/* Content */}
       <div className="relative z-10 flex flex-col items-center px-1">
@@ -84,7 +114,7 @@ export const AtlasClusterNode = ({ cluster, index, onTap }: AtlasClusterNodeProp
           <>
             <span
               className="text-[10px] font-semibold leading-tight text-center max-w-[60px]"
-              style={{ color: state === "available" ? "hsl(var(--muted-foreground))" : colors.text }}
+              style={{ color: state === "dormant" ? "hsl(var(--muted-foreground))" : colors.text }}
             >
               {cluster.name}
             </span>

@@ -1,9 +1,9 @@
 import { useState } from "react";
 import { motion } from "framer-motion";
 import { useNavigate } from "react-router-dom";
-import { Compass, Sparkles } from "lucide-react";
+import { Compass, Sparkles, Lock } from "lucide-react";
 import { Button } from "@/components/ui/button";
-import { useAtlas, ClusterWithState, DOMAIN_COLORS } from "@/hooks/useAtlas";
+import { useAtlas, ClusterWithState, DOMAIN_COLORS, getCurrentPhase, getNextPhaseThreshold } from "@/hooks/useAtlas";
 import { AtlasClusterNode, AtlasClusterDetail } from "@/components/atlas";
 
 // Organic scatter positions for 13 clusters (percentage-based)
@@ -25,7 +25,7 @@ const CLUSTER_POSITIONS: { x: number; y: number }[] = [
 
 const AtlasPage = () => {
   const navigate = useNavigate();
-  const { clusters, domains, isLoading } = useAtlas();
+  const { clusters, domains, totalDots, isLoading } = useAtlas();
   const [selectedCluster, setSelectedCluster] = useState<ClusterWithState | null>(null);
 
   if (isLoading) {
@@ -41,7 +41,9 @@ const AtlasPage = () => {
     );
   }
 
-  const totalDots = clusters.reduce((sum, c) => sum + c.dotCount, 0);
+  const currentPhase = getCurrentPhase(totalDots);
+  const nextThreshold = getNextPhaseThreshold(totalDots);
+  const unlockedCount = clusters.filter(c => c.computedState !== "locked").length;
 
   return (
     <div className="min-h-screen bg-background relative overflow-hidden">
@@ -60,8 +62,18 @@ const AtlasPage = () => {
           <h1 className="text-xl font-bold text-foreground">Atlas</h1>
         </div>
         <p className="text-xs text-muted-foreground mt-1">
-          {totalDots} {totalDots === 1 ? "discovery" : "discoveries"} across {clusters.filter(c => c.dotCount > 0).length} areas
+          {totalDots} {totalDots === 1 ? "discovery" : "discoveries"} · {unlockedCount} areas unlocked
         </p>
+
+        {/* Unlock progress hint */}
+        {nextThreshold && (
+          <div className="flex items-center gap-2 mt-2 px-3 py-1.5 rounded-full bg-muted/50 w-fit">
+            <Lock className="w-3 h-3 text-muted-foreground" />
+            <span className="text-[10px] text-muted-foreground">
+              {nextThreshold - totalDots} more {nextThreshold - totalDots === 1 ? "discovery" : "discoveries"} to unlock new areas
+            </span>
+          </div>
+        )}
 
         {/* Domain legend */}
         <div className="flex flex-wrap gap-3 mt-3">
@@ -78,7 +90,7 @@ const AtlasPage = () => {
       </div>
 
       {/* Cluster map */}
-      <div className="relative z-10 w-full" style={{ height: "calc(100vh - 200px)" }}>
+      <div className="relative z-10 w-full" style={{ height: "calc(100vh - 220px)" }}>
         {clusters.map((cluster, i) => {
           const pos = CLUSTER_POSITIONS[i] || { x: 50, y: 50 };
           return (
@@ -105,7 +117,7 @@ const AtlasPage = () => {
           {domains.map((domain) => {
             const domainClusters = clusters
               .map((c, i) => ({ ...c, pos: CLUSTER_POSITIONS[i] }))
-              .filter((c) => c.meta_domain_id === domain.id);
+              .filter((c) => c.meta_domain_id === domain.id && c.computedState !== "locked");
             const color = DOMAIN_COLORS[domain.name]?.glow || "transparent";
             const lines: JSX.Element[] = [];
             for (let i = 0; i < domainClusters.length - 1; i++) {
