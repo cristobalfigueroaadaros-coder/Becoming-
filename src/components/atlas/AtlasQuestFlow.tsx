@@ -9,7 +9,15 @@ import { AtlasQuestInteraction } from "./AtlasQuestInteraction";
 import { AtlasWinningCard } from "./AtlasWinningCard";
 import { interpretQuestResult, type ExtractedSignal, type DetectedPattern } from "@/lib/atlasSignalEngine";
 import { useAtlasQuests } from "@/hooks/useAtlasQuests";
+import { useAtlas } from "@/hooks/useAtlas";
 import type { AtlasQuestDefinition, DotInterpretation } from "@/data/atlasQuests";
+
+const GROWTH_MESSAGES: Record<string, string> = {
+  activated: "This area of your identity is awakening.",
+  growing: "This cluster is growing — patterns are forming.",
+  resonant: "Deep resonance detected — this area is becoming central to who you are.",
+  mature: "This cluster has reached maturity — a core part of your identity map.",
+};
 
 interface Props {
   quest: AtlasQuestDefinition;
