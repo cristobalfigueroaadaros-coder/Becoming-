@@ -2,6 +2,7 @@ import { useState } from "react";
 import { motion } from "framer-motion";
 import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
+import { Input } from "@/components/ui/input";
 import { Slider } from "@/components/ui/slider";
 import { cn } from "@/lib/utils";
 import type { QuestInteraction } from "@/data/atlasQuests";
@@ -12,11 +13,12 @@ interface Props {
 }
 
 export const AtlasQuestInteraction = ({ interaction, onSubmit }: Props) => {
-  const { type, prompt, options, minSelect, maxSelect, sliderItems } = interaction;
+  const { type, prompt, options, minSelect, maxSelect, sliderItems, emojiOptions, sentenceStem, memoryPrompt } = interaction;
   const [selected, setSelected] = useState<string[]>([]);
   const [ranked, setRanked] = useState<string[]>(options || []);
   const [sliderValues, setSliderValues] = useState<number[]>((sliderItems || []).map(() => 3));
   const [text, setText] = useState("");
+  const [emojiIndex, setEmojiIndex] = useState<number | null>(null);
 
   const canSubmit = (() => {
     switch (type) {
@@ -24,8 +26,12 @@ export const AtlasQuestInteraction = ({ interaction, onSubmit }: Props) => {
       case "ranking": return true;
       case "scenario": return selected.length === 1;
       case "card_pick": return selected.length === 1;
+      case "visual_metaphor": return selected.length === 1;
       case "energy_slider": return true;
       case "reflection": return text.trim().length > 0;
+      case "emoji_scale": return emojiIndex !== null;
+      case "sentence_completion": return text.trim().length > 0;
+      case "memory_flash": return text.trim().length > 0;
       default: return false;
     }
   })();
@@ -36,13 +42,17 @@ export const AtlasQuestInteraction = ({ interaction, onSubmit }: Props) => {
       case "ranking": return onSubmit(ranked);
       case "scenario": return onSubmit(selected[0]);
       case "card_pick": return onSubmit(selected[0]);
+      case "visual_metaphor": return onSubmit(selected[0]);
       case "energy_slider": return onSubmit(sliderItems?.map((item, i) => ({ item, value: sliderValues[i] })));
       case "reflection": return onSubmit(text.trim());
+      case "emoji_scale": return onSubmit(emojiIndex);
+      case "sentence_completion": return onSubmit(`${sentenceStem || ""} ${text.trim()}`);
+      case "memory_flash": return onSubmit(text.trim());
     }
   };
 
   const toggleSelect = (opt: string) => {
-    if (type === "scenario" || type === "card_pick") {
+    if (type === "scenario" || type === "card_pick" || type === "visual_metaphor") {
       setSelected([opt]);
       return;
     }
@@ -71,6 +81,7 @@ export const AtlasQuestInteraction = ({ interaction, onSubmit }: Props) => {
     >
       <h2 className="text-lg font-semibold text-foreground">{prompt}</h2>
 
+      {/* Multi-select, scenario, card_pick */}
       {(type === "multi_select" || type === "scenario" || type === "card_pick") && (
         <div className="flex flex-col gap-2">
           {type === "multi_select" && (
@@ -93,6 +104,48 @@ export const AtlasQuestInteraction = ({ interaction, onSubmit }: Props) => {
         </div>
       )}
 
+      {/* Visual metaphor — styled cards with italic text */}
+      {type === "visual_metaphor" && (
+        <div className="flex flex-col gap-2">
+          {(options || []).map((opt) => (
+            <button
+              key={opt}
+              onClick={() => toggleSelect(opt)}
+              className={cn(
+                "text-left px-5 py-4 rounded-2xl border transition-all",
+                selected.includes(opt)
+                  ? "border-primary bg-primary/10 text-foreground"
+                  : "border-border bg-card text-muted-foreground hover:border-primary/40"
+              )}
+            >
+              <span className="text-sm italic">{opt}</span>
+            </button>
+          ))}
+        </div>
+      )}
+
+      {/* Emoji scale */}
+      {type === "emoji_scale" && emojiOptions && (
+        <div className="flex justify-center gap-2 flex-wrap">
+          {emojiOptions.map((opt, idx) => (
+            <button
+              key={idx}
+              onClick={() => setEmojiIndex(idx)}
+              className={cn(
+                "flex flex-col items-center gap-1 px-3 py-3 rounded-xl border transition-all min-w-[64px]",
+                emojiIndex === idx
+                  ? "border-primary bg-primary/10 scale-110"
+                  : "border-border bg-card hover:border-primary/40"
+              )}
+            >
+              <span className="text-2xl">{opt.emoji}</span>
+              <span className="text-[10px] text-muted-foreground">{opt.label}</span>
+            </button>
+          ))}
+        </div>
+      )}
+
+      {/* Ranking */}
       {type === "ranking" && (
         <div className="flex flex-col gap-2">
           <p className="text-xs text-muted-foreground">Tap to move up in priority</p>
@@ -111,6 +164,7 @@ export const AtlasQuestInteraction = ({ interaction, onSubmit }: Props) => {
         </div>
       )}
 
+      {/* Energy slider */}
       {type === "energy_slider" && (
         <div className="flex flex-col gap-5">
           {(sliderItems || []).map((item, idx) => (
@@ -131,6 +185,35 @@ export const AtlasQuestInteraction = ({ interaction, onSubmit }: Props) => {
         </div>
       )}
 
+      {/* Sentence completion */}
+      {type === "sentence_completion" && (
+        <div className="space-y-3">
+          <p className="text-base font-medium text-foreground">{sentenceStem}…</p>
+          <Input
+            value={text}
+            onChange={(e) => setText(e.target.value)}
+            placeholder="Type your answer…"
+            className="bg-card text-base"
+          />
+        </div>
+      )}
+
+      {/* Memory flash */}
+      {type === "memory_flash" && (
+        <div className="space-y-3">
+          {memoryPrompt && (
+            <p className="text-sm italic text-muted-foreground">{memoryPrompt}</p>
+          )}
+          <Textarea
+            value={text}
+            onChange={(e) => setText(e.target.value)}
+            placeholder="What comes to mind…"
+            className="min-h-[100px] bg-card"
+          />
+        </div>
+      )}
+
+      {/* Reflection */}
       {type === "reflection" && (
         <Textarea
           value={text}

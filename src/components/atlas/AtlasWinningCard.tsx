@@ -64,10 +64,10 @@ export const AtlasWinningCard = ({ dot, clusterName, onConfirm, isLoading, isPat
         <HeaderIcon className="w-12 h-12" style={{ color: dotColor }} />
       </motion.div>
 
-      <div className="space-y-2">
+      <div className="space-y-3">
         <p className="text-sm text-muted-foreground uppercase tracking-wider">{headerLabel}</p>
         <h2 className="text-2xl font-bold text-foreground">{dot.title}</h2>
-        <p className="text-sm text-muted-foreground">{dot.description}</p>
+        <p className="text-base text-muted-foreground leading-relaxed max-w-sm">{dot.description}</p>
       </div>
 
       <div className="flex items-center gap-2">

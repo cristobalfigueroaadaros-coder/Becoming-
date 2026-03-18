@@ -9,12 +9,12 @@ interface AtlasClusterNodeProps {
   onTap: () => void;
 }
 
-// Compute positions for dots in concentric orbits around the cluster center
-function getOrbitPositions(dotCount: number): { x: number; y: number }[] {
+// Compute positions for dots in concentric orbits OUTSIDE the cluster center
+function getOrbitPositions(dotCount: number, baseRadius: number): { x: number; y: number }[] {
   const orbits = [
-    { radius: 20, maxDots: 6 },
-    { radius: 34, maxDots: 8 },
-    { radius: 48, maxDots: 12 },
+    { radius: baseRadius + 12, maxDots: 6 },
+    { radius: baseRadius + 24, maxDots: 8 },
+    { radius: baseRadius + 36, maxDots: 12 },
   ];
   const positions: { x: number; y: number }[] = [];
   let remaining = dotCount;
@@ -47,7 +47,11 @@ export const AtlasClusterNode = ({ cluster, index, onTap }: AtlasClusterNodeProp
   const colors = DOMAIN_COLORS[domainName] || DOMAIN_COLORS.Person;
   const state = cluster.computedState;
   const style = GROWTH_STYLES[state] || GROWTH_STYLES.dormant;
-  const orbitPositions = getOrbitPositions(cluster.dots.length);
+  const baseRadius = style.size / 2;
+  const orbitPositions = getOrbitPositions(cluster.dots.length, baseRadius);
+
+  // Container must be large enough for dots outside the circle
+  const containerSize = style.size + 90;
 
   return (
     <motion.button
@@ -56,7 +60,7 @@ export const AtlasClusterNode = ({ cluster, index, onTap }: AtlasClusterNodeProp
       animate={{ opacity: 1, scale: 1 }}
       transition={{ delay: index * 0.05, type: "spring", stiffness: 200, damping: 20 }}
       className={`relative flex items-center justify-center ${style.opacity} ${state === "locked" ? "cursor-not-allowed" : ""}`}
-      style={{ width: style.size + 60, height: style.size + 60 }}
+      style={{ width: containerSize, height: containerSize }}
     >
       {/* Glow ring for activated+ */}
       {style.pulse && (
@@ -86,35 +90,41 @@ export const AtlasClusterNode = ({ cluster, index, onTap }: AtlasClusterNodeProp
         }}
       />
 
-      {/* Multi-orbit dots */}
-      {cluster.dots.map((dot, i) => {
-        const pos = orbitPositions[i];
-        if (!pos) return null;
-        return (
-          <motion.span
-            key={dot.id}
-            className="absolute w-2 h-2 rounded-full"
-            style={{
-              backgroundColor: getDotColor(dot),
-              left: `calc(50% + ${pos.x}px - 4px)`,
-              top: `calc(50% + ${pos.y}px - 4px)`,
-            }}
-            initial={{ opacity: 0, scale: 0 }}
-            animate={{ opacity: 1, scale: 1 }}
-            transition={{ delay: index * 0.05 + i * 0.03 }}
-          />
-        );
-      })}
+      {/* Orbit dots — rendered OUTSIDE the main circle, pointer-events-none so they don't block clicks */}
+      <div className="absolute inset-0 pointer-events-none">
+        {cluster.dots.map((dot, i) => {
+          const pos = orbitPositions[i];
+          if (!pos) return null;
+          return (
+            <motion.span
+              key={dot.id}
+              className="absolute w-2.5 h-2.5 rounded-full"
+              style={{
+                backgroundColor: getDotColor(dot),
+                left: `calc(50% + ${pos.x}px - 5px)`,
+                top: `calc(50% + ${pos.y}px - 5px)`,
+                boxShadow: `0 0 4px ${getDotColor(dot)}60`,
+              }}
+              initial={{ opacity: 0, scale: 0 }}
+              animate={{ opacity: 1, scale: 1 }}
+              transition={{ delay: index * 0.05 + i * 0.03 }}
+            />
+          );
+        })}
+      </div>
 
-      {/* Content */}
-      <div className="relative z-10 flex flex-col items-center px-1">
+      {/* Content — z-20 to stay above orbit dots */}
+      <div className="relative z-20 flex flex-col items-center px-1">
         {state === "locked" ? (
           <Lock className="w-4 h-4 text-muted-foreground" />
         ) : (
           <>
             <span
-              className="text-[10px] font-semibold leading-tight text-center max-w-[60px]"
-              style={{ color: state === "dormant" ? "hsl(var(--muted-foreground))" : colors.text }}
+              className="text-[10px] font-semibold leading-tight text-center max-w-[60px] px-1 py-0.5 rounded"
+              style={{
+                color: state === "dormant" ? "hsl(var(--muted-foreground))" : colors.text,
+                backgroundColor: state !== "dormant" && cluster.dots.length > 3 ? "hsl(var(--background) / 0.7)" : "transparent",
+              }}
             >
               {cluster.name}
             </span>

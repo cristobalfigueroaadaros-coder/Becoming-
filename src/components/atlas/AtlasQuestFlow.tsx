@@ -1,6 +1,6 @@
 import { useState } from "react";
 import { motion, AnimatePresence } from "framer-motion";
-import { ArrowLeft } from "lucide-react";
+import { ArrowLeft, Loader2 } from "lucide-react";
 import { useNavigate } from "react-router-dom";
 import { useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
@@ -45,15 +45,47 @@ export const AtlasQuestFlow = ({ quest, clusterId }: Props) => {
   const [newSignals, setNewSignals] = useState<ExtractedSignal[]>([]);
   const [detectedPattern, setDetectedPattern] = useState<DetectedPattern | null>(null);
   const [isSaving, setIsSaving] = useState(false);
+  const [isGenerating, setIsGenerating] = useState(false);
 
-  const handleInteractionSubmit = (response: any) => {
+  const generateAIDot = async (
+    allResponses: any[],
+    patternTitle?: string
+  ): Promise<DotInterpretation | null> => {
+    try {
+      const { data, error } = await supabase.functions.invoke("generate-atlas-dot", {
+        body: {
+          responses: allResponses,
+          clusterName: quest.clusterName,
+          patternTitle: patternTitle || null,
+        },
+      });
+      if (error) throw error;
+      if (data?.title && data?.description && data?.dotCategory) {
+        return {
+          title: data.title,
+          description: data.description,
+          dotCategory: data.dotCategory,
+        };
+      }
+      return null;
+    } catch (err) {
+      console.error("AI dot generation failed, using fallback:", err);
+      return null;
+    }
+  };
+
+  const handleInteractionSubmit = async (response: any) => {
     const newResponses = [...responses, response];
     setResponses(newResponses);
 
     if (step < 3) {
       setStep(step + 1);
     } else {
-      // All 4 interactions complete — run signal detection
+      // All 4 interactions complete
+      setIsGenerating(true);
+      setStep(4);
+
+      // Run signal detection
       const result = interpretQuestResult(
         quest.questKey,
         newResponses,
@@ -61,11 +93,34 @@ export const AtlasQuestFlow = ({ quest, clusterId }: Props) => {
         detectedPatternKeys,
         quest.interpret
       );
-      setDotResult(result.dot);
-      setIsPatternBased(result.isPatternBased);
+
       setNewSignals(result.newSignals);
       setDetectedPattern(result.detectedPattern);
-      setStep(4);
+      setIsPatternBased(result.isPatternBased);
+
+      // Try AI-powered personalization
+      const aiDot = await generateAIDot(
+        newResponses,
+        result.isPatternBased ? result.detectedPattern?.pattern.title : undefined
+      );
+
+      if (aiDot) {
+        // If pattern was detected, keep pattern-based flag but use AI description
+        if (result.isPatternBased && result.detectedPattern) {
+          setDotResult({
+            title: result.detectedPattern.pattern.title,
+            description: aiDot.description,
+            dotCategory: aiDot.dotCategory,
+          });
+        } else {
+          setDotResult(aiDot);
+        }
+      } else {
+        // Fallback to signal-based result
+        setDotResult(result.dot);
+      }
+
+      setIsGenerating(false);
     }
   };
 
@@ -77,7 +132,6 @@ export const AtlasQuestFlow = ({ quest, clusterId }: Props) => {
       const { data: { user } } = await supabase.auth.getUser();
       if (!user) throw new Error("Not authenticated");
 
-      // Determine cluster for the dot
       let dotClusterId = clusterId;
       if (isPatternBased && detectedPattern) {
         const { data: patternCluster } = await supabase
@@ -92,7 +146,7 @@ export const AtlasQuestFlow = ({ quest, clusterId }: Props) => {
       const signalSourceNames = newSignals.map(s => s.signalName);
       const totalStrength = newSignals.reduce((sum, s) => sum + s.strength, 0);
 
-      // Duplicate detection: check for existing dot with same title
+      // Duplicate detection
       const { data: existingDots } = await supabase
         .from("atlas_dots")
         .select("id, confidence_score, signal_strength")
@@ -103,21 +157,16 @@ export const AtlasQuestFlow = ({ quest, clusterId }: Props) => {
       let dotId: string;
 
       if (existingDots && existingDots.length > 0) {
-        // Reinforce existing dot
         const existing = existingDots[0];
         const newConfidence = Math.min(1, (existing.confidence_score || 0.8) + 0.1);
         const newStrength = (existing.signal_strength || 0) + totalStrength;
         await supabase
           .from("atlas_dots")
-          .update({
-            confidence_score: newConfidence,
-            signal_strength: newStrength,
-          })
+          .update({ confidence_score: newConfidence, signal_strength: newStrength })
           .eq("id", existing.id);
         dotId = existing.id;
         setIsReinforced(true);
       } else {
-        // Insert new dot
         const { data: dot, error: dotErr } = await supabase
           .from("atlas_dots")
           .insert({
@@ -242,6 +291,17 @@ export const AtlasQuestFlow = ({ quest, clusterId }: Props) => {
               interaction={quest.interactions[step]}
               onSubmit={handleInteractionSubmit}
             />
+          ) : isGenerating ? (
+            <motion.div
+              key="generating"
+              initial={{ opacity: 0 }}
+              animate={{ opacity: 1 }}
+              exit={{ opacity: 0 }}
+              className="flex flex-col items-center gap-4"
+            >
+              <Loader2 className="w-8 h-8 animate-spin text-primary" />
+              <p className="text-sm text-muted-foreground">Discovering patterns…</p>
+            </motion.div>
           ) : dotResult ? (
             <AtlasWinningCard
               key="winning"
