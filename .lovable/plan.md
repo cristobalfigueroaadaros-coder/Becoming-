@@ -1,133 +1,70 @@
 
 
-# PDR 10 — Atlas Discovery Engine Personalization & Humanization
+# Becoming Guide — Floating Knowledge Hub
 
-## Summary
+## Overview
+Create a floating "Becoming Guide" button and a Sheet panel that serves as an in-app reference manual. The guide contains expandable sections explaining the system's philosophy, tools, and workflow with a dynamic "Start Here" section.
 
-This PDR addresses seven issues: (1) repetitive interaction mechanics, (2) limited discovery types, (3) generic pattern explanations, (4) artificial dot names, (5) robotic language, (6) dots appearing inside cluster nodes, and (7) dot name persistence bug. The solution uses AI-powered dot naming and explanations from the user's reflection text, adds new interaction types (emoji_scale, visual_metaphor, sentence_completion, memory_flash), fixes the visual layout, and rewrites quest content with simpler language.
+## Architecture
 
-## 1. New Interaction Types
+### New Files
+- `src/components/BecomingGuide.tsx` — Main component with floating button + Sheet panel
 
-**Edit: `src/data/atlasQuests.ts`**
+### Modified Files
+- `src/components/layout/AppLayout.tsx` — Add `<BecomingGuide />` inside the layout
 
-Add 4 new interaction types to `InteractionType`:
+## Component Design
 
-```typescript
-type InteractionType = "multi_select" | "ranking" | "scenario" | "card_pick" 
-  | "energy_slider" | "reflection" 
-  | "emoji_scale" | "visual_metaphor" | "sentence_completion" | "memory_flash";
-```
+### Floating Button
+- Fixed position: `bottom-24 right-4` (above bottom nav)
+- Small pill button with `BookOpen` icon + "Guide" label
+- Uses `Sheet` component (side="right") to open the panel
 
-- `emoji_scale`: Shows emoji options (e.g., 😠😐🙂😄🤯) with labels. Data: `emojiOptions: {emoji, label}[]`
-- `visual_metaphor`: Like card_pick but with metaphor-style options and a softer intro prompt
-- `sentence_completion`: User completes a sentence stem. Data: `sentenceStem: string`
-- `memory_flash`: Trigger prompt + free text response (like reflection but with a "close your eyes" style intro). Data: `memoryPrompt: string`
+### Sheet Panel Content
 
-**Edit: `src/components/atlas/AtlasQuestInteraction.tsx`**
+**Header**: "Becoming Guide" title with a short welcome line
 
-Add UI renderers for each new type:
-- `emoji_scale`: Horizontal row of emoji buttons with labels below
-- `visual_metaphor`: Card-style options with slightly larger text and italic styling
-- `sentence_completion`: Display the stem in bold, followed by a text input (not textarea)
-- `memory_flash`: Display the memory prompt in italic, then a textarea for response
+**"Start Here" section** (always visible at top, not collapsible):
+- Dynamically checks user state via existing hooks (`useIntegratorProjects`)
+- No project → "Share an idea with the Council" → links to `/council`
+- Has project → "Continue building" → links to `/creation-lab`
+- Highlight box: "You do not need to understand everything before starting. Just share an idea with the Council and begin."
 
-## 2. Rewrite All 52 Quests
+**Accordion sections** (using existing `Accordion` component):
 
-**Edit: `src/data/atlasQuests.ts`**
+1. **Foundation** (icon: `Compass`)
+   - "What is Becoming" — 4-5 lines from PDR
+   - "Message from the Founder" — Cristobal's message
+   - "Example Journey" — The flow steps
+   - "The Becoming Loop" — Insight → Build → Test → Learn cycle
 
-Rewrite all quest content following these rules:
-- Questions must be short, clear, emotionally recognizable
-- Replace overly abstract/philosophical questions with direct ones
-- Use the new interaction types: vary mechanics across quests so no two quests in the same cluster use identical interaction patterns
-- Interaction 4 MUST always be `reflection`, `sentence_completion`, or `memory_flash` (open-ended)
-- Remove generic fallback descriptions like "Discovered through Atlas quest exploration."
-- Rename dot titles from abstract labels ("Emotional Cartographer", "Memory Alchemist", "Rhythm Designer") to concrete identity phrases ("Deep Feeler", "Pattern Finder", "Chose Freedom")
+2. **Creation Lab** (icon: `FlaskConical`)
+   - Sub-items: Project, Daily Goals, Design Thinking, Creative Space, Map, Purpose to Value
+   - Each with 3-4 line explanation from PDR
 
-## 3. AI-Powered Dot Naming & Pattern Explanations
+3. **Becoming Path** (icon: `Sparkles`)
+   - Sub-items: Becoming Exercises, Pattern Discovery, Transmutation, Superpowers
 
-**New edge function: `supabase/functions/generate-atlas-dot/index.ts`**
+4. **Council** (icon: `Users`)
+   - Council explanation + Save Button explanation
 
-This function takes the user's 4 quest responses (especially the final reflection) and generates:
-- A personalized dot title (2-4 words, identity phrase style)
-- A personalized description referencing the user's actual answers
-- The dot category (strength/shadow/life_imprint)
+5. **Momentum** (icon: `TrendingUp`)
+   - Weekly Sprint, Accumulated Work, Capabilities
 
-Uses Lovable AI (gemini-2.5-flash) with a prompt that enforces:
-- Title must be a simple identity phrase, not a psychological label
-- Description must reference specific things the user said
-- Language must be conversational and human
+### Implementation Details
+- Each section uses nested `Accordion` for sub-topics
+- Important callouts use a styled div with `bg-primary/10 border-l-2 border-primary` 
+- All text comes from the PDR content (hardcoded strings, no DB needed)
+- Sheet can be closed instantly via X or overlay click
+- No localStorage tracking needed — this is always available
 
-**Edit: `src/components/atlas/AtlasQuestFlow.tsx`**
+### Visual Examples Placeholder
+The PDR requests before/after screenshots for each major section. Since we don't have these images yet, each section will include a subtle placeholder note: "Visual examples coming soon" that can be replaced with actual images later.
 
-After step 4 completes:
-1. Still run signal extraction for pattern detection
-2. If a pattern is detected, use pattern title but call the edge function to personalize the description using the user's reflection text
-3. If no pattern, call the edge function to generate both title and description from responses
-4. Fallback to current `interpret()` if the edge function fails
+## Files Summary
 
-Add a brief loading state ("Discovering patterns...") while the AI generates.
-
-**Edit: `src/components/atlas/AtlasWinningCard.tsx`**
-
-Update the description display to use the personalized AI-generated text. Show it with slightly more emphasis (larger font, not italic).
-
-## 4. Quest Language Cleanup
-
-All quest prompts must follow these rules (applied in the quest rewrite in step 2):
-- Max 12 words per question
-- No questions starting with "What recurring frustration is attempting to teach you"
-- Replace "Which of the following resonates" patterns with direct asks
-- Bad: "What do you wish others recognized in you more?" → Good: "What ability do you wish people noticed?"
-- Bad: "Rhythm Designer" → Good: "Found My Pace"
-
-## 5. Atlas Map Visualization Fix — Dots Outside Clusters
-
-**Edit: `src/components/atlas/AtlasClusterNode.tsx`**
-
-Current issue: dots render inside the main circle via `getOrbitPositions` with orbits at 20px, 34px, 48px — these overlap with the main circle (64-108px diameter = 32-54px radius).
-
-Fix: Increase orbit radii so dots appear clearly outside the main circle:
-- Orbit 1: radius = `(style.size / 2) + 12` (just outside the edge)
-- Orbit 2: radius = `(style.size / 2) + 24`  
-- Orbit 3: radius = `(style.size / 2) + 36`
-
-Also increase the button container size to accommodate the outer dots.
-
-## 6. Dot Name Persistence Bug Fix
-
-**Edit: `src/components/atlas/AtlasClusterNode.tsx`**
-
-The bug: cluster name text disappears when dots are added. Root cause is likely the `z-10` content div being overlapped by absolutely-positioned orbit dots. 
-
-Fix:
-- Ensure the name/count `div` has `z-20` and `pointer-events-none` on the orbit dots layer
-- Ensure the name text is always rendered regardless of dot count
-- Add a subtle semi-transparent background behind the name text for readability when dots surround it
-
-## 7. Signal Map Updates for New Interaction Types
-
-**Edit: `src/data/atlasSignals.ts`**
-
-Add signal mappings for the new interaction types:
-- `emoji_scale`: Map each emoji value to signals (higher emoji = stronger signal)
-- `sentence_completion` and `memory_flash`: Treat like `_reflection` — emit generic cluster-appropriate signals
-
-**Edit: `src/lib/atlasSignalEngine.ts`**
-
-Update `extractSignals` to handle new interaction types:
-- `emoji_scale`: Use the selected emoji index as a strength multiplier
-- `sentence_completion` / `memory_flash`: Same as reflection handling
-
-## Files to Create/Edit
-
-| File | Action |
+| File | Change |
 |------|--------|
-| `supabase/functions/generate-atlas-dot/index.ts` | Create — AI dot naming + description |
-| `src/data/atlasQuests.ts` | Edit — new interaction types, rewrite all 52 quests |
-| `src/components/atlas/AtlasQuestInteraction.tsx` | Edit — add 4 new mechanic renderers |
-| `src/components/atlas/AtlasQuestFlow.tsx` | Edit — integrate AI generation, loading state |
-| `src/components/atlas/AtlasWinningCard.tsx` | Edit — display personalized descriptions |
-| `src/components/atlas/AtlasClusterNode.tsx` | Edit — fix dot positioning outside circles, fix name persistence |
-| `src/data/atlasSignals.ts` | Edit — add signal maps for new types |
-| `src/lib/atlasSignalEngine.ts` | Edit — handle new interaction types |
+| `src/components/BecomingGuide.tsx` | New — floating button + Sheet with all guide content |
+| `src/components/layout/AppLayout.tsx` | Add `<BecomingGuide />` alongside `<BottomNavigation />` |
 

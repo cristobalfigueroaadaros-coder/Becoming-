@@ -146,3 +146,6 @@ verify_jwt = true
 
 [functions.seed-initial-capabilities]
 verify_jwt = true
+
+[functions.generate-atlas-dot]
+verify_jwt = false
