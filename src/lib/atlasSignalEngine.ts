@@ -45,10 +45,27 @@ export function extractSignals(
     }
   };
 
-  // Reflection type — use _reflection key
+  // Reflection / sentence_completion / memory_flash — use _reflection key
   if (typeof response === "string") {
     const reflectionEmissions = mapping["_reflection"];
     if (reflectionEmissions) addEmissions(reflectionEmissions);
+    return signals;
+  }
+
+  // Emoji scale — use _emoji key, scale by selected index
+  if (typeof response === "number" && mapping["_emoji"]) {
+    const emojiEmissions = mapping["_emoji"];
+    const factor = Math.max(0.5, (response + 1) / 3); // index 0=0.33, 4=1.67
+    for (const e of emojiEmissions) {
+      const def = SIGNAL_CATALOG.find(s => s.name === e.signalName);
+      signals.push({
+        signalName: e.signalName,
+        signalCategory: def?.category || "behavior",
+        strength: Math.max(1, Math.round(e.strength * factor)),
+        sourceQuestKey: questKey,
+        sourceInteractionIndex: interactionIndex,
+      });
+    }
     return signals;
   }
 
