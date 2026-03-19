@@ -682,10 +682,10 @@ export const ATLAS_QUESTS: AtlasQuestDefinition[] = [
     clusterName: "External Reflections",
     intro: "How others see you reveals hidden truths.",
     interactions: [
-      { type: "multi_select", prompt: "What words do others use to describe you?", options: ["Thoughtful", "Driven", "Creative", "Kind", "Intense", "Reliable"], minSelect: 2, maxSelect: 3 },
-      { type: "ranking", prompt: "How do others see your strengths?", options: ["Leadership", "Creativity", "Empathy", "Intelligence"] },
+      { type: "tap_resonates", prompt: "Tap the words others use about you.", words: ["Thoughtful", "Driven", "Creative", "Kind", "Intense", "Reliable", "Inspiring", "Brave", "Warm", "Honest"] },
+      { type: "this_or_that", prompt: "Others see you more as…", optionA: "A creator — you build new things", optionB: "A connector — you bring people together" },
       { type: "card_pick", prompt: "Which reflection surprises you most?", options: ["People find me inspiring", "People see me as brave", "People feel safe with me", "People admire my ideas"] },
-      { type: "reflection", prompt: "What feedback changed how you see yourself?" },
+      { type: "reflection", prompt: "What do people consistently say about you that you are still learning to believe?" },
     ],
     interpret: (r) => pick(["Hidden Leader", "Mirror Insight", "Community Pillar"], r),
   },
