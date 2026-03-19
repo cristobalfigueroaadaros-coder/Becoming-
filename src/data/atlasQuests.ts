@@ -288,10 +288,10 @@ export const ATLAS_QUESTS: AtlasQuestDefinition[] = [
     clusterName: "Values",
     intro: "Let's uncover the principles that guide your life.",
     interactions: [
-      { type: "ranking", prompt: "Order these by importance to you.", options: ["Freedom", "Growth", "Connection", "Impact"] },
+      { type: "this_or_that", prompt: "Quick gut reaction:", optionA: "Freedom", optionB: "Security" },
       { type: "multi_select", prompt: "Which values won't you compromise?", options: ["Authenticity", "Fairness", "Creativity", "Loyalty", "Independence", "Compassion"], minSelect: 2, maxSelect: 3 },
-      { type: "scenario", prompt: "When values clash, which wins?", options: ["Honesty over harmony", "Growth over comfort", "Community over ambition"] },
-      { type: "reflection", prompt: "What value were you taught that you still live by?" },
+      { type: "this_or_that", prompt: "When values clash:", optionA: "Honesty over harmony", optionB: "Growth over comfort" },
+      { type: "reflection", prompt: "What value would you fight for even if it cost you?" },
     ],
     interpret: (r) => pick(["Integrity First", "Freedom Driven", "Growth Seeker"], r),
   },
