@@ -627,11 +627,9 @@ export const ATLAS_QUESTS: AtlasQuestDefinition[] = [
     intro: "Your childhood holds clues about your true self.",
     interactions: [
       { type: "visual_metaphor", prompt: "As a child, your world was like…", options: ["A playground — always exploring", "A library — always imagining", "A stage — always performing", "A workshop — always building"] },
-      { type: "multi_select", prompt: "What childhood traits still show up today?", options: ["Curiosity", "Stubbornness", "Empathy", "Creativity", "Independence", "Sensitivity"], minSelect: 2, maxSelect: 3 },
-      { type: "emoji_scale", prompt: "How connected do you feel to your younger self?", emojiOptions: [
-        { emoji: "😢", label: "Disconnected" }, { emoji: "😐", label: "A little" }, { emoji: "🙂", label: "Somewhat" }, { emoji: "😊", label: "Very" }, { emoji: "💛", label: "Deeply connected" }
-      ]},
-      { type: "reflection", prompt: "What dream did you have as a child that still matters?" },
+      { type: "tap_resonates", prompt: "Tap the childhood traits that still show up today.", words: ["Curiosity", "Stubbornness", "Empathy", "Creativity", "Independence", "Sensitivity", "Energy", "Shyness", "Boldness", "Wonder"] },
+      { type: "this_or_that", prompt: "As a child you were more…", optionA: "Outdoors and active", optionB: "Indoors and imaginative" },
+      { type: "reflection", prompt: "What did you love doing as a child that you still do in some form today?" },
     ],
     interpret: (r) => pick(["Inner Child Signal", "Curiosity Root", "Original Dreamer"], r, "life_imprint"),
   },
