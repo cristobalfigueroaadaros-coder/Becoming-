@@ -862,15 +862,23 @@ export const OPTION_SIGNAL_MAP: Record<string, Record<number, Record<string, Sig
       "A stage — always performing": [{ signalName: "expression", strength: 2 }, { signalName: "leadership", strength: 1 }],
       "A workshop — always building": [{ signalName: "creativity", strength: 2 }, { signalName: "experimentation", strength: 1 }],
     },
-    1: {
+    1: { // tap_resonates
       "Curiosity": [{ signalName: "curiosity", strength: 2 }],
       "Stubbornness": [{ signalName: "resilience", strength: 2 }],
       "Empathy": [{ signalName: "empathy", strength: 2 }],
       "Creativity": [{ signalName: "creativity", strength: 2 }],
       "Independence": [{ signalName: "exploration", strength: 2 }],
       "Sensitivity": [{ signalName: "empathy", strength: 1 }, { signalName: "reflection", strength: 1 }],
+      "Energy": [{ signalName: "resilience", strength: 1 }, { signalName: "experimentation", strength: 1 }],
+      "Shyness": [{ signalName: "reflection", strength: 2 }],
+      "Boldness": [{ signalName: "leadership", strength: 2 }],
+      "Wonder": [{ signalName: "curiosity", strength: 2 }],
+      _reflection: [{ signalName: "reflection", strength: 1 }, { signalName: "curiosity", strength: 1 }],
     },
-    2: { _emoji: [{ signalName: "reflection", strength: 2 }, { signalName: "connection", strength: 1 }] },
+    2: { // this_or_that
+      "Outdoors and active": [{ signalName: "exploration", strength: 2 }, { signalName: "resilience", strength: 1 }],
+      "Indoors and imaginative": [{ signalName: "creativity", strength: 2 }, { signalName: "reflection", strength: 1 }],
+    },
     3: { _reflection: [{ signalName: "reflection", strength: 1 }, { signalName: "curiosity", strength: 1 }] },
   },
   childhood_signals_q2: {
