@@ -58,12 +58,10 @@ export const ATLAS_QUESTS: AtlasQuestDefinition[] = [
     clusterName: "Life Events",
     intro: "Let's explore the moments that shaped who you are.",
     interactions: [
-      { type: "emoji_scale", prompt: "How much have life changes shaped you?", emojiOptions: [
-        { emoji: "😐", label: "A little" }, { emoji: "🙂", label: "Somewhat" }, { emoji: "😊", label: "A lot" }, { emoji: "😄", label: "Deeply" }, { emoji: "🤯", label: "Completely" }
-      ]},
+      { type: "then_vs_now", prompt: "How has your life changed?", thenLabel: "Who I was before my biggest change", nowLabel: "Who I am after it" },
       { type: "visual_metaphor", prompt: "Your life path feels most like…", options: ["A mountain climb — steep but worth it", "A winding river — always moving", "An open road — full of choices", "A maze — surprising turns"] },
       { type: "multi_select", prompt: "Which moments feel like turning points?", options: ["Moving to a new place", "A relationship change", "A career shift", "A loss or ending", "An unexpected win", "A moment of clarity"], minSelect: 2, maxSelect: 3 },
-      { type: "reflection", prompt: "What thread connects your biggest life moments?" },
+      { type: "reflection", prompt: "Describe your biggest life moment in two sentences." },
     ],
     interpret: (r) => pick(["Kept Going", "Changed Course", "Started Over"], r),
   },
