@@ -570,12 +570,12 @@ export const ATLAS_QUESTS: AtlasQuestDefinition[] = [
     clusterName: "Natural Talents",
     intro: "Let's uncover gifts you might take for granted.",
     interactions: [
-      { type: "multi_select", prompt: "What came easily to you as a child?", options: ["Making friends", "Imagining stories", "Figuring things out", "Leading groups", "Creating art", "Noticing details"], minSelect: 2, maxSelect: 3 },
-      { type: "card_pick", prompt: "Which talent feels most natural now?", options: ["Reading people's emotions", "Simplifying complex things", "Generating ideas", "Staying calm under pressure"] },
+      { type: "tap_resonates", prompt: "Tap the talents that feel natural to you.", words: ["Empathy", "Creativity", "Focus", "Leadership", "Intuition", "Pattern-seeing", "Calm", "Teaching", "Humor", "Adaptability"] },
+      { type: "this_or_that", prompt: "This talent is…", optionA: "Something I was born with", optionB: "Something I built through experience" },
       { type: "emoji_scale", prompt: "How easily do your talents come to you?", emojiOptions: [
         { emoji: "😰", label: "Effort" }, { emoji: "😐", label: "Some work" }, { emoji: "🙂", label: "Fairly easy" }, { emoji: "😊", label: "Natural" }, { emoji: "✨", label: "Effortless" }
       ]},
-      { type: "reflection", prompt: "What do people compliment you on that surprises you?" },
+      { type: "sentence_completion", prompt: "Complete this:", sentenceStem: "Something I can do that most people find hard is" },
     ],
     interpret: (r) => pick(["Natural Gift", "Easy Talent", "Born With It"], r),
   },
