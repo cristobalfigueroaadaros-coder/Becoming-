@@ -197,13 +197,18 @@ export const OPTION_SIGNAL_MAP: Record<string, Record<number, Record<string, Sig
 
   // ===== SKILLS =====
   skills_q1: {
-    0: {
-      "Organizing things": [{ signalName: "systems_thinking", strength: 2 }, { signalName: "leadership", strength: 1 }],
-      "Creative ideas": [{ signalName: "creativity", strength: 2 }, { signalName: "expression", strength: 1 }],
-      "Emotional support": [{ signalName: "empathy", strength: 3 }, { signalName: "connection", strength: 1 }],
-      "Technical problems": [{ signalName: "problem_solving", strength: 3 }, { signalName: "pattern_thinking", strength: 1 }],
-      "Strategy": [{ signalName: "systems_thinking", strength: 2 }, { signalName: "vision_thinking", strength: 1 }],
-      "Communication": [{ signalName: "expression", strength: 2 }, { signalName: "community_orientation", strength: 1 }],
+    0: { // tap_resonates — each word maps to a signal
+      "Organizing": [{ signalName: "systems_thinking", strength: 2 }],
+      "Creating": [{ signalName: "creativity", strength: 2 }],
+      "Listening": [{ signalName: "empathy", strength: 2 }],
+      "Analyzing": [{ signalName: "problem_solving", strength: 2 }],
+      "Leading": [{ signalName: "leadership", strength: 2 }],
+      "Teaching": [{ signalName: "teaching_impulse", strength: 2 }],
+      "Writing": [{ signalName: "expression", strength: 2 }],
+      "Designing": [{ signalName: "creativity", strength: 2 }],
+      "Negotiating": [{ signalName: "leadership", strength: 1 }, { signalName: "empathy", strength: 1 }],
+      "Storytelling": [{ signalName: "expression", strength: 2 }],
+      _reflection: [{ signalName: "reflection", strength: 1 }, { signalName: "problem_solving", strength: 1 }],
     },
     1: {
       "Writing": [{ signalName: "expression", strength: 2 }],
