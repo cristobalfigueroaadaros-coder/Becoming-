@@ -45,8 +45,15 @@ export function extractSignals(
     }
   };
 
-  // Reflection / sentence_completion / memory_flash — use _reflection key
+  // Reflection / sentence_completion / memory_flash / then_vs_now — use _reflection key
   if (typeof response === "string") {
+    const reflectionEmissions = mapping["_reflection"];
+    if (reflectionEmissions) addEmissions(reflectionEmissions);
+    return signals;
+  }
+
+  // then_vs_now — object with {then, now} — treat like reflection
+  if (typeof response === "object" && !Array.isArray(response) && response?.then && response?.now) {
     const reflectionEmissions = mapping["_reflection"];
     if (reflectionEmissions) addEmissions(reflectionEmissions);
     return signals;
@@ -87,16 +94,20 @@ export function extractSignals(
     return signals;
   }
 
-  // Array of selections (multi_select, ranking top items)
+  // Array of selections (multi_select, ranking top items, tap_resonates)
   if (Array.isArray(response)) {
     for (const option of response) {
       const emissions = mapping[option];
       if (emissions) addEmissions(emissions);
     }
+    // If no specific mappings found but there's a _reflection fallback (e.g. tap_resonates)
+    if (signals.length === 0 && mapping["_reflection"]) {
+      addEmissions(mapping["_reflection"]);
+    }
     return signals;
   }
 
-  // Single selection (card_pick, scenario)
+  // Single selection (card_pick, scenario, this_or_that)
   if (typeof response === "string" || typeof response === "number") {
     const emissions = mapping[String(response)];
     if (emissions) addEmissions(emissions);
