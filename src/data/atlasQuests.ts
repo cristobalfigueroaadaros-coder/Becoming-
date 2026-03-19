@@ -19,6 +19,14 @@ export interface QuestInteraction {
   emojiOptions?: EmojiOption[];
   sentenceStem?: string;
   memoryPrompt?: string;
+  /** For this_or_that: exactly 2 options */
+  optionA?: string;
+  optionB?: string;
+  /** For tap_resonates: list of single words to tap */
+  words?: string[];
+  /** For then_vs_now: labels for the two text inputs */
+  thenLabel?: string;
+  nowLabel?: string;
 }
 
 export interface DotInterpretation {
