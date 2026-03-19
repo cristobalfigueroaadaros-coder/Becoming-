@@ -13,12 +13,14 @@ interface Props {
 }
 
 export const AtlasQuestInteraction = ({ interaction, onSubmit }: Props) => {
-  const { type, prompt, options, minSelect, maxSelect, sliderItems, emojiOptions, sentenceStem, memoryPrompt } = interaction;
+  const { type, prompt, options, minSelect, maxSelect, sliderItems, emojiOptions, sentenceStem, memoryPrompt, optionA, optionB, words, thenLabel, nowLabel } = interaction;
   const [selected, setSelected] = useState<string[]>([]);
   const [ranked, setRanked] = useState<string[]>(options || []);
   const [sliderValues, setSliderValues] = useState<number[]>((sliderItems || []).map(() => 3));
   const [text, setText] = useState("");
   const [emojiIndex, setEmojiIndex] = useState<number | null>(null);
+  const [thenText, setThenText] = useState("");
+  const [nowText, setNowText] = useState("");
 
   const canSubmit = (() => {
     switch (type) {
@@ -32,6 +34,9 @@ export const AtlasQuestInteraction = ({ interaction, onSubmit }: Props) => {
       case "emoji_scale": return emojiIndex !== null;
       case "sentence_completion": return text.trim().length > 0;
       case "memory_flash": return text.trim().length > 0;
+      case "this_or_that": return selected.length === 1;
+      case "tap_resonates": return selected.length >= 1;
+      case "then_vs_now": return thenText.trim().length > 0 && nowText.trim().length > 0;
       default: return false;
     }
   })();
@@ -48,11 +53,14 @@ export const AtlasQuestInteraction = ({ interaction, onSubmit }: Props) => {
       case "emoji_scale": return onSubmit(emojiIndex);
       case "sentence_completion": return onSubmit(`${sentenceStem || ""} ${text.trim()}`);
       case "memory_flash": return onSubmit(text.trim());
+      case "this_or_that": return onSubmit(selected[0]);
+      case "tap_resonates": return onSubmit(selected);
+      case "then_vs_now": return onSubmit({ then: thenText.trim(), now: nowText.trim() });
     }
   };
 
   const toggleSelect = (opt: string) => {
-    if (type === "scenario" || type === "card_pick" || type === "visual_metaphor") {
+    if (type === "scenario" || type === "card_pick" || type === "visual_metaphor" || type === "this_or_that") {
       setSelected([opt]);
       return;
     }
@@ -121,6 +129,71 @@ export const AtlasQuestInteraction = ({ interaction, onSubmit }: Props) => {
               <span className="text-sm italic">{opt}</span>
             </button>
           ))}
+        </div>
+      )}
+
+      {/* This or That — two large buttons side by side */}
+      {type === "this_or_that" && optionA && optionB && (
+        <div className="grid grid-cols-2 gap-3">
+          {[optionA, optionB].map((opt) => (
+            <button
+              key={opt}
+              onClick={() => toggleSelect(opt)}
+              className={cn(
+                "px-4 py-6 rounded-2xl border transition-all text-sm font-medium text-center",
+                selected.includes(opt)
+                  ? "border-primary bg-primary/10 text-foreground scale-[1.02]"
+                  : "border-border bg-card text-muted-foreground hover:border-primary/40"
+              )}
+            >
+              {opt}
+            </button>
+          ))}
+        </div>
+      )}
+
+      {/* Tap what resonates — word cloud */}
+      {type === "tap_resonates" && words && (
+        <div className="flex flex-wrap gap-2 justify-center">
+          <p className="w-full text-xs text-muted-foreground text-center mb-1">Tap all that feel true</p>
+          {words.map((word) => (
+            <button
+              key={word}
+              onClick={() => toggleSelect(word)}
+              className={cn(
+                "px-4 py-2 rounded-full border transition-all text-sm",
+                selected.includes(word)
+                  ? "border-primary bg-primary/15 text-foreground font-medium"
+                  : "border-border bg-card text-muted-foreground hover:border-primary/40"
+              )}
+            >
+              {word}
+            </button>
+          ))}
+        </div>
+      )}
+
+      {/* Then vs Now — two text inputs */}
+      {type === "then_vs_now" && (
+        <div className="space-y-4">
+          <div className="space-y-1.5">
+            <label className="text-sm font-medium text-muted-foreground">{thenLabel || "Then"}</label>
+            <Input
+              value={thenText}
+              onChange={(e) => setThenText(e.target.value)}
+              placeholder="Who I was then…"
+              className="bg-card"
+            />
+          </div>
+          <div className="space-y-1.5">
+            <label className="text-sm font-medium text-muted-foreground">{nowLabel || "Now"}</label>
+            <Input
+              value={nowText}
+              onChange={(e) => setNowText(e.target.value)}
+              placeholder="Who I am now…"
+              className="bg-card"
+            />
+          </div>
         </div>
       )}
 
