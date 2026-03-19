@@ -362,11 +362,9 @@ export const OPTION_SIGNAL_MAP: Record<string, Record<number, Record<string, Sig
 
   // ===== VALUES =====
   values_q1: {
-    0: {
+    0: { // this_or_that
       "Freedom": [{ signalName: "exploration", strength: 2 }, { signalName: "expression", strength: 1 }],
-      "Growth": [{ signalName: "curiosity", strength: 2 }, { signalName: "experimentation", strength: 1 }],
-      "Connection": [{ signalName: "connection", strength: 2 }, { signalName: "empathy", strength: 1 }],
-      "Impact": [{ signalName: "purpose_drive", strength: 2 }, { signalName: "vision_thinking", strength: 1 }],
+      "Security": [{ signalName: "resilience", strength: 2 }, { signalName: "systems_thinking", strength: 1 }],
     },
     1: {
       "Authenticity": [{ signalName: "expression", strength: 2 }, { signalName: "reflection", strength: 1 }],
@@ -376,10 +374,9 @@ export const OPTION_SIGNAL_MAP: Record<string, Record<number, Record<string, Sig
       "Independence": [{ signalName: "exploration", strength: 2 }, { signalName: "leadership", strength: 1 }],
       "Compassion": [{ signalName: "empathy", strength: 2 }, { signalName: "community_orientation", strength: 1 }],
     },
-    2: {
+    2: { // this_or_that
       "Honesty over harmony": [{ signalName: "expression", strength: 2 }, { signalName: "leadership", strength: 1 }],
       "Growth over comfort": [{ signalName: "experimentation", strength: 2 }, { signalName: "resilience", strength: 1 }],
-      "Community over ambition": [{ signalName: "community_orientation", strength: 2 }, { signalName: "empathy", strength: 1 }],
     },
     3: { _reflection: [{ signalName: "reflection", strength: 1 }, { signalName: "purpose_drive", strength: 1 }] },
   },
