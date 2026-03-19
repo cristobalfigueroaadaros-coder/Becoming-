@@ -1,7 +1,8 @@
 import type { DotCategory } from "./atlasSignals";
 
 export type InteractionType = "multi_select" | "ranking" | "scenario" | "card_pick" | "energy_slider" | "reflection"
-  | "emoji_scale" | "visual_metaphor" | "sentence_completion" | "memory_flash";
+  | "emoji_scale" | "visual_metaphor" | "sentence_completion" | "memory_flash"
+  | "this_or_that" | "tap_resonates" | "then_vs_now";
 
 export interface EmojiOption {
   emoji: string;
