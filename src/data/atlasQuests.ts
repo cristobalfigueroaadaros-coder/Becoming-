@@ -174,7 +174,7 @@ export const ATLAS_QUESTS: AtlasQuestDefinition[] = [
     clusterName: "Skills",
     intro: "Let's map what you're naturally good at.",
     interactions: [
-      { type: "multi_select", prompt: "What do people ask you for help with?", options: ["Organizing things", "Creative ideas", "Emotional support", "Technical problems", "Strategy", "Communication"], minSelect: 2, maxSelect: 3 },
+      { type: "tap_resonates", prompt: "Tap all the skills that feel like you.", words: ["Organizing", "Creating", "Listening", "Analyzing", "Leading", "Teaching", "Writing", "Designing", "Negotiating", "Storytelling"] },
       { type: "ranking", prompt: "Order by your confidence level.", options: ["Writing", "Analysis", "Leadership", "Design"] },
       { type: "scenario", prompt: "In a team, you naturally become…", options: ["The planner", "The idea generator", "The people connector"] },
       { type: "sentence_completion", prompt: "Complete this:", sentenceStem: "The skill that comes most naturally to me is" },
