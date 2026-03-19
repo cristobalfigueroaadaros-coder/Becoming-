@@ -44,7 +44,7 @@ export interface SignalEmission {
 export const OPTION_SIGNAL_MAP: Record<string, Record<number, Record<string, SignalEmission[]>>> = {
   // ===== LIFE EVENTS =====
   life_events_q1: {
-    0: { _emoji: [{ signalName: "resilience", strength: 2 }, { signalName: "reflection", strength: 1 }] },
+    0: { _reflection: [{ signalName: "resilience", strength: 2 }, { signalName: "reflection", strength: 1 }] }, // then_vs_now treated as reflection
     1: {
       "A mountain climb — steep but worth it": [{ signalName: "resilience", strength: 2 }, { signalName: "purpose_drive", strength: 1 }],
       "A winding river — always moving": [{ signalName: "exploration", strength: 2 }, { signalName: "experimentation", strength: 1 }],
