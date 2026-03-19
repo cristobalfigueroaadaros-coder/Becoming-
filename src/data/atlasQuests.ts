@@ -738,8 +738,8 @@ export const ATLAS_QUESTS: AtlasQuestDefinition[] = [
     clusterName: "Experiments",
     intro: "Let's explore your relationship with trying new things.",
     interactions: [
-      { type: "scenario", prompt: "Facing something new, you usually…", options: ["Dive in headfirst", "Research everything first", "Find someone to try with"] },
-      { type: "multi_select", prompt: "What experiments have you tried?", options: ["A side project", "A new skill", "Changed my routine", "Traveled solo", "Started creating content", "A new career path"], minSelect: 2, maxSelect: 3 },
+      { type: "this_or_that", prompt: "Facing something new, you usually…", optionA: "Dive in headfirst", optionB: "Research everything first" },
+      { type: "tap_resonates", prompt: "Tap the experiments you've tried.", words: ["Side project", "New skill", "Routine change", "Solo travel", "Content creation", "Career pivot", "Started a business", "Moved countries", "Learned an instrument", "Public speaking"] },
       { type: "emoji_scale", prompt: "How comfortable are you with uncertainty?", emojiOptions: [
         { emoji: "😰", label: "Terrified" }, { emoji: "😐", label: "Uneasy" }, { emoji: "🙂", label: "Okay" }, { emoji: "😊", label: "Comfortable" }, { emoji: "🤯", label: "I thrive in it" }
       ]},
