@@ -941,19 +941,22 @@ export const OPTION_SIGNAL_MAP: Record<string, Record<number, Record<string, Sig
 
   // ===== EXTERNAL REFLECTIONS =====
   external_reflections_q1: {
-    0: {
-      "Thoughtful": [{ signalName: "reflection", strength: 2 }, { signalName: "pattern_thinking", strength: 1 }],
-      "Driven": [{ signalName: "purpose_drive", strength: 2 }, { signalName: "leadership", strength: 1 }],
-      "Creative": [{ signalName: "creativity", strength: 2 }, { signalName: "expression", strength: 1 }],
-      "Kind": [{ signalName: "empathy", strength: 2 }, { signalName: "community_orientation", strength: 1 }],
-      "Intense": [{ signalName: "purpose_drive", strength: 2 }, { signalName: "reflection", strength: 1 }],
-      "Reliable": [{ signalName: "resilience", strength: 2 }, { signalName: "community_orientation", strength: 1 }],
+    0: { // tap_resonates
+      "Thoughtful": [{ signalName: "reflection", strength: 2 }],
+      "Driven": [{ signalName: "purpose_drive", strength: 2 }],
+      "Creative": [{ signalName: "creativity", strength: 2 }],
+      "Kind": [{ signalName: "empathy", strength: 2 }],
+      "Intense": [{ signalName: "purpose_drive", strength: 1 }, { signalName: "reflection", strength: 1 }],
+      "Reliable": [{ signalName: "resilience", strength: 2 }],
+      "Inspiring": [{ signalName: "leadership", strength: 2 }],
+      "Brave": [{ signalName: "resilience", strength: 2 }],
+      "Warm": [{ signalName: "empathy", strength: 2 }],
+      "Honest": [{ signalName: "expression", strength: 2 }],
+      _reflection: [{ signalName: "reflection", strength: 1 }, { signalName: "connection", strength: 1 }],
     },
-    1: {
-      "Leadership": [{ signalName: "leadership", strength: 2 }],
-      "Creativity": [{ signalName: "creativity", strength: 2 }],
-      "Empathy": [{ signalName: "empathy", strength: 2 }],
-      "Intelligence": [{ signalName: "problem_solving", strength: 2 }],
+    1: { // this_or_that
+      "A creator — you build new things": [{ signalName: "creativity", strength: 2 }, { signalName: "experimentation", strength: 1 }],
+      "A connector — you bring people together": [{ signalName: "community_orientation", strength: 2 }, { signalName: "empathy", strength: 1 }],
     },
     2: {
       "People find me inspiring": [{ signalName: "leadership", strength: 2 }, { signalName: "expression", strength: 1 }],
