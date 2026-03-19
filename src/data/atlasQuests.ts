@@ -1,7 +1,8 @@
 import type { DotCategory } from "./atlasSignals";
 
 export type InteractionType = "multi_select" | "ranking" | "scenario" | "card_pick" | "energy_slider" | "reflection"
-  | "emoji_scale" | "visual_metaphor" | "sentence_completion" | "memory_flash";
+  | "emoji_scale" | "visual_metaphor" | "sentence_completion" | "memory_flash"
+  | "this_or_that" | "tap_resonates" | "then_vs_now";
 
 export interface EmojiOption {
   emoji: string;
@@ -18,6 +19,14 @@ export interface QuestInteraction {
   emojiOptions?: EmojiOption[];
   sentenceStem?: string;
   memoryPrompt?: string;
+  /** For this_or_that: exactly 2 options */
+  optionA?: string;
+  optionB?: string;
+  /** For tap_resonates: list of single words to tap */
+  words?: string[];
+  /** For then_vs_now: labels for the two text inputs */
+  thenLabel?: string;
+  nowLabel?: string;
 }
 
 export interface DotInterpretation {
@@ -49,12 +58,10 @@ export const ATLAS_QUESTS: AtlasQuestDefinition[] = [
     clusterName: "Life Events",
     intro: "Let's explore the moments that shaped who you are.",
     interactions: [
-      { type: "emoji_scale", prompt: "How much have life changes shaped you?", emojiOptions: [
-        { emoji: "😐", label: "A little" }, { emoji: "🙂", label: "Somewhat" }, { emoji: "😊", label: "A lot" }, { emoji: "😄", label: "Deeply" }, { emoji: "🤯", label: "Completely" }
-      ]},
+      { type: "then_vs_now", prompt: "How has your life changed?", thenLabel: "Who I was before my biggest change", nowLabel: "Who I am after it" },
       { type: "visual_metaphor", prompt: "Your life path feels most like…", options: ["A mountain climb — steep but worth it", "A winding river — always moving", "An open road — full of choices", "A maze — surprising turns"] },
       { type: "multi_select", prompt: "Which moments feel like turning points?", options: ["Moving to a new place", "A relationship change", "A career shift", "A loss or ending", "An unexpected win", "A moment of clarity"], minSelect: 2, maxSelect: 3 },
-      { type: "reflection", prompt: "What thread connects your biggest life moments?" },
+      { type: "reflection", prompt: "Describe your biggest life moment in two sentences." },
     ],
     interpret: (r) => pick(["Kept Going", "Changed Course", "Started Over"], r),
   },
@@ -167,7 +174,7 @@ export const ATLAS_QUESTS: AtlasQuestDefinition[] = [
     clusterName: "Skills",
     intro: "Let's map what you're naturally good at.",
     interactions: [
-      { type: "multi_select", prompt: "What do people ask you for help with?", options: ["Organizing things", "Creative ideas", "Emotional support", "Technical problems", "Strategy", "Communication"], minSelect: 2, maxSelect: 3 },
+      { type: "tap_resonates", prompt: "Tap all the skills that feel like you.", words: ["Organizing", "Creating", "Listening", "Analyzing", "Leading", "Teaching", "Writing", "Designing", "Negotiating", "Storytelling"] },
       { type: "ranking", prompt: "Order by your confidence level.", options: ["Writing", "Analysis", "Leadership", "Design"] },
       { type: "scenario", prompt: "In a team, you naturally become…", options: ["The planner", "The idea generator", "The people connector"] },
       { type: "sentence_completion", prompt: "Complete this:", sentenceStem: "The skill that comes most naturally to me is" },
@@ -281,10 +288,10 @@ export const ATLAS_QUESTS: AtlasQuestDefinition[] = [
     clusterName: "Values",
     intro: "Let's uncover the principles that guide your life.",
     interactions: [
-      { type: "ranking", prompt: "Order these by importance to you.", options: ["Freedom", "Growth", "Connection", "Impact"] },
+      { type: "this_or_that", prompt: "Quick gut reaction:", optionA: "Freedom", optionB: "Security" },
       { type: "multi_select", prompt: "Which values won't you compromise?", options: ["Authenticity", "Fairness", "Creativity", "Loyalty", "Independence", "Compassion"], minSelect: 2, maxSelect: 3 },
-      { type: "scenario", prompt: "When values clash, which wins?", options: ["Honesty over harmony", "Growth over comfort", "Community over ambition"] },
-      { type: "reflection", prompt: "What value were you taught that you still live by?" },
+      { type: "this_or_that", prompt: "When values clash:", optionA: "Honesty over harmony", optionB: "Growth over comfort" },
+      { type: "reflection", prompt: "What value would you fight for even if it cost you?" },
     ],
     interpret: (r) => pick(["Integrity First", "Freedom Driven", "Growth Seeker"], r),
   },
@@ -563,12 +570,12 @@ export const ATLAS_QUESTS: AtlasQuestDefinition[] = [
     clusterName: "Natural Talents",
     intro: "Let's uncover gifts you might take for granted.",
     interactions: [
-      { type: "multi_select", prompt: "What came easily to you as a child?", options: ["Making friends", "Imagining stories", "Figuring things out", "Leading groups", "Creating art", "Noticing details"], minSelect: 2, maxSelect: 3 },
-      { type: "card_pick", prompt: "Which talent feels most natural now?", options: ["Reading people's emotions", "Simplifying complex things", "Generating ideas", "Staying calm under pressure"] },
+      { type: "tap_resonates", prompt: "Tap the talents that feel natural to you.", words: ["Empathy", "Creativity", "Focus", "Leadership", "Intuition", "Pattern-seeing", "Calm", "Teaching", "Humor", "Adaptability"] },
+      { type: "this_or_that", prompt: "This talent is…", optionA: "Something I was born with", optionB: "Something I built through experience" },
       { type: "emoji_scale", prompt: "How easily do your talents come to you?", emojiOptions: [
         { emoji: "😰", label: "Effort" }, { emoji: "😐", label: "Some work" }, { emoji: "🙂", label: "Fairly easy" }, { emoji: "😊", label: "Natural" }, { emoji: "✨", label: "Effortless" }
       ]},
-      { type: "reflection", prompt: "What do people compliment you on that surprises you?" },
+      { type: "sentence_completion", prompt: "Complete this:", sentenceStem: "Something I can do that most people find hard is" },
     ],
     interpret: (r) => pick(["Natural Gift", "Easy Talent", "Born With It"], r),
   },
@@ -620,11 +627,9 @@ export const ATLAS_QUESTS: AtlasQuestDefinition[] = [
     intro: "Your childhood holds clues about your true self.",
     interactions: [
       { type: "visual_metaphor", prompt: "As a child, your world was like…", options: ["A playground — always exploring", "A library — always imagining", "A stage — always performing", "A workshop — always building"] },
-      { type: "multi_select", prompt: "What childhood traits still show up today?", options: ["Curiosity", "Stubbornness", "Empathy", "Creativity", "Independence", "Sensitivity"], minSelect: 2, maxSelect: 3 },
-      { type: "emoji_scale", prompt: "How connected do you feel to your younger self?", emojiOptions: [
-        { emoji: "😢", label: "Disconnected" }, { emoji: "😐", label: "A little" }, { emoji: "🙂", label: "Somewhat" }, { emoji: "😊", label: "Very" }, { emoji: "💛", label: "Deeply connected" }
-      ]},
-      { type: "reflection", prompt: "What dream did you have as a child that still matters?" },
+      { type: "tap_resonates", prompt: "Tap the childhood traits that still show up today.", words: ["Curiosity", "Stubbornness", "Empathy", "Creativity", "Independence", "Sensitivity", "Energy", "Shyness", "Boldness", "Wonder"] },
+      { type: "this_or_that", prompt: "As a child you were more…", optionA: "Outdoors and active", optionB: "Indoors and imaginative" },
+      { type: "reflection", prompt: "What did you love doing as a child that you still do in some form today?" },
     ],
     interpret: (r) => pick(["Inner Child Signal", "Curiosity Root", "Original Dreamer"], r, "life_imprint"),
   },
@@ -677,10 +682,10 @@ export const ATLAS_QUESTS: AtlasQuestDefinition[] = [
     clusterName: "External Reflections",
     intro: "How others see you reveals hidden truths.",
     interactions: [
-      { type: "multi_select", prompt: "What words do others use to describe you?", options: ["Thoughtful", "Driven", "Creative", "Kind", "Intense", "Reliable"], minSelect: 2, maxSelect: 3 },
-      { type: "ranking", prompt: "How do others see your strengths?", options: ["Leadership", "Creativity", "Empathy", "Intelligence"] },
+      { type: "tap_resonates", prompt: "Tap the words others use about you.", words: ["Thoughtful", "Driven", "Creative", "Kind", "Intense", "Reliable", "Inspiring", "Brave", "Warm", "Honest"] },
+      { type: "this_or_that", prompt: "Others see you more as…", optionA: "A creator — you build new things", optionB: "A connector — you bring people together" },
       { type: "card_pick", prompt: "Which reflection surprises you most?", options: ["People find me inspiring", "People see me as brave", "People feel safe with me", "People admire my ideas"] },
-      { type: "reflection", prompt: "What feedback changed how you see yourself?" },
+      { type: "reflection", prompt: "What do people consistently say about you that you are still learning to believe?" },
     ],
     interpret: (r) => pick(["Hidden Leader", "Mirror Insight", "Community Pillar"], r),
   },
@@ -733,8 +738,8 @@ export const ATLAS_QUESTS: AtlasQuestDefinition[] = [
     clusterName: "Experiments",
     intro: "Let's explore your relationship with trying new things.",
     interactions: [
-      { type: "scenario", prompt: "Facing something new, you usually…", options: ["Dive in headfirst", "Research everything first", "Find someone to try with"] },
-      { type: "multi_select", prompt: "What experiments have you tried?", options: ["A side project", "A new skill", "Changed my routine", "Traveled solo", "Started creating content", "A new career path"], minSelect: 2, maxSelect: 3 },
+      { type: "this_or_that", prompt: "Facing something new, you usually…", optionA: "Dive in headfirst", optionB: "Research everything first" },
+      { type: "tap_resonates", prompt: "Tap the experiments you've tried.", words: ["Side project", "New skill", "Routine change", "Solo travel", "Content creation", "Career pivot", "Started a business", "Moved countries", "Learned an instrument", "Public speaking"] },
       { type: "emoji_scale", prompt: "How comfortable are you with uncertainty?", emojiOptions: [
         { emoji: "😰", label: "Terrified" }, { emoji: "😐", label: "Uneasy" }, { emoji: "🙂", label: "Okay" }, { emoji: "😊", label: "Comfortable" }, { emoji: "🤯", label: "I thrive in it" }
       ]},
