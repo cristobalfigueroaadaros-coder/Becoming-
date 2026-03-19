@@ -1027,18 +1027,22 @@ export const OPTION_SIGNAL_MAP: Record<string, Record<number, Record<string, Sig
 
   // ===== EXPERIMENTS =====
   experiments_q1: {
-    0: {
+    0: { // this_or_that
       "Dive in headfirst": [{ signalName: "experimentation", strength: 3 }, { signalName: "resilience", strength: 1 }],
       "Research everything first": [{ signalName: "curiosity", strength: 2 }, { signalName: "systems_thinking", strength: 1 }],
-      "Find someone to try with": [{ signalName: "community_orientation", strength: 2 }, { signalName: "connection", strength: 1 }],
     },
-    1: {
-      "A side project": [{ signalName: "experimentation", strength: 2 }, { signalName: "creativity", strength: 1 }],
-      "A new skill": [{ signalName: "curiosity", strength: 2 }, { signalName: "experimentation", strength: 1 }],
-      "Changed my routine": [{ signalName: "experimentation", strength: 2 }, { signalName: "resilience", strength: 1 }],
-      "Traveled solo": [{ signalName: "exploration", strength: 2 }, { signalName: "resilience", strength: 1 }],
-      "Started creating content": [{ signalName: "expression", strength: 2 }, { signalName: "creativity", strength: 1 }],
-      "A new career path": [{ signalName: "experimentation", strength: 2 }, { signalName: "exploration", strength: 1 }],
+    1: { // tap_resonates
+      "Side project": [{ signalName: "experimentation", strength: 2 }, { signalName: "creativity", strength: 1 }],
+      "New skill": [{ signalName: "curiosity", strength: 2 }, { signalName: "experimentation", strength: 1 }],
+      "Routine change": [{ signalName: "experimentation", strength: 2 }, { signalName: "resilience", strength: 1 }],
+      "Solo travel": [{ signalName: "exploration", strength: 2 }, { signalName: "resilience", strength: 1 }],
+      "Content creation": [{ signalName: "expression", strength: 2 }, { signalName: "creativity", strength: 1 }],
+      "Career pivot": [{ signalName: "experimentation", strength: 2 }, { signalName: "exploration", strength: 1 }],
+      "Started a business": [{ signalName: "experimentation", strength: 2 }, { signalName: "leadership", strength: 1 }],
+      "Moved countries": [{ signalName: "exploration", strength: 3 }],
+      "Learned an instrument": [{ signalName: "creativity", strength: 2 }],
+      "Public speaking": [{ signalName: "expression", strength: 2 }, { signalName: "leadership", strength: 1 }],
+      _reflection: [{ signalName: "experimentation", strength: 1 }, { signalName: "exploration", strength: 1 }],
     },
     2: { _emoji: [{ signalName: "experimentation", strength: 2 }, { signalName: "resilience", strength: 1 }] },
     3: { _reflection: [{ signalName: "reflection", strength: 1 }, { signalName: "experimentation", strength: 1 }] },
