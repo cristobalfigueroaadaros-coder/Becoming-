@@ -771,19 +771,22 @@ export const OPTION_SIGNAL_MAP: Record<string, Record<number, Record<string, Sig
 
   // ===== NATURAL TALENTS =====
   natural_talents_q1: {
-    0: {
-      "Making friends": [{ signalName: "community_orientation", strength: 2 }, { signalName: "empathy", strength: 1 }],
-      "Imagining stories": [{ signalName: "creativity", strength: 2 }, { signalName: "expression", strength: 1 }],
-      "Figuring things out": [{ signalName: "problem_solving", strength: 2 }, { signalName: "curiosity", strength: 1 }],
-      "Leading groups": [{ signalName: "leadership", strength: 2 }, { signalName: "community_orientation", strength: 1 }],
-      "Creating art": [{ signalName: "creativity", strength: 2 }, { signalName: "expression", strength: 2 }],
-      "Noticing details": [{ signalName: "pattern_thinking", strength: 2 }, { signalName: "reflection", strength: 1 }],
+    0: { // tap_resonates
+      "Empathy": [{ signalName: "empathy", strength: 2 }],
+      "Creativity": [{ signalName: "creativity", strength: 2 }],
+      "Focus": [{ signalName: "reflection", strength: 2 }],
+      "Leadership": [{ signalName: "leadership", strength: 2 }],
+      "Intuition": [{ signalName: "empathy", strength: 1 }, { signalName: "pattern_thinking", strength: 1 }],
+      "Pattern-seeing": [{ signalName: "pattern_thinking", strength: 2 }],
+      "Calm": [{ signalName: "resilience", strength: 2 }],
+      "Teaching": [{ signalName: "teaching_impulse", strength: 2 }],
+      "Humor": [{ signalName: "expression", strength: 2 }],
+      "Adaptability": [{ signalName: "resilience", strength: 1 }, { signalName: "experimentation", strength: 1 }],
+      _reflection: [{ signalName: "reflection", strength: 1 }, { signalName: "creativity", strength: 1 }],
     },
-    1: {
-      "Reading people's emotions": [{ signalName: "empathy", strength: 3 }, { signalName: "connection", strength: 1 }],
-      "Simplifying complex things": [{ signalName: "systems_thinking", strength: 2 }, { signalName: "problem_solving", strength: 1 }],
-      "Generating ideas": [{ signalName: "creativity", strength: 3 }, { signalName: "experimentation", strength: 1 }],
-      "Staying calm under pressure": [{ signalName: "resilience", strength: 3 }, { signalName: "leadership", strength: 1 }],
+    1: { // this_or_that
+      "Something I was born with": [{ signalName: "expression", strength: 2 }, { signalName: "creativity", strength: 1 }],
+      "Something I built through experience": [{ signalName: "resilience", strength: 2 }, { signalName: "experimentation", strength: 1 }],
     },
     2: { _emoji: [{ signalName: "expression", strength: 1 }, { signalName: "creativity", strength: 1 }] },
     3: { _reflection: [{ signalName: "reflection", strength: 1 }, { signalName: "pattern_thinking", strength: 1 }] },
