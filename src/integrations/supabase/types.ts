@@ -272,6 +272,107 @@ export type Database = {
           },
         ]
       }
+      atlas_connections: {
+        Row: {
+          connection_type: string
+          created_at: string | null
+          dot_id_a: string | null
+          dot_id_b: string | null
+          id: string
+          insight_text: string | null
+          is_gold_moment: boolean | null
+          shared_signals: Json | null
+          strength: number | null
+          user_id: string
+        }
+        Insert: {
+          connection_type?: string
+          created_at?: string | null
+          dot_id_a?: string | null
+          dot_id_b?: string | null
+          id?: string
+          insight_text?: string | null
+          is_gold_moment?: boolean | null
+          shared_signals?: Json | null
+          strength?: number | null
+          user_id: string
+        }
+        Update: {
+          connection_type?: string
+          created_at?: string | null
+          dot_id_a?: string | null
+          dot_id_b?: string | null
+          id?: string
+          insight_text?: string | null
+          is_gold_moment?: boolean | null
+          shared_signals?: Json | null
+          strength?: number | null
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "atlas_connections_dot_id_a_fkey"
+            columns: ["dot_id_a"]
+            isOneToOne: false
+            referencedRelation: "atlas_dots"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "atlas_connections_dot_id_b_fkey"
+            columns: ["dot_id_b"]
+            isOneToOne: false
+            referencedRelation: "atlas_dots"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      atlas_dot_evolutions: {
+        Row: {
+          created_at: string | null
+          dot_id: string | null
+          evolution_type: string
+          id: string
+          new_description: string | null
+          new_title: string
+          previous_description: string | null
+          previous_title: string
+          trigger_reason: string | null
+          user_id: string
+        }
+        Insert: {
+          created_at?: string | null
+          dot_id?: string | null
+          evolution_type: string
+          id?: string
+          new_description?: string | null
+          new_title: string
+          previous_description?: string | null
+          previous_title: string
+          trigger_reason?: string | null
+          user_id: string
+        }
+        Update: {
+          created_at?: string | null
+          dot_id?: string | null
+          evolution_type?: string
+          id?: string
+          new_description?: string | null
+          new_title?: string
+          previous_description?: string | null
+          previous_title?: string
+          trigger_reason?: string | null
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "atlas_dot_evolutions_dot_id_fkey"
+            columns: ["dot_id"]
+            isOneToOne: false
+            referencedRelation: "atlas_dots"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       atlas_dot_project_connections: {
         Row: {
           created_at: string | null
@@ -315,13 +416,19 @@ export type Database = {
           created_at: string | null
           dot_category: string
           dot_type: string | null
+          evolution_stage: number | null
+          evolution_type: string | null
+          evolved_from_ids: string[] | null
           id: string
+          is_gold_moment: boolean | null
           short_description: string | null
           signal_sources: Json | null
           signal_strength: number | null
           source_system: string
           title: string
+          user_edited: boolean | null
           user_id: string
+          user_validated: boolean | null
         }
         Insert: {
           cluster_id?: string | null
@@ -329,13 +436,19 @@ export type Database = {
           created_at?: string | null
           dot_category?: string
           dot_type?: string | null
+          evolution_stage?: number | null
+          evolution_type?: string | null
+          evolved_from_ids?: string[] | null
           id?: string
+          is_gold_moment?: boolean | null
           short_description?: string | null
           signal_sources?: Json | null
           signal_strength?: number | null
           source_system?: string
           title: string
+          user_edited?: boolean | null
           user_id: string
+          user_validated?: boolean | null
         }
         Update: {
           cluster_id?: string | null
@@ -343,13 +456,19 @@ export type Database = {
           created_at?: string | null
           dot_category?: string
           dot_type?: string | null
+          evolution_stage?: number | null
+          evolution_type?: string | null
+          evolved_from_ids?: string[] | null
           id?: string
+          is_gold_moment?: boolean | null
           short_description?: string | null
           signal_sources?: Json | null
           signal_strength?: number | null
           source_system?: string
           title?: string
+          user_edited?: boolean | null
           user_id?: string
+          user_validated?: boolean | null
         }
         Relationships: [
           {
