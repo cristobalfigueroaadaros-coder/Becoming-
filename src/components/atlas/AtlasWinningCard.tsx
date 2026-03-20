@@ -7,6 +7,7 @@ import { Textarea } from "@/components/ui/textarea";
 import { DOT_TYPE_COLORS } from "@/hooks/useAtlas";
 import confetti from "canvas-confetti";
 import type { DotInterpretation } from "@/data/atlasQuests";
+import type { DotCategory } from "@/data/atlasSignals";
 
 export type ValidationMode = "initial" | "regenerating" | "picking" | "editing" | "discarded" | "confirmed";
 
