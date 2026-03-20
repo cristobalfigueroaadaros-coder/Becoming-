@@ -1,70 +1,146 @@
 
 
-# Becoming Guide — Floating Knowledge Hub
+# PDR 13 — Atlas Evolution & Intelligence Engine
 
-## Overview
-Create a floating "Becoming Guide" button and a Sheet panel that serves as an in-app reference manual. The guide contains expandable sections explaining the system's philosophy, tools, and workflow with a dynamic "Start Here" section.
+## Summary
 
-## Architecture
+This PDR adds five major capabilities: (1) dot evolution (reframe/expansion/upgrade/merge), (2) cross-cluster connection detection, (3) Gold Moments (frustration→strength transformation), (4) dot validation after creation, and (5) growth reflection feedback every 5-8 quests.
 
-### New Files
-- `src/components/BecomingGuide.tsx` — Main component with floating button + Sheet panel
+## Database Migration
 
-### Modified Files
-- `src/components/layout/AppLayout.tsx` — Add `<BecomingGuide />` inside the layout
+```sql
+-- Dot evolution tracking
+ALTER TABLE public.atlas_dots
+  ADD COLUMN IF NOT EXISTS evolution_stage int DEFAULT 1,
+  ADD COLUMN IF NOT EXISTS evolution_type text,
+  ADD COLUMN IF NOT EXISTS evolved_from_ids uuid[] DEFAULT '{}',
+  ADD COLUMN IF NOT EXISTS is_gold_moment boolean DEFAULT false,
+  ADD COLUMN IF NOT EXISTS user_validated boolean,
+  ADD COLUMN IF NOT EXISTS user_edited boolean DEFAULT false;
 
-## Component Design
+-- Cross-cluster connections
+CREATE TABLE public.atlas_connections (
+  id uuid PRIMARY KEY DEFAULT gen_random_uuid(),
+  user_id uuid NOT NULL,
+  dot_id_a uuid REFERENCES public.atlas_dots(id) ON DELETE CASCADE,
+  dot_id_b uuid REFERENCES public.atlas_dots(id) ON DELETE CASCADE,
+  connection_type text NOT NULL DEFAULT 'signal_overlap',
+  shared_signals jsonb DEFAULT '[]',
+  strength int DEFAULT 0,
+  insight_text text,
+  is_gold_moment boolean DEFAULT false,
+  created_at timestamptz DEFAULT now(),
+  UNIQUE(dot_id_a, dot_id_b)
+);
+ALTER TABLE public.atlas_connections ENABLE ROW LEVEL SECURITY;
+-- RLS: user can CRUD own rows
 
-### Floating Button
-- Fixed position: `bottom-24 right-4` (above bottom nav)
-- Small pill button with `BookOpen` icon + "Guide" label
-- Uses `Sheet` component (side="right") to open the panel
+-- Dot evolution history
+CREATE TABLE public.atlas_dot_evolutions (
+  id uuid PRIMARY KEY DEFAULT gen_random_uuid(),
+  user_id uuid NOT NULL,
+  dot_id uuid REFERENCES public.atlas_dots(id) ON DELETE CASCADE,
+  previous_title text NOT NULL,
+  new_title text NOT NULL,
+  previous_description text,
+  new_description text,
+  evolution_type text NOT NULL,
+  trigger_reason text,
+  created_at timestamptz DEFAULT now()
+);
+ALTER TABLE public.atlas_dot_evolutions ENABLE ROW LEVEL SECURITY;
+-- RLS: user can CRUD own rows
+```
 
-### Sheet Panel Content
+## 1. Dot Validation Flow (after dot creation)
 
-**Header**: "Becoming Guide" title with a short welcome line
+**Edit: `AtlasWinningCard.tsx`**
 
-**"Start Here" section** (always visible at top, not collapsible):
-- Dynamically checks user state via existing hooks (`useIntegratorProjects`)
-- No project → "Share an idea with the Council" → links to `/council`
-- Has project → "Continue building" → links to `/creation-lab`
-- Highlight box: "You do not need to understand everything before starting. Just share an idea with the Council and begin."
+Replace the single "Add to Atlas" button with 4 validation actions:
+- "Yes, that's me" → confirms and saves (current behavior)
+- "Close, but not quite" → calls edge function with flag to regenerate 2-3 title/description variations, user picks one
+- "Not really" → discards, shows a single follow-up text input, regenerates from that
+- "Let me edit" → shows inline edit fields for title and description, saves edited version with `user_edited = true`
 
-**Accordion sections** (using existing `Accordion` component):
+**Edit: `AtlasQuestFlow.tsx`**
 
-1. **Foundation** (icon: `Compass`)
-   - "What is Becoming" — 4-5 lines from PDR
-   - "Message from the Founder" — Cristobal's message
-   - "Example Journey" — The flow steps
-   - "The Becoming Loop" — Insight → Build → Test → Learn cycle
+Add state for validation mode (`validating | regenerating | editing | discarded`). Pass validation handlers to WinningCard. When saving, set `user_validated = true`.
 
-2. **Creation Lab** (icon: `FlaskConical`)
-   - Sub-items: Project, Daily Goals, Design Thinking, Creative Space, Map, Purpose to Value
-   - Each with 3-4 line explanation from PDR
+## 2. Dot Evolution System
 
-3. **Becoming Path** (icon: `Sparkles`)
-   - Sub-items: Becoming Exercises, Pattern Discovery, Transmutation, Superpowers
+**New: `supabase/functions/evolve-atlas-dot/index.ts`**
 
-4. **Council** (icon: `Users`)
-   - Council explanation + Save Button explanation
+Edge function that checks evolution conditions after each new dot is saved:
+- **Reframe**: Same cluster has a dot with overlapping signals but different emotional tone → generate evolved title
+- **Expansion**: Dot has been reinforced 2+ times → generate more specific title
+- **Upgrade**: 4+ signals confirmed → generate identity-level title ("I am someone who...")
+- **Merge**: 2+ dots across different clusters share 2+ signals → generate merged dot, mark originals as `evolved_from_ids`
 
-5. **Momentum** (icon: `TrendingUp`)
-   - Weekly Sprint, Accumulated Work, Capabilities
+Uses Lovable AI (gemini-2.5-flash) with PDR 13 language rules (observational, no labels, echo user words).
 
-### Implementation Details
-- Each section uses nested `Accordion` for sub-topics
-- Important callouts use a styled div with `bg-primary/10 border-l-2 border-primary` 
-- All text comes from the PDR content (hardcoded strings, no DB needed)
-- Sheet can be closed instantly via X or overlay click
-- No localStorage tracking needed — this is always available
+Returns evolution proposal (type, new title, new description) — applied client-side after user sees the result.
 
-### Visual Examples Placeholder
-The PDR requests before/after screenshots for each major section. Since we don't have these images yet, each section will include a subtle placeholder note: "Visual examples coming soon" that can be replaced with actual images later.
+**Edit: `AtlasQuestFlow.tsx`**
 
-## Files Summary
+After saving a dot, call `evolve-atlas-dot` with the user's full dot list. If evolution is returned, show a subtle toast/card: "A discovery is evolving..." with the old→new title. User can accept or dismiss.
 
-| File | Change |
+## 3. Cross-Cluster Connection Detection
+
+**New: `src/lib/atlasConnectionEngine.ts`**
+
+Client-side utility that scans all user dots for:
+- Signal overlap (2+ shared signals across clusters) → creates connection
+- Theme repetition (3+ dots with same signal) → flags for upgrade
+- Gold Moment detection (frustration cluster dot + strength/skill cluster dot share signals)
+
+Function: `detectConnections(dots: AtlasDot[], existingConnections: Connection[])` → returns new connections to insert.
+
+**Edit: `AtlasQuestFlow.tsx`**
+
+After saving dot + evolution check, run `detectConnections`. Insert any new connections. If a Gold Moment is detected, show a special celebration card.
+
+## 4. Gold Moment Experience
+
+**New: `src/components/atlas/GoldMomentCard.tsx`**
+
+Special celebration card shown when a frustration transforms into a strength:
+- Gold-themed visuals (amber glow, special confetti)
+- Shows the transformation chain (e.g., "Hates Wasted Potential → Turns Ideas into Reality")
+- AI-generated superpower name (3-6 words, earned, not assigned)
+- Uses naming rules from PDR 13 Section 6.3
+
+**Edit: `generate-atlas-dot/index.ts`**
+
+Add a `mode: "gold_moment"` option that generates a superpower-style name from the frustration→strength pair.
+
+## 5. Growth Reflection Feedback
+
+**Edit: `AtlasQuestFlow.tsx`**
+
+After every 5-8 completed quests (track via `completedCount`), show a brief growth reflection before the next quest starts. Content generated by calling `generate-atlas-dot` with `mode: "growth_reflection"` that references the user's recent dots.
+
+Rules: max 2-3 sentences, references specific dots, observational tone ("You seem to..." not "You are...").
+
+## 6. Mirror Feedback on WinningCard
+
+**Edit: `AtlasWinningCard.tsx`**
+
+Add a small "mirror feedback" line below the dot description. Generated by the edge function alongside the dot — a one-line observational insight like "This shows that connection matters deeply to you."
+
+**Edit: `generate-atlas-dot/index.ts`**
+
+Add `mirrorFeedback` field to the tool output — a single sentence reflecting what the dot reveals about the user. Must follow pattern language rules (use "you often", "this suggests", never "you are").
+
+## Files to Create/Edit
+
+| File | Action |
 |------|--------|
-| `src/components/BecomingGuide.tsx` | New — floating button + Sheet with all guide content |
-| `src/components/layout/AppLayout.tsx` | Add `<BecomingGuide />` alongside `<BottomNavigation />` |
+| Migration (atlas_dots columns + connections + evolutions tables) | Create |
+| `supabase/functions/evolve-atlas-dot/index.ts` | Create — evolution detection + generation |
+| `src/lib/atlasConnectionEngine.ts` | Create — cross-cluster connection detection |
+| `src/components/atlas/GoldMomentCard.tsx` | Create — Gold Moment celebration UI |
+| `src/components/atlas/AtlasWinningCard.tsx` | Edit — validation flow (4 actions), mirror feedback, edit mode |
+| `src/components/atlas/AtlasQuestFlow.tsx` | Edit — validation state, evolution check, connection detection, growth reflections |
+| `src/components/atlas/AtlasDotDetailModal.tsx` | Edit — show evolution history, connections |
+| `supabase/functions/generate-atlas-dot/index.ts` | Edit — add mirrorFeedback, growth_reflection mode, gold_moment mode, regenerate mode |
 
