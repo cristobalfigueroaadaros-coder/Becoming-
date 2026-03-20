@@ -64,7 +64,7 @@ export const AtlasQuestFlow = ({ quest, clusterId }: Props) => {
   const generateAIDot = async (
     allResponses: any[],
     patternTitle?: string
-  ): Promise<{ title: string; description: string; dotCategory: string; mirrorFeedback?: string } | null> => {
+  ): Promise<{ title: string; description: string; dotCategory: DotCategory; mirrorFeedback?: string } | null> => {
     try {
       const { data, error } = await supabase.functions.invoke("generate-atlas-dot", {
         body: {
