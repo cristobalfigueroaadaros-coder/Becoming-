@@ -13,6 +13,7 @@ import { detectConnections, findGoldMoments, type AtlasConnection } from "@/lib/
 import { useAtlasQuests } from "@/hooks/useAtlasQuests";
 import { useAtlas } from "@/hooks/useAtlas";
 import type { AtlasQuestDefinition, DotInterpretation } from "@/data/atlasQuests";
+import type { DotCategory } from "@/data/atlasSignals";
 
 const GROWTH_MESSAGES: Record<string, string> = {
   activated: "This area of your identity is awakening.",
