@@ -1,9 +1,12 @@
+import { useState } from "react";
 import { format } from "date-fns";
-import { Sparkles, Shield, Star } from "lucide-react";
+import { Sparkles, Shield, Star, GitBranch, Crown } from "lucide-react";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from "@/components/ui/dialog";
 import type { AtlasDot } from "@/hooks/useAtlas";
 import { getDotColor, DOT_TYPE_COLORS } from "@/hooks/useAtlas";
 import { SIGNAL_CATALOG } from "@/data/atlasSignals";
+import { useQuery } from "@tanstack/react-query";
+import { supabase } from "@/integrations/supabase/client";
 
 interface AtlasDotDetailModalProps {
   dot: AtlasDot | null;
@@ -30,6 +33,35 @@ export const AtlasDotDetailModal = ({ dot, clusterName, open, onOpenChange }: At
   const signalSources: string[] = Array.isArray(dot.signal_sources) ? dot.signal_sources : [];
   const uniqueSignals = [...new Set(signalSources)];
 
+  // Fetch evolution history
+  const { data: evolutions } = useQuery({
+    queryKey: ["atlas-dot-evolutions", dot.id],
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from("atlas_dot_evolutions")
+        .select("*")
+        .eq("dot_id", dot.id)
+        .order("created_at", { ascending: true });
+      if (error) throw error;
+      return data;
+    },
+    enabled: open,
+  });
+
+  // Fetch connections
+  const { data: connections } = useQuery({
+    queryKey: ["atlas-dot-connections", dot.id],
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from("atlas_connections")
+        .select("*, dot_a:dot_id_a(title), dot_b:dot_id_b(title)")
+        .or(`dot_id_a.eq.${dot.id},dot_id_b.eq.${dot.id}`);
+      if (error) throw error;
+      return data;
+    },
+    enabled: open,
+  });
+
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent className="max-w-sm">
@@ -44,7 +76,7 @@ export const AtlasDotDetailModal = ({ dot, clusterName, open, onOpenChange }: At
         </DialogHeader>
 
         {/* Category badge */}
-        <div className="flex items-center gap-2">
+        <div className="flex items-center gap-2 flex-wrap">
           <div
             className="flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-medium"
             style={{ backgroundColor: `${dotColor}20`, color: dotColor }}
@@ -56,6 +88,11 @@ export const AtlasDotDetailModal = ({ dot, clusterName, open, onOpenChange }: At
             <span className="text-[10px] text-muted-foreground">
               {Math.round(dot.confidence_score * 100)}% confidence
             </span>
+          )}
+          {(dot as any).is_gold_moment && (
+            <div className="flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] font-medium" style={{ backgroundColor: "hsl(40 80% 55% / 0.2)", color: "hsl(40 80% 55%)" }}>
+              <Crown className="w-2.5 h-2.5" /> Gold Moment
+            </div>
           )}
         </div>
 
@@ -79,6 +116,42 @@ export const AtlasDotDetailModal = ({ dot, clusterName, open, onOpenChange }: At
                 );
               })}
             </div>
+          </div>
+        )}
+
+        {/* Evolution history */}
+        {evolutions && evolutions.length > 0 && (
+          <div className="space-y-1.5">
+            <p className="text-[10px] uppercase tracking-wider text-muted-foreground font-medium flex items-center gap-1">
+              <GitBranch className="w-3 h-3" /> Evolution history
+            </p>
+            {evolutions.map((evo: any) => (
+              <div key={evo.id} className="text-[11px] text-muted-foreground bg-muted/50 rounded-lg px-3 py-2">
+                <span className="text-muted-foreground/70">{evo.previous_title}</span>
+                <span className="mx-1.5">→</span>
+                <span className="text-foreground font-medium">{evo.new_title}</span>
+                <span className="ml-2 text-[10px] text-muted-foreground/60">({evo.evolution_type})</span>
+              </div>
+            ))}
+          </div>
+        )}
+
+        {/* Connections */}
+        {connections && connections.length > 0 && (
+          <div className="space-y-1.5">
+            <p className="text-[10px] uppercase tracking-wider text-muted-foreground font-medium">Connected to</p>
+            {connections.map((conn: any) => {
+              const otherTitle = conn.dot_id_a === dot.id
+                ? (conn.dot_b as any)?.title
+                : (conn.dot_a as any)?.title;
+              return (
+                <div key={conn.id} className="flex items-center gap-2 text-[11px]">
+                  {conn.is_gold_moment && <Crown className="w-3 h-3" style={{ color: "hsl(40 80% 55%)" }} />}
+                  <span className="text-muted-foreground">{otherTitle || "Unknown"}</span>
+                  <span className="text-[10px] text-muted-foreground/50">({conn.connection_type})</span>
+                </div>
+              );
+            })}
           </div>
         )}
 

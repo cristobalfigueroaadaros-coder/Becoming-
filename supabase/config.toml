@@ -149,3 +149,6 @@ verify_jwt = true
 
 [functions.generate-atlas-dot]
 verify_jwt = false
+
+[functions.evolve-atlas-dot]
+verify_jwt = false
