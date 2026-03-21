@@ -48,6 +48,7 @@ export const AtlasQuestFlow = ({ quest, clusterId }: Props) => {
   const [isReinforced, setIsReinforced] = useState(false);
   const [newSignals, setNewSignals] = useState<ExtractedSignal[]>([]);
   const [detectedPattern, setDetectedPattern] = useState<DetectedPattern | null>(null);
+  const [suggestedClusterSlug, setSuggestedClusterSlug] = useState<string | null>(null);
   const [isSaving, setIsSaving] = useState(false);
   const [isGenerating, setIsGenerating] = useState(false);
 
@@ -156,6 +157,10 @@ export const AtlasQuestFlow = ({ quest, clusterId }: Props) => {
       );
 
       if (aiDot) {
+        // Store suggested cluster slug for reassignment
+        if (aiDot.suggestedClusterSlug) {
+          setSuggestedClusterSlug(aiDot.suggestedClusterSlug);
+        }
         if (result.isPatternBased && result.detectedPattern) {
           setDotResult({
             title: result.detectedPattern.pattern.title,
