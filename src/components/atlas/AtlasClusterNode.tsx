@@ -120,16 +120,16 @@ export const AtlasClusterNode = ({ cluster, index, onTap }: AtlasClusterNodeProp
         ) : (
           <>
             <span
-              className="text-[10px] font-semibold leading-tight text-center max-w-[60px] px-1 py-0.5 rounded"
+              className="text-[10px] font-semibold leading-tight text-center max-w-[60px] px-1.5 py-0.5 rounded"
               style={{
-                color: state === "dormant" ? "hsl(var(--muted-foreground))" : colors.text,
-                backgroundColor: state !== "dormant" && cluster.dots.length > 3 ? "hsl(var(--background) / 0.7)" : "transparent",
+                color: "#000000",
+                backgroundColor: "hsl(var(--background) / 0.85)",
               }}
             >
               {cluster.name}
             </span>
             {cluster.dotCount > 0 && (
-              <span className="text-[9px] mt-0.5" style={{ color: colors.text }}>
+              <span className="text-[9px] mt-0.5 font-medium" style={{ color: "#000000" }}>
                 {cluster.dotCount}
               </span>
             )}
