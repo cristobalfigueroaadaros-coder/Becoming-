@@ -71,9 +71,12 @@ export function useAtlasQuests() {
 
   const completedKeys = new Set((completedQuery.data || []).map((q: any) => q.quest_key));
   const completedCount = completedKeys.size;
-  const lastCompletedCluster = (completedQuery.data || [])
-    .sort((a: any, b: any) => new Date(b.completed_at).getTime() - new Date(a.completed_at).getTime())[0]
-    ?.cluster_id;
+
+  // Track last 2 completed cluster IDs for rotation enforcement
+  const recentCompleted = (completedQuery.data || [])
+    .sort((a: any, b: any) => new Date(b.completed_at).getTime() - new Date(a.completed_at).getTime());
+  const lastCompletedCluster = recentCompleted[0]?.cluster_id;
+  const lastTwoClusterIds = recentCompleted.slice(0, 2).map((q: any) => q.cluster_id);
 
   function getPreferredClusterSlugs(): Set<string> {
     if (completedCount < 3) return STRENGTH_CLUSTERS;
@@ -95,16 +98,22 @@ export function useAtlasQuests() {
 
     const preferredSlugs = getPreferredClusterSlugs();
 
+    // Max-2 rotation: if last 2 quests were in the same cluster, exclude it entirely
+    const sameClusterTwice = lastTwoClusterIds.length === 2 && lastTwoClusterIds[0] === lastTwoClusterIds[1];
+    const excludedClusterId = sameClusterTwice ? lastTwoClusterIds[0] : null;
+
     const weighted = available.map(q => {
       const cluster = clusters.find(c => c.slug === q.clusterSlug);
       if (!cluster) return { quest: q, clusterId: "", weight: 0 };
+      // Exclude cluster that appeared 2x in a row
+      if (excludedClusterId && cluster.id === excludedClusterId) return { quest: q, clusterId: "", weight: 0 };
       const dotPenalty = cluster.dotCount * 2;
       const lastPenalty = cluster.id === lastCompletedCluster ? 5 : 0;
       const preferenceBonus = preferredSlugs.has(q.clusterSlug) ? 8 : 0;
       // Boost weight for newly unlocked clusters (activated/dormant with 0-1 dots)
       const newlyUnlockedBonus = cluster.dotCount <= 1 && cluster.computedState !== "locked" ? 4 : 0;
       return { quest: q, clusterId: cluster.id, weight: Math.max(1, 10 - dotPenalty - lastPenalty + preferenceBonus + newlyUnlockedBonus) };
-    }).filter(w => w.clusterId);
+    }).filter(w => w.clusterId && w.weight > 0);
 
     if (weighted.length === 0) return null;
 
