@@ -190,6 +190,16 @@ export const AtlasQuestFlow = ({ quest, clusterId }: Props) => {
       if (!user) throw new Error("Not authenticated");
 
       let dotClusterId = clusterId;
+      
+      // Cluster reassignment: if AI suggested a different cluster, use it
+      if (suggestedClusterSlug) {
+        const suggestedCluster = clusters.find(c => c.slug === suggestedClusterSlug);
+        if (suggestedCluster && suggestedCluster.computedState !== "locked") {
+          dotClusterId = suggestedCluster.id;
+        }
+      }
+      
+      // Pattern-based cluster override (takes precedence)
       if (isPatternBased && detectedPattern) {
         const { data: patternCluster } = await supabase
           .from("atlas_clusters")
