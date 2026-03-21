@@ -48,6 +48,7 @@ export const AtlasQuestFlow = ({ quest, clusterId }: Props) => {
   const [isReinforced, setIsReinforced] = useState(false);
   const [newSignals, setNewSignals] = useState<ExtractedSignal[]>([]);
   const [detectedPattern, setDetectedPattern] = useState<DetectedPattern | null>(null);
+  const [suggestedClusterSlug, setSuggestedClusterSlug] = useState<string | null>(null);
   const [isSaving, setIsSaving] = useState(false);
   const [isGenerating, setIsGenerating] = useState(false);
 
@@ -65,7 +66,7 @@ export const AtlasQuestFlow = ({ quest, clusterId }: Props) => {
   const generateAIDot = async (
     allResponses: any[],
     patternTitle?: string
-  ): Promise<{ title: string; description: string; dotCategory: DotCategory; mirrorFeedback?: string } | null> => {
+  ): Promise<{ title: string; description: string; dotCategory: DotCategory; mirrorFeedback?: string; suggestedClusterSlug?: string; emotionalTone?: string; dotSubType?: string } | null> => {
     try {
       const { data, error } = await supabase.functions.invoke("generate-atlas-dot", {
         body: {
@@ -156,6 +157,10 @@ export const AtlasQuestFlow = ({ quest, clusterId }: Props) => {
       );
 
       if (aiDot) {
+        // Store suggested cluster slug for reassignment
+        if (aiDot.suggestedClusterSlug) {
+          setSuggestedClusterSlug(aiDot.suggestedClusterSlug);
+        }
         if (result.isPatternBased && result.detectedPattern) {
           setDotResult({
             title: result.detectedPattern.pattern.title,
@@ -185,6 +190,16 @@ export const AtlasQuestFlow = ({ quest, clusterId }: Props) => {
       if (!user) throw new Error("Not authenticated");
 
       let dotClusterId = clusterId;
+      
+      // Cluster reassignment: if AI suggested a different cluster, use it
+      if (suggestedClusterSlug) {
+        const suggestedCluster = clusters.find(c => c.slug === suggestedClusterSlug);
+        if (suggestedCluster && suggestedCluster.computedState !== "locked") {
+          dotClusterId = suggestedCluster.id;
+        }
+      }
+      
+      // Pattern-based cluster override (takes precedence)
       if (isPatternBased && detectedPattern) {
         const { data: patternCluster } = await supabase
           .from("atlas_clusters")

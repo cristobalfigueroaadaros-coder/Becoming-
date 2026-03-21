@@ -10,86 +10,102 @@ const CLUSTER_INTELLIGENCE: Record<string, {
   correctExamples: string[];
   wrongExamples: string[];
   dotStyle: string;
+  slug: string;
 }> = {
   "Life Events": {
+    slug: "life-events",
     signal: "Objective facts. A significant moment the user can name and date.",
     correctExamples: ["Built First Business in Chile", "Moved to Germany Alone", "Left Stability to Explore the World"],
     wrongExamples: ["Resilient Navigator (interpretation)", "Turning Point Experience (too abstract)"],
     dotStyle: "Name the fact of what happened. No interpretation. 3-6 words.",
   },
   "Natural Talents": {
+    slug: "natural-talents",
     signal: "What the user can do effortlessly that others find difficult.",
     correctExamples: ["Understands How Systems Work", "Learns Fast by Doing", "Reads a Room Instantly"],
     wrongExamples: ["Smart Thinker (too vague)", "Natural Leader (generic)"],
     dotStyle: "Name the specific ability, not a generic label.",
   },
   "Childhood Signals": {
+    slug: "childhood-signals",
     signal: "Early indicators of the user's nature before the world shaped them.",
     correctExamples: ["Loved Sport as a Kid", "Always Asked Why", "Grew Up Feeling Loved"],
     wrongExamples: ["Active Child (too generic)", "Curious Kid (meaningless)"],
     dotStyle: "Name the childhood signal specifically.",
   },
   "Passions": {
+    slug: "passions",
     signal: "What the user loves doing, not what they are good at.",
     correctExamples: ["Love Creating Experiences", "Driven by Curiosity", "Enjoys Learning Everything"],
     wrongExamples: ["Explorer Mindset (cognitive style)", "Growth Seeker (too abstract)"],
     dotStyle: "Name the passion using active language.",
   },
   "Values": {
+    slug: "values",
     signal: "What matters deeply to the user regardless of circumstance.",
     correctExamples: ["Family First", "Connection Over Everything", "Acts with Honesty"],
     wrongExamples: ["Integrity (too abstract)", "Strong Principles (not personal)"],
     dotStyle: "Name the specific value and how it shows up.",
   },
   "Skills": {
+    slug: "skills",
     signal: "What the user has built through practice and experience.",
     correctExamples: ["Turns Ideas into Reality", "Connects People Naturally", "Sells Through Story"],
     wrongExamples: ["Smart (not a skill)", "Creative (passion, not skill)"],
     dotStyle: "Name the specific skill, not a trait.",
   },
   "Experiments": {
+    slug: "experiments",
     signal: "Things the user actively tried or built.",
     correctExamples: ["Built E-commerce from Scratch", "Left Stability to Start Over"],
     wrongExamples: ["Tried Things (too vague)", "Risk Taker (interpretation)"],
     dotStyle: "Name the experiment specifically.",
   },
   "Aha Moments": {
+    slug: "aha-moments",
     signal: "Specific moments of realization that changed direction.",
     correctExamples: ["Stopped Judging by Appearance in Berlin", "Realized AI Could Simulate Mentorship"],
     wrongExamples: ["Confidence Boost (not a moment)", "Changed Perspective (too generic)"],
     dotStyle: "Name the specific realization.",
   },
   "Personal Frustrations": {
+    slug: "personal-frustrations",
     signal: "What frustrates the user points to what matters most.",
     correctExamples: ["Hates Wasted Potential", "Can't Stand Superficial Connection"],
     wrongExamples: ["Anger Issues (clinical label)", "Frustrated Person (too generic)"],
     dotStyle: "Name the frustration specifically. Use the user's own words.",
   },
   "Inspirations": {
+    slug: "inspirations",
     signal: "Who and what inspires the user.",
     correctExamples: ["Inspired by Quiet Courage", "Drawn to People Who Build from Nothing"],
     wrongExamples: ["Inspired Person (meaningless)", "Deep Thinker (generic)"],
     dotStyle: "Name what specifically inspires them.",
   },
   "Vision for a Better World": {
+    slug: "vision-for-a-better-world",
     signal: "What the user wants to change in the world.",
     correctExamples: ["Everyone Deserves a Mentor", "Creative Education for All"],
     wrongExamples: ["World Changer (too vague)", "Visionary (label)"],
     dotStyle: "Name the specific vision or change.",
   },
   "Ideal Life": {
+    slug: "ideal-life",
     signal: "What the user's ideal day, environment, and relationships look like.",
     correctExamples: ["Morning Creative Time by the Ocean", "Freedom to Work from Anywhere"],
     wrongExamples: ["Happy Life (meaningless)", "Balance (too abstract)"],
     dotStyle: "Name the specific element of their ideal life.",
   },
   "External Reflections": {
+    slug: "external-reflections",
     signal: "What others have told the user about themselves.",
     correctExamples: ["Others See Me as a Leader", "Known for Bringing People Together"],
     wrongExamples: ["Wisdom Seeker (internal)", "Strong Person (too vague)"],
     dotStyle: "Name what others see.",
   },
 };
+
+const ALL_CLUSTER_SLUGS = Object.values(CLUSTER_INTELLIGENCE).map(c => c.slug);
 
 function formatResponses(responses: any[]): string {
   return responses.map((r: any, i: number) => {
@@ -146,12 +162,56 @@ LANGUAGE ECHO RULE:
 - Extract the user's own key words, phrases, or emotional signals.
 - Use those words in the dot title.`;
 
+const EMOTIONAL_TONE_RULES = `STEP 1 — EMOTIONAL TONE DETECTION (do this BEFORE naming):
+Classify the user's answers into one of these 6 emotional tones:
+- "positive_outward" — User describes strengths, abilities, things they do well, or positive qualities about themselves
+- "vision_values" — User describes what they want for the world, what matters to them, ideals, or frustration about OTHER PEOPLE or THE WORLD (NOT about themselves)
+- "personal_struggle" — User describes their OWN fears, insecurities, internal tensions, or self-doubt
+- "factual_event" — User describes an event, fact, or life experience objectively
+- "passion_enjoyment" — User describes what they love, enjoy, or feel energized by
+- "transformation" — User describes change, growth, or a shift in their perspective
+
+CRITICAL DISTINCTION: If the user says "I'm frustrated by people who waste potential" — that is "vision_values" (about the world), NOT "personal_struggle" (about themselves).`;
+
+const SHADOW_BLACKLIST_RULES = `SHADOW DOT BLACKLIST — READ CAREFULLY:
+A shadow dot (dotCategory = "shadow") can ONLY be generated when:
+- The user's answer expresses PERSONAL struggle, tension, fear, or self-doubt about THEMSELVES
+- The emotional tone is "personal_struggle"
+
+A shadow dot must NEVER be generated when:
+- The answer describes someone else's problem or the world's problem (that is "vision_values" → strength dot)
+- The answer is positive, outward-facing, or about abilities
+- The answer expresses passion, enjoyment, or inspiration
+
+BLACKLISTED shadow names for non-struggle answers:
+- Fear of Failure, Perfectionism Loop, Overthinking Pattern, Avoidance Behavior, Self Doubt
+- These names may ONLY appear if the user explicitly expressed that specific personal struggle.
+
+If the user says "I hate when people waste their potential" → this is a STRENGTH signal about what matters to them, NOT a shadow. Generate a strength dot like "Hates Wasted Potential" in the frustrations or values cluster.`;
+
+const DOT_SUBTYPE_RULES = `STEP 2 — DOT SUB-TYPE CLASSIFICATION:
+After determining emotional tone, classify the dot as one of:
+- "behavioral" — Describes what the user DOES (action-oriented). Naming formula: Action + Impact. Example: "Turns Ideas into Reality"
+- "motivational" — Describes WHY the user does what they do (drive/purpose). Naming formula: Drive + Direction. Example: "Driven by Curiosity"  
+- "identity" — Describes WHO the user is becoming (self-concept). Naming formula: Identity Statement. Example: "The One Who Builds"`;
+
+const CLUSTER_OVERRIDE_RULES = `STEP 3 — CLUSTER ASSIGNMENT:
+The cluster a dot is assigned to should be determined by the CONTENT and EMOTIONAL TONE of the answer, not by which cluster the quest was designed for.
+
+If the user answers a Passions quest but their answer is about a life event → suggest the "life-events" cluster.
+If the user answers a Personal Frustrations quest but their answer is about a vision for the world → suggest "vision-for-a-better-world".
+
+Available cluster slugs: ${ALL_CLUSTER_SLUGS.join(", ")}
+
+Set suggestedClusterSlug to the cluster that BEST matches the user's answer content.
+If the answer matches the original quest cluster, use that cluster's slug.`;
+
 serve(async (req) => {
   if (req.method === "OPTIONS") return new Response(null, { headers: corsHeaders });
 
   try {
     const body = await req.json();
-    const { mode = "generate", responses, clusterName, patternTitle, feedbackText, dotA, dotB, recentDots, existingDots } = body;
+    const { mode = "generate", responses, clusterName, patternTitle, feedbackText, dotA, dotB, recentDots } = body;
     const LOVABLE_API_KEY = Deno.env.get("LOVABLE_API_KEY");
     if (!LOVABLE_API_KEY) throw new Error("LOVABLE_API_KEY is not configured");
 
@@ -169,6 +229,14 @@ serve(async (req) => {
 
 ${clusterContext}
 
+${EMOTIONAL_TONE_RULES}
+
+${SHADOW_BLACKLIST_RULES}
+
+${DOT_SUBTYPE_RULES}
+
+${CLUSTER_OVERRIDE_RULES}
+
 ${BASE_RULES}
 
 MIRROR FEEDBACK RULE:
@@ -179,7 +247,7 @@ MIRROR FEEDBACK RULE:
 ${patternTitle ? `A pattern "${patternTitle}" was detected. Use as context but personalize from the user's answers.` : ""}
 ${mode === "regenerate" && feedbackText ? `The user said the previous result didn't feel right. They said: "${feedbackText}". Generate 3 alternative variations that better match their intent.` : ""}`;
 
-      userPrompt = `Here are the user's quest responses:\n\n${allResponses}\n\nThe most important response is the final one:\n"${reflectionText}"\n\nGenerate a personalized dot that echoes their own words.`;
+      userPrompt = `Here are the user's quest responses:\n\n${allResponses}\n\nThe most important response is the final one:\n"${reflectionText}"\n\nFirst detect the emotional tone, then classify the dot sub-type, then determine the correct cluster, then generate a personalized dot that echoes their own words.`;
 
       if (mode === "regenerate") {
         tools = [{
@@ -219,12 +287,15 @@ ${mode === "regenerate" && feedbackText ? `The user said the previous result did
             parameters: {
               type: "object",
               properties: {
+                emotionalTone: { type: "string", enum: ["positive_outward", "vision_values", "personal_struggle", "factual_event", "passion_enjoyment", "transformation"], description: "The detected emotional tone of the user's answers." },
+                dotSubType: { type: "string", enum: ["behavioral", "motivational", "identity"], description: "Classification of what the dot represents." },
+                suggestedClusterSlug: { type: "string", description: "The cluster slug that best matches the answer content." },
                 title: { type: "string", description: "A 3-6 word identity phrase echoing the user's own language." },
                 description: { type: "string", description: "1-2 sentences referencing the user's specific answers." },
                 dotCategory: { type: "string", enum: ["strength", "shadow", "life_imprint"] },
                 mirrorFeedback: { type: "string", description: "A single observational sentence reflecting what this dot reveals about the user." },
               },
-              required: ["title", "description", "dotCategory", "mirrorFeedback"],
+              required: ["emotionalTone", "dotSubType", "suggestedClusterSlug", "title", "description", "dotCategory", "mirrorFeedback"],
               additionalProperties: false,
             },
           },
@@ -263,7 +334,14 @@ Generate a superpower name that captures this transformation.`;
       toolChoice = { type: "function", function: { name: "create_gold_moment" } };
     } else if (mode === "growth_reflection") {
       const dotSummary = (recentDots || []).map((d: any) => `- "${d.title}"`).join("\n");
-      systemPrompt = `You are Atlas. Generate a brief growth reflection (2-3 sentences max) that observes what the user's recent discoveries reveal. Be observational, not prescriptive. Use "you seem to", "it looks like", never "you are". Reference specific dot titles.`;
+      systemPrompt = `You are Atlas. Generate a brief growth reflection (maximum 3 sentences) that observes what the user's recent discoveries reveal.
+
+Rules:
+- Be observational, not prescriptive. Use "you seem to", "it looks like", never "you are".
+- Reference specific dot titles by name.
+- Connect at least 2 dots from different areas to show a pattern.
+- End with an open observation, never a definitive conclusion.
+- Maximum 3 sentences.`;
       userPrompt = `Recent discoveries:\n${dotSummary}\n\nReflect on what these reveal about the user's journey.`;
 
       tools = [{
