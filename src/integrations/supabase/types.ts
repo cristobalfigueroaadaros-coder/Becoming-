@@ -583,6 +583,8 @@ export type Database = {
           generated_dot_id: string | null
           id: string
           interactions: Json | null
+          is_onboarding: boolean | null
+          onboarding_sequence: number | null
           quest_key: string
           status: string
           user_id: string
@@ -594,6 +596,8 @@ export type Database = {
           generated_dot_id?: string | null
           id?: string
           interactions?: Json | null
+          is_onboarding?: boolean | null
+          onboarding_sequence?: number | null
           quest_key: string
           status?: string
           user_id: string
@@ -605,6 +609,8 @@ export type Database = {
           generated_dot_id?: string | null
           id?: string
           interactions?: Json | null
+          is_onboarding?: boolean | null
+          onboarding_sequence?: number | null
           quest_key?: string
           status?: string
           user_id?: string
@@ -3134,6 +3140,7 @@ export type Database = {
           gravity_transition_completed: boolean | null
           human_design_data: Json | null
           id: string
+          identity_direction_statement: string | null
           last_future_self_message_at: string | null
           last_whisper_date: string | null
           main_mission: string | null
@@ -3189,6 +3196,7 @@ export type Database = {
           gravity_transition_completed?: boolean | null
           human_design_data?: Json | null
           id: string
+          identity_direction_statement?: string | null
           last_future_self_message_at?: string | null
           last_whisper_date?: string | null
           main_mission?: string | null
@@ -3244,6 +3252,7 @@ export type Database = {
           gravity_transition_completed?: boolean | null
           human_design_data?: Json | null
           id?: string
+          identity_direction_statement?: string | null
           last_future_self_message_at?: string | null
           last_whisper_date?: string | null
           main_mission?: string | null

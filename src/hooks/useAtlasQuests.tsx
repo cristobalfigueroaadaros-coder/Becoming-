@@ -1,6 +1,6 @@
 import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
-import { ATLAS_QUESTS, AtlasQuestDefinition } from "@/data/atlasQuests";
+import { ATLAS_QUESTS, ONBOARDING_QUESTS, ONBOARDING_QUEST_SEQUENCE, CONNECTION_MOMENT_AFTER, AtlasQuestDefinition } from "@/data/atlasQuests";
 import { useAtlas } from "./useAtlas";
 import type { AggregatedSignal } from "@/lib/atlasSignalEngine";
 
@@ -23,6 +23,20 @@ export function useAtlasQuests() {
         .eq("status", "completed");
       if (error) throw error;
       return data || [];
+    },
+  });
+
+  const profileQuery = useQuery({
+    queryKey: ["profile-onboarding-status"],
+    queryFn: async () => {
+      const { data: { user } } = await supabase.auth.getUser();
+      if (!user) return null;
+      const { data } = await supabase
+        .from("profiles")
+        .select("onboarding_quest_completed" as any)
+        .eq("id", user.id)
+        .single();
+      return data;
     },
   });
 
@@ -72,6 +86,12 @@ export function useAtlasQuests() {
   const completedKeys = new Set((completedQuery.data || []).map((q: any) => q.quest_key));
   const completedCount = completedKeys.size;
 
+  const isOnboardingCompleted = (profileQuery.data as any)?.onboarding_quest_completed === true;
+  const isOnboarding = !isOnboardingCompleted;
+
+  // Count completed onboarding quests specifically
+  const completedOnboardingCount = ONBOARDING_QUESTS.filter(q => completedKeys.has(q.questKey)).length;
+
   // Track last 2 completed cluster IDs for rotation enforcement
   const recentCompleted = (completedQuery.data || [])
     .sort((a: any, b: any) => new Date(b.completed_at).getTime() - new Date(a.completed_at).getTime());
@@ -85,8 +105,27 @@ export function useAtlasQuests() {
     return STRENGTH_CLUSTERS;
   }
 
-  function getNextQuest(): { quest: AtlasQuestDefinition; clusterId: string } | null {
-    // Only consider quests for unlocked clusters
+  function getNextOnboardingQuest(): { quest: AtlasQuestDefinition; clusterId: string; onboardingIndex: number } | null {
+    // Find the next onboarding quest in sequence that hasn't been completed
+    for (let i = 0; i < ONBOARDING_QUESTS.length; i++) {
+      const quest = ONBOARDING_QUESTS[i];
+      if (!completedKeys.has(quest.questKey)) {
+        const cluster = clusters.find(c => c.slug === quest.clusterSlug);
+        if (cluster) {
+          return { quest, clusterId: cluster.id, onboardingIndex: i };
+        }
+      }
+    }
+    return null;
+  }
+
+  function getNextQuest(): { quest: AtlasQuestDefinition; clusterId: string; onboardingIndex?: number } | null {
+    // During onboarding, use fixed sequence
+    if (isOnboarding) {
+      return getNextOnboardingQuest();
+    }
+
+    // Post-onboarding: weighted selection from ATLAS_QUESTS
     const unlockedSlugs = new Set(
       clusters.filter(c => c.computedState !== "locked").map(c => c.slug)
     );
@@ -98,19 +137,16 @@ export function useAtlasQuests() {
 
     const preferredSlugs = getPreferredClusterSlugs();
 
-    // Max-2 rotation: if last 2 quests were in the same cluster, exclude it entirely
     const sameClusterTwice = lastTwoClusterIds.length === 2 && lastTwoClusterIds[0] === lastTwoClusterIds[1];
     const excludedClusterId = sameClusterTwice ? lastTwoClusterIds[0] : null;
 
     const weighted = available.map(q => {
       const cluster = clusters.find(c => c.slug === q.clusterSlug);
       if (!cluster) return { quest: q, clusterId: "", weight: 0 };
-      // Exclude cluster that appeared 2x in a row
       if (excludedClusterId && cluster.id === excludedClusterId) return { quest: q, clusterId: "", weight: 0 };
       const dotPenalty = cluster.dotCount * 2;
       const lastPenalty = cluster.id === lastCompletedCluster ? 5 : 0;
       const preferenceBonus = preferredSlugs.has(q.clusterSlug) ? 8 : 0;
-      // Boost weight for newly unlocked clusters (activated/dormant with 0-1 dots)
       const newlyUnlockedBonus = cluster.dotCount <= 1 && cluster.computedState !== "locked" ? 4 : 0;
       return { quest: q, clusterId: cluster.id, weight: Math.max(1, 10 - dotPenalty - lastPenalty + preferenceBonus + newlyUnlockedBonus) };
     }).filter(w => w.clusterId && w.weight > 0);
@@ -134,14 +170,29 @@ export function useAtlasQuests() {
     return { quest, clusterId };
   }
 
+  // Check if current quest should show a connection moment after completing
+  function shouldShowConnectionMoment(onboardingIndex: number): boolean {
+    return isOnboarding && CONNECTION_MOMENT_AFTER.includes(onboardingIndex);
+  }
+
+  function isIdentityMoment(onboardingIndex: number): boolean {
+    return onboardingIndex === 12; // After quest 13 (index 12)
+  }
+
   return {
     completedQuests: completedQuery.data || [],
     completedKeys,
     completedCount,
+    completedOnboardingCount,
     aggregatedSignals,
     detectedPatternKeys,
     isLoading: completedQuery.isLoading,
+    isOnboarding,
+    isOnboardingCompleted,
     getNextQuest,
+    getNextOnboardingQuest,
     getQuestForCluster,
+    shouldShowConnectionMoment,
+    isIdentityMoment,
   };
 }

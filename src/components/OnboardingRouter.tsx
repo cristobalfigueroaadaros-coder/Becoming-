@@ -43,9 +43,10 @@ const OnboardingRouter = () => {
           navigate("/gravity/orientation");
         } else if (!profile?.birth_name) {
           navigate("/onboarding");
+        } else if (!questCompleted && !(profile as any)?.onboarding_quest_completed) {
+          // Route to Atlas onboarding quest flow
+          navigate("/atlas/quest");
         } else {
-          // Quest completed or in progress — always go to dashboard
-          // Legacy gravity pages are bypassed; console thread handles intake
           navigate("/dashboard");
         }
       } catch (error) {
