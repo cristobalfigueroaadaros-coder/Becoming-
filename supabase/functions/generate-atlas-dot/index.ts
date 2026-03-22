@@ -211,7 +211,7 @@ serve(async (req) => {
 
   try {
     const body = await req.json();
-    const { mode = "generate", responses, clusterName, patternTitle, feedbackText, dotA, dotB, recentDots } = body;
+    const { mode = "generate", responses, clusterName, patternTitle, feedbackText, dotA, dotB, recentDots, questIndex, isIdentityMoment } = body;
     const LOVABLE_API_KEY = Deno.env.get("LOVABLE_API_KEY");
     if (!LOVABLE_API_KEY) throw new Error("LOVABLE_API_KEY is not configured");
 
@@ -302,6 +302,92 @@ ${mode === "regenerate" && feedbackText ? `The user said the previous result did
         }];
         toolChoice = { type: "function", function: { name: "create_atlas_dot" } };
       }
+    } else if (mode === "check_depth") {
+      const reflectionText = typeof responses?.[responses.length - 1] === "string" ? responses[responses.length - 1] : "";
+      systemPrompt = `You are Atlas. Your job is to determine if a user's open reflection answer is SHALLOW or DEEP.
+
+SHALLOW answers are:
+- Generic labels or roles ("I am a conscious creator", "I like helping people", "I am good at communication")
+- Single sentences with no specific memory, person, or moment named
+- Abstract statements that could apply to anyone
+
+DEEP answers are:
+- Specific, names a person, moment, or place
+- Has emotional texture and detail
+- Could only come from this specific person
+
+If the answer is shallow, generate ONE gentle follow-up question to pull depth. Follow these rules:
+- If answer is a label or role: ask for a specific moment or memory
+- If answer describes someone generically: ask what specifically they learned from that person
+- If answer is too abstract: ask for a concrete example from their life
+- If answer is one sentence with no detail: ask to expand on the feeling
+
+Only ask ONE follow-up. Be warm and curious, not interrogating.`;
+
+      userPrompt = `Cluster: ${clusterName || "unknown"}
+User's open reflection answer: "${reflectionText}"
+
+Is this shallow or deep? If shallow, what type of shallow answer is it and what follow-up should we ask?`;
+
+      tools = [{
+        type: "function",
+        function: {
+          name: "check_answer_depth",
+          description: "Check if the user's answer is shallow or deep.",
+          parameters: {
+            type: "object",
+            properties: {
+              isShallow: { type: "boolean", description: "True if the answer is shallow." },
+              shallowType: { type: "string", enum: ["label_or_role", "generic_description", "too_abstract", "too_brief", "not_shallow"], description: "The type of shallow answer." },
+              followUpQuestion: { type: "string", description: "A gentle follow-up question to pull depth. Only provided if isShallow is true." },
+            },
+            required: ["isShallow", "shallowType"],
+            additionalProperties: false,
+          },
+        },
+      }];
+      toolChoice = { type: "function", function: { name: "check_answer_depth" } };
+    } else if (mode === "connection_moment") {
+      const dotSummary = (recentDots || []).map((d: any) => `- "${d.title}" (${d.dotCategory || "strength"})`).join("\n");
+      const isIdentity = isIdentityMoment === true;
+      const momentIndex = questIndex ?? 0;
+
+      systemPrompt = `You are Atlas. Generate a connection moment reflection that connects the user's recent discoveries.
+
+${isIdentity ? `This is the FINAL connection moment after 13 onboarding quests. Generate:
+1. A "reflection" — 2-3 sentences connecting the user's discoveries into a pattern. Be observational, reference specific dot names.
+2. An "identityStatement" — 2-3 sentences that capture the user's Identity Direction. This should feel earned and personally true. Start with "You" and describe what they create, care about, and contribute. It should feel like: "You create experiences that help people find and use their gifts. That is who you are."
+3. "supportingLines" — exactly 4 lines: "You feel most alive when…", "You care deeply about…", "People rely on you for…", "You naturally contribute by…" — each completed based on the dots.` :
+`Generate a "reflection" — 2-3 sentences that connect the user's recent discoveries and show an emerging pattern. Reference specific dot titles. Be observational ("you seem to", "this suggests") not prescriptive. End with an open observation, not a conclusion.`}
+
+Rules:
+- Reference specific dot names from the list
+- Sound human, warm, and reflective
+- Never use psychological labels
+- Keep it personal to this user's story`;
+
+      userPrompt = `The user's discoveries so far:\n${dotSummary}\n\n${isIdentity ? "Generate the Identity Direction moment." : `Generate connection moment #${momentIndex + 1}.`}`;
+
+      const properties: any = {
+        reflection: { type: "string", description: "2-3 sentence connection reflection." },
+      };
+      const required = ["reflection"];
+
+      if (isIdentity) {
+        properties.identityStatement = { type: "string", description: "2-3 sentence identity direction statement." };
+        properties.supportingLines = { type: "array", items: { type: "string" }, description: "4 supporting lines." };
+        required.push("identityStatement", "supportingLines");
+      }
+
+      tools = [{
+        type: "function",
+        function: {
+          name: "create_connection_moment",
+          description: "Create a connection moment reflection.",
+          parameters: { type: "object", properties, required, additionalProperties: false },
+        },
+      }];
+      toolChoice = { type: "function", function: { name: "create_connection_moment" } };
     } else if (mode === "gold_moment") {
       systemPrompt = `You are Atlas. A user has transformed a frustration into a strength — this is a Gold Moment. Generate a superpower name (3-6 words) that captures this transformation. It must feel earned, not assigned. Use the user's own language.
 
