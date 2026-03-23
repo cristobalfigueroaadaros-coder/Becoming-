@@ -7,6 +7,7 @@ import type { AggregatedSignal } from "@/lib/atlasSignalEngine";
 const STRENGTH_CLUSTERS = new Set(["passions", "skills", "natural-talents", "experiments", "values", "inspirations", "ideal-life", "vision-for-a-better-world"]);
 const LIFE_IMPRINT_CLUSTERS = new Set(["life-events", "childhood-signals", "aha-moments"]);
 const SHADOW_CLUSTERS = new Set(["personal-frustrations", "external-reflections"]);
+const SERVICE_CLUSTERS = new Set(["who-i-serve", "how-i-create-impact"]);
 
 export function useAtlasQuests() {
   const { clusters, totalDots } = useAtlas();
@@ -101,6 +102,7 @@ export function useAtlasQuests() {
   function getPreferredClusterSlugs(): Set<string> {
     if (completedCount < 3) return STRENGTH_CLUSTERS;
     if (completedCount === 3) return LIFE_IMPRINT_CLUSTERS;
+    if (completedCount >= 10 && completedCount % 5 === 0) return SERVICE_CLUSTERS;
     if (completedCount >= 5 && completedCount % 4 === 1) return SHADOW_CLUSTERS;
     return STRENGTH_CLUSTERS;
   }
