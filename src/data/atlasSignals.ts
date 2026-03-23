@@ -1367,3 +1367,128 @@ export const PATTERN_DEFINITIONS: PatternDefinition[] = [
     dotCategory: "life_imprint",
   },
 ];
+
+// ===== WHO I SERVE signal mappings =====
+OPTION_SIGNAL_MAP["who_i_serve_q1"] = {
+  0: {
+    "Kids": [{ signalName: "empathy", strength: 2 }, { signalName: "teaching_impulse", strength: 1 }],
+    "Creators": [{ signalName: "creativity", strength: 2 }, { signalName: "community_orientation", strength: 1 }],
+    "Entrepreneurs": [{ signalName: "leadership", strength: 2 }, { signalName: "experimentation", strength: 1 }],
+    "Families": [{ signalName: "connection", strength: 2 }, { signalName: "empathy", strength: 1 }],
+    "People who feel lost": [{ signalName: "empathy", strength: 2 }, { signalName: "purpose_drive", strength: 1 }],
+    "People without mentors": [{ signalName: "teaching_impulse", strength: 2 }, { signalName: "community_orientation", strength: 1 }],
+    "Young professionals": [{ signalName: "leadership", strength: 2 }, { signalName: "teaching_impulse", strength: 1 }],
+    "Parents": [{ signalName: "connection", strength: 2 }, { signalName: "empathy", strength: 1 }],
+  },
+  1: { _emoji: [{ signalName: "purpose_drive", strength: 2 }, { signalName: "empathy", strength: 1 }] },
+  2: {
+    "I was once in their shoes": [{ signalName: "empathy", strength: 2 }, { signalName: "reflection", strength: 1 }],
+    "I see their potential": [{ signalName: "vision_thinking", strength: 2 }, { signalName: "teaching_impulse", strength: 1 }],
+    "The world neglects them": [{ signalName: "purpose_drive", strength: 2 }, { signalName: "community_orientation", strength: 1 }],
+  },
+  3: { _reflection: [{ signalName: "empathy", strength: 1 }, { signalName: "purpose_drive", strength: 1 }] },
+};
+OPTION_SIGNAL_MAP["who_i_serve_q2"] = {
+  0: {
+    "People starting over": [{ signalName: "resilience", strength: 2 }, { signalName: "empathy", strength: 1 }],
+    "People with big dreams and no plan": [{ signalName: "vision_thinking", strength: 2 }, { signalName: "systems_thinking", strength: 1 }],
+    "People who care too much": [{ signalName: "empathy", strength: 2 }, { signalName: "connection", strength: 1 }],
+    "People who feel stuck": [{ signalName: "empathy", strength: 2 }, { signalName: "purpose_drive", strength: 1 }],
+  },
+  1: { _reflection: [{ signalName: "empathy", strength: 1 }, { signalName: "connection", strength: 1 }] },
+  2: { _reflection: [{ signalName: "teaching_impulse", strength: 1 }, { signalName: "community_orientation", strength: 1 }] },
+  3: { _reflection: [{ signalName: "empathy", strength: 1 }, { signalName: "purpose_drive", strength: 1 }] },
+};
+OPTION_SIGNAL_MAP["who_i_serve_q3"] = {
+  0: {
+    "Lost travelers who need a compass": [{ signalName: "purpose_drive", strength: 2 }, { signalName: "empathy", strength: 1 }],
+    "Builders who need better tools": [{ signalName: "creativity", strength: 2 }, { signalName: "systems_thinking", strength: 1 }],
+    "Artists who need permission": [{ signalName: "expression", strength: 2 }, { signalName: "empathy", strength: 1 }],
+    "Leaders who need support": [{ signalName: "leadership", strength: 2 }, { signalName: "community_orientation", strength: 1 }],
+  },
+  1: {
+    "Clarity": [{ signalName: "purpose_drive", strength: 2 }],
+    "Confidence": [{ signalName: "empathy", strength: 2 }],
+    "Tools": [{ signalName: "systems_thinking", strength: 2 }],
+    "Community": [{ signalName: "community_orientation", strength: 2 }],
+    "Mentorship": [{ signalName: "teaching_impulse", strength: 2 }],
+    "Permission to start": [{ signalName: "expression", strength: 2 }],
+  },
+  2: { _reflection: [{ signalName: "empathy", strength: 1 }, { signalName: "teaching_impulse", strength: 1 }] },
+  3: { _reflection: [{ signalName: "purpose_drive", strength: 1 }, { signalName: "community_orientation", strength: 1 }] },
+};
+OPTION_SIGNAL_MAP["who_i_serve_q4"] = {
+  0: { _reflection: [{ signalName: "empathy", strength: 2 }, { signalName: "reflection", strength: 1 }] },
+  1: {
+    "Helping individuals grow": [{ signalName: "teaching_impulse", strength: 2 }],
+    "Fixing broken systems": [{ signalName: "systems_thinking", strength: 2 }],
+    "Creating tools for many": [{ signalName: "creativity", strength: 2 }],
+    "Being there for one person deeply": [{ signalName: "empathy", strength: 2 }],
+  },
+  2: { _reflection: [{ signalName: "empathy", strength: 1 }, { signalName: "reflection", strength: 1 }] },
+  3: { _reflection: [{ signalName: "purpose_drive", strength: 1 }, { signalName: "empathy", strength: 1 }] },
+};
+
+// ===== HOW I CREATE IMPACT signal mappings =====
+OPTION_SIGNAL_MAP["how_i_create_impact_q1"] = {
+  0: {
+    "Listen deeply and ask questions": [{ signalName: "empathy", strength: 2 }, { signalName: "connection", strength: 1 }],
+    "Create a plan or system": [{ signalName: "systems_thinking", strength: 2 }, { signalName: "leadership", strength: 1 }],
+    "Share a story or insight": [{ signalName: "expression", strength: 2 }, { signalName: "teaching_impulse", strength: 1 }],
+    "Build something they can use": [{ signalName: "creativity", strength: 2 }, { signalName: "experimentation", strength: 1 }],
+  },
+  1: { _emoji: [{ signalName: "purpose_drive", strength: 2 }, { signalName: "empathy", strength: 1 }] },
+  2: {
+    "Teaching": [{ signalName: "teaching_impulse", strength: 2 }],
+    "Building": [{ signalName: "creativity", strength: 2 }],
+    "Connecting": [{ signalName: "community_orientation", strength: 2 }],
+    "Creating experiences": [{ signalName: "creativity", strength: 2 }, { signalName: "expression", strength: 1 }],
+    "Writing": [{ signalName: "expression", strength: 2 }],
+    "Leading": [{ signalName: "leadership", strength: 2 }],
+  },
+  3: { _reflection: [{ signalName: "purpose_drive", strength: 1 }, { signalName: "creativity", strength: 1 }] },
+};
+OPTION_SIGNAL_MAP["how_i_create_impact_q2"] = {
+  0: {
+    "A tool that makes their life easier": [{ signalName: "systems_thinking", strength: 2 }, { signalName: "creativity", strength: 1 }],
+    "A community where they belong": [{ signalName: "community_orientation", strength: 2 }, { signalName: "connection", strength: 1 }],
+    "A system that guides them step by step": [{ signalName: "systems_thinking", strength: 2 }, { signalName: "teaching_impulse", strength: 1 }],
+  },
+  1: {
+    "A bridge — connecting worlds": [{ signalName: "connection", strength: 2 }, { signalName: "community_orientation", strength: 1 }],
+    "A lighthouse — guiding from a distance": [{ signalName: "teaching_impulse", strength: 2 }, { signalName: "vision_thinking", strength: 1 }],
+    "A garden — growing things patiently": [{ signalName: "empathy", strength: 2 }, { signalName: "reflection", strength: 1 }],
+    "A spark — igniting others": [{ signalName: "expression", strength: 2 }, { signalName: "creativity", strength: 1 }],
+  },
+  2: { _reflection: [{ signalName: "expression", strength: 1 }, { signalName: "purpose_drive", strength: 1 }] },
+  3: { _reflection: [{ signalName: "purpose_drive", strength: 1 }, { signalName: "empathy", strength: 1 }] },
+};
+OPTION_SIGNAL_MAP["how_i_create_impact_q3"] = {
+  0: { _reflection: [{ signalName: "creativity", strength: 1 }, { signalName: "expression", strength: 1 }] },
+  1: {
+    "The teacher": [{ signalName: "teaching_impulse", strength: 2 }],
+    "The builder": [{ signalName: "creativity", strength: 2 }],
+    "The connector": [{ signalName: "community_orientation", strength: 2 }],
+    "The protector": [{ signalName: "empathy", strength: 2 }],
+    "The creator": [{ signalName: "creativity", strength: 2 }, { signalName: "expression", strength: 1 }],
+    "The guide": [{ signalName: "teaching_impulse", strength: 2 }, { signalName: "purpose_drive", strength: 1 }],
+  },
+  2: {
+    "Creating something beautiful": [{ signalName: "creativity", strength: 2 }],
+    "Solving a real problem": [{ signalName: "problem_solving", strength: 2 }],
+    "Helping someone see themselves clearly": [{ signalName: "empathy", strength: 2 }],
+    "Building something that lasts": [{ signalName: "systems_thinking", strength: 2 }],
+  },
+  3: { _reflection: [{ signalName: "purpose_drive", strength: 1 }, { signalName: "creativity", strength: 1 }] },
+};
+OPTION_SIGNAL_MAP["how_i_create_impact_q4"] = {
+  0: {
+    "Turn someone's pain into progress": [{ signalName: "empathy", strength: 2 }, { signalName: "purpose_drive", strength: 1 }],
+    "Build a tool that solves a real need": [{ signalName: "creativity", strength: 2 }, { signalName: "systems_thinking", strength: 1 }],
+    "Create an experience that changes perspective": [{ signalName: "creativity", strength: 2 }, { signalName: "expression", strength: 1 }],
+    "Connect two people who needed each other": [{ signalName: "community_orientation", strength: 2 }, { signalName: "connection", strength: 1 }],
+  },
+  1: { _emoji: [{ signalName: "purpose_drive", strength: 2 }, { signalName: "reflection", strength: 1 }] },
+  2: { _reflection: [{ signalName: "empathy", strength: 1 }, { signalName: "creativity", strength: 1 }] },
+  3: { _reflection: [{ signalName: "purpose_drive", strength: 1 }, { signalName: "creativity", strength: 1 }] },
+};
