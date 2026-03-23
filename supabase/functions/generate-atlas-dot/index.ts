@@ -103,6 +103,20 @@ const CLUSTER_INTELLIGENCE: Record<string, {
     wrongExamples: ["Wisdom Seeker (internal)", "Strong Person (too vague)"],
     dotStyle: "Name what others see.",
   },
+  "Who I Serve": {
+    slug: "who-i-serve",
+    signal: "The specific people or group the user feels most called to help.",
+    correctExamples: ["Feels Called to Help Families Reconnect", "Wants to Help People Who Feel Lost", "Drawn to Supporting Creators with Purpose"],
+    wrongExamples: ["Helping Others (too vague)", "Service Oriented (label)"],
+    dotStyle: "Name the specific audience and emotional connection.",
+  },
+  "How I Create Impact": {
+    slug: "how-i-create-impact",
+    signal: "How the user naturally expresses value and creates change in the world.",
+    correctExamples: ["Creates Experiences That Help People Feel Connected", "Uses Conversation to Help People Find Clarity", "Builds Systems That Guide People Step by Step"],
+    wrongExamples: ["Makes an Impact (meaningless)", "Change Maker (generic label)"],
+    dotStyle: "Name the specific action and its effect on others.",
+  },
 };
 
 const ALL_CLUSTER_SLUGS = Object.values(CLUSTER_INTELLIGENCE).map(c => c.slug);
@@ -206,6 +220,13 @@ Available cluster slugs: ${ALL_CLUSTER_SLUGS.join(", ")}
 Set suggestedClusterSlug to the cluster that BEST matches the user's answer content.
 If the answer matches the original quest cluster, use that cluster's slug.`;
 
+const SIGNAL_TAG_RULES = `STEP 4 — SIGNAL TAGGING:
+For each dot option, also classify these internal tags:
+- signalType: one of "skill", "value", "experience", "identity", "audience", "action", "emotional_insight"
+- actionType: one of "create", "connect", "guide", "build", "teach", "support", "express", "organize"
+
+These tags help Atlas build cross-cluster intelligence.`;
+
 serve(async (req) => {
   if (req.method === "OPTIONS") return new Response(null, { headers: corsHeaders });
 
@@ -237,6 +258,8 @@ ${DOT_SUBTYPE_RULES}
 
 ${CLUSTER_OVERRIDE_RULES}
 
+${SIGNAL_TAG_RULES}
+
 ${BASE_RULES}
 
 MIRROR FEEDBACK RULE:
@@ -244,64 +267,50 @@ MIRROR FEEDBACK RULE:
 - Use "you often", "this suggests", "it seems like" — never "you are".
 - Example: "This shows that connection matters deeply to you."
 
+CRITICAL: You must generate exactly 3 distinct Atlas Dot options. Each option should have a different angle or interpretation of the user's answers. All 3 should be valid but emphasize different aspects.
+- Option 1: Focus on the most literal reading of the user's words
+- Option 2: Focus on the underlying motivation or drive
+- Option 3: Focus on the identity signal or pattern
+
 ${patternTitle ? `A pattern "${patternTitle}" was detected. Use as context but personalize from the user's answers.` : ""}
-${mode === "regenerate" && feedbackText ? `The user said the previous result didn't feel right. They said: "${feedbackText}". Generate 3 alternative variations that better match their intent.` : ""}`;
+${mode === "regenerate" && feedbackText ? `The user said the previous options didn't feel right. They said: "${feedbackText}". Generate 3 new alternative variations that better match their intent.` : ""}`;
 
-      userPrompt = `Here are the user's quest responses:\n\n${allResponses}\n\nThe most important response is the final one:\n"${reflectionText}"\n\nFirst detect the emotional tone, then classify the dot sub-type, then determine the correct cluster, then generate a personalized dot that echoes their own words.`;
+      userPrompt = `Here are the user's quest responses:\n\n${allResponses}\n\nThe most important response is the final one:\n"${reflectionText}"\n\nFirst detect the emotional tone, then classify the dot sub-type, then determine the correct cluster, then generate 3 personalized Atlas Dot options that echo their own words.`;
 
-      if (mode === "regenerate") {
-        tools = [{
-          type: "function",
-          function: {
-            name: "create_atlas_dot_variations",
-            description: "Create 3 alternative dot variations.",
-            parameters: {
-              type: "object",
-              properties: {
-                variations: {
-                  type: "array",
-                  items: {
-                    type: "object",
-                    properties: {
-                      title: { type: "string" },
-                      description: { type: "string" },
-                      dotCategory: { type: "string", enum: ["strength", "shadow", "life_imprint"] },
-                    },
-                    required: ["title", "description", "dotCategory"],
-                    additionalProperties: false,
+      tools = [{
+        type: "function",
+        function: {
+          name: "create_atlas_dot_options",
+          description: "Create 3 Atlas Dot options for the user to choose from.",
+          parameters: {
+            type: "object",
+            properties: {
+              emotionalTone: { type: "string", enum: ["positive_outward", "vision_values", "personal_struggle", "factual_event", "passion_enjoyment", "transformation"], description: "The detected emotional tone of the user's answers." },
+              dotSubType: { type: "string", enum: ["behavioral", "motivational", "identity"], description: "Classification of what the dot represents." },
+              suggestedClusterSlug: { type: "string", description: "The cluster slug that best matches the answer content." },
+              mirrorFeedback: { type: "string", description: "A single observational sentence reflecting what this discovery reveals about the user." },
+              variations: {
+                type: "array",
+                items: {
+                  type: "object",
+                  properties: {
+                    title: { type: "string", description: "A 3-6 word identity phrase echoing the user's own language." },
+                    description: { type: "string", description: "1-2 sentences referencing the user's specific answers." },
+                    dotCategory: { type: "string", enum: ["strength", "shadow", "life_imprint"] },
+                    signalType: { type: "string", enum: ["skill", "value", "experience", "identity", "audience", "action", "emotional_insight"] },
+                    actionType: { type: "string", enum: ["create", "connect", "guide", "build", "teach", "support", "express", "organize"] },
                   },
+                  required: ["title", "description", "dotCategory", "signalType", "actionType"],
+                  additionalProperties: false,
                 },
               },
-              required: ["variations"],
-              additionalProperties: false,
             },
+            required: ["emotionalTone", "dotSubType", "suggestedClusterSlug", "mirrorFeedback", "variations"],
+            additionalProperties: false,
           },
-        }];
-        toolChoice = { type: "function", function: { name: "create_atlas_dot_variations" } };
-      } else {
-        tools = [{
-          type: "function",
-          function: {
-            name: "create_atlas_dot",
-            description: "Create a personalized Atlas dot from the user's discovery responses.",
-            parameters: {
-              type: "object",
-              properties: {
-                emotionalTone: { type: "string", enum: ["positive_outward", "vision_values", "personal_struggle", "factual_event", "passion_enjoyment", "transformation"], description: "The detected emotional tone of the user's answers." },
-                dotSubType: { type: "string", enum: ["behavioral", "motivational", "identity"], description: "Classification of what the dot represents." },
-                suggestedClusterSlug: { type: "string", description: "The cluster slug that best matches the answer content." },
-                title: { type: "string", description: "A 3-6 word identity phrase echoing the user's own language." },
-                description: { type: "string", description: "1-2 sentences referencing the user's specific answers." },
-                dotCategory: { type: "string", enum: ["strength", "shadow", "life_imprint"] },
-                mirrorFeedback: { type: "string", description: "A single observational sentence reflecting what this dot reveals about the user." },
-              },
-              required: ["emotionalTone", "dotSubType", "suggestedClusterSlug", "title", "description", "dotCategory", "mirrorFeedback"],
-              additionalProperties: false,
-            },
-          },
-        }];
-        toolChoice = { type: "function", function: { name: "create_atlas_dot" } };
-      }
+        },
+      }];
+      toolChoice = { type: "function", function: { name: "create_atlas_dot_options" } };
     } else if (mode === "check_depth") {
       const reflectionText = typeof responses?.[responses.length - 1] === "string" ? responses[responses.length - 1] : "";
       systemPrompt = `You are Atlas. Your job is to determine if a user's open reflection answer is SHALLOW or DEEP.
