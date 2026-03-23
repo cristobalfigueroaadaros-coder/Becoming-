@@ -8,19 +8,22 @@ import { AtlasClusterNode, AtlasClusterDetail } from "@/components/atlas";
 
 // Organic scatter positions for 13 clusters (percentage-based)
 const CLUSTER_POSITIONS: { x: number; y: number }[] = [
-  { x: 18, y: 12 }, // Life Events
-  { x: 55, y: 8 },  // Passions
-  { x: 82, y: 15 }, // Values
-  { x: 10, y: 32 }, // Natural Talents
-  { x: 42, y: 28 }, // Childhood Signals
-  { x: 75, y: 30 }, // Skills
-  { x: 25, y: 50 }, // Aha Moments
-  { x: 60, y: 48 }, // Experiments
-  { x: 88, y: 50 }, // Vision
-  { x: 15, y: 70 }, // Ideal Life
-  { x: 50, y: 68 }, // Personal Frustrations
-  { x: 80, y: 72 }, // Inspirations
-  { x: 40, y: 88 }, // External Reflections
+  { x: 18, y: 10 }, // Life Events
+  { x: 55, y: 6 },  // Passions
+  { x: 82, y: 12 }, // Values
+  { x: 10, y: 28 }, // Natural Talents
+  { x: 42, y: 24 }, // Childhood Signals
+  { x: 75, y: 26 }, // Skills
+  { x: 25, y: 44 }, // Aha Moments
+  { x: 60, y: 42 }, // Experiments
+  { x: 88, y: 44 }, // Vision
+  { x: 15, y: 62 }, // Ideal Life
+  { x: 50, y: 60 }, // Personal Frustrations
+  { x: 80, y: 64 }, // Inspirations
+  { x: 40, y: 78 }, // External Reflections
+  { x: 50, y: 42 }, // Golden Moments (central)
+  { x: 28, y: 90 }, // Who I Serve
+  { x: 68, y: 88 }, // How I Create Impact
 ];
 
 const AtlasPage = () => {

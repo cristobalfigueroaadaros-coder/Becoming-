@@ -9,7 +9,7 @@ import confetti from "canvas-confetti";
 import type { DotInterpretation } from "@/data/atlasQuests";
 import type { DotCategory } from "@/data/atlasSignals";
 
-export type ValidationMode = "initial" | "regenerating" | "picking" | "editing" | "discarded" | "confirmed";
+export type ValidationMode = "initial" | "picking" | "regenerating" | "editing" | "discarded" | "confirmed";
 
 interface Props {
   dot: DotInterpretation;
@@ -44,7 +44,7 @@ export const AtlasWinningCard = ({
   const [discardFeedback, setDiscardFeedback] = useState("");
 
   useEffect(() => {
-    if (validationMode === "initial") {
+    if (validationMode === "picking" && variations && variations.length > 0) {
       const timer = setTimeout(() => {
         confetti({
           particleCount: isPatternBased ? 120 : isReinforced ? 60 : 80,
@@ -54,42 +54,80 @@ export const AtlasWinningCard = ({
       }, 400);
       return () => clearTimeout(timer);
     }
-  }, [validationMode, isPatternBased, isReinforced]);
+  }, [validationMode, isPatternBased, isReinforced, variations]);
 
   let headerLabel: string;
-  let HeaderIcon: typeof Sparkles;
 
   if (isReinforced) {
-    headerLabel = "Pattern Reinforced";
-    HeaderIcon = RefreshCw;
+    headerLabel = "Atlas Dot Reinforced";
   } else if (isPatternBased) {
-    headerLabel = "Pattern Detected";
-    HeaderIcon = Zap;
+    headerLabel = "New Atlas Dot";
   } else {
-    headerLabel = "New Atlas Signal";
-    HeaderIcon = catConfig.icon;
+    headerLabel = "New Atlas Dot";
   }
 
-  // Picking from variations
-  if (validationMode === "picking" && variations && variations.length > 0) {
+  // Default: 3-option picking mode
+  if ((validationMode === "picking" || validationMode === "initial") && variations && variations.length > 0) {
     return (
-      <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} className="flex flex-col items-center text-center gap-4 px-6 w-full">
-        <p className="text-sm text-muted-foreground">Pick the one that feels most like you:</p>
-        <div className="space-y-3 w-full max-w-sm">
-          {variations.map((v, i) => (
-            <button
-              key={i}
-              onClick={() => onConfirm(v)}
-              className="w-full text-left p-4 rounded-xl border border-border hover:border-primary/50 transition-colors space-y-1"
-            >
-              <p className="font-semibold text-foreground">{v.title}</p>
-              <p className="text-sm text-muted-foreground">{v.description}</p>
-            </button>
-          ))}
+      <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} className="flex flex-col items-center text-center gap-4 px-6 w-full">
+        <div className="space-y-1">
+          <p className="text-xs uppercase tracking-wider text-muted-foreground">{headerLabel}</p>
+          <p className="text-sm text-muted-foreground">Pick the one that feels most like you:</p>
         </div>
-        <Button variant="ghost" size="sm" onClick={() => onSetValidationMode("initial")} className="text-muted-foreground">
-          Go back
-        </Button>
+
+        {mirrorFeedback && (
+          <p className="text-xs text-muted-foreground/80 italic max-w-xs">{mirrorFeedback}</p>
+        )}
+
+        <div className="space-y-3 w-full max-w-sm">
+          {variations.map((v, i) => {
+            const vColor = DOT_TYPE_COLORS[v.dotCategory || "strength"] || DOT_TYPE_COLORS.strength;
+            const vCat = CATEGORY_CONFIG[v.dotCategory || "strength"] || CATEGORY_CONFIG.strength;
+            return (
+              <button
+                key={i}
+                onClick={() => onConfirm(v)}
+                disabled={isLoading}
+                className="w-full text-left p-4 rounded-xl border border-border hover:border-primary/50 transition-all space-y-2 active:scale-[0.98]"
+              >
+                <div className="flex items-center justify-between">
+                  <p className="font-semibold text-foreground">{v.title}</p>
+                  <div
+                    className="px-2 py-0.5 rounded-full text-[10px] font-medium"
+                    style={{ backgroundColor: `${vColor}20`, color: vColor }}
+                  >
+                    {vCat.label}
+                  </div>
+                </div>
+                <p className="text-sm text-muted-foreground">{v.description}</p>
+              </button>
+            );
+          })}
+        </div>
+
+        <div className="flex gap-3 mt-1">
+          <Button
+            variant="ghost"
+            size="sm"
+            className="text-xs text-muted-foreground"
+            disabled={isLoading}
+            onClick={() => onSetValidationMode("discarded")}
+          >
+            <X className="w-3 h-3 mr-1" /> None of these
+          </Button>
+          <Button
+            variant="ghost"
+            size="sm"
+            className="text-xs text-muted-foreground"
+            onClick={() => {
+              setEditTitle(variations[0]?.title || dot.title);
+              setEditDesc(variations[0]?.description || dot.description);
+              onSetValidationMode("editing");
+            }}
+          >
+            <Pencil className="w-3 h-3 mr-1" /> Let me edit
+          </Button>
+        </div>
       </motion.div>
     );
   }
@@ -114,7 +152,7 @@ export const AtlasWinningCard = ({
           />
         </div>
         <div className="flex gap-2">
-          <Button variant="ghost" size="sm" onClick={() => onSetValidationMode("initial")}>Cancel</Button>
+          <Button variant="ghost" size="sm" onClick={() => onSetValidationMode("picking")}>Cancel</Button>
           <Button
             size="sm"
             disabled={!editTitle.trim()}
@@ -127,7 +165,7 @@ export const AtlasWinningCard = ({
     );
   }
 
-  // Discarded — ask for feedback
+  // Discarded — ask for feedback then regenerate
   if (validationMode === "discarded") {
     return (
       <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} className="flex flex-col items-center gap-4 px-6 w-full">
@@ -140,7 +178,7 @@ export const AtlasWinningCard = ({
           className="max-w-sm"
         />
         <div className="flex gap-2">
-          <Button variant="ghost" size="sm" onClick={() => onSetValidationMode("initial")}>Back</Button>
+          <Button variant="ghost" size="sm" onClick={() => onSetValidationMode("picking")}>Back</Button>
           <Button
             size="sm"
             disabled={!discardFeedback.trim() || isLoading}
@@ -153,7 +191,7 @@ export const AtlasWinningCard = ({
     );
   }
 
-  // Default: initial validation
+  // Fallback: single dot display (shouldn't normally happen with 3-option flow)
   return (
     <motion.div
       initial={{ opacity: 0, scale: 0.9 }}
@@ -164,7 +202,7 @@ export const AtlasWinningCard = ({
         animate={{ rotate: [0, 10, -10, 0] }}
         transition={{ duration: 1.5, repeat: Infinity, repeatDelay: 2 }}
       >
-        <HeaderIcon className="w-12 h-12" style={{ color: dotColor }} />
+        <catConfig.icon className="w-12 h-12" style={{ color: dotColor }} />
       </motion.div>
 
       <div className="space-y-3">
@@ -189,34 +227,10 @@ export const AtlasWinningCard = ({
         </div>
       </div>
 
-      {/* 4 validation actions */}
       <div className="w-full max-w-xs space-y-2">
         <Button onClick={() => onConfirm()} disabled={isLoading} className="w-full gap-2">
           <Check className="w-4 h-4" /> Yes, that's me
         </Button>
-        <div className="flex gap-2">
-          <Button
-            variant="outline"
-            size="sm"
-            className="flex-1 text-xs"
-            disabled={isLoading}
-            onClick={() => {
-              onSetValidationMode("regenerating");
-              onRegenerate();
-            }}
-          >
-            <RefreshCw className="w-3 h-3 mr-1" /> Close, but not quite
-          </Button>
-          <Button
-            variant="outline"
-            size="sm"
-            className="flex-1 text-xs"
-            disabled={isLoading}
-            onClick={() => onSetValidationMode("discarded")}
-          >
-            <X className="w-3 h-3 mr-1" /> Not really
-          </Button>
-        </div>
         <Button
           variant="ghost"
           size="sm"

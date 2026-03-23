@@ -46,13 +46,14 @@ export interface ClusterWithState extends AtlasCluster {
 }
 
 // Phase unlock thresholds (total dots across all clusters)
-const PHASE_THRESHOLDS = [0, 0, 3, 6, 10]; // phase 1 always, 2 at 3+, 3 at 6+, 4 at 10+
+const PHASE_THRESHOLDS = [0, 0, 3, 6, 10, 10]; // phase 1 always, 2 at 3+, 3 at 6+, 4 at 10+, 5 at 10+
 
 const PHASE_SLUGS: Record<number, Set<string>> = {
-  1: new Set(["passions", "skills", "life-events", "personal-frustrations"]),
+  1: new Set(["passions", "skills", "life-events", "personal-frustrations", "golden-moments"]),
   2: new Set(["natural-talents", "values", "experiments"]),
   3: new Set(["childhood-signals", "inspirations", "aha-moments"]),
   4: new Set(["ideal-life", "vision-for-a-better-world", "external-reflections"]),
+  5: new Set(["who-i-serve", "how-i-create-impact"]),
 };
 
 function getUnlockPhase(slug: string): number {
@@ -87,6 +88,10 @@ export const DOMAIN_COLORS: Record<string, { bg: string; text: string; glow: str
   Environment: { bg: "hsl(35 80% 55%)", text: "hsl(35 80% 85%)", glow: "hsl(35 80% 55% / 0.3)", border: "hsl(35 80% 45%)" },
 };
 
+export const CLUSTER_COLORS: Record<string, { bg: string; glow: string }> = {
+  "golden-moments": { bg: "hsl(40 90% 55%)", glow: "hsl(40 90% 55% / 0.4)" },
+};
+
 export const DOT_TYPE_COLORS: Record<string, string> = {
   strength: "hsl(195 80% 55%)",
   shadow: "hsl(280 60% 50%)",
@@ -107,6 +112,7 @@ export const GROWTH_LEVEL_LABELS: Record<GrowthLevel, string> = {
 };
 
 export function getCurrentPhase(totalDots: number): number {
+  if (totalDots >= PHASE_THRESHOLDS[5]) return 5;
   if (totalDots >= PHASE_THRESHOLDS[4]) return 4;
   if (totalDots >= PHASE_THRESHOLDS[3]) return 3;
   if (totalDots >= PHASE_THRESHOLDS[2]) return 2;
@@ -114,7 +120,7 @@ export function getCurrentPhase(totalDots: number): number {
 }
 
 export function getNextPhaseThreshold(totalDots: number): number | null {
-  for (let i = 2; i <= 4; i++) {
+  for (let i = 2; i <= 5; i++) {
     if (totalDots < PHASE_THRESHOLDS[i]) return PHASE_THRESHOLDS[i];
   }
   return null;

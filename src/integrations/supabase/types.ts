@@ -424,6 +424,7 @@ export type Database = {
           short_description: string | null
           signal_sources: Json | null
           signal_strength: number | null
+          signal_tags: Json | null
           source_system: string
           title: string
           user_edited: boolean | null
@@ -444,6 +445,7 @@ export type Database = {
           short_description?: string | null
           signal_sources?: Json | null
           signal_strength?: number | null
+          signal_tags?: Json | null
           source_system?: string
           title: string
           user_edited?: boolean | null
@@ -464,6 +466,7 @@ export type Database = {
           short_description?: string | null
           signal_sources?: Json | null
           signal_strength?: number | null
+          signal_tags?: Json | null
           source_system?: string
           title?: string
           user_edited?: boolean | null

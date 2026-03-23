@@ -53,8 +53,9 @@ export const AtlasQuestFlow = ({ quest, clusterId, onboardingIndex }: Props) => 
   const [suggestedClusterSlug, setSuggestedClusterSlug] = useState<string | null>(null);
   const [isSaving, setIsSaving] = useState(false);
   const [isGenerating, setIsGenerating] = useState(false);
-  const [validationMode, setValidationMode] = useState<ValidationMode>("initial");
+  const [validationMode, setValidationMode] = useState<ValidationMode>("picking");
   const [variations, setVariations] = useState<DotInterpretation[]>([]);
+  const [aiSignalTags, setAiSignalTags] = useState<any>(null);
   const [growthReflection, setGrowthReflection] = useState<string | null>(null);
   const [showGrowthReflection, setShowGrowthReflection] = useState(false);
   const [goldMoment, setGoldMoment] = useState<{ frustrationTitle: string; strengthTitle: string; superpowerName: string; transformationDescription: string } | null>(null);
@@ -71,13 +72,23 @@ export const AtlasQuestFlow = ({ quest, clusterId, onboardingIndex }: Props) => 
   const generateAIDot = async (
     allResponses: any[],
     patternTitle?: string
-  ): Promise<{ title: string; description: string; dotCategory: DotCategory; mirrorFeedback?: string; suggestedClusterSlug?: string } | null> => {
+  ): Promise<{
+    variations: DotInterpretation[];
+    mirrorFeedback?: string;
+    suggestedClusterSlug?: string;
+    emotionalTone?: string;
+    dotSubType?: string;
+  } | null> => {
     try {
       const { data, error } = await supabase.functions.invoke("generate-atlas-dot", {
         body: { mode: "generate", responses: allResponses, clusterName: quest.clusterName, patternTitle: patternTitle || null },
       });
       if (error) throw error;
-      if (data?.title && data?.description && data?.dotCategory) return data;
+      if (data?.variations?.length > 0) return data;
+      // Fallback: if old format returns single dot
+      if (data?.title && data?.description && data?.dotCategory) {
+        return { variations: [{ title: data.title, description: data.description, dotCategory: data.dotCategory }], mirrorFeedback: data.mirrorFeedback, suggestedClusterSlug: data.suggestedClusterSlug };
+      }
       return null;
     } catch (err) {
       console.error("AI dot generation failed:", err);
@@ -94,14 +105,15 @@ export const AtlasQuestFlow = ({ quest, clusterId, onboardingIndex }: Props) => 
       if (error) throw error;
       if (data?.variations?.length > 0) {
         setVariations(data.variations);
+        setMirrorFeedback(data.mirrorFeedback || mirrorFeedback);
         setValidationMode("picking");
       } else {
         toast({ title: "Couldn't generate alternatives", description: "Try editing manually instead." });
-        setValidationMode("initial");
+        setValidationMode("picking");
       }
     } catch {
       toast({ title: "Generation failed", description: "Try editing manually.", variant: "destructive" });
-      setValidationMode("initial");
+      setValidationMode("picking");
     } finally {
       setIsGenerating(false);
     }
@@ -129,21 +141,29 @@ export const AtlasQuestFlow = ({ quest, clusterId, onboardingIndex }: Props) => 
     setDetectedPattern(result.detectedPattern);
     setIsPatternBased(result.isPatternBased);
 
-    const aiDot = await generateAIDot(allResponses, result.isPatternBased ? result.detectedPattern?.pattern.title : undefined);
+    const aiResult = await generateAIDot(allResponses, result.isPatternBased ? result.detectedPattern?.pattern.title : undefined);
 
-    if (aiDot) {
-      if (aiDot.suggestedClusterSlug) setSuggestedClusterSlug(aiDot.suggestedClusterSlug);
-      if (result.isPatternBased && result.detectedPattern) {
-        setDotResult({ title: result.detectedPattern.pattern.title, description: aiDot.description, dotCategory: aiDot.dotCategory });
-      } else {
-        setDotResult(aiDot);
+    if (aiResult && aiResult.variations.length > 0) {
+      if (aiResult.suggestedClusterSlug) setSuggestedClusterSlug(aiResult.suggestedClusterSlug);
+      setVariations(aiResult.variations);
+      setDotResult(aiResult.variations[0]); // first as fallback
+      setMirrorFeedback(aiResult.mirrorFeedback);
+      // Store signal tags from the first variation for saving
+      const firstVar = aiResult.variations[0] as any;
+      if (firstVar?.signalType || firstVar?.actionType) {
+        setAiSignalTags({
+          signalType: firstVar.signalType,
+          actionType: firstVar.actionType,
+          emotionalTone: (aiResult as any).emotionalTone,
+          dotSubType: (aiResult as any).dotSubType,
+        });
       }
-      setMirrorFeedback(aiDot.mirrorFeedback);
     } else {
       setDotResult(result.dot);
+      setVariations([]);
     }
 
-    setValidationMode("initial");
+    setValidationMode("picking");
     setIsGenerating(false);
   };
 
@@ -187,6 +207,10 @@ export const AtlasQuestFlow = ({ quest, clusterId, onboardingIndex }: Props) => 
     if (!finalDot) return;
     setIsSaving(true);
 
+    // Store non-selected variations as secondary signal data
+    const selectedTitle = finalDot.title;
+    const nonSelectedVariations = variations.filter(v => v.title !== selectedTitle);
+
     try {
       const { data: { user } } = await supabase.auth.getUser();
       if (!user) throw new Error("Not authenticated");
@@ -205,6 +229,14 @@ export const AtlasQuestFlow = ({ quest, clusterId, onboardingIndex }: Props) => 
       const signalSourceNames = newSignals.map(s => s.signalName);
       const totalStrength = newSignals.reduce((sum, s) => sum + s.strength, 0);
 
+      // Build signal tags from the selected variation
+      const selectedVar = variations.find(v => v.title === selectedTitle) as any;
+      const signalTags: any = {};
+      if (selectedVar?.signalType) signalTags.signalType = selectedVar.signalType;
+      if (selectedVar?.actionType) signalTags.actionType = selectedVar.actionType;
+      if (aiSignalTags?.emotionalTone) signalTags.emotionalTone = aiSignalTags.emotionalTone;
+      if (aiSignalTags?.dotSubType) signalTags.dotSubType = aiSignalTags.dotSubType;
+
       // Duplicate detection
       const { data: existingDots } = await supabase.from("atlas_dots").select("id, confidence_score, signal_strength").eq("user_id", user.id).eq("title", finalDot.title).limit(1);
       let dotId: string;
@@ -216,7 +248,8 @@ export const AtlasQuestFlow = ({ quest, clusterId, onboardingIndex }: Props) => 
           confidence_score: Math.min(1, (existing.confidence_score || 0.8) + 0.1),
           signal_strength: (existing.signal_strength || 0) + totalStrength,
           user_validated: true, user_edited: userEdited || false,
-        }).eq("id", existing.id);
+          signal_tags: signalTags,
+        } as any).eq("id", existing.id);
         dotId = existing.id;
         reinforced = true;
         setIsReinforced(true);
@@ -227,15 +260,16 @@ export const AtlasQuestFlow = ({ quest, clusterId, onboardingIndex }: Props) => 
           dot_category: dotCategory, signal_sources: signalSourceNames,
           signal_strength: totalStrength, source_system: "quest_system",
           confidence_score: isPatternBased ? 0.9 : 0.8, user_validated: true, user_edited: userEdited || false,
-        }).select("id").single();
+          signal_tags: signalTags,
+        } as any).select("id").single();
         if (dotErr) throw dotErr;
         dotId = dot.id;
       }
 
-      // Insert quest record
+      // Insert quest record with non-selected variations stored
       await supabase.from("atlas_quests").insert({
         user_id: user.id, cluster_id: clusterId, quest_key: quest.questKey,
-        interactions: responses as any, status: "completed", generated_dot_id: dotId,
+        interactions: { responses, nonSelectedVariations } as any, status: "completed", generated_dot_id: dotId,
         completed_at: new Date().toISOString(),
         is_onboarding: isOnboarding, onboarding_sequence: onboardingIndex ?? null,
       } as any);
@@ -300,6 +334,23 @@ export const AtlasQuestFlow = ({ quest, clusterId, onboardingIndex }: Props) => 
                 body: { mode: "gold_moment", dotA: { title: dotA.title, description: dotA.short_description }, dotB: { title: dotB.title, description: dotB.short_description } },
               });
               if (gmData?.superpowerName) {
+                // Save gold moment dot to the golden-moments cluster
+                const goldenCluster = clusters.find(c => c.slug === "golden-moments");
+                if (goldenCluster) {
+                  await supabase.from("atlas_dots").insert({
+                    user_id: user.id,
+                    cluster_id: goldenCluster.id,
+                    title: gmData.superpowerName,
+                    short_description: gmData.transformationDescription,
+                    dot_type: "gold_moment",
+                    dot_category: "strength",
+                    is_gold_moment: true,
+                    evolved_from_ids: [dotA.id, dotB.id],
+                    source_system: "gold_moment",
+                    confidence_score: 1.0,
+                  } as any);
+                }
+
                 await supabase.from("atlas_dots").update({ is_gold_moment: true }).in("id", [dotA.id, dotB.id]);
                 setGoldMoment({ frustrationTitle: dotA.title, strengthTitle: dotB.title, superpowerName: gmData.superpowerName, transformationDescription: gmData.transformationDescription });
                 queryClient.invalidateQueries({ queryKey: ["atlas-dots"] });
@@ -363,7 +414,6 @@ export const AtlasQuestFlow = ({ quest, clusterId, onboardingIndex }: Props) => 
 
   const handleConnectionMomentContinue = async () => {
     if (isOnboarding && onboardingIndex === 12) {
-      // After identity moment, save identity statement and go to atlas
       navigate("/atlas");
     } else if (isOnboarding) {
       navigate("/atlas/quest");
@@ -433,7 +483,7 @@ export const AtlasQuestFlow = ({ quest, clusterId, onboardingIndex }: Props) => 
           ) : (isGenerating || isCheckingDepth || validationMode === "regenerating") ? (
             <motion.div key="generating" initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} className="flex flex-col items-center gap-4">
               <Loader2 className="w-8 h-8 animate-spin text-primary" />
-              <p className="text-sm text-muted-foreground">{isCheckingDepth ? "Reading your answer…" : "Discovering patterns…"}</p>
+              <p className="text-sm text-muted-foreground">{isCheckingDepth ? "Reading your answer…" : "Discovering…"}</p>
             </motion.div>
           ) : dotResult ? (
             <AtlasWinningCard
