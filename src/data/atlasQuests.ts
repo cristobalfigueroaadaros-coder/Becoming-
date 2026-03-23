@@ -973,6 +973,119 @@ export const ONBOARDING_QUESTS: AtlasQuestDefinition[] = [
     ],
     interpret: (r) => pick(["Inspired by Legacy of Building for Others", "Everything Can Be Connected", "Admires the Creator Who Built a Universe"], r),
   },
+  // ===== WHO I SERVE (4 quests) =====
+  {
+    questKey: "who_i_serve_q1",
+    clusterSlug: "who-i-serve",
+    clusterName: "Who I Serve",
+    intro: "Let's discover who you feel most called to help.",
+    interactions: [
+      { type: "multi_select", prompt: "Who do you feel drawn to help?", options: ["Kids", "Creators", "Entrepreneurs", "Families", "People who feel lost", "People without mentors", "Young professionals", "Parents"], minSelect: 1, maxSelect: 3 },
+      { type: "emoji_scale", prompt: "How strong is this pull?", emojiOptions: [
+        { emoji: "😐", label: "Mild" }, { emoji: "🙂", label: "Real" }, { emoji: "😊", label: "Strong" }, { emoji: "😄", label: "Deep" }, { emoji: "🔥", label: "It drives me" }
+      ]},
+      { type: "scenario", prompt: "Why do you care about this group?", options: ["I was once in their shoes", "I see their potential", "The world neglects them"] },
+      { type: "reflection", prompt: "Who do you feel most called to help, and why them specifically?" },
+    ],
+    interpret: (r) => pick(["Feels Called to Help Others Find Direction", "Drawn to Supporting the Overlooked", "Wants to Help People Grow"], r),
+  },
+  {
+    questKey: "who_i_serve_q2",
+    clusterSlug: "who-i-serve",
+    clusterName: "Who I Serve",
+    intro: "Let's understand your natural empathy.",
+    interactions: [
+      { type: "card_pick", prompt: "Who do you understand better than most?", options: ["People starting over", "People with big dreams and no plan", "People who care too much", "People who feel stuck"] },
+      { type: "sentence_completion", prompt: "Complete this:", sentenceStem: "The group of people I understand best is" },
+      { type: "this_or_that", prompt: "You help people by…", optionA: "Helping them see what they already have", optionB: "Giving them tools they didn't know they needed" },
+      { type: "reflection", prompt: "Think of someone you once helped. What were they struggling with, and what did you give them?" },
+    ],
+    interpret: (r) => pick(["Understands the Stuck", "Sees Potential in Others", "Natural Supporter"], r),
+  },
+  {
+    questKey: "who_i_serve_q3",
+    clusterSlug: "who-i-serve",
+    clusterName: "Who I Serve",
+    intro: "Let's explore who needs what you have.",
+    interactions: [
+      { type: "visual_metaphor", prompt: "Your ideal audience feels like…", options: ["Lost travelers who need a compass", "Builders who need better tools", "Artists who need permission", "Leaders who need support"] },
+      { type: "multi_select", prompt: "What do they need most?", options: ["Clarity", "Confidence", "Tools", "Community", "Mentorship", "Permission to start"], minSelect: 2, maxSelect: 3 },
+      { type: "memory_flash", prompt: "Think of a time you helped someone who really needed it.", memoryPrompt: "Who was it? What did they need? What happened after?" },
+      { type: "reflection", prompt: "What group of people would you most like to positively impact with your work?" },
+    ],
+    interpret: (r) => pick(["Wants to Guide Lost Travelers", "Builds Tools for Creators", "Gives Permission to Start"], r),
+  },
+  {
+    questKey: "who_i_serve_q4",
+    clusterSlug: "who-i-serve",
+    clusterName: "Who I Serve",
+    intro: "Let's connect your story to your audience.",
+    interactions: [
+      { type: "this_or_that", prompt: "You feel protective of…", optionA: "People who were like your younger self", optionB: "People who face challenges you understand deeply" },
+      { type: "ranking", prompt: "Rank by how much this drives you.", options: ["Helping individuals grow", "Fixing broken systems", "Creating tools for many", "Being there for one person deeply"] },
+      { type: "sentence_completion", prompt: "Complete this:", sentenceStem: "The person I was once in their position and could now help is" },
+      { type: "reflection", prompt: "Who was once in your position that you could now help, and what would you want to give them?" },
+    ],
+    interpret: (r) => pick(["Helps Who I Once Was", "Wants to Fix What Broke Me", "Gives What I Never Had"], r),
+  },
+
+  // ===== HOW I CREATE IMPACT (4 quests) =====
+  {
+    questKey: "how_i_create_impact_q1",
+    clusterSlug: "how-i-create-impact",
+    clusterName: "How I Create Impact",
+    intro: "Let's discover how you naturally create change.",
+    interactions: [
+      { type: "card_pick", prompt: "When someone needs help, you naturally…", options: ["Listen deeply and ask questions", "Create a plan or system", "Share a story or insight", "Build something they can use"] },
+      { type: "emoji_scale", prompt: "How natural does helping feel?", emojiOptions: [
+        { emoji: "😐", label: "I try" }, { emoji: "🙂", label: "Comes easy" }, { emoji: "😊", label: "Second nature" }, { emoji: "😄", label: "It's who I am" }, { emoji: "🔥", label: "Can't stop" }
+      ]},
+      { type: "multi_select", prompt: "Your way of creating impact:", options: ["Teaching", "Building", "Connecting", "Creating experiences", "Writing", "Leading"], minSelect: 2, maxSelect: 3 },
+      { type: "reflection", prompt: "How do you naturally help people when they need you? What do you actually do?" },
+    ],
+    interpret: (r) => pick(["Creates Through Teaching", "Builds Systems for Others", "Connects People Naturally"], r),
+  },
+  {
+    questKey: "how_i_create_impact_q2",
+    clusterSlug: "how-i-create-impact",
+    clusterName: "How I Create Impact",
+    intro: "Let's explore your contribution style.",
+    interactions: [
+      { type: "scenario", prompt: "If you could build something to help others, it would be…", options: ["A tool that makes their life easier", "A community where they belong", "A system that guides them step by step"] },
+      { type: "visual_metaphor", prompt: "Your impact style is like…", options: ["A bridge — connecting worlds", "A lighthouse — guiding from a distance", "A garden — growing things patiently", "A spark — igniting others"] },
+      { type: "sentence_completion", prompt: "Complete this:", sentenceStem: "The way I help people most is by" },
+      { type: "reflection", prompt: "What do people leave with after interacting with you? What's different for them?" },
+    ],
+    interpret: (r) => pick(["Bridge Between Worlds", "Guides from a Distance", "Grows Things Patiently"], r),
+  },
+  {
+    questKey: "how_i_create_impact_q3",
+    clusterSlug: "how-i-create-impact",
+    clusterName: "How I Create Impact",
+    intro: "Let's find your unique form of contribution.",
+    interactions: [
+      { type: "this_or_that", prompt: "You create impact by…", optionA: "Making complex things simple", optionB: "Making invisible things visible" },
+      { type: "multi_select", prompt: "What role do you naturally take?", options: ["The teacher", "The builder", "The connector", "The protector", "The creator", "The guide"], minSelect: 1, maxSelect: 2 },
+      { type: "ranking", prompt: "Rank by what feels most like you.", options: ["Creating something beautiful", "Solving a real problem", "Helping someone see themselves clearly", "Building something that lasts"] },
+      { type: "reflection", prompt: "Imagine helping your ideal group of people. What are you actually doing with them?" },
+    ],
+    interpret: (r) => pick(["Makes the Complex Simple", "Helps People See Themselves", "Builds Things That Last"], r),
+  },
+  {
+    questKey: "how_i_create_impact_q4",
+    clusterSlug: "how-i-create-impact",
+    clusterName: "How I Create Impact",
+    intro: "Let's connect your gifts to your impact.",
+    interactions: [
+      { type: "card_pick", prompt: "Your best work happens when you…", options: ["Turn someone's pain into progress", "Build a tool that solves a real need", "Create an experience that changes perspective", "Connect two people who needed each other"] },
+      { type: "emoji_scale", prompt: "How aligned is your current work with your impact?", emojiOptions: [
+        { emoji: "😢", label: "Far off" }, { emoji: "😐", label: "Getting there" }, { emoji: "🙂", label: "Close" }, { emoji: "😊", label: "Almost" }, { emoji: "✨", label: "Fully aligned" }
+      ]},
+      { type: "memory_flash", prompt: "Think of a time your help truly changed someone's trajectory.", memoryPrompt: "What did you do? What happened for them?" },
+      { type: "reflection", prompt: "If you combined all your skills, values, and passions into one form of contribution, what would it look like?" },
+    ],
+    interpret: (r) => pick(["Turns Pain into Progress", "Creates Experiences That Transform", "Connects What Needs Connecting"], r),
+  },
 ];
 
 export const CONNECTION_MOMENT_AFTER = [2, 5, 8, 12];
