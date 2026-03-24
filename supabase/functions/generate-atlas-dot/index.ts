@@ -264,8 +264,8 @@ ${BASE_RULES}
 
 MIRROR FEEDBACK RULE:
 - Also generate a single observational sentence (mirrorFeedback) that reflects what this discovery reveals about the user.
-- Use "you often", "this suggests", "it seems like" — never "you are".
-- Example: "This shows that connection matters deeply to you."
+- Use direct, confident language: "You consistently...", "This is how you operate.", "You do this because..." — never "you seem to" or "this suggests".
+- Example: "You consistently choose connection over comfort. That is who you are."
 
 CRITICAL: You must generate exactly 3 distinct Atlas Dot options. Each option should have a different angle or interpretation of the user's answers. All 3 should be valid but emphasize different aspects.
 - Option 1: Focus on the most literal reading of the user's words

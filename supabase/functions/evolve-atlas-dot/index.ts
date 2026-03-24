@@ -84,7 +84,7 @@ Evolution type: ${evolutionType}
 Rules:
 - 3-6 word title, echoing the user's language where possible.
 - 1-2 sentence description explaining the evolution.
-- Observational tone: "you seem to", "this suggests", never "you are".
+- Direct tone: "You do this.", "This is how you operate.", "You consistently..." — never "you seem to" or "this suggests".
 - Must feel like a natural deepening, not a label change.`;
 
     const response = await fetch("https://ai.gateway.lovable.dev/v1/chat/completions", {

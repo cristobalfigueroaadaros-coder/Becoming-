@@ -98,10 +98,11 @@ export const BecomingGuide = () => {
     navigate(path);
   };
 
-  // Check if we're on a chat/council page with an input field
+  // Check if we're on a chat/council page with an input field or atlas page
   const isChatPage = location.pathname.includes("/council") || 
                      location.pathname.includes("/chat") || 
                      location.pathname.includes("/console-thread");
+  const isAtlasPage = location.pathname === "/atlas";
 
   return (
     <Sheet open={open} onOpenChange={setOpen}>
@@ -111,7 +112,7 @@ export const BecomingGuide = () => {
           variant="secondary"
           className={cn(
             "fixed right-4 z-40 rounded-full shadow-lg gap-1.5 px-3 h-9",
-            isChatPage ? "bottom-36" : "bottom-24"
+            isAtlasPage ? "bottom-36" : isChatPage ? "bottom-36" : "bottom-24"
           )}
         >
           <BookOpen className="w-4 h-4" />
