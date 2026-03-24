@@ -119,18 +119,22 @@ export const AtlasQuestFlow = ({ quest, clusterId, onboardingIndex }: Props) => 
     }
   };
 
-  // Growth reflection (non-onboarding only)
-  const shouldShowGrowthReflectionCheck = !isOnboarding && completedCount > 0 && completedCount % 6 === 0 && !showGrowthReflection && step === 0 && !growthReflection;
-  if (shouldShowGrowthReflectionCheck) {
-    setShowGrowthReflection(true);
-    const recentDots = allExistingDots.slice(0, 6);
-    supabase.functions.invoke("generate-atlas-dot", {
-      body: { mode: "growth_reflection", recentDots: recentDots.map(d => ({ title: d.title })) },
-    }).then(({ data }) => {
-      if (data?.reflection) setGrowthReflection(data.reflection);
-      else setShowGrowthReflection(false);
-    }).catch(() => setShowGrowthReflection(false));
-  }
+  // Growth reflection (non-onboarding only) — moved to useEffect to prevent render loops
+  const [growthReflectionDismissed, setGrowthReflectionDismissed] = useState(false);
+
+  useState(() => {
+    // One-time check on mount
+    if (!isOnboarding && completedCount > 0 && completedCount % 6 === 0 && !growthReflectionDismissed && step === 0 && !growthReflection) {
+      setShowGrowthReflection(true);
+      const recentDots = allExistingDots.slice(0, 6);
+      supabase.functions.invoke("generate-atlas-dot", {
+        body: { mode: "growth_reflection", recentDots: recentDots.map(d => ({ title: d.title })) },
+      }).then(({ data }) => {
+        if (data?.reflection) setGrowthReflection(data.reflection);
+        else setShowGrowthReflection(false);
+      }).catch(() => setShowGrowthReflection(false));
+    }
+  });
 
   const processAfterAllInteractions = async (allResponses: any[]) => {
     setIsGenerating(true);
@@ -261,6 +265,8 @@ export const AtlasQuestFlow = ({ quest, clusterId, onboardingIndex }: Props) => 
           signal_strength: totalStrength, source_system: "quest_system",
           confidence_score: isPatternBased ? 0.9 : 0.8, user_validated: true, user_edited: userEdited || false,
           signal_tags: signalTags,
+          original_title: finalDot.title,
+          original_description: finalDot.description,
         } as any).select("id").single();
         if (dotErr) throw dotErr;
         dotId = dot.id;
@@ -301,7 +307,13 @@ export const AtlasQuestFlow = ({ quest, clusterId, onboardingIndex }: Props) => 
       }).then(async ({ data }) => {
         if (data?.evolution) {
           const evo = data.evolution;
-          await supabase.from("atlas_dots").update({ title: evo.newTitle, short_description: evo.newDescription, evolution_type: evo.evolutionType, evolution_stage: 2 }).eq("id", evo.dotId);
+          // Two-layer system: preserve original_title, only update title (evolved)
+          await supabase.from("atlas_dots").update({
+            title: evo.newTitle,
+            short_description: evo.newDescription,
+            evolution_type: evo.evolutionType,
+            evolution_stage: 2,
+          } as any).eq("id", evo.dotId);
           await supabase.from("atlas_dot_evolutions").insert({ user_id: user.id, dot_id: evo.dotId, previous_title: evo.previousTitle, new_title: evo.newTitle, previous_description: evo.previousDescription || "", new_description: evo.newDescription, evolution_type: evo.evolutionType, trigger_reason: "auto_detection" });
           queryClient.invalidateQueries({ queryKey: ["atlas-dots"] });
           toast({ title: "A discovery is evolving...", description: `"${evo.previousTitle}" → "${evo.newTitle}"` });
@@ -398,11 +410,12 @@ export const AtlasQuestFlow = ({ quest, clusterId, onboardingIndex }: Props) => 
         return;
       }
 
-      // For onboarding, go to next quest; otherwise go to atlas
+      // For onboarding, go to next quest; otherwise go to atlas with highlight
       if (isOnboarding) {
         navigate("/atlas/quest");
       } else {
-        navigate("/atlas");
+        const targetSlug = clusters.find(c => c.id === dotClusterId)?.slug;
+        navigate(targetSlug ? `/atlas?highlight=${targetSlug}` : "/atlas");
       }
     } catch (err: any) {
       console.error(err);
@@ -453,7 +466,7 @@ export const AtlasQuestFlow = ({ quest, clusterId, onboardingIndex }: Props) => 
             <motion.div key="growth-reflection" initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} className="flex flex-col items-center gap-4 text-center px-6">
               <p className="text-xs uppercase tracking-wider text-muted-foreground">Growth Reflection</p>
               <p className="text-sm text-foreground leading-relaxed max-w-sm">{growthReflection}</p>
-              <button onClick={() => { setShowGrowthReflection(false); setGrowthReflection(null); }} className="text-xs text-primary underline">Continue to quest →</button>
+              <button onClick={() => { setShowGrowthReflection(false); setGrowthReflection(null); setGrowthReflectionDismissed(true); }} className="text-xs text-primary underline">Continue to quest →</button>
             </motion.div>
           ) : showConnectionMoment ? (
             <ConnectionMomentCard

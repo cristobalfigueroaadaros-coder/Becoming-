@@ -7,6 +7,7 @@ interface AtlasClusterNodeProps {
   cluster: ClusterWithState;
   index: number;
   onTap: () => void;
+  isHighlighted?: boolean;
 }
 
 // Compute positions for dots in concentric orbits OUTSIDE the cluster center
@@ -42,9 +43,12 @@ const GROWTH_STYLES: Record<string, { size: number; opacity: string; glowSize: n
   mature:    { size: 108, opacity: "opacity-100", glowSize: 28, pulse: true },
 };
 
-export const AtlasClusterNode = ({ cluster, index, onTap }: AtlasClusterNodeProps) => {
+export const AtlasClusterNode = ({ cluster, index, onTap, isHighlighted }: AtlasClusterNodeProps) => {
   const domainName = cluster.meta_domain?.name || "Person";
-  const colors = DOMAIN_COLORS[domainName] || DOMAIN_COLORS.Person;
+  const isGolden = cluster.slug === "golden-moments";
+  const colors = isGolden
+    ? { bg: "hsl(40, 80%, 55%)", glow: "hsl(40, 80%, 55%, 0.3)", border: "hsl(40, 80%, 55%, 0.6)" }
+    : DOMAIN_COLORS[domainName] || DOMAIN_COLORS.Person;
   const state = cluster.computedState;
   const style = GROWTH_STYLES[state] || GROWTH_STYLES.dormant;
   const baseRadius = style.size / 2;
@@ -62,6 +66,21 @@ export const AtlasClusterNode = ({ cluster, index, onTap }: AtlasClusterNodeProp
       className={`relative flex items-center justify-center ${style.opacity} ${state === "locked" ? "cursor-not-allowed" : ""}`}
       style={{ width: containerSize, height: containerSize }}
     >
+      {/* Highlight pulse for newly created dot */}
+      {isHighlighted && (
+        <motion.div
+          className="absolute rounded-full"
+          style={{
+            width: style.size + 16,
+            height: style.size + 16,
+            boxShadow: `0 0 24px ${colors.glow}`,
+            border: `2px solid ${colors.border}`,
+          }}
+          animate={{ opacity: [0.3, 1, 0.3], scale: [1, 1.1, 1] }}
+          transition={{ duration: 1.5, repeat: 2 }}
+        />
+      )}
+
       {/* Glow ring for activated+ */}
       {style.pulse && (
         <motion.div

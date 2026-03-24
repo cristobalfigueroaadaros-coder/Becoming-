@@ -68,8 +68,11 @@ export const AtlasDotDetailModal = ({ dot, clusterName, open, onOpenChange }: At
         <DialogHeader>
           <div className="flex items-center gap-2">
             <span className="w-3 h-3 rounded-full" style={{ backgroundColor: dotColor }} />
-            <DialogTitle className="text-base">{dot.title}</DialogTitle>
+            <DialogTitle className="text-base">{(dot as any).original_title || dot.title}</DialogTitle>
           </div>
+          {(dot as any).original_title && dot.title !== (dot as any).original_title && (
+            <p className="text-xs text-muted-foreground/70 italic mt-1">Evolved to: {dot.title}</p>
+          )}
           {clusterName && (
             <DialogDescription className="text-xs">From: {clusterName}</DialogDescription>
           )}

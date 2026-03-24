@@ -22,8 +22,11 @@ export const AtlasDotCard = ({ dot, onTap }: AtlasDotCardProps) => {
           style={{ backgroundColor: dotColor }}
         />
         <div className="min-w-0">
-          <p className="text-sm font-medium text-foreground truncate">{dot.title}</p>
-          {dot.short_description && (
+          <p className="text-sm font-medium text-foreground truncate">{(dot as any).original_title || dot.title}</p>
+          {(dot as any).original_title && dot.title !== (dot as any).original_title && (
+            <p className="text-[11px] text-muted-foreground/70 mt-0.5 italic truncate">→ {dot.title}</p>
+          )}
+          {dot.short_description && !(dot as any).original_title && (
             <p className="text-xs text-muted-foreground mt-0.5 line-clamp-2">{dot.short_description}</p>
           )}
           <div className="flex items-center gap-2 mt-1">
