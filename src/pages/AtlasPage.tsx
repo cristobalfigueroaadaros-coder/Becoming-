@@ -1,11 +1,11 @@
-import { useState } from "react";
+import { useState, useRef, useEffect } from "react";
 import { motion } from "framer-motion";
-import { useNavigate } from "react-router-dom";
+import { useNavigate, useSearchParams } from "react-router-dom";
 import { Compass, Sparkles, Lock } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { useAtlas, ClusterWithState, DOMAIN_COLORS, getCurrentPhase, getNextPhaseThreshold } from "@/hooks/useAtlas";
 import { AtlasClusterNode, AtlasClusterDetail } from "@/components/atlas";
-
+import { toast } from "@/hooks/use-toast";
 // Organic scatter positions for 13 clusters (percentage-based)
 const CLUSTER_POSITIONS: { x: number; y: number }[] = [
   { x: 18, y: 10 }, // Life Events
@@ -28,8 +28,39 @@ const CLUSTER_POSITIONS: { x: number; y: number }[] = [
 
 const AtlasPage = () => {
   const navigate = useNavigate();
+  const [searchParams, setSearchParams] = useSearchParams();
   const { clusters, domains, totalDots, isLoading } = useAtlas();
   const [selectedCluster, setSelectedCluster] = useState<ClusterWithState | null>(null);
+  const prevUnlockedRef = useRef<Set<string>>(new Set());
+  const highlightSlug = searchParams.get("highlight");
+  const [highlightedSlug, setHighlightedSlug] = useState<string | null>(null);
+
+  // Handle highlight param
+  useEffect(() => {
+    if (highlightSlug) {
+      setHighlightedSlug(highlightSlug);
+      setSearchParams({}, { replace: true });
+      const timer = setTimeout(() => setHighlightedSlug(null), 3000);
+      return () => clearTimeout(timer);
+    }
+  }, [highlightSlug, setSearchParams]);
+
+  // Detect newly unlocked clusters
+  useEffect(() => {
+    if (isLoading || clusters.length === 0) return;
+    const currentUnlocked = new Set(clusters.filter(c => c.computedState !== "locked").map(c => c.id));
+    if (prevUnlockedRef.current.size > 0) {
+      currentUnlocked.forEach(id => {
+        if (!prevUnlockedRef.current.has(id)) {
+          const cluster = clusters.find(c => c.id === id);
+          if (cluster) {
+            toast({ title: "New area unlocked!", description: cluster.name });
+          }
+        }
+      });
+    }
+    prevUnlockedRef.current = currentUnlocked;
+  }, [clusters, isLoading]);
 
   if (isLoading) {
     return (
@@ -110,6 +141,7 @@ const AtlasPage = () => {
                 cluster={cluster}
                 index={i}
                 onTap={() => setSelectedCluster(cluster)}
+                isHighlighted={highlightedSlug === cluster.slug}
               />
             </div>
           );
@@ -144,14 +176,19 @@ const AtlasPage = () => {
 
       {/* Start Quest floating button */}
       <div className="fixed bottom-20 right-4 z-20">
-        <Button
-          onClick={() => navigate("/atlas/quest")}
-          className="rounded-full gap-2 shadow-lg"
-          size="lg"
+        <motion.div
+          animate={{ scale: [1, 1.05, 1] }}
+          transition={{ duration: 2, repeat: Infinity, ease: "easeInOut" }}
         >
-          <Sparkles className="w-4 h-4" />
-          Start Quest
-        </Button>
+          <Button
+            onClick={() => navigate("/atlas/quest")}
+            className="rounded-full gap-2 shadow-lg"
+            size="lg"
+          >
+            <Sparkles className="w-4 h-4" />
+            Start Quest
+          </Button>
+        </motion.div>
       </div>
 
       {/* Cluster detail sheet */}

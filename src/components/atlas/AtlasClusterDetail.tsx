@@ -66,8 +66,8 @@ export const AtlasClusterDetail = ({ cluster, open, onOpenChange }: AtlasCluster
               </div>
             ) : (
               <>
-                <p className="text-xs text-muted-foreground">
-                  {cluster.dotCount} {cluster.dotCount === 1 ? "discovery" : "discoveries"}
+                <p className="text-[10px] uppercase tracking-wider text-muted-foreground font-medium">
+                  Your Signals · {cluster.dotCount} {cluster.dotCount === 1 ? "discovery" : "discoveries"}
                 </p>
                 {cluster.dots.map((dot) => (
                   <AtlasDotCard

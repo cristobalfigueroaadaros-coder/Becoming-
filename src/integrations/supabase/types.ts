@@ -421,6 +421,8 @@ export type Database = {
           evolved_from_ids: string[] | null
           id: string
           is_gold_moment: boolean | null
+          original_description: string | null
+          original_title: string | null
           short_description: string | null
           signal_sources: Json | null
           signal_strength: number | null
@@ -442,6 +444,8 @@ export type Database = {
           evolved_from_ids?: string[] | null
           id?: string
           is_gold_moment?: boolean | null
+          original_description?: string | null
+          original_title?: string | null
           short_description?: string | null
           signal_sources?: Json | null
           signal_strength?: number | null
@@ -463,6 +467,8 @@ export type Database = {
           evolved_from_ids?: string[] | null
           id?: string
           is_gold_moment?: boolean | null
+          original_description?: string | null
+          original_title?: string | null
           short_description?: string | null
           signal_sources?: Json | null
           signal_strength?: number | null
