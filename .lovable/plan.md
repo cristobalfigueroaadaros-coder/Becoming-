@@ -1,141 +1,105 @@
 
 
-# PDR 17 — Atlas Precision, Dot Selection & Meaning Expansion
+# PDR 17 — Emotional Clarity, Gamification & Dot Evolution
 
 ## Summary
 
-Five changes: (1) Default to 3-option dot selection instead of showing one weak dot first, (2) add internal signal tags to dots, (3) persist Golden Moments as a special cluster, (4) add two new service clusters (Who I Serve, How I Create Impact) unlocking at 10+ quests, (5) replace "Pattern Detected" language with "Atlas Dot" language throughout.
+Seven changes: (1) Two-layer dot system preserving user's original title, (2) language upgrade to direct tone, (3) pulsing Start Quest button, (4) dot creation celebration + location highlight, (5) new cluster unlock animation, (6) three bug fixes (growth reflection loop, Guide overlap, Golden Moments position), (7) Golden Moment visual distinction.
 
-## 1. Three-Option Default Dot Selection
+## 1. Two-Layer Dot System (Critical Fix)
 
-**Problem**: The single first dot is often the weakest. The 3 variations generated after "Close, but not quite" are consistently better.
+**Problem**: The `evolve-atlas-dot` function overwrites `dot.title` with the evolved version. User's chosen name disappears.
 
-**Solution**: Make the `generate` mode in the edge function return 3 options by default. The user picks one. Keep "Let me edit" and "Not really" as fallbacks.
-
-**Edit: `supabase/functions/generate-atlas-dot/index.ts`**
-
-- Change the `generate` mode's tool from `create_atlas_dot` (single dot) to `create_atlas_dot_options` returning 3 variations (same schema as current `regenerate` mode but always 3 options + mirrorFeedback + emotionalTone + suggestedClusterSlug as shared fields).
-- Keep `regenerate` mode for "Not really" with user feedback.
-
-**Edit: `src/components/atlas/AtlasWinningCard.tsx`**
-
-- Replace the current `initial` validation mode with a 3-option picker as default.
-- Show 3 cards, user taps the one that fits. Below: "None of these" (→ "Not really" flow) and "Let me edit" (→ editing mode).
-- Remove the "Yes, that's me" single-confirm + "Close, but not quite" buttons — no longer needed since we start with 3 options.
-
-**Edit: `src/components/atlas/AtlasQuestFlow.tsx`**
-
-- After AI generation, set `variations` directly from the 3 options returned.
-- Set `validationMode` to `"picking"` by default instead of `"initial"`.
-- Store non-selected options as secondary signal data in the quest record's `interactions` JSON.
-
-## 2. Internal Signal Tags on Dots
-
-**Migration**: Add tags column to `atlas_dots`:
-
+**Database migration**: Add column to store original user selection:
 ```sql
 ALTER TABLE public.atlas_dots
-  ADD COLUMN IF NOT EXISTS signal_tags jsonb DEFAULT '{}';
+  ADD COLUMN IF NOT EXISTS original_title text,
+  ADD COLUMN IF NOT EXISTS original_description text;
 ```
 
-`signal_tags` stores: `{ signalType, emotionalTone, actionType, dotSubType }` — all from the AI output.
+**Edit: `src/components/atlas/AtlasQuestFlow.tsx`**
+- When saving a dot, also set `original_title` and `original_description` to the user-selected values.
+- When evolution occurs (lines 302-308), do NOT update `title`. Instead update a separate `evolved_title` and `evolved_description` column — OR keep the current `title` update but set `original_title` before overwriting.
+- Backfill logic: if `original_title` is null, treat `title` as the original.
+
+**Edit: `src/components/atlas/AtlasClusterDetail.tsx`**
+- Restructure cluster panel: add "YOUR SIGNALS" section header showing dots with `original_title || title` as Layer 1.
+- Add "EVOLUTION" section below, showing `short_description` (the evolved interpretation) in italic/muted style if evolution exists.
+
+**Edit: `src/components/atlas/AtlasDotCard.tsx`**
+- Always display `dot.original_title || dot.title` as the primary label.
+- If evolution history exists, show evolved interpretation below in smaller muted text.
+
+**Edit: `src/components/atlas/AtlasDotDetailModal.tsx`**
+- Show "Your Signal" (original_title) prominently at top.
+- Show "Evolution" (current title if different from original) below, visually distinct.
+
+**Edit: `supabase/functions/evolve-atlas-dot/index.ts`**
+- Change language rules from `"you seem to", "this suggests"` to `"You do this", "This is how you operate", "You consistently"`.
+
+## 2. Language Upgrade
+
+**Edit: `supabase/functions/evolve-atlas-dot/index.ts`**
+- Replace observational hedging: `"you seem to", "this suggests"` → `"You do this.", "This is how you operate.", "You consistently..."`.
 
 **Edit: `supabase/functions/generate-atlas-dot/index.ts`**
+- Update description rules to use direct language instead of hedging phrases.
 
-Add `signalType` (skill/value/experience/identity/audience/action/emotional_insight) and `actionType` (create/connect/guide/build/teach/support/express/organize) to the tool schema output for each variation.
-
-**Edit: `src/components/atlas/AtlasQuestFlow.tsx`**
-
-When saving, store AI-returned tags in `signal_tags` JSON column.
-
-## 3. Golden Moment Persistent Cluster
-
-**Migration**: Insert a new cluster and assign it to a meta domain:
-
-```sql
--- Insert Golden Moments cluster (special, no unlock phase restriction)
-INSERT INTO public.atlas_clusters (name, slug, description, sort_order, cluster_category, meta_domain_id)
-VALUES ('Golden Moments', 'golden-moments', 'Where your discoveries converge into deeper meaning.', 14, 'vision',
-  (SELECT id FROM public.atlas_meta_domains WHERE name = 'Person' LIMIT 1));
-```
-
-**Edit: `src/hooks/useAtlas.tsx`**
-
-- Add `golden-moments` to phase 1 so it's always unlocked (or handle it specially — always visible once the user has at least one gold moment).
-- Add a special color for the golden-moments cluster.
+## 3. Pulsing Start Quest Button
 
 **Edit: `src/pages/AtlasPage.tsx`**
+- Add a pulsing animation to the Start Quest button using Framer Motion or CSS `animate-pulse`.
+- The button should pulse on first load and after returning from a completed quest.
 
-- Add position for the 14th cluster (golden-moments). Place it centrally (e.g., `{ x: 50, y: 45 }`).
-- Only render it if the cluster has dots (or always show it dimmed).
+## 4. Dot Creation Celebration + Location Highlight
 
 **Edit: `src/components/atlas/AtlasQuestFlow.tsx`**
-
-- When a Gold Moment is detected and confirmed: save a new `atlas_dot` in the `golden-moments` cluster with the superpower name as title, link to source dots via `evolved_from_ids`.
-- Mark the gold moment dot with `is_gold_moment: true`.
-
-**Edit: `src/components/atlas/GoldMomentCard.tsx`**
-
-- After user taps "Continue", the gold moment dot is already saved (move saving before showing the card).
-
-## 4. Service Layer — Two New Clusters
-
-**Migration**: Insert two new clusters:
-
-```sql
-INSERT INTO public.atlas_clusters (name, slug, description, sort_order, cluster_category, meta_domain_id)
-VALUES 
-  ('Who I Serve', 'who-i-serve', 'The people you feel most called to help.', 15, 'vision',
-    (SELECT id FROM public.atlas_meta_domains WHERE name = 'Environment' LIMIT 1)),
-  ('How I Create Impact', 'how-i-create-impact', 'How you naturally express value in the world.', 16, 'vision',
-    (SELECT id FROM public.atlas_meta_domains WHERE name = 'Product' LIMIT 1));
-```
-
-**Edit: `src/hooks/useAtlas.tsx`**
-
-- Add a new phase 5 with threshold 10 for `who-i-serve` and `how-i-create-impact`.
+- After saving a dot, navigate to `/atlas` with a query param like `?highlight=<cluster-slug>`.
 
 **Edit: `src/pages/AtlasPage.tsx`**
+- Read `highlight` query param. If present, animate the matching cluster node with a 2-3 second glow/pulse, then clear the param.
 
-- Add positions for clusters 15 and 16 (e.g., `{ x: 30, y: 78 }` and `{ x: 68, y: 82 }`).
+**Edit: `src/components/atlas/AtlasClusterNode.tsx`**
+- Accept `isHighlighted` prop. When true, add a bright pulse animation for 2-3 seconds.
 
-**Edit: `src/data/atlasQuests.ts`**
+## 5. New Cluster Unlock Animation
 
-- Add 4 quests per new cluster (8 total). Questions drawn from PDR 17 examples (audience identification, contribution style).
+**Edit: `src/pages/AtlasPage.tsx`**
+- Track previously unlocked clusters in a ref. On render, detect newly unlocked clusters (compare current vs previous).
+- Show a toast: "New area unlocked: [cluster name]" when a cluster transitions from locked/dormant to activated.
 
-**Edit: `supabase/functions/generate-atlas-dot/index.ts`**
+## 6. Bug Fixes
 
-- Add `CLUSTER_INTELLIGENCE` entries for "Who I Serve" and "How I Create Impact" with correct examples and wrong examples.
-
-**Edit: `src/data/atlasSignals.ts`**
-
-- Add signal mappings for the new quest keys.
-
-## 5. Language Updates — "Atlas Dot" Not "Pattern"
-
-**Edit: `src/components/atlas/AtlasWinningCard.tsx`**
-
-- Replace `"Pattern Detected"` → `"New Atlas Dot"`
-- Replace `"Pattern Reinforced"` → `"Atlas Dot Reinforced"`
-- Replace `"New Atlas Signal"` → `"New Atlas Dot"`
-
+### 6a. Growth Reflection Loop
 **Edit: `src/components/atlas/AtlasQuestFlow.tsx`**
+- The `shouldShowGrowthReflectionCheck` runs inside the render body and calls `setShowGrowthReflection(true)` — this triggers re-renders and can loop. Move this check into a `useEffect` with proper deps. Once dismissed, set a flag (e.g., `growthReflectionDismissed`) to prevent re-triggering.
 
-- Update toast messages: `"Discovery added to Atlas!"` (already good), `"Discovery reinforced!"` (already good).
-- Update loading text: `"Discovering patterns…"` → `"Discovering…"`
+### 6b. Guide Overlaps Start Quest
+**Edit: `src/components/BecomingGuide.tsx`**
+- Change the trigger button position from `bottom-24` to `bottom-36` on Atlas page, or always use `bottom-36` to sit above the Start Quest button.
+- Better approach: detect if on `/atlas` route and use a higher position like `bottom-36`.
+
+### 6c. Golden Moments Cluster Position
+**Edit: `src/pages/AtlasPage.tsx`**
+- Move Golden Moments position from `{ x: 50, y: 60 }` area (too close to Personal Frustrations at `{ x: 50, y: 60 }`) to `{ x: 50, y: 42 }` (already defined but verify separation). Current positions show Golden Moments at index 13 = `{ x: 50, y: 42 }` and Personal Frustrations at index 10 = `{ x: 50, y: 60 }`. That's 18% vertical gap which should be fine. If still overlapping visually, adjust Golden Moments to `{ x: 50, y: 36 }`.
+
+## 7. Golden Moment Visual Distinction
+
+**Edit: `src/components/atlas/AtlasClusterNode.tsx`**
+- When cluster slug is `golden-moments`, use gold color scheme and a distinct glow regardless of growth level.
 
 ## Files to Create/Edit
 
 | File | Action |
 |------|--------|
-| Migration (signal_tags column + 3 new clusters) | Create |
-| `supabase/functions/generate-atlas-dot/index.ts` | Edit — 3-option default, signal tags, new cluster intelligence |
-| `src/components/atlas/AtlasWinningCard.tsx` | Edit — 3-option picker as default, language updates |
-| `src/components/atlas/AtlasQuestFlow.tsx` | Edit — handle 3 options, save gold moments to cluster, signal tags |
-| `src/components/atlas/GoldMomentCard.tsx` | Edit — save gold moment dot before showing card |
-| `src/hooks/useAtlas.tsx` | Edit — phase 5 for service clusters, golden-moments handling |
-| `src/pages/AtlasPage.tsx` | Edit — positions for 3 new clusters |
-| `src/data/atlasQuests.ts` | Edit — add 8 service cluster quests |
-| `src/data/atlasSignals.ts` | Edit — add signal mappings for service quests |
-| `src/hooks/useAtlasQuests.tsx` | Edit — include service clusters in quest rotation after 10 dots |
+| Migration (original_title columns) | Create |
+| `src/components/atlas/AtlasQuestFlow.tsx` | Edit — save original_title, fix growth reflection loop |
+| `src/components/atlas/AtlasClusterDetail.tsx` | Edit — two-layer panel structure |
+| `src/components/atlas/AtlasDotCard.tsx` | Edit — show original_title as primary |
+| `src/components/atlas/AtlasDotDetailModal.tsx` | Edit — two-layer display |
+| `src/components/atlas/AtlasClusterNode.tsx` | Edit — highlight prop, golden cluster styling |
+| `src/pages/AtlasPage.tsx` | Edit — pulsing button, highlight param, unlock animation, cluster position |
+| `src/components/BecomingGuide.tsx` | Edit — reposition trigger on Atlas |
+| `supabase/functions/evolve-atlas-dot/index.ts` | Edit — direct language |
+| `supabase/functions/generate-atlas-dot/index.ts` | Edit — direct language in descriptions |
 
