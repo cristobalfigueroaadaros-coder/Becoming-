@@ -1,11 +1,12 @@
 import { useState, useRef, useEffect } from "react";
 import { motion } from "framer-motion";
 import { useNavigate, useSearchParams } from "react-router-dom";
-import { Compass, Sparkles, Lock } from "lucide-react";
+import { Compass, Sparkles, Lock, ArrowRight } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { useAtlas, ClusterWithState, DOMAIN_COLORS, getCurrentPhase, getNextPhaseThreshold } from "@/hooks/useAtlas";
 import { AtlasClusterNode, AtlasClusterDetail } from "@/components/atlas";
 import { toast } from "@/hooks/use-toast";
+import { supabase } from "@/integrations/supabase/client";
 // Organic scatter positions for 13 clusters (percentage-based)
 const CLUSTER_POSITIONS: { x: number; y: number }[] = [
   { x: 18, y: 10 }, // Life Events
@@ -29,11 +30,35 @@ const CLUSTER_POSITIONS: { x: number; y: number }[] = [
 const AtlasPage = () => {
   const navigate = useNavigate();
   const [searchParams, setSearchParams] = useSearchParams();
-  const { clusters, domains, totalDots, isLoading } = useAtlas();
+  const { clusters, domains, totalDots, isLoading, threadUnlockReady } = useAtlas();
   const [selectedCluster, setSelectedCluster] = useState<ClusterWithState | null>(null);
   const prevUnlockedRef = useRef<Set<string>>(new Set());
   const highlightSlug = searchParams.get("highlight");
   const [highlightedSlug, setHighlightedSlug] = useState<string | null>(null);
+  const [showUnlockCard, setShowUnlockCard] = useState(false);
+  const [intakeCompleted, setIntakeCompleted] = useState<boolean | null>(null);
+
+  // Check if console intake is already completed
+  useEffect(() => {
+    const checkIntake = async () => {
+      const { data: { user } } = await supabase.auth.getUser();
+      if (!user) return;
+      const { data: profile } = await supabase
+        .from("profiles")
+        .select("console_intake_completed")
+        .eq("id", user.id)
+        .single();
+      setIntakeCompleted(!!(profile as any)?.console_intake_completed);
+    };
+    checkIntake();
+  }, []);
+
+  // Show unlock card when conditions met
+  useEffect(() => {
+    if (threadUnlockReady && intakeCompleted === false) {
+      setShowUnlockCard(true);
+    }
+  }, [threadUnlockReady, intakeCompleted]);
 
   // Handle highlight param
   useEffect(() => {
