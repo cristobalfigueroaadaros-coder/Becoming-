@@ -477,7 +477,30 @@ const ConsoleThread = ({ embedded = false, onProjectNameChange }: ConsoleThreadP
     setInput("");
     addUserMessage(text);
 
-    if (phase === "starter_q1") {
+    if (phase === "atlas_confirmation") {
+      // Handle Atlas reflection confirmation
+      const lower = text.toLowerCase();
+      const isConfirm = /^(yes|yeah|yep|exactly|right|that's me|that's right|feels right|correct|absolutely|spot on|definitely|true)/i.test(lower);
+      const isReject = /^(no|not really|off|wrong|doesn't feel|that's not|nope|nah)/i.test(lower);
+
+      if (isConfirm) {
+        await showTyping("future_self", 1200);
+        addSystemMessage("Got it. That helps me see it more clearly.", "future_self", "atlas_confirmation");
+        await showTyping("future_self", 1000);
+        // Transition to intake
+        await transitionToIntake();
+      } else if (isReject) {
+        await showTyping("future_self", 1200);
+        addSystemMessage("Tell me more. What feels off?", "future_self", "atlas_confirmation");
+        // Stay in atlas_confirmation — next message will be treated as new info
+      } else {
+        // New info provided
+        await showTyping("future_self", 1200);
+        addSystemMessage("That's useful. I'm keeping that in mind.", "future_self", "atlas_confirmation");
+        await showTyping("future_self", 1000);
+        await transitionToIntake();
+      }
+    } else if (phase === "starter_q1") {
       const newAnswers = [...starterAnswers, text];
       setStarterAnswers(newAnswers);
       setPhase("starter_q2");
