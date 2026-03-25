@@ -417,6 +417,7 @@ Deno.serve(async (req) => {
       councilType = 'default',
       sprintReviewContext,
       entryState = null,
+      atlasSignals = null,
     } = await req.json();
 
     // Defensive: conversationHistory is user-provided and can contain null/undefined
@@ -678,8 +679,35 @@ YOUR COUNCIL MISSION: Identify their current stage and define the next milestone
 `;
     }
 
-    // Combine foundation + numerology + entry state + life domains context
-    const fullUserContext = numerologyContext + userFoundationContext + entryStateContext + lifeDomainContext;
+    // === ATLAS SIGNALS CONTEXT (Invisible identity context from Atlas dots) ===
+    const MENTOR_SIGNAL_MATRIX: Record<string, string[]> = {
+      creative_visionary: ["identity", "motivation"],
+      strategist_mentor: ["behavioral", "direction"],
+      business_mentor: ["direction", "behavioral"],
+      challenger_mentor: ["behavioral", "identity"],
+      perspective_mentor: ["motivation", "inspiration"],
+      marketing_mentor: ["identity", "direction"],
+      design_thinking_mentor: ["behavioral", "identity"],
+    };
+
+    let atlasSignalContext = "";
+    if (atlasSignals && (atlasSignals.identitySignals?.length > 0 || atlasSignals.motivationalSignals?.length > 0)) {
+      const allSignals = [
+        ...(atlasSignals.identitySignals || []).slice(0, 3).map((s: string) => `Identity: ${s}`),
+        ...(atlasSignals.motivationalSignals || []).slice(0, 2).map((s: string) => `Motivation: ${s}`),
+        ...(atlasSignals.behavioralPatterns || []).slice(0, 2).map((s: string) => `Behavior: ${s}`),
+        ...(atlasSignals.directionSignals || []).slice(0, 1).map((s: string) => `Direction: ${s}`),
+      ];
+      atlasSignalContext = `
+=== IDENTITY SIGNALS (Use as invisible context — NEVER reference Atlas, data, dots, or profiles) ===
+${allSignals.join("\n")}
+Use these signals to personalize your response. Show that you understand who this person is.
+=== END IDENTITY SIGNALS ===
+`;
+    }
+
+    // Combine foundation + numerology + entry state + life domains + atlas signals context
+    const fullUserContext = numerologyContext + userFoundationContext + entryStateContext + lifeDomainContext + atlasSignalContext;
 
     // === Q2 CLARITY SEEKING REMOVED — Max 2 questions rule ===
     // Q2 now goes straight to full council response (acts as final round)
