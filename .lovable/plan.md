@@ -1,105 +1,130 @@
 
 
-# PDR 17 — Emotional Clarity, Gamification & Dot Evolution
+# PDR 18 — Atlas Intelligence Bridge
 
 ## Summary
 
-Seven changes: (1) Two-layer dot system preserving user's original title, (2) language upgrade to direct tone, (3) pulsing Start Quest button, (4) dot creation celebration + location highlight, (5) new cluster unlock animation, (6) three bug fixes (growth reflection loop, Guide overlap, Golden Moments position), (7) Golden Moment visual distinction.
+Connect Atlas data to the thread system so Future Self opens with a personalized multi-message reflection based on the user's Atlas dots instead of generic starter questions. Four changes: (1) signal extraction edge function, (2) unlock trigger notification on Atlas page, (3) replace starter quest + generic intro with Atlas-based Future Self reflection in ConsoleThread, (4) pass Atlas signals to Council creation for richer mentor context.
 
-## 1. Two-Layer Dot System (Critical Fix)
+## 1. Signal Extraction Edge Function
 
-**Problem**: The `evolve-atlas-dot` function overwrites `dot.title` with the evolved version. User's chosen name disappears.
+**Create: `supabase/functions/extract-atlas-signals/index.ts`**
 
-**Database migration**: Add column to store original user selection:
-```sql
-ALTER TABLE public.atlas_dots
-  ADD COLUMN IF NOT EXISTS original_title text,
-  ADD COLUMN IF NOT EXISTS original_description text;
-```
+Reads the user's Atlas dots and compresses them into structured signals:
+- Identity Signals (max 5): derived from dot names the user selected, cluster patterns
+- Motivational Signals (max 3): from values, passions, vision clusters
+- Behavioral Patterns (max 2): from experiments, skills, frustrations clusters
+- Direction Signals (optional): from Gold Moments, service clusters
+- Inspiration Signals (optional): from inspirations cluster
 
-**Edit: `src/components/atlas/AtlasQuestFlow.tsx`**
-- When saving a dot, also set `original_title` and `original_description` to the user-selected values.
-- When evolution occurs (lines 302-308), do NOT update `title`. Instead update a separate `evolved_title` and `evolved_description` column — OR keep the current `title` update but set `original_title` before overwriting.
-- Backfill logic: if `original_title` is null, treat `title` as the original.
+Rules:
+- Only use dots where `user_validated = true` OR `original_title IS NOT NULL` (user-confirmed)
+- Prioritize Gold Moment dots and evolved dots
+- Do NOT pass raw quest answers or descriptions — only compressed signal labels
+- Uses AI (gemini-2.5-flash) to synthesize dot titles into signal labels
+- Returns: `{ identitySignals, motivationalSignals, behavioralPatterns, directionSignals, inspirationSignals, signalDepth: "early"|"growing"|"rich" }`
 
-**Edit: `src/components/atlas/AtlasClusterDetail.tsx`**
-- Restructure cluster panel: add "YOUR SIGNALS" section header showing dots with `original_title || title` as Layer 1.
-- Add "EVOLUTION" section below, showing `short_description` (the evolved interpretation) in italic/muted style if evolution exists.
-
-**Edit: `src/components/atlas/AtlasDotCard.tsx`**
-- Always display `dot.original_title || dot.title` as the primary label.
-- If evolution history exists, show evolved interpretation below in smaller muted text.
-
-**Edit: `src/components/atlas/AtlasDotDetailModal.tsx`**
-- Show "Your Signal" (original_title) prominently at top.
-- Show "Evolution" (current title if different from original) below, visually distinct.
-
-**Edit: `supabase/functions/evolve-atlas-dot/index.ts`**
-- Change language rules from `"you seem to", "this suggests"` to `"You do this", "This is how you operate", "You consistently"`.
-
-## 2. Language Upgrade
-
-**Edit: `supabase/functions/evolve-atlas-dot/index.ts`**
-- Replace observational hedging: `"you seem to", "this suggests"` → `"You do this.", "This is how you operate.", "You consistently..."`.
-
-**Edit: `supabase/functions/generate-atlas-dot/index.ts`**
-- Update description rules to use direct language instead of hedging phrases.
-
-## 3. Pulsing Start Quest Button
+## 2. Unlock Trigger on Atlas Page
 
 **Edit: `src/pages/AtlasPage.tsx`**
-- Add a pulsing animation to the Start Quest button using Framer Motion or CSS `animate-pulse`.
-- The button should pulse on first load and after returning from a completed quest.
 
-## 4. Dot Creation Celebration + Location Highlight
+After quests load, check if user has:
+- ≥ 3 completed quests AND ≥ 2 dots across ≥ 2 different clusters
+- AND `console_intake_completed` is NOT true (thread not yet started)
 
-**Edit: `src/components/atlas/AtlasQuestFlow.tsx`**
-- After saving a dot, navigate to `/atlas` with a query param like `?highlight=<cluster-slug>`.
+If conditions met, show a styled notification card at the top of the Atlas page:
+- "Hey, I've been looking at what you've been sharing..."
+- "I'm starting to see something interesting."
+- Two buttons: "Start Your Journey" (navigates to `/console`) and "New Quest" (starts another quest)
+- Additional encouraging text: "The more you explore, the clearer this becomes."
 
-**Edit: `src/pages/AtlasPage.tsx`**
-- Read `highlight` query param. If present, animate the matching cluster node with a 2-3 second glow/pulse, then clear the param.
+**Edit: `src/hooks/useAtlas.tsx`**
 
-**Edit: `src/components/atlas/AtlasClusterNode.tsx`**
-- Accept `isHighlighted` prop. When true, add a bright pulse animation for 2-3 seconds.
+Add a `threadUnlockReady` boolean to the hook return, computed from dot count + cluster spread.
 
-## 5. New Cluster Unlock Animation
+## 3. Replace Starter Quest with Atlas Reflection
 
-**Edit: `src/pages/AtlasPage.tsx`**
-- Track previously unlocked clusters in a ref. On render, detect newly unlocked clusters (compare current vs previous).
-- Show a toast: "New area unlocked: [cluster name]" when a cluster transitions from locked/dormant to activated.
+**Edit: `src/pages/ConsoleThread.tsx`**
 
-## 6. Bug Fixes
+This is the core change. The current flow is:
+1. Starter quest (3 questions about problem-solving style)
+2. Capability generation
+3. Intake questions (3 phase-based questions)
+4. Council creation
 
-### 6a. Growth Reflection Loop
-**Edit: `src/components/atlas/AtlasQuestFlow.tsx`**
-- The `shouldShowGrowthReflectionCheck` runs inside the render body and calls `setShowGrowthReflection(true)` — this triggers re-renders and can loop. Move this check into a `useEffect` with proper deps. Once dismissed, set a flag (e.g., `growthReflectionDismissed`) to prevent re-triggering.
+New flow:
+1. **Skip starter quest entirely** when Atlas signals are available
+2. Future Self sends 7-9 short messages (WhatsApp-style) using Atlas signals
+3. User confirms/adjusts
+4. Transition to existing phase questions (unchanged)
+5. Council creation with enriched inputs
 
-### 6b. Guide Overlaps Start Quest
-**Edit: `src/components/BecomingGuide.tsx`**
-- Change the trigger button position from `bottom-24` to `bottom-36` on Atlas page, or always use `bottom-36` to sit above the Start Quest button.
-- Better approach: detect if on `/atlas` route and use a higher position like `bottom-36`.
+Implementation:
+- In the `init` useEffect, after checking starter quest status, call `extract-atlas-signals`
+- If signals are returned with sufficient depth (≥ 2 identity signals): skip starter quest, go to new `atlas_reflection` phase
+- New phases: `"atlas_reflection"` and `"atlas_confirmation"`
 
-### 6c. Golden Moments Cluster Position
-**Edit: `src/pages/AtlasPage.tsx`**
-- Move Golden Moments position from `{ x: 50, y: 60 }` area (too close to Personal Frustrations at `{ x: 50, y: 60 }`) to `{ x: 50, y: 42 }` (already defined but verify separation). Current positions show Golden Moments at index 13 = `{ x: 50, y: 42 }` and Personal Frustrations at index 10 = `{ x: 50, y: 60 }`. That's 18% vertical gap which should be fine. If still overlapping visually, adjust Golden Moments to `{ x: 50, y: 36 }`.
+**Atlas reflection message sequence** (each sent with typing delay):
+1. `"Hey [Name] 👋"`
+2. `"I've been looking at what you've been sharing..."`
+3. `"I'm starting to see something interesting."`
+4. Message 4-6: AI-generated from signals (identity, motivational, behavioral) — call `extract-atlas-signals` which returns pre-formatted reflection messages
+5. Synthesis message
+6. `"Does that feel right to you?"`
 
-## 7. Golden Moment Visual Distinction
+**User response handling:**
+- YES/confirm → `"Got it. That helps me see it more clearly."` → transition to phase questions
+- NO/disagree → `"Tell me more. What feels off?"` → user explains → Future Self adjusts → re-confirm
+- New info → `"That's useful. I'm keeping that in mind."` → store as additional signal → proceed
 
-**Edit: `src/components/atlas/AtlasClusterNode.tsx`**
-- When cluster slug is `golden-moments`, use gold color scheme and a distinct glow regardless of growth level.
+Add signal detection in `handleSend` for the `atlas_confirmation` phase using simple keyword matching (yes/yeah/exactly/right → confirm, no/not really/off → adjust).
+
+**Edit: `supabase/functions/extract-atlas-signals/index.ts`**
+
+Add a `generateReflectionMessages` mode that takes the compressed signals and generates the 7-9 message sequence following the WhatsApp rule (max 2 sentences per message). Language rules enforced in prompt:
+- Never say: "Based on your Atlas data", "Your capabilities show", "The system detected"
+- Say instead: "I've been watching what you share", "You seem to be someone who", "It feels like"
+- Progressive depth based on signal count (early: tentative, rich: confident)
+
+## 4. Council Enhancement with Atlas Signals
+
+**Edit: `src/pages/ConsoleThread.tsx`**
+
+In `processIntake` and `runCouncilMeeting`:
+- Include Atlas signals in the body sent to `council-meeting`
+- Store signals in a state variable after extraction
+
+**Edit: `supabase/functions/council-meeting/index.ts`**
+
+- Accept optional `atlasSignals` in request body
+- If present, inject into each mentor's system prompt as invisible context using the Two-Layer Rule:
+  - Layer 1 (all mentors): top 3 identity signals + top 1-2 motivational signals
+  - Layer 2 (per mentor): domain-filtered signals based on mentor type matrix from PDR
+- Add explicit instruction: "Use these signals as invisible context. Never reference Atlas, data, dots, or profiles explicitly."
+
+**Mentor signal matrix** (added as a mapping constant):
+- `creative_visionary`: + passions, creative patterns
+- `strategist_mentor`: + behavioral patterns, direction signals
+- `business_mentor`: + direction signals, experiments, skills
+- `challenger_mentor`: + shadow signals, frustrations
+- `perspective_mentor`: + vision signals, inspiration signals
+- `marketing_mentor`: + external reflection signals
+- `design_thinking_mentor`: + experiments, behavioral patterns
+
+## 5. OnboardingRouter Update
+
+**Edit: `src/components/OnboardingRouter.tsx`**
+
+After Atlas onboarding quests are complete, check if thread unlock conditions are met. If so, route to `/atlas` (where unlock notification appears) rather than directly to dashboard, so user sees the invitation.
 
 ## Files to Create/Edit
 
 | File | Action |
 |------|--------|
-| Migration (original_title columns) | Create |
-| `src/components/atlas/AtlasQuestFlow.tsx` | Edit — save original_title, fix growth reflection loop |
-| `src/components/atlas/AtlasClusterDetail.tsx` | Edit — two-layer panel structure |
-| `src/components/atlas/AtlasDotCard.tsx` | Edit — show original_title as primary |
-| `src/components/atlas/AtlasDotDetailModal.tsx` | Edit — two-layer display |
-| `src/components/atlas/AtlasClusterNode.tsx` | Edit — highlight prop, golden cluster styling |
-| `src/pages/AtlasPage.tsx` | Edit — pulsing button, highlight param, unlock animation, cluster position |
-| `src/components/BecomingGuide.tsx` | Edit — reposition trigger on Atlas |
-| `supabase/functions/evolve-atlas-dot/index.ts` | Edit — direct language |
-| `supabase/functions/generate-atlas-dot/index.ts` | Edit — direct language in descriptions |
+| `supabase/functions/extract-atlas-signals/index.ts` | Create — signal extraction + reflection message generation |
+| `src/pages/ConsoleThread.tsx` | Edit — new atlas_reflection phase, skip starter quest when signals available, pass signals to council |
+| `src/pages/AtlasPage.tsx` | Edit — unlock trigger notification card |
+| `src/hooks/useAtlas.tsx` | Edit — add threadUnlockReady computed boolean |
+| `supabase/functions/council-meeting/index.ts` | Edit — accept atlasSignals, inject per-mentor filtered context |
+| `src/components/OnboardingRouter.tsx` | Edit — route to Atlas after quest completion for unlock flow |
 
