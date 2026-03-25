@@ -114,6 +114,27 @@ const AtlasPage = () => {
         }}
       />
 
+      {/* Unlock notification card */}
+      {showUnlockCard && (
+        <motion.div
+          initial={{ opacity: 0, y: -20 }}
+          animate={{ opacity: 1, y: 0 }}
+          className="relative z-20 mx-4 mt-4 mb-2 p-4 rounded-2xl border border-primary/20 bg-primary/5"
+        >
+          <p className="text-sm font-medium text-foreground">Hey, I've been looking at what you've been sharing...</p>
+          <p className="text-xs text-muted-foreground mt-1">I'm starting to see something interesting.</p>
+          <p className="text-[10px] text-muted-foreground mt-2">The more you explore, the clearer this becomes.</p>
+          <div className="flex gap-2 mt-3">
+            <Button size="sm" className="gap-1.5" onClick={() => navigate("/console")}>
+              Start Your Journey <ArrowRight className="w-3 h-3" />
+            </Button>
+            <Button size="sm" variant="outline" onClick={() => { setShowUnlockCard(false); navigate("/atlas/quest"); }}>
+              New Quest
+            </Button>
+          </div>
+        </motion.div>
+      )}
+
       {/* Header */}
       <div className="relative z-10 px-5 pt-6 pb-2">
         <div className="flex items-center gap-2">
