@@ -885,6 +885,7 @@ const ConsoleThread = ({ embedded = false, onProjectNameChange }: ConsoleThreadP
               content: intakeAnswers.join("\\\n"),
             }],
             entryState,
+            atlasSignals,
           },
         });
 
