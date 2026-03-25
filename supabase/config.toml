@@ -152,3 +152,6 @@ verify_jwt = false
 
 [functions.evolve-atlas-dot]
 verify_jwt = false
+
+[functions.extract-atlas-signals]
+verify_jwt = true

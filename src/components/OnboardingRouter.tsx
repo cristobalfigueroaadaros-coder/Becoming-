@@ -47,7 +47,22 @@ const OnboardingRouter = () => {
           // Route to Atlas onboarding quest flow
           navigate("/atlas/quest");
         } else {
-          navigate("/dashboard");
+          // Check if thread unlock conditions are met — route to Atlas to see invitation
+          const { data: dots } = await supabase
+            .from("atlas_dots")
+            .select("id, cluster_id")
+            .eq("user_id", user.id);
+
+          const dotCount = dots?.length || 0;
+          const uniqueClusters = new Set((dots || []).map((d: any) => d.cluster_id).filter(Boolean));
+          const threadUnlockReady = dotCount >= 2 && uniqueClusters.size >= 2;
+          const intakeCompleted = !!(profile as any)?.console_intake_completed;
+
+          if (threadUnlockReady && !intakeCompleted) {
+            navigate("/atlas");
+          } else {
+            navigate("/dashboard");
+          }
         }
       } catch (error) {
         console.error("Error checking onboarding status:", error);

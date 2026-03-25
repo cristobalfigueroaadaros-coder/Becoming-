@@ -187,11 +187,16 @@ export function useAtlas() {
     };
   });
 
+  // Thread unlock ready: ≥3 quests completed, ≥2 dots across ≥2 clusters
+  const uniqueClustersWithDots = new Set(allDots.map(d => d.cluster_id).filter(Boolean));
+  const threadUnlockReady = totalDots >= 2 && uniqueClustersWithDots.size >= 2;
+
   return {
     domains: domainsQuery.data || [],
     clusters,
     dots: allDots,
     totalDots,
+    threadUnlockReady,
     isLoading: domainsQuery.isLoading || clustersQuery.isLoading || dotsQuery.isLoading,
     error: domainsQuery.error || clustersQuery.error || dotsQuery.error,
   };

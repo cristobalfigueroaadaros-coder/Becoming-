@@ -83,6 +83,7 @@ const saveCouncilKeywords = async (perspectives: Record<string, string>, userId:
 
 type Phase =
   | "starter_q1" | "starter_q2" | "starter_q3" | "starter_processing" | "starter_win" | "starter_return"
+  | "atlas_reflection" | "atlas_confirmation"
   | "intake_q1" | "intake_q2" | "intake_q3"
   | "processing"
   | "council_reveal" | "council_accepted"
@@ -199,6 +200,7 @@ const ConsoleThread = ({ embedded = false, onProjectNameChange }: ConsoleThreadP
   const [handoffMentor, setHandoffMentor] = useState<string | null>(null);
   const [initialLoading, setInitialLoading] = useState(true);
   const [displayName, setDisplayName] = useState("friend");
+  const [atlasSignals, setAtlasSignals] = useState<any>(null);
   const scrollRef = useRef<HTMLDivElement>(null);
   const inputRef = useRef<HTMLInputElement>(null);
 
@@ -308,24 +310,43 @@ const ConsoleThread = ({ embedded = false, onProjectNameChange }: ConsoleThreadP
           }
         }
       } else {
-        // Check if starter quest already done (capabilities with onboarding_inferred exist)
-        const { data: existingCaps } = await supabase
-          .from("momentum_capabilities")
-          .select("id")
-          .eq("user_id", user.id)
-          .eq("acquisition_channel", "onboarding_inferred")
-          .limit(1);
+        // Check if Atlas signals are available — if so, skip starter quest
+        let hasAtlasSignals = false;
+        try {
+          const { data: atlasData, error: atlasError } = await supabase.functions.invoke("extract-atlas-signals", {
+            body: { mode: "generateReflectionMessages" },
+          });
+          if (!atlasError && atlasData && atlasData.identitySignals?.length >= 2) {
+            hasAtlasSignals = true;
+            setAtlasSignals(atlasData);
+            // Start Atlas reflection flow
+            setPhase("atlas_reflection");
+            await startAtlasReflection(name, atlasData);
+          }
+        } catch (e) {
+          console.error("Atlas signal extraction failed (non-fatal):", e);
+        }
 
-        const starterDone = existingCaps && existingCaps.length > 0;
+        if (!hasAtlasSignals) {
+          // Check if starter quest already done (capabilities with onboarding_inferred exist)
+          const { data: existingCaps } = await supabase
+            .from("momentum_capabilities")
+            .select("id")
+            .eq("user_id", user.id)
+            .eq("acquisition_channel", "onboarding_inferred")
+            .limit(1);
 
-        if (starterDone) {
-          // Skip starter quest, go straight to intake
-          setPhase("intake_q1");
-          await startIntakeFlow(name, resolvedEntryState);
-        } else {
-          // Start Starter Quest
-          setPhase("starter_q1");
-          await startStarterQuest(name);
+          const starterDone = existingCaps && existingCaps.length > 0;
+
+          if (starterDone) {
+            // Skip starter quest, go straight to intake
+            setPhase("intake_q1");
+            await startIntakeFlow(name, resolvedEntryState);
+          } else {
+            // Start Starter Quest
+            setPhase("starter_q1");
+            await startStarterQuest(name);
+          }
         }
       }
 
@@ -333,6 +354,40 @@ const ConsoleThread = ({ embedded = false, onProjectNameChange }: ConsoleThreadP
     };
     init();
   }, []);
+
+  const startAtlasReflection = async (name: string, signals: any) => {
+    const openMsg: ChatMessage = {
+      id: crypto.randomUUID(), role: "mentor", content: `Hey ${name} 👋`,
+      mentorName: mentorConfig.future_self.name, mentorIcon: mentorConfig.future_self.icon, mentorColor: mentorConfig.future_self.color,
+    };
+    setMessages([openMsg]);
+    persistMessage(openMsg, "atlas_reflection");
+
+    // Send pre-generated reflection messages with typing delays
+    const reflectionMsgs: string[] = signals.reflectionMessages || [];
+    for (const msg of reflectionMsgs) {
+      await showTyping("future_self", 1500 + Math.random() * 1000);
+      addSystemMessage(msg, "future_self", "atlas_reflection");
+    }
+
+    // If no AI-generated messages, use fallback
+    if (reflectionMsgs.length === 0) {
+      await showTyping("future_self", 1500);
+      addSystemMessage("I've been watching what you've been sharing...", "future_self", "atlas_reflection");
+      await showTyping("future_self", 1500);
+      addSystemMessage("I'm starting to see something interesting about how you operate.", "future_self", "atlas_reflection");
+      if (signals.identitySignals?.length > 0) {
+        await showTyping("future_self", 1500);
+        addSystemMessage(`You seem to be someone who ${signals.identitySignals.slice(0, 2).join(" and ").toLowerCase()}.`, "future_self", "atlas_reflection");
+      }
+    }
+
+    await showTyping("future_self", 1200);
+    addSystemMessage("Does that feel right to you?", "future_self", "atlas_reflection");
+
+    setPhase("atlas_confirmation");
+    persistPhase("atlas_confirmation");
+  };
 
   const startStarterQuest = async (name: string) => {
     const openMsg: ChatMessage = {
@@ -422,7 +477,30 @@ const ConsoleThread = ({ embedded = false, onProjectNameChange }: ConsoleThreadP
     setInput("");
     addUserMessage(text);
 
-    if (phase === "starter_q1") {
+    if (phase === "atlas_confirmation") {
+      // Handle Atlas reflection confirmation
+      const lower = text.toLowerCase();
+      const isConfirm = /^(yes|yeah|yep|exactly|right|that's me|that's right|feels right|correct|absolutely|spot on|definitely|true)/i.test(lower);
+      const isReject = /^(no|not really|off|wrong|doesn't feel|that's not|nope|nah)/i.test(lower);
+
+      if (isConfirm) {
+        await showTyping("future_self", 1200);
+        addSystemMessage("Got it. That helps me see it more clearly.", "future_self", "atlas_confirmation");
+        await showTyping("future_self", 1000);
+        // Transition to intake
+        await transitionToIntake();
+      } else if (isReject) {
+        await showTyping("future_self", 1200);
+        addSystemMessage("Tell me more. What feels off?", "future_self", "atlas_confirmation");
+        // Stay in atlas_confirmation — next message will be treated as new info
+      } else {
+        // New info provided
+        await showTyping("future_self", 1200);
+        addSystemMessage("That's useful. I'm keeping that in mind.", "future_self", "atlas_confirmation");
+        await showTyping("future_self", 1000);
+        await transitionToIntake();
+      }
+    } else if (phase === "starter_q1") {
       const newAnswers = [...starterAnswers, text];
       setStarterAnswers(newAnswers);
       setPhase("starter_q2");
@@ -732,6 +810,7 @@ const ConsoleThread = ({ embedded = false, onProjectNameChange }: ConsoleThreadP
           mentorTypes: [...userMentors, "future_self"],
           conversationHistory: [],
           entryState,
+          atlasSignals,
         },
       });
 
@@ -806,6 +885,7 @@ const ConsoleThread = ({ embedded = false, onProjectNameChange }: ConsoleThreadP
               content: intakeAnswers.join("\\\n"),
             }],
             entryState,
+            atlasSignals,
           },
         });
 

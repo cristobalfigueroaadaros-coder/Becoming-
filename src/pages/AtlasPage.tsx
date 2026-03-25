@@ -1,11 +1,12 @@
 import { useState, useRef, useEffect } from "react";
 import { motion } from "framer-motion";
 import { useNavigate, useSearchParams } from "react-router-dom";
-import { Compass, Sparkles, Lock } from "lucide-react";
+import { Compass, Sparkles, Lock, ArrowRight } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { useAtlas, ClusterWithState, DOMAIN_COLORS, getCurrentPhase, getNextPhaseThreshold } from "@/hooks/useAtlas";
 import { AtlasClusterNode, AtlasClusterDetail } from "@/components/atlas";
 import { toast } from "@/hooks/use-toast";
+import { supabase } from "@/integrations/supabase/client";
 // Organic scatter positions for 13 clusters (percentage-based)
 const CLUSTER_POSITIONS: { x: number; y: number }[] = [
   { x: 18, y: 10 }, // Life Events
@@ -29,11 +30,35 @@ const CLUSTER_POSITIONS: { x: number; y: number }[] = [
 const AtlasPage = () => {
   const navigate = useNavigate();
   const [searchParams, setSearchParams] = useSearchParams();
-  const { clusters, domains, totalDots, isLoading } = useAtlas();
+  const { clusters, domains, totalDots, isLoading, threadUnlockReady } = useAtlas();
   const [selectedCluster, setSelectedCluster] = useState<ClusterWithState | null>(null);
   const prevUnlockedRef = useRef<Set<string>>(new Set());
   const highlightSlug = searchParams.get("highlight");
   const [highlightedSlug, setHighlightedSlug] = useState<string | null>(null);
+  const [showUnlockCard, setShowUnlockCard] = useState(false);
+  const [intakeCompleted, setIntakeCompleted] = useState<boolean | null>(null);
+
+  // Check if console intake is already completed
+  useEffect(() => {
+    const checkIntake = async () => {
+      const { data: { user } } = await supabase.auth.getUser();
+      if (!user) return;
+      const { data: profile } = await supabase
+        .from("profiles")
+        .select("console_intake_completed")
+        .eq("id", user.id)
+        .single();
+      setIntakeCompleted(!!(profile as any)?.console_intake_completed);
+    };
+    checkIntake();
+  }, []);
+
+  // Show unlock card when conditions met
+  useEffect(() => {
+    if (threadUnlockReady && intakeCompleted === false) {
+      setShowUnlockCard(true);
+    }
+  }, [threadUnlockReady, intakeCompleted]);
 
   // Handle highlight param
   useEffect(() => {
@@ -88,6 +113,27 @@ const AtlasPage = () => {
           background: "radial-gradient(ellipse at 50% 40%, hsl(var(--primary) / 0.06) 0%, transparent 70%)",
         }}
       />
+
+      {/* Unlock notification card */}
+      {showUnlockCard && (
+        <motion.div
+          initial={{ opacity: 0, y: -20 }}
+          animate={{ opacity: 1, y: 0 }}
+          className="relative z-20 mx-4 mt-4 mb-2 p-4 rounded-2xl border border-primary/20 bg-primary/5"
+        >
+          <p className="text-sm font-medium text-foreground">Hey, I've been looking at what you've been sharing...</p>
+          <p className="text-xs text-muted-foreground mt-1">I'm starting to see something interesting.</p>
+          <p className="text-[10px] text-muted-foreground mt-2">The more you explore, the clearer this becomes.</p>
+          <div className="flex gap-2 mt-3">
+            <Button size="sm" className="gap-1.5" onClick={() => navigate("/console")}>
+              Start Your Journey <ArrowRight className="w-3 h-3" />
+            </Button>
+            <Button size="sm" variant="outline" onClick={() => { setShowUnlockCard(false); navigate("/atlas/quest"); }}>
+              New Quest
+            </Button>
+          </div>
+        </motion.div>
+      )}
 
       {/* Header */}
       <div className="relative z-10 px-5 pt-6 pb-2">
