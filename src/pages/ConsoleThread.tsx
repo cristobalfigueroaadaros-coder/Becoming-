@@ -355,6 +355,40 @@ const ConsoleThread = ({ embedded = false, onProjectNameChange }: ConsoleThreadP
     init();
   }, []);
 
+  const startAtlasReflection = async (name: string, signals: any) => {
+    const openMsg: ChatMessage = {
+      id: crypto.randomUUID(), role: "mentor", content: `Hey ${name} 👋`,
+      mentorName: mentorConfig.future_self.name, mentorIcon: mentorConfig.future_self.icon, mentorColor: mentorConfig.future_self.color,
+    };
+    setMessages([openMsg]);
+    persistMessage(openMsg, "atlas_reflection");
+
+    // Send pre-generated reflection messages with typing delays
+    const reflectionMsgs: string[] = signals.reflectionMessages || [];
+    for (const msg of reflectionMsgs) {
+      await showTyping("future_self", 1500 + Math.random() * 1000);
+      addSystemMessage(msg, "future_self", "atlas_reflection");
+    }
+
+    // If no AI-generated messages, use fallback
+    if (reflectionMsgs.length === 0) {
+      await showTyping("future_self", 1500);
+      addSystemMessage("I've been watching what you've been sharing...", "future_self", "atlas_reflection");
+      await showTyping("future_self", 1500);
+      addSystemMessage("I'm starting to see something interesting about how you operate.", "future_self", "atlas_reflection");
+      if (signals.identitySignals?.length > 0) {
+        await showTyping("future_self", 1500);
+        addSystemMessage(`You seem to be someone who ${signals.identitySignals.slice(0, 2).join(" and ").toLowerCase()}.`, "future_self", "atlas_reflection");
+      }
+    }
+
+    await showTyping("future_self", 1200);
+    addSystemMessage("Does that feel right to you?", "future_self", "atlas_reflection");
+
+    setPhase("atlas_confirmation");
+    persistPhase("atlas_confirmation");
+  };
+
   const startStarterQuest = async (name: string) => {
     const openMsg: ChatMessage = {
       id: crypto.randomUUID(), role: "mentor", content: `Hey ${name} 👋`,
