@@ -810,6 +810,7 @@ const ConsoleThread = ({ embedded = false, onProjectNameChange }: ConsoleThreadP
           mentorTypes: [...userMentors, "future_self"],
           conversationHistory: [],
           entryState,
+          atlasSignals,
         },
       });
 
