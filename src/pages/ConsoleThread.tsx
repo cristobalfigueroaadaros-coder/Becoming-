@@ -83,6 +83,7 @@ const saveCouncilKeywords = async (perspectives: Record<string, string>, userId:
 
 type Phase =
   | "starter_q1" | "starter_q2" | "starter_q3" | "starter_processing" | "starter_win" | "starter_return"
+  | "atlas_reflection" | "atlas_confirmation"
   | "intake_q1" | "intake_q2" | "intake_q3"
   | "processing"
   | "council_reveal" | "council_accepted"
@@ -199,6 +200,7 @@ const ConsoleThread = ({ embedded = false, onProjectNameChange }: ConsoleThreadP
   const [handoffMentor, setHandoffMentor] = useState<string | null>(null);
   const [initialLoading, setInitialLoading] = useState(true);
   const [displayName, setDisplayName] = useState("friend");
+  const [atlasSignals, setAtlasSignals] = useState<any>(null);
   const scrollRef = useRef<HTMLDivElement>(null);
   const inputRef = useRef<HTMLInputElement>(null);
 
@@ -308,24 +310,43 @@ const ConsoleThread = ({ embedded = false, onProjectNameChange }: ConsoleThreadP
           }
         }
       } else {
-        // Check if starter quest already done (capabilities with onboarding_inferred exist)
-        const { data: existingCaps } = await supabase
-          .from("momentum_capabilities")
-          .select("id")
-          .eq("user_id", user.id)
-          .eq("acquisition_channel", "onboarding_inferred")
-          .limit(1);
+        // Check if Atlas signals are available — if so, skip starter quest
+        let hasAtlasSignals = false;
+        try {
+          const { data: atlasData, error: atlasError } = await supabase.functions.invoke("extract-atlas-signals", {
+            body: { mode: "generateReflectionMessages" },
+          });
+          if (!atlasError && atlasData && atlasData.identitySignals?.length >= 2) {
+            hasAtlasSignals = true;
+            setAtlasSignals(atlasData);
+            // Start Atlas reflection flow
+            setPhase("atlas_reflection");
+            await startAtlasReflection(name, atlasData);
+          }
+        } catch (e) {
+          console.error("Atlas signal extraction failed (non-fatal):", e);
+        }
 
-        const starterDone = existingCaps && existingCaps.length > 0;
+        if (!hasAtlasSignals) {
+          // Check if starter quest already done (capabilities with onboarding_inferred exist)
+          const { data: existingCaps } = await supabase
+            .from("momentum_capabilities")
+            .select("id")
+            .eq("user_id", user.id)
+            .eq("acquisition_channel", "onboarding_inferred")
+            .limit(1);
 
-        if (starterDone) {
-          // Skip starter quest, go straight to intake
-          setPhase("intake_q1");
-          await startIntakeFlow(name, resolvedEntryState);
-        } else {
-          // Start Starter Quest
-          setPhase("starter_q1");
-          await startStarterQuest(name);
+          const starterDone = existingCaps && existingCaps.length > 0;
+
+          if (starterDone) {
+            // Skip starter quest, go straight to intake
+            setPhase("intake_q1");
+            await startIntakeFlow(name, resolvedEntryState);
+          } else {
+            // Start Starter Quest
+            setPhase("starter_q1");
+            await startStarterQuest(name);
+          }
         }
       }
 
