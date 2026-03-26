@@ -1,10 +1,11 @@
 import { useState, useRef, useEffect } from "react";
-import { motion } from "framer-motion";
+import { motion, AnimatePresence } from "framer-motion";
 import { useNavigate, useSearchParams } from "react-router-dom";
 import { Compass, Sparkles, Lock, ArrowRight } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { useAtlas, ClusterWithState, DOMAIN_COLORS, getCurrentPhase, getNextPhaseThreshold } from "@/hooks/useAtlas";
 import { AtlasClusterNode, AtlasClusterDetail } from "@/components/atlas";
+import { AtlasOnboardingOverlay } from "@/components/atlas/AtlasOnboardingOverlay";
 import { toast } from "@/hooks/use-toast";
 import { supabase } from "@/integrations/supabase/client";
 // Organic scatter positions for 13 clusters (percentage-based)
@@ -37,20 +38,25 @@ const AtlasPage = () => {
   const [highlightedSlug, setHighlightedSlug] = useState<string | null>(null);
   const [showUnlockCard, setShowUnlockCard] = useState(false);
   const [intakeCompleted, setIntakeCompleted] = useState<boolean | null>(null);
+  const [showOnboarding, setShowOnboarding] = useState(false);
 
-  // Check if console intake is already completed
+  // Check profile flags on mount
   useEffect(() => {
-    const checkIntake = async () => {
+    const checkFlags = async () => {
       const { data: { user } } = await supabase.auth.getUser();
       if (!user) return;
       const { data: profile } = await supabase
         .from("profiles")
-        .select("console_intake_completed")
+        .select("console_intake_completed, atlas_onboarding_completed" as any)
         .eq("id", user.id)
         .single();
-      setIntakeCompleted(!!(profile as any)?.console_intake_completed);
+      const p = profile as any;
+      setIntakeCompleted(!!p?.console_intake_completed);
+      if (!p?.atlas_onboarding_completed) {
+        setShowOnboarding(true);
+      }
     };
-    checkIntake();
+    checkFlags();
   }, []);
 
   // Show unlock card when conditions met
@@ -243,6 +249,25 @@ const AtlasPage = () => {
         open={!!selectedCluster}
         onOpenChange={(open) => !open && setSelectedCluster(null)}
       />
+
+      {/* Onboarding overlay */}
+      <AnimatePresence>
+        {showOnboarding && (
+          <AtlasOnboardingOverlay
+            onComplete={async () => {
+              setShowOnboarding(false);
+              const { data: { user } } = await supabase.auth.getUser();
+              if (user) {
+                await supabase
+                  .from("profiles")
+                  .update({ atlas_onboarding_completed: true } as any)
+                  .eq("id", user.id);
+              }
+              navigate("/atlas/quest");
+            }}
+          />
+        )}
+      </AnimatePresence>
     </div>
   );
 };
