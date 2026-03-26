@@ -1,0 +1,1 @@
+ALTER TABLE public.profiles ADD COLUMN IF NOT EXISTS atlas_onboarding_completed boolean DEFAULT false;
