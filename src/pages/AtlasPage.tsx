@@ -249,6 +249,25 @@ const AtlasPage = () => {
         open={!!selectedCluster}
         onOpenChange={(open) => !open && setSelectedCluster(null)}
       />
+
+      {/* Onboarding overlay */}
+      <AnimatePresence>
+        {showOnboarding && (
+          <AtlasOnboardingOverlay
+            onComplete={async () => {
+              setShowOnboarding(false);
+              const { data: { user } } = await supabase.auth.getUser();
+              if (user) {
+                await supabase
+                  .from("profiles")
+                  .update({ atlas_onboarding_completed: true } as any)
+                  .eq("id", user.id);
+              }
+              navigate("/atlas/quest");
+            }}
+          />
+        )}
+      </AnimatePresence>
     </div>
   );
 };
