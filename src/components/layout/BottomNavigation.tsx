@@ -51,18 +51,20 @@ export const BottomNavigation = () => {
   const { needsClarification, badgeCount, isInClarificationSession } = useProblemClarificationStatus();
   const [councilBadge, setCouncilBadge] = useState(false);
   const [creatorRequestCount, setCreatorRequestCount] = useState(0);
+  const [showAtlasBadge, setShowAtlasBadge] = useState(false);
 
   useEffect(() => {
-    const checkCouncilBadge = async () => {
+    const checkBadges = async () => {
       const { data: { user } } = await supabase.auth.getUser();
       if (!user) return;
       const { data } = await supabase
         .from("profiles")
-        .select("onboarding_quest_completed, console_intake_completed" as any)
+        .select("onboarding_quest_completed, console_intake_completed, atlas_onboarding_completed" as any)
         .eq("id", user.id)
         .single();
       const p = data as any;
       setCouncilBadge(!!p?.onboarding_quest_completed && !p?.console_intake_completed);
+      setShowAtlasBadge(!p?.atlas_onboarding_completed);
 
       // Check pending creator chat requests
       const { count } = await supabase
@@ -72,7 +74,7 @@ export const BottomNavigation = () => {
         .eq("status", "pending");
       setCreatorRequestCount(count || 0);
     };
-    checkCouncilBadge();
+    checkBadges();
   }, [location.pathname]);
 
   const isActive = (item: NavItem) => {
@@ -98,7 +100,8 @@ export const BottomNavigation = () => {
           // Hide badge when user is in the clarification session
           const showCreationBadge = item.path === "/creation-lab" && needsClarification && badgeCount > 0 && !isInClarificationSession;
           const showCouncilBadge = item.path === "/council" && (councilBadge || creatorRequestCount > 0);
-          const showBadge = showCreationBadge || showCouncilBadge;
+          const showAtlasDot = item.path === "/atlas" && showAtlasBadge;
+          const showBadge = showCreationBadge || showCouncilBadge || showAtlasDot;
           
           return (
             <button
@@ -115,7 +118,7 @@ export const BottomNavigation = () => {
                 <Icon className={cn("w-5 h-5", active && "text-primary")} />
                 {showBadge && (
                   <span className="absolute -top-1.5 -right-1.5 w-4 h-4 rounded-full bg-destructive text-destructive-foreground text-[10px] font-bold flex items-center justify-center animate-pulse">
-                    {showCouncilBadge ? (creatorRequestCount > 0 ? creatorRequestCount : "!") : badgeCount}
+                    {showAtlasDot ? "!" : showCouncilBadge ? (creatorRequestCount > 0 ? creatorRequestCount : "!") : badgeCount}
                   </span>
                 )}
               </div>
