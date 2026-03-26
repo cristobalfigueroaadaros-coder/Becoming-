@@ -26,12 +26,6 @@ const navItems: NavItem[] = [
     matchPaths: ["/atlas"],
   },
   {
-    icon: Globe,
-    label: "Creators",
-    path: "/creators",
-    matchPaths: ["/creators"],
-  },
-  {
     icon: Users,
     label: "Chats",
     path: "/council",
@@ -42,6 +36,12 @@ const navItems: NavItem[] = [
     label: "Projects",
     path: "/creation-lab",
     matchPaths: ["/creation-lab", "/future-self"],
+  },
+  {
+    icon: Globe,
+    label: "Creators",
+    path: "/creators",
+    matchPaths: ["/creators"],
   },
 ];
 
