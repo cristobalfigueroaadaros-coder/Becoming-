@@ -363,26 +363,26 @@ const ConsoleThread = ({ embedded = false, onProjectNameChange }: ConsoleThreadP
     setMessages([openMsg]);
     persistMessage(openMsg, "atlas_reflection");
 
-    // Send pre-generated reflection messages with typing delays
+    // Send pre-generated reflection messages with human-like typing delays
     const reflectionMsgs: string[] = signals.reflectionMessages || [];
     for (const msg of reflectionMsgs) {
-      await showTyping("future_self", 1500 + Math.random() * 1000);
+      await showTyping("future_self", 2200 + Math.random() * 1200 + msg.length * 15);
       addSystemMessage(msg, "future_self", "atlas_reflection");
     }
 
     // If no AI-generated messages, use fallback
     if (reflectionMsgs.length === 0) {
-      await showTyping("future_self", 1500);
+      await showTyping("future_self", 2500 + Math.random() * 800);
       addSystemMessage("I've been watching what you've been sharing...", "future_self", "atlas_reflection");
-      await showTyping("future_self", 1500);
+      await showTyping("future_self", 2800 + Math.random() * 1000);
       addSystemMessage("I'm starting to see something interesting about how you operate.", "future_self", "atlas_reflection");
       if (signals.identitySignals?.length > 0) {
-        await showTyping("future_self", 1500);
+        await showTyping("future_self", 2500 + Math.random() * 800);
         addSystemMessage(`You seem to be someone who ${signals.identitySignals.slice(0, 2).join(" and ").toLowerCase()}.`, "future_self", "atlas_reflection");
       }
     }
 
-    await showTyping("future_self", 1200);
+    await showTyping("future_self", 2000 + Math.random() * 600);
     addSystemMessage("Does that feel right to you?", "future_self", "atlas_reflection");
 
     setPhase("atlas_confirmation");
@@ -397,13 +397,13 @@ const ConsoleThread = ({ embedded = false, onProjectNameChange }: ConsoleThreadP
     setMessages([openMsg]);
     persistMessage(openMsg, "starter_q1");
 
-    await showTyping("future_self", 1500);
+    await showTyping("future_self", 2200 + Math.random() * 800);
     addSystemMessage("Before we begin building something meaningful, I want to understand how you naturally think and solve problems.", "future_self", "starter_q1");
 
-    await showTyping("future_self", 1500);
+    await showTyping("future_self", 2500 + Math.random() * 1000);
     addSystemMessage("It only takes a moment, and it helps me personalize the experience for you.", "future_self", "starter_q1");
 
-    await showTyping("future_self", 1200);
+    await showTyping("future_self", 3000 + Math.random() * 800);
     addSystemMessage("What kind of problems do you naturally enjoy solving?\n\nFor example: helping people, building projects, creative ideas, technical problems, or organizing systems.", "future_self", "starter_q1");
   };
 
@@ -416,13 +416,14 @@ const ConsoleThread = ({ embedded = false, onProjectNameChange }: ConsoleThreadP
     persistMessage(openMsg1, "intake_q1");
 
     const introMsgs = getPhaseIntroMessages(state);
-    for (const msg of introMsgs) {
-      await showTyping("future_self", 1500);
-      addSystemMessage(msg, "future_self", "intake_q1");
+    for (let i = 0; i < introMsgs.length; i++) {
+      await showTyping("future_self", 2200 + Math.random() * 1200 + introMsgs[i].length * 15);
+      addSystemMessage(introMsgs[i], "future_self", "intake_q1");
     }
 
-    await showTyping("future_self", 1200);
-    addSystemMessage(getPhaseQuestions(state)[0], "future_self", "intake_q1");
+    const firstQ = getPhaseQuestions(state)[0];
+    await showTyping("future_self", 2800 + Math.random() * 800 + firstQ.length * 12);
+    addSystemMessage(firstQ, "future_self", "intake_q1");
   };
 
   const addSystemMessage = (content: string, mentorType?: string, phaseForPersist?: Phase, messageType?: "perspective" | "banter" | "standard" | "notification") => {
