@@ -113,8 +113,7 @@ export const AtlasOnboardingOverlay = ({ onComplete }: AtlasOnboardingOverlayPro
           transition={{ duration: isMission ? 0.6 : 0.4 }}
           className="max-w-sm mx-auto px-6 text-center"
         >
-          <h2 className="text-lg font-bold text-foreground mb-3">{screen.title}</h2>
-          <p className="text-sm text-muted-foreground leading-relaxed">{screen.description}</p>
+          <p className="text-sm text-muted-foreground leading-relaxed whitespace-pre-line">{screen.description}</p>
         </motion.div>
       </AnimatePresence>
 
