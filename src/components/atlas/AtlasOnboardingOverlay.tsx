@@ -32,24 +32,24 @@ const SECTIONS = [
 
 const SCREEN_CONTENT = [
   {
-    title: "This is your Atlas",
-    description: "A map of who you are. Every quest you answer adds a discovery. Over time, patterns emerge — and you start seeing yourself more clearly.",
+    title: "",
+    description: "Everything starts here.\n\nYou answer simple quests\nand the system begins to understand who you are.\n\nYour strengths, your patterns, your direction.\n\nThe more you explore,\nthe more you will discover about yourself.",
   },
   {
-    title: "This is your Chat space",
-    description: "Where you reflect, get challenged, and go deeper. Your Future Self and mentors live here — ready to help you think through what matters.",
+    title: "",
+    description: "Once we start seeing who you are... we guide you.\n\nYou will talk with your Future Self\nand build a personal council of mentors.\n\nThey will think with you,\nchallenge you,\nand help you move forward.",
   },
   {
-    title: "These are your Projects",
-    description: "Where ideas become real. Once you know what drives you, this is where you build it — step by step, with guidance.",
+    title: "",
+    description: "This is where you take action.\n\nYou turn your ideas into something real.\n\nWith tools to help you build,\nstay accountable,\nand track your progress.\n\nThis is where things start to move.",
   },
   {
-    title: "This is the Creators wall",
-    description: "People like you, building things that matter. Share what you're working on, get inspired, and find others on a similar path.",
+    title: "",
+    description: "You are not alone.\n\nYou will connect with conscious creators\nwho are also building and evolving.\n\nPeople like you,\nworking to create meaningful impact in the world.",
   },
   {
-    title: "You're not here to consume content.",
-    description: "You're here to discover who you are, what you carry, and what you're meant to build. Every answer you give becomes a piece of your map. Let's start.",
+    title: "",
+    description: "You are not here by accident.\n\nYou have something unique.\nSomething that only you can build.\n\nBecoming exists to help you discover it\nand turn it into something real.\n\nThis is a process. It takes time.\nBut we believe that by crafting something meaningful\nwith our unique gifts,\nwe can create a positive impact\nand change the world together.",
   },
 ];
 
@@ -113,8 +113,7 @@ export const AtlasOnboardingOverlay = ({ onComplete }: AtlasOnboardingOverlayPro
           transition={{ duration: isMission ? 0.6 : 0.4 }}
           className="max-w-sm mx-auto px-6 text-center"
         >
-          <h2 className="text-lg font-bold text-foreground mb-3">{screen.title}</h2>
-          <p className="text-sm text-muted-foreground leading-relaxed">{screen.description}</p>
+          <p className="text-sm text-muted-foreground leading-relaxed whitespace-pre-line">{screen.description}</p>
         </motion.div>
       </AnimatePresence>
 
