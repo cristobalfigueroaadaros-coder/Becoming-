@@ -100,9 +100,9 @@ export function useAtlasQuests() {
   const lastTwoClusterIds = recentCompleted.slice(0, 2).map((q: any) => q.cluster_id);
 
   function getPreferredClusterSlugs(): Set<string> {
-    if (completedCount < 3) return STRENGTH_CLUSTERS;
-    if (completedCount === 3) return LIFE_IMPRINT_CLUSTERS;
-    if (completedCount >= 10 && completedCount % 5 === 0) return SERVICE_CLUSTERS;
+    if (completedCount < 4) return STRENGTH_CLUSTERS;
+    if (completedCount === 4) return LIFE_IMPRINT_CLUSTERS;
+    if (completedCount >= 10) return SERVICE_CLUSTERS;
     if (completedCount >= 5 && completedCount % 4 === 1) return SHADOW_CLUSTERS;
     return STRENGTH_CLUSTERS;
   }

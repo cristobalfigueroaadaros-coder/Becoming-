@@ -796,6 +796,21 @@ export const ONBOARDING_QUEST_SEQUENCE: string[] = [
 ];
 
 export const ONBOARDING_QUESTS: AtlasQuestDefinition[] = [
+  // 1. Skills — identity
+  {
+    questKey: "onboarding_skills",
+    clusterSlug: "skills",
+    clusterName: "Skills",
+    intro: "Now let's find what you can actually do well.",
+    interactions: [
+      { type: "tap_resonates", prompt: "Tap all skills that feel like you.", words: ["Organizing", "Creating", "Listening", "Analyzing", "Leading", "Teaching", "Writing", "Designing", "Negotiating", "Storytelling", "Problem-solving", "Connecting people"] },
+      { type: "ranking", prompt: "Rank your top 3 by confidence.", options: ["Communication", "Creative thinking", "Strategic planning", "Understanding people"] },
+      { type: "scenario", prompt: "In a team you naturally become…", options: ["The planner", "The idea generator", "The people connector", "The executor", "The problem solver"] },
+      { type: "reflection", prompt: "What are you naturally good at, even without trying too hard?" },
+    ],
+    interpret: (r) => pick(["Connects People Naturally", "Breaks Down Any System", "Understands and Guides Others"], r),
+  },
+  // 2. Passions — energy
   {
     questKey: "onboarding_passions",
     clusterSlug: "passions",
@@ -811,60 +826,7 @@ export const ONBOARDING_QUESTS: AtlasQuestDefinition[] = [
     ],
     interpret: (r) => pick(["Creates to Help Others", "Loves Exploring Ideas", "Brings Ideas Into Reality"], r),
   },
-  {
-    questKey: "onboarding_skills",
-    clusterSlug: "skills",
-    clusterName: "Skills",
-    intro: "Now let's find what you can actually do well.",
-    interactions: [
-      { type: "tap_resonates", prompt: "Tap all skills that feel like you.", words: ["Organizing", "Creating", "Listening", "Analyzing", "Leading", "Teaching", "Writing", "Designing", "Negotiating", "Storytelling", "Problem-solving", "Connecting people"] },
-      { type: "ranking", prompt: "Rank your top 3 by confidence.", options: ["Communication", "Creative thinking", "Strategic planning", "Understanding people"] },
-      { type: "scenario", prompt: "In a team you naturally become…", options: ["The planner", "The idea generator", "The people connector", "The executor", "The problem solver"] },
-      { type: "reflection", prompt: "What are you naturally good at, even without trying too hard?" },
-    ],
-    interpret: (r) => pick(["Connects People Naturally", "Breaks Down Any System", "Understands and Guides Others"], r),
-  },
-  {
-    questKey: "onboarding_values",
-    clusterSlug: "values",
-    clusterName: "Values",
-    intro: "What do you stand for, no matter what?",
-    interactions: [
-      { type: "multi_select", prompt: "Which values won't you compromise?", options: ["Freedom", "Family", "Impact", "Growth", "Connection", "Integrity", "Creativity", "Service", "Depth", "Authenticity"], minSelect: 2, maxSelect: 4 },
-      { type: "this_or_that", prompt: "Quick gut reaction:", optionA: "Freedom", optionB: "Security" },
-      { type: "ranking", prompt: "What guides your biggest decisions?", options: ["My gut feeling", "My values", "Other people's needs", "Long-term vision"] },
-      { type: "reflection", prompt: "What matters so much to you that you would not compromise on it, even when it is hard?" },
-    ],
-    interpret: (r) => pick(["Fights for Freedom", "Family and Legacy Drive Everything", "Connection Is Non-Negotiable"], r),
-  },
-  {
-    questKey: "onboarding_childhood",
-    clusterSlug: "childhood-signals",
-    clusterName: "Childhood Signals",
-    intro: "Let's go back to who you were before the world told you who to be.",
-    interactions: [
-      { type: "multi_select", prompt: "What did you love doing as a child?", options: ["Playing sport", "Making things", "Telling stories", "Organizing", "Exploring", "Performing", "Connecting with people"], minSelect: 2, maxSelect: 3 },
-      { type: "sentence_completion", prompt: "Complete this:", sentenceStem: "Someone in my family whose way of living I admire is" },
-      { type: "emoji_scale", prompt: "How connected is your childhood self to who you are today?", emojiOptions: [
-        { emoji: "😐", label: "Very different" }, { emoji: "🙂", label: "Some overlap" }, { emoji: "😊", label: "Connected" }, { emoji: "😄", label: "Very connected" }, { emoji: "🤯", label: "Exactly the same" }
-      ]},
-      { type: "reflection", prompt: "What did you love doing as a child that you still do in some form today, and is there someone from your family whose skill or way of living you carry with you?" },
-    ],
-    interpret: (r) => pick(["Loved Organizing Games as a Kid", "Learned Legacy Through Family", "Built Things From Nothing Since Childhood"], r, "life_imprint"),
-  },
-  {
-    questKey: "onboarding_natural_talents",
-    clusterSlug: "natural-talents",
-    clusterName: "Natural Talents",
-    intro: "Let's uncover the gifts you take for granted.",
-    interactions: [
-      { type: "tap_resonates", prompt: "Tap what feels natural to you.", words: ["Reads people", "Sees patterns", "Simplifies complexity", "Builds systems", "Holds space", "Generates ideas", "Connects dots", "Stays calm under pressure"] },
-      { type: "sentence_completion", prompt: "Complete this:", sentenceStem: "Something I can do that most people find hard is" },
-      { type: "this_or_that", prompt: "Your strongest abilities feel…", optionA: "Something I was born with", optionB: "Something I built through experience" },
-      { type: "reflection", prompt: "What ability do you have that feels so natural you sometimes forget it is a skill?" },
-    ],
-    interpret: (r) => pick(["Understands Systems Deeply", "Reads a Room Instantly", "Connects Ideas No One Else Connects"], r),
-  },
+  // 3. Personal Frustrations — tension
   {
     questKey: "onboarding_frustrations",
     clusterSlug: "personal-frustrations",
@@ -880,19 +842,7 @@ export const ONBOARDING_QUESTS: AtlasQuestDefinition[] = [
     ],
     interpret: (r) => pick(["Sees Wasted Potential", "Frustrated by Unlived Lives", "Builds for Those Who Are Lost"], r),
   },
-  {
-    questKey: "onboarding_external_reflections",
-    clusterSlug: "external-reflections",
-    clusterName: "External Reflections",
-    intro: "Sometimes others see what we cannot see in ourselves.",
-    interactions: [
-      { type: "multi_select", prompt: "People come to you for…", options: ["Advice", "Problem solving", "Creative ideas", "Emotional support", "Leadership", "Organizing", "Connection", "Perspective"], minSelect: 2, maxSelect: 3 },
-      { type: "sentence_completion", prompt: "Complete this:", sentenceStem: "Something people compliment me on that still surprises me is" },
-      { type: "this_or_that", prompt: "Others see you more as…", optionA: "A creator — you build new things", optionB: "A connector — you bring people together" },
-      { type: "reflection", prompt: "What do people usually come to you for, and what do they say about you that you still find hard to fully believe?" },
-    ],
-    interpret: (r) => pick(["Creates Space for People", "People Come When Things Fall Apart", "Recognized as the One Who Connects"], r),
-  },
+  // 4. Experiments — growth edge
   {
     questKey: "onboarding_experiments",
     clusterSlug: "experiments",
@@ -906,19 +856,7 @@ export const ONBOARDING_QUESTS: AtlasQuestDefinition[] = [
     ],
     interpret: (r) => pick(["Left Safety and Discovered What Matters", "Built Something From Nothing", "Learned to Shift Energy"], r),
   },
-  {
-    questKey: "onboarding_vision",
-    clusterSlug: "vision-for-a-better-world",
-    clusterName: "Vision for a Better World",
-    intro: "What does the world need more of?",
-    interactions: [
-      { type: "card_pick", prompt: "The world needs more…", options: ["People finding purpose", "Families connected", "Conscious creators", "Compassion", "Meaningful work", "Human connection"] },
-      { type: "sentence_completion", prompt: "Complete this:", sentenceStem: "The world would be better if everyone" },
-      { type: "this_or_that", prompt: "Change starts…", optionA: "Inside the individual first", optionB: "In the systems around us" },
-      { type: "reflection", prompt: "What does the world need more of that you are trying to contribute to, and what would it look like if your vision came true?" },
-    ],
-    interpret: (r) => pick(["World Where Everyone Finds Their Gift", "Building the System That Helps People Wake Up", "Everyone Deserves a Mentor"], r),
-  },
+  // 5. Aha Moments — cognitive depth
   {
     questKey: "onboarding_aha_moments",
     clusterSlug: "aha-moments",
@@ -932,6 +870,63 @@ export const ONBOARDING_QUESTS: AtlasQuestDefinition[] = [
     ],
     interpret: (r) => pick(["Stopped Judging After That Moment", "Forced Pause Created Clarity", "Realized What I Actually Wanted"], r, "life_imprint"),
   },
+  // 6. Life Events — grounding
+  {
+    questKey: "onboarding_life_events",
+    clusterSlug: "life-events",
+    clusterName: "Life Events",
+    intro: "Let's ground everything in what actually happened.",
+    interactions: [
+      { type: "multi_select", prompt: "Which moments feel most defining?", options: ["A move", "A relationship shift", "A career change", "A loss", "A success", "A moment of clarity"], minSelect: 2, maxSelect: 3 },
+      { type: "ranking", prompt: "Rank these by emotional impact.", options: ["The biggest risk I took", "The hardest loss", "The proudest moment", "The most unexpected turn"] },
+      { type: "then_vs_now", prompt: "How did your biggest life change shape you?", thenLabel: "Who I was before my biggest change", nowLabel: "Who I became after it" },
+      { type: "reflection", prompt: "In one sentence, what do your biggest life moments have in common? What is the thread that runs through them?" },
+    ],
+    interpret: (r) => pick(["Built Something Every Time Life Paused", "Always Returned to People", "Moved Toward Freedom Every Time"], r, "life_imprint"),
+  },
+  // 7. Natural Talents — direction
+  {
+    questKey: "onboarding_natural_talents",
+    clusterSlug: "natural-talents",
+    clusterName: "Natural Talents",
+    intro: "Let's uncover the gifts you take for granted.",
+    interactions: [
+      { type: "tap_resonates", prompt: "Tap what feels natural to you.", words: ["Reads people", "Sees patterns", "Simplifies complexity", "Builds systems", "Holds space", "Generates ideas", "Connects dots", "Stays calm under pressure"] },
+      { type: "sentence_completion", prompt: "Complete this:", sentenceStem: "Something I can do that most people find hard is" },
+      { type: "this_or_that", prompt: "Your strongest abilities feel…", optionA: "Something I was born with", optionB: "Something I built through experience" },
+      { type: "reflection", prompt: "What ability do you have that feels so natural you sometimes forget it is a skill?" },
+    ],
+    interpret: (r) => pick(["Understands Systems Deeply", "Reads a Room Instantly", "Connects Ideas No One Else Connects"], r),
+  },
+  // 8. Inspirations — deeper values
+  {
+    questKey: "onboarding_inspirations",
+    clusterSlug: "inspirations",
+    clusterName: "Inspirations",
+    intro: "Who and what shaped how you think and create?",
+    interactions: [
+      { type: "multi_select", prompt: "Where does your inspiration come from?", options: ["A family member", "A creator", "A thinker", "A builder", "A leader", "A historical figure"], minSelect: 1, maxSelect: 3 },
+      { type: "sentence_completion", prompt: "Complete this:", sentenceStem: "The person who most shaped how I think about my work is" },
+      { type: "this_or_that", prompt: "You're more inspired by…", optionA: "People who built things", optionB: "People who changed how others think" },
+      { type: "reflection", prompt: "Who is someone you deeply admire, and what specific quality or way of living do you wish you had more of yourself? What did they teach you just by existing?" },
+    ],
+    interpret: (r) => pick(["Inspired by Legacy of Building for Others", "Everything Can Be Connected", "Admires the Creator Who Built a Universe"], r),
+  },
+  // 9. Values — reinforces identity
+  {
+    questKey: "onboarding_values",
+    clusterSlug: "values",
+    clusterName: "Values",
+    intro: "What do you stand for, no matter what?",
+    interactions: [
+      { type: "multi_select", prompt: "Which values won't you compromise?", options: ["Freedom", "Family", "Impact", "Growth", "Connection", "Integrity", "Creativity", "Service", "Depth", "Authenticity"], minSelect: 2, maxSelect: 4 },
+      { type: "this_or_that", prompt: "Quick gut reaction:", optionA: "Freedom", optionB: "Security" },
+      { type: "ranking", prompt: "What guides your biggest decisions?", options: ["My gut feeling", "My values", "Other people's needs", "Long-term vision"] },
+      { type: "reflection", prompt: "What matters so much to you that you would not compromise on it, even when it is hard?" },
+    ],
+    interpret: (r) => pick(["Fights for Freedom", "Family and Legacy Drive Everything", "Connection Is Non-Negotiable"], r),
+  },
+  // 10. Ideal Life — connects to reality
   {
     questKey: "onboarding_ideal_life",
     clusterSlug: "ideal-life",
@@ -947,31 +942,49 @@ export const ONBOARDING_QUESTS: AtlasQuestDefinition[] = [
     ],
     interpret: (r) => pick(["Most Alive When Creating for Others", "Impact at Scale While Staying Free", "Build Family and Keep Building Things"], r),
   },
+  // 11. Childhood Signals
   {
-    questKey: "onboarding_life_events",
-    clusterSlug: "life-events",
-    clusterName: "Life Events",
-    intro: "Let's ground everything in what actually happened.",
+    questKey: "onboarding_childhood",
+    clusterSlug: "childhood-signals",
+    clusterName: "Childhood Signals",
+    intro: "Let's go back to who you were before the world told you who to be.",
     interactions: [
-      { type: "multi_select", prompt: "Which moments feel most defining?", options: ["A move", "A relationship shift", "A career change", "A loss", "A success", "A moment of clarity"], minSelect: 2, maxSelect: 3 },
-      { type: "ranking", prompt: "Rank these by emotional impact.", options: ["The biggest risk I took", "The hardest loss", "The proudest moment", "The most unexpected turn"] },
-      { type: "then_vs_now", prompt: "How did your biggest life change shape you?", thenLabel: "Who I was before my biggest change", nowLabel: "Who I became after it" },
-      { type: "reflection", prompt: "In one sentence, what do your biggest life moments have in common? What is the thread that runs through them?" },
+      { type: "multi_select", prompt: "What did you love doing as a child?", options: ["Playing sport", "Making things", "Telling stories", "Organizing", "Exploring", "Performing", "Connecting with people"], minSelect: 2, maxSelect: 3 },
+      { type: "sentence_completion", prompt: "Complete this:", sentenceStem: "Someone in my family whose way of living I admire is" },
+      { type: "emoji_scale", prompt: "How connected is your childhood self to who you are today?", emojiOptions: [
+        { emoji: "😐", label: "Very different" }, { emoji: "🙂", label: "Some overlap" }, { emoji: "😊", label: "Connected" }, { emoji: "😄", label: "Very connected" }, { emoji: "🤯", label: "Exactly the same" }
+      ]},
+      { type: "reflection", prompt: "What did you love doing as a child that you still do in some form today, and is there someone from your family whose skill or way of living you carry with you?" },
     ],
-    interpret: (r) => pick(["Built Something Every Time Life Paused", "Always Returned to People", "Moved Toward Freedom Every Time"], r, "life_imprint"),
+    interpret: (r) => pick(["Loved Organizing Games as a Kid", "Learned Legacy Through Family", "Built Things From Nothing Since Childhood"], r, "life_imprint"),
   },
+  // 12. External Reflections
   {
-    questKey: "onboarding_inspirations",
-    clusterSlug: "inspirations",
-    clusterName: "Inspirations",
-    intro: "Who and what shaped how you think and create?",
+    questKey: "onboarding_external_reflections",
+    clusterSlug: "external-reflections",
+    clusterName: "External Reflections",
+    intro: "Sometimes others see what we cannot see in ourselves.",
     interactions: [
-      { type: "multi_select", prompt: "Where does your inspiration come from?", options: ["A family member", "A creator", "A thinker", "A builder", "A leader", "A historical figure"], minSelect: 1, maxSelect: 3 },
-      { type: "sentence_completion", prompt: "Complete this:", sentenceStem: "The person who most shaped how I think about my work is" },
-      { type: "this_or_that", prompt: "You're more inspired by…", optionA: "People who built things", optionB: "People who changed how others think" },
-      { type: "reflection", prompt: "Who is someone you deeply admire, and what specific quality or way of living do you wish you had more of yourself? What did they teach you just by existing?" },
+      { type: "multi_select", prompt: "People come to you for…", options: ["Advice", "Problem solving", "Creative ideas", "Emotional support", "Leadership", "Organizing", "Connection", "Perspective"], minSelect: 2, maxSelect: 3 },
+      { type: "sentence_completion", prompt: "Complete this:", sentenceStem: "Something people compliment me on that still surprises me is" },
+      { type: "this_or_that", prompt: "Others see you more as…", optionA: "A creator — you build new things", optionB: "A connector — you bring people together" },
+      { type: "reflection", prompt: "What do people usually come to you for, and what do they say about you that you still find hard to fully believe?" },
     ],
-    interpret: (r) => pick(["Inspired by Legacy of Building for Others", "Everything Can Be Connected", "Admires the Creator Who Built a Universe"], r),
+    interpret: (r) => pick(["Creates Space for People", "People Come When Things Fall Apart", "Recognized as the One Who Connects"], r),
+  },
+  // 13. Vision for a Better World
+  {
+    questKey: "onboarding_vision",
+    clusterSlug: "vision-for-a-better-world",
+    clusterName: "Vision for a Better World",
+    intro: "What does the world need more of?",
+    interactions: [
+      { type: "card_pick", prompt: "The world needs more…", options: ["People finding purpose", "Families connected", "Conscious creators", "Compassion", "Meaningful work", "Human connection"] },
+      { type: "sentence_completion", prompt: "Complete this:", sentenceStem: "The world would be better if everyone" },
+      { type: "this_or_that", prompt: "Change starts…", optionA: "Inside the individual first", optionB: "In the systems around us" },
+      { type: "reflection", prompt: "What does the world need more of that you are trying to contribute to, and what would it look like if your vision came true?" },
+    ],
+    interpret: (r) => pick(["World Where Everyone Finds Their Gift", "Building the System That Helps People Wake Up", "Everyone Deserves a Mentor"], r),
   },
   // ===== WHO I SERVE (4 quests) =====
   {
