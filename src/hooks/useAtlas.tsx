@@ -169,8 +169,9 @@ export function useAtlas() {
 
   const clusters: ClusterWithState[] = (clustersQuery.data || []).map((c: any) => {
     const clusterDots = allDots.filter((d) => d.cluster_id === c.id);
-    const unlocked = isClusterUnlocked(c.slug, totalDots);
-    const phase = getUnlockPhase(c.slug);
+    const isProjectCluster = c.cluster_category === "project";
+    const unlocked = isProjectCluster || isClusterUnlocked(c.slug, totalDots);
+    const phase = isProjectCluster ? 0 : getUnlockPhase(c.slug);
     return {
       id: c.id,
       name: c.name,
