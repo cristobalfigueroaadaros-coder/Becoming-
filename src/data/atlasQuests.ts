@@ -790,9 +790,9 @@ export const ATLAS_QUESTS: AtlasQuestDefinition[] = [
 
 // ===== ONBOARDING QUESTS (13 guided quests in fixed sequence) =====
 export const ONBOARDING_QUEST_SEQUENCE: string[] = [
-  "passions", "skills", "values", "childhood-signals", "natural-talents",
-  "personal-frustrations", "external-reflections", "experiments",
-  "vision-for-a-better-world", "aha-moments", "ideal-life", "life-events", "inspirations",
+  "skills", "passions", "personal-frustrations", "experiments",
+  "aha-moments", "life-events", "natural-talents", "inspirations",
+  "values", "ideal-life", "childhood-signals", "external-reflections", "vision-for-a-better-world",
 ];
 
 export const ONBOARDING_QUESTS: AtlasQuestDefinition[] = [
