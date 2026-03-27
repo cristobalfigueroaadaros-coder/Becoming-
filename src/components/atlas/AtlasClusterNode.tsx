@@ -46,7 +46,10 @@ const GROWTH_STYLES: Record<string, { size: number; opacity: string; glowSize: n
 export const AtlasClusterNode = ({ cluster, index, onTap, isHighlighted }: AtlasClusterNodeProps) => {
   const domainName = cluster.meta_domain?.name || "Person";
   const isGolden = cluster.slug === "golden-moments";
-  const colors = isGolden
+  const isProject = cluster.cluster_category === "project";
+  const colors = isProject
+    ? { bg: "hsl(0, 75%, 55%)", glow: "hsl(0, 75%, 55%, 0.3)", border: "hsl(0, 75%, 45%)" }
+    : isGolden
     ? { bg: "hsl(40, 80%, 55%)", glow: "hsl(40, 80%, 55%, 0.3)", border: "hsl(40, 80%, 55%, 0.6)" }
     : DOMAIN_COLORS[domainName] || DOMAIN_COLORS.Person;
   const state = cluster.computedState;

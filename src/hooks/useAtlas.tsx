@@ -90,6 +90,7 @@ export const DOMAIN_COLORS: Record<string, { bg: string; text: string; glow: str
 
 export const CLUSTER_COLORS: Record<string, { bg: string; glow: string }> = {
   "golden-moments": { bg: "hsl(40 90% 55%)", glow: "hsl(40 90% 55% / 0.4)" },
+  project: { bg: "hsl(0 75% 55%)", glow: "hsl(0 75% 55% / 0.4)" },
 };
 
 export const DOT_TYPE_COLORS: Record<string, string> = {
