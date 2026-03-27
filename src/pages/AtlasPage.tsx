@@ -194,7 +194,7 @@ const AtlasPage = () => {
             const projectIndex = clusters.filter((c, ci) => ci < i && c.cluster_category === "project").length;
             pos = PROJECT_CLUSTER_POSITIONS[projectIndex % PROJECT_CLUSTER_POSITIONS.length];
           } else {
-            pos = CLUSTER_POSITIONS[i] || { x: 50, y: 50 };
+            pos = CLUSTER_POSITION_MAP[cluster.slug] || { x: 50, y: 50 };
           }
           return (
             <div
@@ -220,7 +220,7 @@ const AtlasPage = () => {
         <svg className="absolute inset-0 w-full h-full pointer-events-none" style={{ zIndex: 0 }}>
           {domains.map((domain) => {
             const domainClusters = clusters
-              .map((c, i) => ({ ...c, pos: CLUSTER_POSITIONS[i] }))
+              .map((c) => ({ ...c, pos: CLUSTER_POSITION_MAP[c.slug] || { x: 50, y: 50 } }))
               .filter((c) => c.meta_domain_id === domain.id && c.computedState !== "locked");
             const color = DOMAIN_COLORS[domain.name]?.glow || "transparent";
             const lines: JSX.Element[] = [];
