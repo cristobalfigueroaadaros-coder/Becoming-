@@ -46,12 +46,12 @@ export interface ClusterWithState extends AtlasCluster {
 }
 
 // Phase unlock thresholds (total dots across all clusters)
-const PHASE_THRESHOLDS = [0, 0, 3, 6, 10, 10]; // phase 1 always, 2 at 3+, 3 at 6+, 4 at 10+, 5 at 10+
+const PHASE_THRESHOLDS = [0, 0, 3, 6, 8, 8]; // phase 1 always, 2 at 3+, 3 at 6+, 4 at 8+, 5 at 8+
 
 const PHASE_SLUGS: Record<number, Set<string>> = {
-  1: new Set(["passions", "skills", "life-events", "personal-frustrations", "golden-moments"]),
-  2: new Set(["natural-talents", "values", "experiments"]),
-  3: new Set(["childhood-signals", "inspirations", "aha-moments"]),
+  1: new Set(["passions", "skills", "personal-frustrations", "experiments", "golden-moments"]),
+  2: new Set(["natural-talents", "aha-moments", "life-events"]),
+  3: new Set(["values", "inspirations", "childhood-signals"]),
   4: new Set(["ideal-life", "vision-for-a-better-world", "external-reflections"]),
   5: new Set(["who-i-serve", "how-i-create-impact"]),
 };
@@ -90,6 +90,7 @@ export const DOMAIN_COLORS: Record<string, { bg: string; text: string; glow: str
 
 export const CLUSTER_COLORS: Record<string, { bg: string; glow: string }> = {
   "golden-moments": { bg: "hsl(40 90% 55%)", glow: "hsl(40 90% 55% / 0.4)" },
+  project: { bg: "hsl(0 75% 55%)", glow: "hsl(0 75% 55% / 0.4)" },
 };
 
 export const DOT_TYPE_COLORS: Record<string, string> = {
@@ -168,8 +169,9 @@ export function useAtlas() {
 
   const clusters: ClusterWithState[] = (clustersQuery.data || []).map((c: any) => {
     const clusterDots = allDots.filter((d) => d.cluster_id === c.id);
-    const unlocked = isClusterUnlocked(c.slug, totalDots);
-    const phase = getUnlockPhase(c.slug);
+    const isProjectCluster = c.cluster_category === "project";
+    const unlocked = isProjectCluster || isClusterUnlocked(c.slug, totalDots);
+    const phase = isProjectCluster ? 0 : getUnlockPhase(c.slug);
     return {
       id: c.id,
       name: c.name,

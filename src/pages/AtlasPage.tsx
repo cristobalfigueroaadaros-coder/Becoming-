@@ -8,24 +8,34 @@ import { AtlasClusterNode, AtlasClusterDetail } from "@/components/atlas";
 import { AtlasOnboardingOverlay } from "@/components/atlas/AtlasOnboardingOverlay";
 import { toast } from "@/hooks/use-toast";
 import { supabase } from "@/integrations/supabase/client";
-// Organic scatter positions for 13 clusters (percentage-based)
-const CLUSTER_POSITIONS: { x: number; y: number }[] = [
-  { x: 18, y: 10 }, // Life Events
-  { x: 55, y: 6 },  // Passions
-  { x: 82, y: 12 }, // Values
-  { x: 10, y: 28 }, // Natural Talents
-  { x: 42, y: 24 }, // Childhood Signals
-  { x: 75, y: 26 }, // Skills
-  { x: 25, y: 44 }, // Aha Moments
-  { x: 60, y: 42 }, // Experiments
-  { x: 88, y: 44 }, // Vision
-  { x: 15, y: 62 }, // Ideal Life
-  { x: 50, y: 60 }, // Personal Frustrations
-  { x: 80, y: 64 }, // Inspirations
-  { x: 40, y: 78 }, // External Reflections
-  { x: 50, y: 42 }, // Golden Moments (central)
-  { x: 28, y: 90 }, // Who I Serve
-  { x: 68, y: 88 }, // How I Create Impact
+// Organic scatter positions for known clusters (percentage-based)
+// Slug-based positions for known clusters
+const CLUSTER_POSITION_MAP: Record<string, { x: number; y: number }> = {
+  "life-events": { x: 18, y: 10 },
+  "passions": { x: 55, y: 6 },
+  "values": { x: 82, y: 12 },
+  "natural-talents": { x: 10, y: 28 },
+  "childhood-signals": { x: 42, y: 24 },
+  "skills": { x: 75, y: 26 },
+  "aha-moments": { x: 25, y: 44 },
+  "experiments": { x: 60, y: 42 },
+  "vision-for-a-better-world": { x: 88, y: 44 },
+  "ideal-life": { x: 15, y: 62 },
+  "personal-frustrations": { x: 50, y: 60 },
+  "inspirations": { x: 80, y: 64 },
+  "external-reflections": { x: 40, y: 78 },
+  "golden-moments": { x: 50, y: 42 },
+  "who-i-serve": { x: 28, y: 90 },
+  "how-i-create-impact": { x: 68, y: 88 },
+};
+
+// Dynamic positions for project clusters (appear at bottom)
+const PROJECT_CLUSTER_POSITIONS = [
+  { x: 50, y: 95 },
+  { x: 30, y: 98 },
+  { x: 70, y: 98 },
+  { x: 15, y: 95 },
+  { x: 85, y: 95 },
 ];
 
 const AtlasPage = () => {
@@ -178,7 +188,14 @@ const AtlasPage = () => {
       {/* Cluster map */}
       <div className="relative z-10 w-full" style={{ height: "calc(100vh - 220px)" }}>
         {clusters.map((cluster, i) => {
-          const pos = CLUSTER_POSITIONS[i] || { x: 50, y: 50 };
+          let pos: { x: number; y: number };
+          if (cluster.cluster_category === "project") {
+            // Project clusters get dynamic positions
+            const projectIndex = clusters.filter((c, ci) => ci < i && c.cluster_category === "project").length;
+            pos = PROJECT_CLUSTER_POSITIONS[projectIndex % PROJECT_CLUSTER_POSITIONS.length];
+          } else {
+            pos = CLUSTER_POSITION_MAP[cluster.slug] || { x: 50, y: 50 };
+          }
           return (
             <div
               key={cluster.id}
@@ -203,7 +220,7 @@ const AtlasPage = () => {
         <svg className="absolute inset-0 w-full h-full pointer-events-none" style={{ zIndex: 0 }}>
           {domains.map((domain) => {
             const domainClusters = clusters
-              .map((c, i) => ({ ...c, pos: CLUSTER_POSITIONS[i] }))
+              .map((c) => ({ ...c, pos: CLUSTER_POSITION_MAP[c.slug] || { x: 50, y: 50 } }))
               .filter((c) => c.meta_domain_id === domain.id && c.computedState !== "locked");
             const color = DOMAIN_COLORS[domain.name]?.glow || "transparent";
             const lines: JSX.Element[] = [];
