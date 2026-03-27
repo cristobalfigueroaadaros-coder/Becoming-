@@ -46,12 +46,12 @@ export interface ClusterWithState extends AtlasCluster {
 }
 
 // Phase unlock thresholds (total dots across all clusters)
-const PHASE_THRESHOLDS = [0, 0, 3, 6, 10, 10]; // phase 1 always, 2 at 3+, 3 at 6+, 4 at 10+, 5 at 10+
+const PHASE_THRESHOLDS = [0, 0, 3, 6, 8, 8]; // phase 1 always, 2 at 3+, 3 at 6+, 4 at 8+, 5 at 8+
 
 const PHASE_SLUGS: Record<number, Set<string>> = {
-  1: new Set(["passions", "skills", "life-events", "personal-frustrations", "golden-moments"]),
-  2: new Set(["natural-talents", "values", "experiments"]),
-  3: new Set(["childhood-signals", "inspirations", "aha-moments"]),
+  1: new Set(["passions", "skills", "personal-frustrations", "experiments", "golden-moments"]),
+  2: new Set(["natural-talents", "aha-moments", "life-events"]),
+  3: new Set(["values", "inspirations", "childhood-signals"]),
   4: new Set(["ideal-life", "vision-for-a-better-world", "external-reflections"]),
   5: new Set(["who-i-serve", "how-i-create-impact"]),
 };
