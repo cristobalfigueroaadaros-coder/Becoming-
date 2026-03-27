@@ -8,7 +8,7 @@ import { AtlasClusterNode, AtlasClusterDetail } from "@/components/atlas";
 import { AtlasOnboardingOverlay } from "@/components/atlas/AtlasOnboardingOverlay";
 import { toast } from "@/hooks/use-toast";
 import { supabase } from "@/integrations/supabase/client";
-// Organic scatter positions for 13 clusters (percentage-based)
+// Organic scatter positions for known clusters (percentage-based)
 const CLUSTER_POSITIONS: { x: number; y: number }[] = [
   { x: 18, y: 10 }, // Life Events
   { x: 55, y: 6 },  // Passions
@@ -26,6 +26,15 @@ const CLUSTER_POSITIONS: { x: number; y: number }[] = [
   { x: 50, y: 42 }, // Golden Moments (central)
   { x: 28, y: 90 }, // Who I Serve
   { x: 68, y: 88 }, // How I Create Impact
+];
+
+// Dynamic positions for project clusters (appear at bottom)
+const PROJECT_CLUSTER_POSITIONS = [
+  { x: 50, y: 95 },
+  { x: 30, y: 98 },
+  { x: 70, y: 98 },
+  { x: 15, y: 95 },
+  { x: 85, y: 95 },
 ];
 
 const AtlasPage = () => {
