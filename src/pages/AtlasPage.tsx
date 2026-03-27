@@ -187,7 +187,14 @@ const AtlasPage = () => {
       {/* Cluster map */}
       <div className="relative z-10 w-full" style={{ height: "calc(100vh - 220px)" }}>
         {clusters.map((cluster, i) => {
-          const pos = CLUSTER_POSITIONS[i] || { x: 50, y: 50 };
+          let pos: { x: number; y: number };
+          if (cluster.cluster_category === "project") {
+            // Project clusters get dynamic positions
+            const projectIndex = clusters.filter((c, ci) => ci < i && c.cluster_category === "project").length;
+            pos = PROJECT_CLUSTER_POSITIONS[projectIndex % PROJECT_CLUSTER_POSITIONS.length];
+          } else {
+            pos = CLUSTER_POSITIONS[i] || { x: 50, y: 50 };
+          }
           return (
             <div
               key={cluster.id}
