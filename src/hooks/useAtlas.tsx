@@ -85,7 +85,7 @@ export const DOMAIN_COLORS: Record<string, { bg: string; text: string; glow: str
   Person: { bg: "hsl(270 60% 60%)", text: "hsl(270 60% 85%)", glow: "hsl(270 60% 60% / 0.3)", border: "hsl(270 60% 50%)" },
   Process: { bg: "hsl(210 80% 55%)", text: "hsl(210 80% 85%)", glow: "hsl(210 80% 55% / 0.3)", border: "hsl(210 80% 45%)" },
   Product: { bg: "hsl(155 60% 45%)", text: "hsl(155 60% 85%)", glow: "hsl(155 60% 45% / 0.3)", border: "hsl(155 60% 35%)" },
-  Environment: { bg: "hsl(35 80% 55%)", text: "hsl(35 80% 85%)", glow: "hsl(35 80% 55% / 0.3)", border: "hsl(35 80% 45%)" },
+  Environment: { bg: "hsl(25 90% 55%)", text: "hsl(25 90% 85%)", glow: "hsl(25 90% 55% / 0.3)", border: "hsl(25 90% 45%)" },
 };
 
 export const CLUSTER_COLORS: Record<string, { bg: string; glow: string }> = {
