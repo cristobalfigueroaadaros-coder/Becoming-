@@ -1,0 +1,1 @@
+UPDATE atlas_clusters SET slug = 'vision-for-a-better-world' WHERE slug = 'vision-better-world';
