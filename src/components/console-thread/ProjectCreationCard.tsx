@@ -31,40 +31,10 @@ const ProjectCreationCard = ({ projectName, projectDescription, onProjectCreated
       });
 
       if (error) throw error;
+      if (!data?.success) throw new Error(data?.error || "Project creation failed");
 
       const projectId = data?.project?.id || data?.projectId;
       if (!projectId) throw new Error("No project ID returned");
-
-      // Create Atlas project cluster
-      const slug = `project-${projectId.slice(0, 8)}`;
-      const { data: newCluster } = await supabase
-        .from("atlas_clusters")
-        .insert({
-          name: projectName,
-          slug,
-          description: projectDescription,
-          sort_order: 100,
-          cluster_category: "project",
-          state: "activated",
-        })
-        .select("id")
-        .single();
-
-      if (newCluster) {
-        // Create project node and link
-        const { data: projectNode } = await supabase
-          .from("atlas_project_nodes")
-          .insert({ title: projectName, description: projectDescription, user_id: user.id })
-          .select("id")
-          .single();
-
-        if (projectNode) {
-          await supabase.from("atlas_cluster_project_connections").insert({
-            cluster_id: newCluster.id,
-            project_id: projectNode.id,
-          });
-        }
-      }
 
       // Mark first project created
       await supabase

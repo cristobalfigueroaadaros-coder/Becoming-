@@ -214,6 +214,11 @@ The cluster a dot is assigned to should be determined by the CONTENT and EMOTION
 
 If the user answers a Passions quest but their answer is about a life event → suggest the "life-events" cluster.
 If the user answers a Personal Frustrations quest but their answer is about a vision for the world → suggest "vision-for-a-better-world".
+If the user describes frustration, struggle, resentment, or a painful recurring inner tension → suggest "personal-frustrations".
+If the dot describes a repeatable ability like problem solving, connecting people, organizing, teaching, building systems, or finding solutions → suggest "skills", not "life-events".
+If the dot describes a concrete moment or event that happened in time → suggest "life-events".
+If the dot describes a specific group of people the user feels called to help → suggest "who-i-serve".
+If the dot describes the mechanism through which the user helps or creates change for others → suggest "how-i-create-impact".
 
 Available cluster slugs: ${ALL_CLUSTER_SLUGS.join(", ")}
 

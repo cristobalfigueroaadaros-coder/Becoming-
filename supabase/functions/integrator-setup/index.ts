@@ -473,6 +473,51 @@ CRITICAL REQUIREMENTS:
       project = newProject;
     }
 
+    const atlasProjectSlug = `project-${project.id.slice(0, 8)}`;
+    const { data: existingAtlasCluster } = await supabase
+      .from('atlas_clusters')
+      .select('id')
+      .eq('slug', atlasProjectSlug)
+      .maybeSingle();
+
+    if (!existingAtlasCluster) {
+      const { data: atlasCluster, error: atlasClusterError } = await supabase
+        .from('atlas_clusters')
+        .insert({
+          name: project.project_title,
+          slug: atlasProjectSlug,
+          description: project.project_description,
+          sort_order: 100,
+          cluster_category: 'project',
+          state: 'activated'
+        })
+        .select('id')
+        .single();
+
+      if (atlasClusterError) throw new Error(`Failed to create Atlas cluster: ${atlasClusterError.message}`);
+
+      const { data: atlasProjectNode, error: atlasProjectNodeError } = await supabase
+        .from('atlas_project_nodes')
+        .insert({
+          user_id: user.id,
+          title: project.project_title,
+          description: project.project_description,
+        })
+        .select('id')
+        .single();
+
+      if (atlasProjectNodeError) throw new Error(`Failed to create Atlas project node: ${atlasProjectNodeError.message}`);
+
+      const { error: atlasConnectionError } = await supabase
+        .from('atlas_cluster_project_connections')
+        .insert({
+          cluster_id: atlasCluster.id,
+          project_id: atlasProjectNode.id,
+        });
+
+      if (atlasConnectionError) throw new Error(`Failed to connect Atlas project cluster: ${atlasConnectionError.message}`);
+    }
+
     // Create phases
     const phasesToInsert = plan.phases.map((phase: any, index: number) => ({
       project_id: project.id,
