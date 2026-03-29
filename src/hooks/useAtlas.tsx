@@ -143,12 +143,63 @@ export function useAtlas() {
   const clustersQuery = useQuery({
     queryKey: ["atlas-clusters"],
     queryFn: async () => {
-      const { data, error } = await supabase
+      const { data: { user } } = await supabase.auth.getUser();
+
+      const { data: baseClusters, error: baseError } = await supabase
         .from("atlas_clusters")
         .select("*, atlas_meta_domains(*)")
+        .neq("cluster_category", "project")
         .order("sort_order");
-      if (error) throw error;
-      return data as any[];
+
+      if (baseError) throw baseError;
+
+      const clusterMap = new Map<string, any>((baseClusters || []).map((cluster: any) => [cluster.id, cluster]));
+
+      if (user) {
+        const { data: projectNodes, error: projectNodesError } = await supabase
+          .from("atlas_project_nodes")
+          .select("id")
+          .eq("user_id", user.id);
+
+        if (projectNodesError) throw projectNodesError;
+
+        const projectNodeIds = (projectNodes || []).map((node) => node.id);
+
+        if (projectNodeIds.length > 0) {
+          const { data: projectConnections, error: projectConnectionsError } = await supabase
+            .from("atlas_cluster_project_connections")
+            .select("cluster_id")
+            .in("project_id", projectNodeIds);
+
+          if (projectConnectionsError) throw projectConnectionsError;
+
+          const projectClusterIds = Array.from(
+            new Set((projectConnections || []).map((connection) => connection.cluster_id).filter(Boolean))
+          );
+
+          if (projectClusterIds.length > 0) {
+            const { data: projectClusters, error: projectClustersError } = await supabase
+              .from("atlas_clusters")
+              .select("*, atlas_meta_domains(*)")
+              .in("id", projectClusterIds)
+              .order("created_at", { ascending: true });
+
+            if (projectClustersError) throw projectClustersError;
+
+            (projectClusters || []).forEach((cluster: any) => {
+              clusterMap.set(cluster.id, cluster);
+            });
+          }
+        }
+      }
+
+      return Array.from(clusterMap.values()).sort((a: any, b: any) => {
+        const aProject = a.cluster_category === "project";
+        const bProject = b.cluster_category === "project";
+        if (aProject !== bProject) return aProject ? 1 : -1;
+        if (a.sort_order !== b.sort_order) return a.sort_order - b.sort_order;
+        return new Date(a.created_at || 0).getTime() - new Date(b.created_at || 0).getTime();
+      }) as any[];
     },
   });
 

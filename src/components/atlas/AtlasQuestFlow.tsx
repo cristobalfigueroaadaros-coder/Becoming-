@@ -69,6 +69,60 @@ export const AtlasQuestFlow = ({ quest, clusterId, onboardingIndex }: Props) => 
   const [showConnectionMoment, setShowConnectionMoment] = useState(false);
   const [dotSaved, setDotSaved] = useState(false);
 
+  const resolveTargetClusterSlug = (finalDot: DotInterpretation, selectedVariation?: any) => {
+    const content = `${finalDot.title} ${finalDot.description}`.toLowerCase();
+    const signalType = selectedVariation?.signalType;
+    const actionType = selectedVariation?.actionType;
+    const emotionalTone = aiSignalTags?.emotionalTone;
+
+    const hasAny = (terms: string[]) => terms.some((term) => content.includes(term));
+
+    if (
+      signalType === "audience" ||
+      hasAny(["people who", "families", "parents", "creators", "young builders", "professionals", "communities", "community", "those who"])
+    ) {
+      return "who-i-serve";
+    }
+
+    if (
+      quest.clusterSlug === "how-i-create-impact" ||
+      signalType === "action" ||
+      ["guide", "teach", "support", "build", "connect", "create"].includes(actionType || "")
+    ) {
+      if (hasAny(["guide", "teach", "support", "connect", "build", "create", "tool", "system", "space for", "changes for them"])) {
+        return "how-i-create-impact";
+      }
+    }
+
+    if (
+      emotionalTone === "personal_struggle" ||
+      hasAny(["frustrat", "struggle", "stuck", "can't stand", "hate", "wasted potential", "financial struggle", "misaligned", "unfair"])
+    ) {
+      return "personal-frustrations";
+    }
+
+    if (
+      signalType === "skill" ||
+      hasAny(["problem-solution", "problem solution", "solve", "solution", "organize", "planning", "strategy", "strategic", "builds systems", "connects people", "explains", "finder"])
+    ) {
+      return "skills";
+    }
+
+    if (
+      signalType === "experience" ||
+      emotionalTone === "factual_event" ||
+      hasAny(["moved", "left", "lost", "after i", "when i", "grew up", "started over", "career shift", "relationship change"])
+    ) {
+      return "life-events";
+    }
+
+    if (hasAny(["experiment", "tested", "tried", "prototype", "launched"])) {
+      return "experiments";
+    }
+
+    return suggestedClusterSlug || quest.clusterSlug;
+  };
+
   const generateAIDot = async (
     allResponses: any[],
     patternTitle?: string
@@ -219,10 +273,13 @@ export const AtlasQuestFlow = ({ quest, clusterId, onboardingIndex }: Props) => 
       const { data: { user } } = await supabase.auth.getUser();
       if (!user) throw new Error("Not authenticated");
 
+      const selectedVar = variations.find(v => v.title === selectedTitle) as any;
+      const resolvedClusterSlug = resolveTargetClusterSlug(finalDot, selectedVar);
+
       let dotClusterId = clusterId;
-      if (suggestedClusterSlug) {
-        const suggestedCluster = clusters.find(c => c.slug === suggestedClusterSlug);
-        if (suggestedCluster && suggestedCluster.computedState !== "locked") dotClusterId = suggestedCluster.id;
+      const resolvedCluster = clusters.find(c => c.slug === resolvedClusterSlug);
+      if (resolvedCluster && resolvedCluster.computedState !== "locked") {
+        dotClusterId = resolvedCluster.id;
       }
       if (isPatternBased && detectedPattern) {
         const { data: patternCluster } = await supabase.from("atlas_clusters").select("id").eq("slug", detectedPattern.pattern.clusterSlug).single();
@@ -234,7 +291,6 @@ export const AtlasQuestFlow = ({ quest, clusterId, onboardingIndex }: Props) => 
       const totalStrength = newSignals.reduce((sum, s) => sum + s.strength, 0);
 
       // Build signal tags from the selected variation
-      const selectedVar = variations.find(v => v.title === selectedTitle) as any;
       const signalTags: any = {};
       if (selectedVar?.signalType) signalTags.signalType = selectedVar.signalType;
       if (selectedVar?.actionType) signalTags.actionType = selectedVar.actionType;
