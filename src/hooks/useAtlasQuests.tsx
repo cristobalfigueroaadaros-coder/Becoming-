@@ -8,6 +8,9 @@ const STRENGTH_CLUSTERS = new Set(["passions", "skills", "natural-talents", "exp
 const LIFE_IMPRINT_CLUSTERS = new Set(["life-events", "childhood-signals", "aha-moments"]);
 const SHADOW_CLUSTERS = new Set(["personal-frustrations", "external-reflections"]);
 const SERVICE_CLUSTERS = new Set(["who-i-serve", "how-i-create-impact"]);
+const CORE_ONBOARDING_QUESTS = ONBOARDING_QUESTS.filter((quest) => quest.questKey.startsWith("onboarding_"));
+const SERVICE_QUESTS = ONBOARDING_QUESTS.filter((quest) => SERVICE_CLUSTERS.has(quest.clusterSlug));
+const DISCOVERY_QUESTS = [...ATLAS_QUESTS, ...SERVICE_QUESTS];
 
 export function useAtlasQuests() {
   const { clusters, totalDots } = useAtlas();
@@ -91,7 +94,7 @@ export function useAtlasQuests() {
   const isOnboarding = !isOnboardingCompleted;
 
   // Count completed onboarding quests specifically
-  const completedOnboardingCount = ONBOARDING_QUESTS.filter(q => completedKeys.has(q.questKey)).length;
+  const completedOnboardingCount = CORE_ONBOARDING_QUESTS.filter(q => completedKeys.has(q.questKey)).length;
 
   // Track last 2 completed cluster IDs for rotation enforcement
   const recentCompleted = (completedQuery.data || [])
@@ -109,8 +112,8 @@ export function useAtlasQuests() {
 
   function getNextOnboardingQuest(): { quest: AtlasQuestDefinition; clusterId: string; onboardingIndex: number } | null {
     // Find the next onboarding quest in sequence that hasn't been completed
-    for (let i = 0; i < ONBOARDING_QUESTS.length; i++) {
-      const quest = ONBOARDING_QUESTS[i];
+    for (let i = 0; i < CORE_ONBOARDING_QUESTS.length; i++) {
+      const quest = CORE_ONBOARDING_QUESTS[i];
       if (!completedKeys.has(quest.questKey)) {
         const cluster = clusters.find(c => c.slug === quest.clusterSlug);
         if (cluster) {
@@ -132,7 +135,7 @@ export function useAtlasQuests() {
       clusters.filter(c => c.computedState !== "locked").map(c => c.slug)
     );
 
-    const available = ATLAS_QUESTS.filter(q =>
+    const available = DISCOVERY_QUESTS.filter(q =>
       !completedKeys.has(q.questKey) && unlockedSlugs.has(q.clusterSlug)
     );
     if (available.length === 0) return null;
@@ -167,7 +170,7 @@ export function useAtlasQuests() {
   function getQuestForCluster(clusterId: string): { quest: AtlasQuestDefinition; clusterId: string } | null {
     const cluster = clusters.find(c => c.id === clusterId);
     if (!cluster || cluster.computedState === "locked") return null;
-    const quest = ATLAS_QUESTS.find(q => q.clusterSlug === cluster.slug && !completedKeys.has(q.questKey));
+    const quest = DISCOVERY_QUESTS.find(q => q.clusterSlug === cluster.slug && !completedKeys.has(q.questKey));
     if (!quest) return null;
     return { quest, clusterId };
   }
