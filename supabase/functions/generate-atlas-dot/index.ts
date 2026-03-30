@@ -11,6 +11,7 @@ const CLUSTER_INTELLIGENCE: Record<string, {
   wrongExamples: string[];
   dotStyle: string;
   slug: string;
+  formatRule: string;
 }> = {
   "Life Events": {
     slug: "life-events",
@@ -18,6 +19,7 @@ const CLUSTER_INTELLIGENCE: Record<string, {
     correctExamples: ["Built First Business in Chile", "Moved to Germany Alone", "Left Stability to Explore the World"],
     wrongExamples: ["Resilient Navigator (interpretation)", "Turning Point Experience (too abstract)"],
     dotStyle: "Name the fact of what happened. No interpretation. 3-6 words.",
+    formatRule: "Must describe a real past event that happened. Not a capability, emotion, or identity label.",
   },
   "Natural Talents": {
     slug: "natural-talents",
@@ -25,6 +27,7 @@ const CLUSTER_INTELLIGENCE: Record<string, {
     correctExamples: ["Understands How Systems Work", "Learns Fast by Doing", "Reads a Room Instantly"],
     wrongExamples: ["Smart Thinker (too vague)", "Natural Leader (generic)"],
     dotStyle: "Name the specific ability, not a generic label.",
+    formatRule: "Must describe an effortless natural ability. Must NOT duplicate skills. Not an emotion or life event.",
   },
   "Childhood Signals": {
     slug: "childhood-signals",
@@ -32,6 +35,7 @@ const CLUSTER_INTELLIGENCE: Record<string, {
     correctExamples: ["Loved Sport as a Kid", "Always Asked Why", "Grew Up Feeling Loved"],
     wrongExamples: ["Active Child (too generic)", "Curious Kid (meaningless)"],
     dotStyle: "Name the childhood signal specifically.",
+    formatRule: "Must describe a childhood memory or early life signal. Not a current skill or adult experience.",
   },
   "Passions": {
     slug: "passions",
@@ -39,6 +43,7 @@ const CLUSTER_INTELLIGENCE: Record<string, {
     correctExamples: ["Love Creating Experiences", "Driven by Curiosity", "Enjoys Learning Everything"],
     wrongExamples: ["Explorer Mindset (cognitive style)", "Growth Seeker (too abstract)"],
     dotStyle: "Name the passion using active language.",
+    formatRule: "Must describe what energizes the user. Not a skill, solution, or identity label.",
   },
   "Values": {
     slug: "values",
@@ -46,6 +51,7 @@ const CLUSTER_INTELLIGENCE: Record<string, {
     correctExamples: ["Family First", "Connection Over Everything", "Acts with Honesty"],
     wrongExamples: ["Integrity (too abstract)", "Strong Principles (not personal)"],
     dotStyle: "Name the specific value and how it shows up.",
+    formatRule: "Must describe a deeply held value. Not a skill, passion, or identity label.",
   },
   "Skills": {
     slug: "skills",
@@ -53,6 +59,7 @@ const CLUSTER_INTELLIGENCE: Record<string, {
     correctExamples: ["Turns Ideas into Reality", "Connects People Naturally", "Sells Through Story"],
     wrongExamples: ["Smart (not a skill)", "Creative (passion, not skill)"],
     dotStyle: "Name the specific skill, not a trait.",
+    formatRule: "Must describe a repeatable capability the user can DO. Not an emotion, life event, or identity label.",
   },
   "Experiments": {
     slug: "experiments",
@@ -60,6 +67,7 @@ const CLUSTER_INTELLIGENCE: Record<string, {
     correctExamples: ["Built E-commerce from Scratch", "Left Stability to Start Over"],
     wrongExamples: ["Tried Things (too vague)", "Risk Taker (interpretation)"],
     dotStyle: "Name the experiment specifically.",
+    formatRule: "Must describe a real action the user has taken or built. Not an idea, trait, or emotion.",
   },
   "Aha Moments": {
     slug: "aha-moments",
@@ -67,6 +75,7 @@ const CLUSTER_INTELLIGENCE: Record<string, {
     correctExamples: ["Stopped Judging by Appearance in Berlin", "Realized AI Could Simulate Mentorship"],
     wrongExamples: ["Confidence Boost (not a moment)", "Changed Perspective (too generic)"],
     dotStyle: "Name the specific realization.",
+    formatRule: "Must describe a specific realization moment. Not a skill, strength, or general trait.",
   },
   "Personal Frustrations": {
     slug: "personal-frustrations",
@@ -74,6 +83,7 @@ const CLUSTER_INTELLIGENCE: Record<string, {
     correctExamples: ["Hates Wasted Potential", "Can't Stand Superficial Connection"],
     wrongExamples: ["Anger Issues (clinical label)", "Frustrated Person (too generic)"],
     dotStyle: "Name the frustration specifically. Use the user's own words.",
+    formatRule: "Must describe something that bothers or frustrates the user. Not a solution, identity, or positive strength.",
   },
   "Inspirations": {
     slug: "inspirations",
@@ -81,6 +91,7 @@ const CLUSTER_INTELLIGENCE: Record<string, {
     correctExamples: ["Inspired by Quiet Courage", "Drawn to People Who Build from Nothing"],
     wrongExamples: ["Inspired Person (meaningless)", "Deep Thinker (generic)"],
     dotStyle: "Name what specifically inspires them.",
+    formatRule: "Must name a person, source, or quality that inspires the user. Not a strength or identity label.",
   },
   "Vision for a Better World": {
     slug: "vision-for-a-better-world",
@@ -88,6 +99,7 @@ const CLUSTER_INTELLIGENCE: Record<string, {
     correctExamples: ["Everyone Deserves a Mentor", "Creative Education for All"],
     wrongExamples: ["World Changer (too vague)", "Visionary (label)"],
     dotStyle: "Name the specific vision or change.",
+    formatRule: "Must describe a desired future or world the user wants to create. Not a skill or identity.",
   },
   "Ideal Life": {
     slug: "ideal-life",
@@ -95,6 +107,7 @@ const CLUSTER_INTELLIGENCE: Record<string, {
     correctExamples: ["Morning Creative Time by the Ocean", "Freedom to Work from Anywhere"],
     wrongExamples: ["Happy Life (meaningless)", "Balance (too abstract)"],
     dotStyle: "Name the specific element of their ideal life.",
+    formatRule: "Must describe a desired life element — environment, rhythm, or relationship. Not a skill or identity.",
   },
   "External Reflections": {
     slug: "external-reflections",
@@ -102,6 +115,7 @@ const CLUSTER_INTELLIGENCE: Record<string, {
     correctExamples: ["Others See Me as a Leader", "Known for Bringing People Together"],
     wrongExamples: ["Wisdom Seeker (internal)", "Strong Person (too vague)"],
     dotStyle: "Name what others see.",
+    formatRule: "Must describe what other people have said or noticed about the user. Not an internal feeling.",
   },
   "Who I Serve": {
     slug: "who-i-serve",
@@ -109,6 +123,7 @@ const CLUSTER_INTELLIGENCE: Record<string, {
     correctExamples: ["Feels Called to Help Families Reconnect", "Wants to Help People Who Feel Lost", "Drawn to Supporting Creators with Purpose"],
     wrongExamples: ["Helping Others (too vague)", "Service Oriented (label)"],
     dotStyle: "Name the specific audience and emotional connection.",
+    formatRule: "Must name a specific group of people the user wants to help. Not a method, skill, or identity label.",
   },
   "How I Create Impact": {
     slug: "how-i-create-impact",
@@ -116,10 +131,9 @@ const CLUSTER_INTELLIGENCE: Record<string, {
     correctExamples: ["Creates Experiences That Help People Feel Connected", "Uses Conversation to Help People Find Clarity", "Builds Systems That Guide People Step by Step"],
     wrongExamples: ["Makes an Impact (meaningless)", "Change Maker (generic label)"],
     dotStyle: "Name the specific action and its effect on others.",
+    formatRule: "Must describe the mechanism or method through which the user helps. Not an audience or identity label.",
   },
 };
-
-const ALL_CLUSTER_SLUGS = Object.values(CLUSTER_INTELLIGENCE).map(c => c.slug);
 
 function formatResponses(responses: any[]): string {
   return responses.map((r: any, i: number) => {
@@ -147,6 +161,7 @@ function getClusterContext(clusterName: string): string {
   return `CLUSTER: "${clusterName}"
 SIGNAL THIS CLUSTER HUNTS FOR: ${clusterIntel.signal}
 DOT NAMING STYLE: ${clusterIntel.dotStyle}
+FORMAT RULE: ${clusterIntel.formatRule}
 
 CORRECT DOT EXAMPLES:
 ${clusterIntel.correctExamples.map(e => `- "${e}"`).join("\n")}
@@ -175,6 +190,15 @@ PRIMARY SIGNAL RULE:
 LANGUAGE ECHO RULE:
 - Extract the user's own key words, phrases, or emotional signals.
 - Use those words in the dot title.`;
+
+const CLUSTER_INTEGRITY_RULE = `CLUSTER INTEGRITY RULE (CRITICAL):
+The dot MUST match the type of truth this cluster represents.
+- Do NOT generate a skill in a life-events cluster.
+- Do NOT generate an emotion in a skills cluster.
+- Do NOT generate a solution in a frustrations cluster.
+- Do NOT generate an identity label in any cluster.
+- The dot stays in THIS cluster. Do NOT suggest a different cluster.
+- Read the FORMAT RULE above and follow it strictly.`;
 
 const EMOTIONAL_TONE_RULES = `STEP 1 — EMOTIONAL TONE DETECTION (do this BEFORE naming):
 Classify the user's answers into one of these 6 emotional tones:
@@ -209,28 +233,18 @@ After determining emotional tone, classify the dot as one of:
 - "motivational" — Describes WHY the user does what they do (drive/purpose). Naming formula: Drive + Direction. Example: "Driven by Curiosity"  
 - "identity" — Describes WHO the user is becoming (self-concept). Naming formula: Identity Statement. Example: "The One Who Builds"`;
 
-const CLUSTER_OVERRIDE_RULES = `STEP 3 — CLUSTER ASSIGNMENT:
-The cluster a dot is assigned to should be determined by the CONTENT and EMOTIONAL TONE of the answer, not by which cluster the quest was designed for.
-
-If the user answers a Passions quest but their answer is about a life event → suggest the "life-events" cluster.
-If the user answers a Personal Frustrations quest but their answer is about a vision for the world → suggest "vision-for-a-better-world".
-If the user describes frustration, struggle, resentment, or a painful recurring inner tension → suggest "personal-frustrations".
-If the dot describes a repeatable ability like problem solving, connecting people, organizing, teaching, building systems, or finding solutions → suggest "skills", not "life-events".
-If the dot describes a concrete moment or event that happened in time → suggest "life-events".
-If the dot describes a specific group of people the user feels called to help → suggest "who-i-serve".
-If the dot describes the mechanism through which the user helps or creates change for others → suggest "how-i-create-impact".
-
-Available cluster slugs: ${ALL_CLUSTER_SLUGS.join(", ")}
-
-Set suggestedClusterSlug to the cluster that BEST matches the user's answer content.
-If the answer matches the original quest cluster, use that cluster's slug.`;
-
-const SIGNAL_TAG_RULES = `STEP 4 — SIGNAL TAGGING:
+const SIGNAL_TAG_RULES = `STEP 3 — SIGNAL TAGGING:
 For each dot option, also classify these internal tags:
 - signalType: one of "skill", "value", "experience", "identity", "audience", "action", "emotional_insight"
 - actionType: one of "create", "connect", "guide", "build", "teach", "support", "express", "organize"
 
 These tags help Atlas build cross-cluster intelligence.`;
+
+const DUPLICATE_PREVENTION_RULES = `DUPLICATE PREVENTION (CRITICAL):
+- Each of the 3 dot options must be meaningfully different from each other.
+- Do NOT generate variations that mean the same thing with different words (e.g., "Problem Solver" and "Debugger" are the same concept).
+- Each option must highlight a genuinely different aspect of what the user said.
+- If you cannot find 3 genuinely different aspects, make the differences in scope: one specific, one broader, one about the underlying drive.`;
 
 serve(async (req) => {
   if (req.method === "OPTIONS") return new Response(null, { headers: corsHeaders });
@@ -255,15 +269,17 @@ serve(async (req) => {
 
 ${clusterContext}
 
+${CLUSTER_INTEGRITY_RULE}
+
 ${EMOTIONAL_TONE_RULES}
 
 ${SHADOW_BLACKLIST_RULES}
 
 ${DOT_SUBTYPE_RULES}
 
-${CLUSTER_OVERRIDE_RULES}
-
 ${SIGNAL_TAG_RULES}
+
+${DUPLICATE_PREVENTION_RULES}
 
 ${BASE_RULES}
 
@@ -280,7 +296,7 @@ CRITICAL: You must generate exactly 3 distinct Atlas Dot options. Each option sh
 ${patternTitle ? `A pattern "${patternTitle}" was detected. Use as context but personalize from the user's answers.` : ""}
 ${mode === "regenerate" && feedbackText ? `The user said the previous options didn't feel right. They said: "${feedbackText}". Generate 3 new alternative variations that better match their intent.` : ""}`;
 
-      userPrompt = `Here are the user's quest responses:\n\n${allResponses}\n\nThe most important response is the final one:\n"${reflectionText}"\n\nFirst detect the emotional tone, then classify the dot sub-type, then determine the correct cluster, then generate 3 personalized Atlas Dot options that echo their own words.`;
+      userPrompt = `Here are the user's quest responses:\n\n${allResponses}\n\nThe most important response is the final one:\n"${reflectionText}"\n\nFirst detect the emotional tone, then classify the dot sub-type, then generate 3 personalized Atlas Dot options that echo their own words. Remember: the dot MUST match the cluster's format rule.`;
 
       tools = [{
         type: "function",
@@ -292,7 +308,6 @@ ${mode === "regenerate" && feedbackText ? `The user said the previous options di
             properties: {
               emotionalTone: { type: "string", enum: ["positive_outward", "vision_values", "personal_struggle", "factual_event", "passion_enjoyment", "transformation"], description: "The detected emotional tone of the user's answers." },
               dotSubType: { type: "string", enum: ["behavioral", "motivational", "identity"], description: "Classification of what the dot represents." },
-              suggestedClusterSlug: { type: "string", description: "The cluster slug that best matches the answer content." },
               mirrorFeedback: { type: "string", description: "A single observational sentence reflecting what this discovery reveals about the user." },
               variations: {
                 type: "array",
@@ -310,7 +325,7 @@ ${mode === "regenerate" && feedbackText ? `The user said the previous options di
                 },
               },
             },
-            required: ["emotionalTone", "dotSubType", "suggestedClusterSlug", "mirrorFeedback", "variations"],
+            required: ["emotionalTone", "dotSubType", "mirrorFeedback", "variations"],
             additionalProperties: false,
           },
         },
@@ -403,12 +418,19 @@ Rules:
       }];
       toolChoice = { type: "function", function: { name: "create_connection_moment" } };
     } else if (mode === "gold_moment") {
-      systemPrompt = `You are Atlas. A user has transformed a frustration into a strength — this is a Gold Moment. Generate a superpower name (3-6 words) that captures this transformation. It must feel earned, not assigned. Use the user's own language.
+      systemPrompt = `You are Atlas. A user has transformed a frustration into a strength — this is a Gold Moment.
 
-Rules:
-- The superpower name must reference both the frustration and the strength.
-- It must sound like something the user would proudly claim.
-- Generate a one-line description of the transformation.`;
+Generate a superpower name that captures this transformation.
+
+RULES:
+- The superpower name must be 3-6 words of simple, human language.
+- Do NOT invent compound identity names like "The Clarity-through-Complexity Code-Breaker".
+- Do NOT use "I Am a..." format.
+- Do NOT use words like: Architect, Navigator, Code-Breaker, Alchemist, Weaver, Forge, Catalyst.
+- Preferred tone examples: "You turn complexity into a clear next step", "You help people move when things feel stuck", "You simplify what feels overwhelming".
+- The superpower name should reference both the frustration and the strength.
+- The transformation description must be 1 sentence maximum, simple and human.
+- It must feel like recognition, not cleverness.`;
 
       userPrompt = `Frustration dot: "${dotA?.title}" — ${dotA?.description || ""}
 Strength dot: "${dotB?.title}" — ${dotB?.description || ""}
@@ -423,8 +445,8 @@ Generate a superpower name that captures this transformation.`;
           parameters: {
             type: "object",
             properties: {
-              superpowerName: { type: "string", description: "3-6 word superpower name." },
-              transformationDescription: { type: "string", description: "One sentence describing the transformation." },
+              superpowerName: { type: "string", description: "3-6 word superpower name. Simple human language, no labels." },
+              transformationDescription: { type: "string", description: "One sentence describing the transformation. Simple and human." },
             },
             required: ["superpowerName", "transformationDescription"],
             additionalProperties: false,
@@ -434,14 +456,22 @@ Generate a superpower name that captures this transformation.`;
       toolChoice = { type: "function", function: { name: "create_gold_moment" } };
     } else if (mode === "growth_reflection") {
       const dotSummary = (recentDots || []).map((d: any) => `- "${d.title}"`).join("\n");
-      systemPrompt = `You are Atlas. Generate a brief growth reflection (maximum 3 sentences) that observes what the user's recent discoveries reveal.
+      systemPrompt = `You are Atlas. Generate a brief growth reflection.
 
-Rules:
-- Use direct, confident language: "You consistently...", "This is how you operate." — never "you seem to" or "it looks like".
-- Reference specific dot titles by name.
-- Connect at least 2 dots from different areas to show a pattern.
-- End with an open observation, never a definitive conclusion.
-- Maximum 3 sentences.`;
+RULES:
+- Maximum 2 sentences.
+- Mention only 1 main pattern, maximum 2 if truly necessary.
+- Do NOT stack identity labels.
+- Sound reflective, not clinical or robotic.
+- Use simple, human language.
+- Reference 1-2 specific dot titles by name.
+- Never say "You consistently identify as X and Y and Z..."
+
+BAD EXAMPLE: "You consistently identify as A Clarifier and A Pattern Seeker, demonstrating a drive to bring order and understanding to complex situations."
+
+GOOD EXAMPLE: "Something keeps repeating here. You tend to step back, simplify what feels messy, and find the pattern underneath."
+
+TONE: Sound like a thoughtful friend noticing something, not an AI generating a report.`;
       userPrompt = `Recent discoveries:\n${dotSummary}\n\nReflect on what these reveal about the user's journey.`;
 
       tools = [{
@@ -452,7 +482,7 @@ Rules:
           parameters: {
             type: "object",
             properties: {
-              reflection: { type: "string", description: "2-3 sentence observational reflection." },
+              reflection: { type: "string", description: "1-2 sentence human, reflective observation. Not a report." },
             },
             required: ["reflection"],
             additionalProperties: false,

@@ -19,48 +19,34 @@ serve(async (req) => {
       });
     }
 
-    // Check evolution conditions
+    // Count dots in the same cluster as the new dot
+    const sameClusterDots = allDots.filter((d: any) => d.cluster_id === newDot.cluster_id);
+    const clusterDotCount = sameClusterDots.length;
+
     let evolutionType: string | null = null;
     let context = "";
 
-    // 1. Upgrade: 4+ signals confirmed on this dot
+    // 1. Expansion: reinforced 3+ times (high confidence) AND cluster has ≥3 dots
     const signalSources = Array.isArray(newDot.signal_sources) ? newDot.signal_sources : [];
-    if (signalSources.length >= 4) {
-      evolutionType = "upgrade";
-      context = `This dot "${newDot.title}" has ${signalSources.length} confirmed signals (${signalSources.join(", ")}). It's ready for an identity-level upgrade.`;
-    }
-
-    // 2. Expansion: reinforced 2+ times (high confidence)
-    if (!evolutionType && (newDot.confidence_score || 0) >= 1.0) {
+    if ((newDot.confidence_score || 0) >= 1.0 && clusterDotCount >= 3) {
       evolutionType = "expansion";
-      context = `This dot "${newDot.title}" has been reinforced multiple times (confidence: ${newDot.confidence_score}). Generate a more specific, evolved title.`;
+      context = `This dot "${newDot.title}" has been reinforced multiple times (confidence: ${newDot.confidence_score}) in a cluster with ${clusterDotCount} dots. Generate a more specific, evolved title that deepens the original meaning.`;
     }
 
-    // 3. Reframe: same cluster has a dot with different category
-    if (!evolutionType) {
-      const sameClusterDots = allDots.filter((d: any) =>
-        d.cluster_id === newDot.cluster_id && d.id !== newDot.id
-      );
-      const differentCategory = sameClusterDots.find((d: any) =>
-        d.dot_category !== newDot.dot_category
-      );
-      if (differentCategory) {
-        evolutionType = "reframe";
-        context = `In the same cluster, there's "${differentCategory.title}" (${differentCategory.dot_category}) and now "${newDot.title}" (${newDot.dot_category}). These show contrasting aspects. Generate an evolved title that captures the tension.`;
-      }
-    }
-
-    // 4. Merge: 2+ dots across clusters share signals
+    // 2. Merge: 2+ dots across clusters share signals, both clusters must have ≥3 dots
     if (!evolutionType) {
       const newSignals = new Set(signalSources);
       if (newSignals.size > 0) {
         for (const otherDot of allDots) {
           if (otherDot.id === newDot.id || otherDot.cluster_id === newDot.cluster_id) continue;
+          const otherClusterDots = allDots.filter((d: any) => d.cluster_id === otherDot.cluster_id);
+          if (otherClusterDots.length < 3) continue; // other cluster too small
+          if (clusterDotCount < 3) continue; // this cluster too small
           const otherSignals = Array.isArray(otherDot.signal_sources) ? otherDot.signal_sources : [];
           const shared = otherSignals.filter((s: string) => newSignals.has(s));
           if (shared.length >= 2) {
             evolutionType = "merge";
-            context = `"${newDot.title}" and "${otherDot.title}" (different clusters) share signals: ${shared.join(", ")}. Generate a merged identity dot that captures what connects them.`;
+            context = `"${newDot.title}" and "${otherDot.title}" (different clusters, both mature) share signals: ${shared.join(", ")}. Generate a merged discovery that captures what connects them.`;
             break;
           }
         }
@@ -76,16 +62,16 @@ serve(async (req) => {
     const systemPrompt = `You are Atlas, a personal discovery engine. A user's dot is evolving. Generate an evolved title and description.
 
 Evolution type: ${evolutionType}
-- reframe: Capture the tension between contrasting discoveries in the same area.
-- expansion: Make the title more specific and personal based on repeated confirmation.
-- upgrade: Elevate to an identity-level statement ("I am someone who...").
-- merge: Create a unified discovery from two cross-cluster dots.
+- expansion: Make the title more specific and personal based on repeated confirmation. Deepen the original meaning.
+- merge: Create a unified discovery from two cross-cluster dots that share signals.
 
 Rules:
 - 3-6 word title, echoing the user's language where possible.
 - 1-2 sentence description explaining the evolution.
-- Direct tone: "You do this.", "This is how you operate.", "You consistently..." — never "you seem to" or "this suggests".
-- Must feel like a natural deepening, not a label change.`;
+- Use observational, human language: "I'm noticing something", "Something keeps repeating", "You might be someone who" — never "I am X" or identity labels.
+- Do NOT generate compound names like "The Clarity Architect" or "The Pattern Navigator".
+- Must feel like a natural deepening, not a label change.
+- Keep it simple and warm.`;
 
     const response = await fetch("https://ai.gateway.lovable.dev/v1/chat/completions", {
       method: "POST",
@@ -109,7 +95,7 @@ Rules:
               properties: {
                 newTitle: { type: "string" },
                 newDescription: { type: "string" },
-                evolutionType: { type: "string", enum: ["reframe", "expansion", "upgrade", "merge"] },
+                evolutionType: { type: "string", enum: ["expansion", "merge"] },
               },
               required: ["newTitle", "newDescription", "evolutionType"],
               additionalProperties: false,

@@ -40,7 +40,14 @@ export function detectConnections(
       const aSet = new Set(aSignals);
       const shared = bSignals.filter(s => aSet.has(s));
 
-      if (shared.length < 2) continue;
+      // Gold moments need 2 shared signals, regular connections need 3
+      const aSlugPrecheck = a.cluster_id ? clusterSlugMap[a.cluster_id] : "";
+      const bSlugPrecheck = b.cluster_id ? clusterSlugMap[b.cluster_id] : "";
+      const isGoldCandidate =
+        (FRUSTRATION_CLUSTERS.has(aSlugPrecheck) && STRENGTH_CLUSTERS.has(bSlugPrecheck)) ||
+        (FRUSTRATION_CLUSTERS.has(bSlugPrecheck) && STRENGTH_CLUSTERS.has(aSlugPrecheck));
+      const minShared = isGoldCandidate ? 2 : 3;
+      if (shared.length < minShared) continue;
 
       // Check for Gold Moment
       const aSlug = a.cluster_id ? clusterSlugMap[a.cluster_id] : "";
