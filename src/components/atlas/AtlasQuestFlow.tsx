@@ -248,20 +248,23 @@ export const AtlasQuestFlow = ({ quest, clusterId, onboardingIndex }: Props) => 
       if (aiSignalTags?.emotionalTone) signalTags.emotionalTone = aiSignalTags.emotionalTone;
       if (aiSignalTags?.dotSubType) signalTags.dotSubType = aiSignalTags.dotSubType;
 
-      // Duplicate detection
-      const { data: existingDots } = await supabase.from("atlas_dots").select("id, confidence_score, signal_strength").eq("user_id", user.id).eq("title", finalDot.title).limit(1);
+      // Duplicate detection — exact title match OR fuzzy match (first 3 words)
+      const { data: existingDots } = await supabase.from("atlas_dots").select("id, title, confidence_score, signal_strength").eq("user_id", user.id).eq("cluster_id", dotClusterId);
       let dotId: string;
       let reinforced = false;
 
-      if (existingDots && existingDots.length > 0) {
-        const existing = existingDots[0];
+      const exactMatch = (existingDots || []).find(d => d.title === finalDot.title);
+      const fuzzyMatch = !exactMatch ? findFuzzyDuplicate(finalDot.title, existingDots || []) : null;
+      const matchedDot = exactMatch || fuzzyMatch;
+
+      if (matchedDot) {
         await supabase.from("atlas_dots").update({
-          confidence_score: Math.min(1, (existing.confidence_score || 0.8) + 0.1),
-          signal_strength: (existing.signal_strength || 0) + totalStrength,
+          confidence_score: Math.min(1, (matchedDot.confidence_score || 0.8) + 0.1),
+          signal_strength: (matchedDot.signal_strength || 0) + totalStrength,
           user_validated: true, user_edited: userEdited || false,
           signal_tags: signalTags,
-        } as any).eq("id", existing.id);
-        dotId = existing.id;
+        } as any).eq("id", matchedDot.id);
+        dotId = matchedDot.id;
         reinforced = true;
         setIsReinforced(true);
       } else {
