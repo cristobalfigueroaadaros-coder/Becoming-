@@ -157,7 +157,7 @@ export const AtlasQuestFlow = ({ quest, clusterId, onboardingIndex }: Props) => 
     const aiResult = await generateAIDot(allResponses, result.isPatternBased ? result.detectedPattern?.pattern.title : undefined);
 
     if (aiResult && aiResult.variations.length > 0) {
-      if (aiResult.suggestedClusterSlug) setSuggestedClusterSlug(aiResult.suggestedClusterSlug);
+      // Cluster override removed — dots stay in quest cluster
       setVariations(aiResult.variations);
       setDotResult(aiResult.variations[0]); // first as fallback
       setMirrorFeedback(aiResult.mirrorFeedback);
@@ -229,13 +229,9 @@ export const AtlasQuestFlow = ({ quest, clusterId, onboardingIndex }: Props) => 
       if (!user) throw new Error("Not authenticated");
 
       const selectedVar = variations.find(v => v.title === selectedTitle) as any;
-      const resolvedClusterSlug = resolveTargetClusterSlug(finalDot, selectedVar);
 
+      // Dots always stay in their quest cluster
       let dotClusterId = clusterId;
-      const resolvedCluster = clusters.find(c => c.slug === resolvedClusterSlug);
-      if (resolvedCluster && resolvedCluster.computedState !== "locked") {
-        dotClusterId = resolvedCluster.id;
-      }
       if (isPatternBased && detectedPattern) {
         const { data: patternCluster } = await supabase.from("atlas_clusters").select("id").eq("slug", detectedPattern.pattern.clusterSlug).single();
         if (patternCluster) dotClusterId = patternCluster.id;
