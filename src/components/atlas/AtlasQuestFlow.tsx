@@ -50,7 +50,7 @@ export const AtlasQuestFlow = ({ quest, clusterId, onboardingIndex }: Props) => 
   const [isReinforced, setIsReinforced] = useState(false);
   const [newSignals, setNewSignals] = useState<ExtractedSignal[]>([]);
   const [detectedPattern, setDetectedPattern] = useState<DetectedPattern | null>(null);
-  const [suggestedClusterSlug, setSuggestedClusterSlug] = useState<string | null>(null);
+  // suggestedClusterSlug removed — dots always stay in their quest cluster
   const [isSaving, setIsSaving] = useState(false);
   const [isGenerating, setIsGenerating] = useState(false);
   const [validationMode, setValidationMode] = useState<ValidationMode>("picking");
@@ -69,58 +69,13 @@ export const AtlasQuestFlow = ({ quest, clusterId, onboardingIndex }: Props) => 
   const [showConnectionMoment, setShowConnectionMoment] = useState(false);
   const [dotSaved, setDotSaved] = useState(false);
 
-  const resolveTargetClusterSlug = (finalDot: DotInterpretation, selectedVariation?: any) => {
-    const content = `${finalDot.title} ${finalDot.description}`.toLowerCase();
-    const signalType = selectedVariation?.signalType;
-    const actionType = selectedVariation?.actionType;
-    const emotionalTone = aiSignalTags?.emotionalTone;
-
-    const hasAny = (terms: string[]) => terms.some((term) => content.includes(term));
-
-    if (
-      signalType === "audience" ||
-      hasAny(["people who", "families", "parents", "creators", "young builders", "professionals", "communities", "community", "those who"])
-    ) {
-      return "who-i-serve";
-    }
-
-    if (
-      quest.clusterSlug === "how-i-create-impact" ||
-      signalType === "action" ||
-      ["guide", "teach", "support", "build", "connect", "create"].includes(actionType || "")
-    ) {
-      if (hasAny(["guide", "teach", "support", "connect", "build", "create", "tool", "system", "space for", "changes for them"])) {
-        return "how-i-create-impact";
-      }
-    }
-
-    if (
-      emotionalTone === "personal_struggle" ||
-      hasAny(["frustrat", "struggle", "stuck", "can't stand", "hate", "wasted potential", "financial struggle", "misaligned", "unfair"])
-    ) {
-      return "personal-frustrations";
-    }
-
-    if (
-      signalType === "skill" ||
-      hasAny(["problem-solution", "problem solution", "solve", "solution", "organize", "planning", "strategy", "strategic", "builds systems", "connects people", "explains", "finder"])
-    ) {
-      return "skills";
-    }
-
-    if (
-      signalType === "experience" ||
-      emotionalTone === "factual_event" ||
-      hasAny(["moved", "left", "lost", "after i", "when i", "grew up", "started over", "career shift", "relationship change"])
-    ) {
-      return "life-events";
-    }
-
-    if (hasAny(["experiment", "tested", "tried", "prototype", "launched"])) {
-      return "experiments";
-    }
-
-    return suggestedClusterSlug || quest.clusterSlug;
+  // Fuzzy duplicate check: compare first 3 words of title
+  const findFuzzyDuplicate = (title: string, clusterDotsInSame: any[]) => {
+    const titleWords = title.toLowerCase().split(/\s+/).slice(0, 3).join(" ");
+    return clusterDotsInSame.find(d => {
+      const existingWords = (d.title || "").toLowerCase().split(/\s+/).slice(0, 3).join(" ");
+      return existingWords === titleWords && existingWords.length > 3;
+    });
   };
 
   const generateAIDot = async (
@@ -178,7 +133,7 @@ export const AtlasQuestFlow = ({ quest, clusterId, onboardingIndex }: Props) => 
 
   useState(() => {
     // One-time check on mount
-    if (!isOnboarding && completedCount > 0 && completedCount % 6 === 0 && !growthReflectionDismissed && step === 0 && !growthReflection) {
+    if (!isOnboarding && completedCount > 0 && completedCount % 8 === 0 && !growthReflectionDismissed && step === 0 && !growthReflection) {
       setShowGrowthReflection(true);
       const recentDots = allExistingDots.slice(0, 6);
       supabase.functions.invoke("generate-atlas-dot", {
