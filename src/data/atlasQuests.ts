@@ -1103,6 +1103,25 @@ export const ONBOARDING_QUESTS: AtlasQuestDefinition[] = [
 
 export const CONNECTION_MOMENT_AFTER = [2, 5, 8, 12];
 
+export const CLUSTER_DEEPENING_QUESTIONS: Record<string, string[]> = {
+  skills: ["When do you use this skill most?", "What happens when you apply it?"],
+  passions: ["What specifically about this excites you?", "When did you first feel this?"],
+  "personal-frustrations": ["Why does this bother you so deeply?", "What would change if this was solved?"],
+  experiments: ["What did you learn from doing this?", "Would you do it again differently?"],
+  "aha-moments": ["What changed after this realization?", "How does this show up now?"],
+  "life-events": ["How did this moment change you?", "What did you carry forward from it?"],
+  "natural-talents": ["When does this feel most effortless?", "How do others react to it?"],
+  inspirations: ["What specifically inspires you about this?", "How does it influence you?"],
+  values: ["When was this value tested?", "How do you live this value daily?"],
+  "ideal-life": ["What would a day in this life look like?", "What's the first step toward it?"],
+  "childhood-signals": ["How does this memory connect to who you are now?", "What feeling does it bring back?"],
+  "who-i-serve": ["What do these people struggle with most?", "Why do you feel drawn to help them?"],
+  "how-i-create-impact": ["What happens when you do this for others?", "What makes your way unique?"],
+  "golden-moments": ["What did this moment reveal about you?", "How has it shaped your direction?"],
+  "external-reflections": ["What pattern do others see in you?", "Does their view surprise you?"],
+  "vision-for-a-better-world": ["What would be different if this existed?", "What's your role in making it happen?"],
+};
+
 export function getQuestForCluster(slug: string): AtlasQuestDefinition | undefined {
   return ATLAS_QUESTS.find(q => q.clusterSlug === slug);
 }
