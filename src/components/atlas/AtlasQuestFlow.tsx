@@ -230,12 +230,8 @@ export const AtlasQuestFlow = ({ quest, clusterId, onboardingIndex }: Props) => 
 
       const selectedVar = variations.find(v => v.title === selectedTitle) as any;
 
-      // Dots always stay in their quest cluster
-      let dotClusterId = clusterId;
-      if (isPatternBased && detectedPattern) {
-        const { data: patternCluster } = await supabase.from("atlas_clusters").select("id").eq("slug", detectedPattern.pattern.clusterSlug).single();
-        if (patternCluster) dotClusterId = patternCluster.id;
-      }
+      // Dots always stay in their quest cluster — no cross-cluster reassignment
+      const dotClusterId = clusterId;
 
       const dotCategory = finalDot.dotCategory || "strength";
       const signalSourceNames = newSignals.map(s => s.signalName);
