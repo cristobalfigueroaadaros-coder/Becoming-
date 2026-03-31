@@ -2,6 +2,8 @@ export { AtlasClusterNode } from "./AtlasClusterNode";
 export { AtlasClusterDetail } from "./AtlasClusterDetail";
 export { AtlasDotCard } from "./AtlasDotCard";
 export { AtlasDotDetailModal } from "./AtlasDotDetailModal";
+export { AtlasDotView } from "./AtlasDotView";
+export { AtlasDotDeepLayer } from "./AtlasDotDeepLayer";
 export { AtlasQuestFlow } from "./AtlasQuestFlow";
 export { AtlasQuestInteraction } from "./AtlasQuestInteraction";
 export { AtlasWinningCard } from "./AtlasWinningCard";
