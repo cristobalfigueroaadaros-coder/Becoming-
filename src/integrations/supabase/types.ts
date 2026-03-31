@@ -421,6 +421,7 @@ export type Database = {
           evolved_from_ids: string[] | null
           id: string
           is_gold_moment: boolean | null
+          origin: string | null
           original_description: string | null
           original_title: string | null
           short_description: string | null
@@ -444,6 +445,7 @@ export type Database = {
           evolved_from_ids?: string[] | null
           id?: string
           is_gold_moment?: boolean | null
+          origin?: string | null
           original_description?: string | null
           original_title?: string | null
           short_description?: string | null
@@ -467,6 +469,7 @@ export type Database = {
           evolved_from_ids?: string[] | null
           id?: string
           is_gold_moment?: boolean | null
+          origin?: string | null
           original_description?: string | null
           original_title?: string | null
           short_description?: string | null
@@ -512,6 +515,44 @@ export type Database = {
           sort_order?: number
         }
         Relationships: []
+      }
+      atlas_mini_dots: {
+        Row: {
+          cluster_slug: string | null
+          content: string
+          created_at: string | null
+          id: string
+          origin: string
+          parent_dot_id: string
+          user_id: string
+        }
+        Insert: {
+          cluster_slug?: string | null
+          content: string
+          created_at?: string | null
+          id?: string
+          origin?: string
+          parent_dot_id: string
+          user_id: string
+        }
+        Update: {
+          cluster_slug?: string | null
+          content?: string
+          created_at?: string | null
+          id?: string
+          origin?: string
+          parent_dot_id?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "atlas_mini_dots_parent_dot_id_fkey"
+            columns: ["parent_dot_id"]
+            isOneToOne: false
+            referencedRelation: "atlas_dots"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       atlas_patterns: {
         Row: {
