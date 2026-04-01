@@ -194,6 +194,7 @@ export const AtlasClusterDetail = ({ cluster, open, onOpenChange }: AtlasCluster
                       dot={dot}
                       color={colors.bg}
                       onTap={() => handleDotTap(dot)}
+                      miniDotCount={miniDotCounts[dot.id] || 0}
                     />
                   ))}
                   <Button
