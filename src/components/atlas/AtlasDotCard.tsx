@@ -46,6 +46,11 @@ export const AtlasDotCard = ({ dot, onTap, miniDotCount = 0 }: AtlasDotCardProps
                 {format(new Date(dot.created_at), "MMM d, yyyy")}
               </p>
             )}
+            {hasDepth && (
+              <span className="text-[10px] px-1.5 py-0.5 rounded-full font-medium bg-primary/10 text-primary">
+                {miniDotCount} insight{miniDotCount > 1 ? "s" : ""}
+              </span>
+            )}
           </div>
         </div>
       </div>
