@@ -9,8 +9,9 @@ interface AtlasDotCardProps {
   miniDotCount?: number;
 }
 
-export const AtlasDotCard = ({ dot, onTap }: AtlasDotCardProps) => {
+export const AtlasDotCard = ({ dot, onTap, miniDotCount = 0 }: AtlasDotCardProps) => {
   const dotColor = getDotColor(dot);
+  const hasDepth = miniDotCount > 0;
 
   return (
     <button
