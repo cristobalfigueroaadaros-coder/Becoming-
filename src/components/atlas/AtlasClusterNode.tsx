@@ -133,12 +133,16 @@ export const AtlasClusterNode = ({ cluster, index, onTap, isHighlighted, miniDot
           return (
             <motion.span
               key={dot.id}
-              className="absolute w-2.5 h-2.5 rounded-full"
+              className="absolute rounded-full"
               style={{
                 backgroundColor: getDotColor(dot),
                 left: `calc(50% + ${pos.x}px - 5px)`,
                 top: `calc(50% + ${pos.y}px - 5px)`,
-                boxShadow: `0 0 4px ${getDotColor(dot)}60`,
+                boxShadow: (miniDotCounts[dot.id] || 0) > 0
+                  ? `0 0 ${6 + (miniDotCounts[dot.id] || 0) * 2}px ${getDotColor(dot)}80`
+                  : `0 0 4px ${getDotColor(dot)}60`,
+                width: (miniDotCounts[dot.id] || 0) > 0 ? 12 : 10,
+                height: (miniDotCounts[dot.id] || 0) > 0 ? 12 : 10,
               }}
               initial={{ opacity: 0, scale: 0 }}
               animate={{ opacity: 1, scale: 1 }}
