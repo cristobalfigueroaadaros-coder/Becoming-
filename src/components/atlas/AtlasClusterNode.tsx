@@ -8,6 +8,9 @@ interface AtlasClusterNodeProps {
   index: number;
   onTap: () => void;
   isHighlighted?: boolean;
+  miniDotCounts?: Record<string, number>;
+  isFocused?: boolean;
+  isFaded?: boolean;
 }
 
 // Compute positions for dots in concentric orbits OUTSIDE the cluster center
