@@ -1,5 +1,6 @@
 import { useState } from "react";
 import { useNavigate } from "react-router-dom";
+import { useQuery } from "@tanstack/react-query";
 import { Sheet, SheetContent, SheetHeader, SheetTitle, SheetDescription } from "@/components/ui/sheet";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -38,6 +39,26 @@ export const AtlasClusterDetail = ({ cluster, open, onOpenChange }: AtlasCluster
   const [showAddDot, setShowAddDot] = useState(false);
   const [newDotTitle, setNewDotTitle] = useState("");
   const [savingDot, setSavingDot] = useState(false);
+
+  // Fetch mini-dot counts for dots in this cluster
+  const dotIds = cluster?.dots.map(d => d.id) || [];
+  const { data: miniDotCounts = {} } = useQuery({
+    queryKey: ["atlas-mini-dot-counts-cluster", cluster?.id],
+    queryFn: async () => {
+      if (dotIds.length === 0) return {};
+      const { data, error } = await supabase
+        .from("atlas_mini_dots")
+        .select("parent_dot_id")
+        .in("parent_dot_id", dotIds);
+      if (error) throw error;
+      const counts: Record<string, number> = {};
+      (data || []).forEach((row: any) => {
+        counts[row.parent_dot_id] = (counts[row.parent_dot_id] || 0) + 1;
+      });
+      return counts;
+    },
+    enabled: !!cluster && dotIds.length > 0,
+  });
 
   if (!cluster) return null;
 
@@ -173,6 +194,7 @@ export const AtlasClusterDetail = ({ cluster, open, onOpenChange }: AtlasCluster
                       dot={dot}
                       color={colors.bg}
                       onTap={() => handleDotTap(dot)}
+                      miniDotCount={miniDotCounts[dot.id] || 0}
                     />
                   ))}
                   <Button

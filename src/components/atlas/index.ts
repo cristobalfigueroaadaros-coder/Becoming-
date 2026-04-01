@@ -7,3 +7,4 @@ export { AtlasDotDeepLayer } from "./AtlasDotDeepLayer";
 export { AtlasQuestFlow } from "./AtlasQuestFlow";
 export { AtlasQuestInteraction } from "./AtlasQuestInteraction";
 export { AtlasWinningCard } from "./AtlasWinningCard";
+export { ThinkOutOfBoxCard } from "./ThinkOutOfBoxCard";

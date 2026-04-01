@@ -215,6 +215,23 @@ export function useAtlas() {
     },
   });
 
+  // Fetch mini-dot counts per dot
+  const miniDotCountsQuery = useQuery({
+    queryKey: ["atlas-mini-dot-counts"],
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from("atlas_mini_dots")
+        .select("parent_dot_id");
+      if (error) throw error;
+      const counts: Record<string, number> = {};
+      (data || []).forEach((row: any) => {
+        counts[row.parent_dot_id] = (counts[row.parent_dot_id] || 0) + 1;
+      });
+      return counts;
+    },
+  });
+
+  const miniDotCounts = miniDotCountsQuery.data || {};
   const allDots = dotsQuery.data || [];
   const totalDots = allDots.length;
 
@@ -250,7 +267,8 @@ export function useAtlas() {
     dots: allDots,
     totalDots,
     threadUnlockReady,
-    isLoading: domainsQuery.isLoading || clustersQuery.isLoading || dotsQuery.isLoading,
+    miniDotCounts,
+    isLoading: domainsQuery.isLoading || clustersQuery.isLoading || dotsQuery.isLoading || miniDotCountsQuery.isLoading,
     error: domainsQuery.error || clustersQuery.error || dotsQuery.error,
   };
 }

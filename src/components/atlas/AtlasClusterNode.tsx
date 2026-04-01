@@ -8,6 +8,9 @@ interface AtlasClusterNodeProps {
   index: number;
   onTap: () => void;
   isHighlighted?: boolean;
+  miniDotCounts?: Record<string, number>;
+  isFocused?: boolean;
+  isFaded?: boolean;
 }
 
 // Compute positions for dots in concentric orbits OUTSIDE the cluster center
@@ -43,7 +46,7 @@ const GROWTH_STYLES: Record<string, { size: number; opacity: string; glowSize: n
   mature:    { size: 108, opacity: "opacity-100", glowSize: 28, pulse: true },
 };
 
-export const AtlasClusterNode = ({ cluster, index, onTap, isHighlighted }: AtlasClusterNodeProps) => {
+export const AtlasClusterNode = ({ cluster, index, onTap, isHighlighted, miniDotCounts = {}, isFocused, isFaded }: AtlasClusterNodeProps) => {
   const domainName = cluster.meta_domain?.name || "Person";
   const isGolden = cluster.slug === "golden-moments";
   const isProject = cluster.cluster_category === "project";
@@ -57,8 +60,15 @@ export const AtlasClusterNode = ({ cluster, index, onTap, isHighlighted }: Atlas
   const baseRadius = style.size / 2;
   const orbitPositions = getOrbitPositions(cluster.dots.length, baseRadius);
 
+  // Count total mini-dots in this cluster
+  const clusterMiniDotTotal = cluster.dots.reduce((sum, d) => sum + (miniDotCounts[d.id] || 0), 0);
+  const hasDepth = clusterMiniDotTotal > 0;
+
   // Container must be large enough for dots outside the circle
   const containerSize = style.size + 90;
+
+  // Fade/focus opacity
+  const fadeClass = isFaded ? "opacity-20 pointer-events-none" : "";
 
   return (
     <motion.button
@@ -66,7 +76,7 @@ export const AtlasClusterNode = ({ cluster, index, onTap, isHighlighted }: Atlas
       initial={{ opacity: 0, scale: 0.6 }}
       animate={{ opacity: 1, scale: 1 }}
       transition={{ delay: index * 0.05, type: "spring", stiffness: 200, damping: 20 }}
-      className={`relative flex items-center justify-center ${style.opacity} ${state === "locked" ? "cursor-not-allowed" : ""}`}
+      className={`relative flex items-center justify-center ${style.opacity} ${fadeClass} ${state === "locked" ? "cursor-not-allowed" : ""} transition-opacity duration-300`}
       style={{ width: containerSize, height: containerSize }}
     >
       {/* Highlight pulse for newly created dot */}
@@ -99,7 +109,7 @@ export const AtlasClusterNode = ({ cluster, index, onTap, isHighlighted }: Atlas
         />
       )}
 
-      {/* Main circle */}
+      {/* Main circle — extra glow when cluster has depth (mini-dots) */}
       <div
         className="absolute rounded-full"
         style={{
@@ -109,6 +119,9 @@ export const AtlasClusterNode = ({ cluster, index, onTap, isHighlighted }: Atlas
             ? "hsl(var(--muted))"
             : `radial-gradient(circle at 40% 35%, ${colors.glow}, transparent 70%)`,
           border: `1px solid ${state === "locked" || state === "dormant" ? "hsl(var(--border))" : colors.border}`,
+          boxShadow: hasDepth && state !== "locked"
+            ? `0 0 ${style.glowSize + 8 + clusterMiniDotTotal * 2}px ${colors.glow}`
+            : undefined,
         }}
       />
 
@@ -120,12 +133,16 @@ export const AtlasClusterNode = ({ cluster, index, onTap, isHighlighted }: Atlas
           return (
             <motion.span
               key={dot.id}
-              className="absolute w-2.5 h-2.5 rounded-full"
+              className="absolute rounded-full"
               style={{
                 backgroundColor: getDotColor(dot),
                 left: `calc(50% + ${pos.x}px - 5px)`,
                 top: `calc(50% + ${pos.y}px - 5px)`,
-                boxShadow: `0 0 4px ${getDotColor(dot)}60`,
+                boxShadow: (miniDotCounts[dot.id] || 0) > 0
+                  ? `0 0 ${6 + (miniDotCounts[dot.id] || 0) * 2}px ${getDotColor(dot)}80`
+                  : `0 0 4px ${getDotColor(dot)}60`,
+                width: (miniDotCounts[dot.id] || 0) > 0 ? 12 : 10,
+                height: (miniDotCounts[dot.id] || 0) > 0 ? 12 : 10,
               }}
               initial={{ opacity: 0, scale: 0 }}
               animate={{ opacity: 1, scale: 1 }}

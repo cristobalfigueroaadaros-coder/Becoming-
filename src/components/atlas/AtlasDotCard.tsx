@@ -6,15 +6,18 @@ interface AtlasDotCardProps {
   dot: AtlasDot;
   color: string;
   onTap: () => void;
+  miniDotCount?: number;
 }
 
-export const AtlasDotCard = ({ dot, onTap }: AtlasDotCardProps) => {
+export const AtlasDotCard = ({ dot, onTap, miniDotCount = 0 }: AtlasDotCardProps) => {
   const dotColor = getDotColor(dot);
+  const hasDepth = miniDotCount > 0;
 
   return (
     <button
       onClick={onTap}
       className="w-full text-left p-3 rounded-lg border border-border/50 bg-card/50 hover:bg-card transition-colors"
+      style={hasDepth ? { boxShadow: `0 0 8px ${dotColor}20`, borderColor: `${dotColor}30` } : undefined}
     >
       <div className="flex items-start gap-2">
         <span
@@ -42,6 +45,11 @@ export const AtlasDotCard = ({ dot, onTap }: AtlasDotCardProps) => {
               <p className="text-[10px] text-muted-foreground/60">
                 {format(new Date(dot.created_at), "MMM d, yyyy")}
               </p>
+            )}
+            {hasDepth && (
+              <span className="text-[10px] px-1.5 py-0.5 rounded-full font-medium bg-primary/10 text-primary">
+                {miniDotCount} insight{miniDotCount > 1 ? "s" : ""}
+              </span>
             )}
           </div>
         </div>

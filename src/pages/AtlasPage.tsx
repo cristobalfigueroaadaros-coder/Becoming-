@@ -6,6 +6,8 @@ import { Button } from "@/components/ui/button";
 import { useAtlas, ClusterWithState, DOMAIN_COLORS, getCurrentPhase, getNextPhaseThreshold } from "@/hooks/useAtlas";
 import { AtlasClusterNode, AtlasClusterDetail } from "@/components/atlas";
 import { AtlasOnboardingOverlay } from "@/components/atlas/AtlasOnboardingOverlay";
+import { ThinkOutOfBoxCard } from "@/components/atlas/ThinkOutOfBoxCard";
+import { useOpportunityDetection } from "@/hooks/useOpportunityDetection";
 import { toast } from "@/hooks/use-toast";
 import { supabase } from "@/integrations/supabase/client";
 // Organic scatter positions for known clusters (percentage-based)
@@ -41,7 +43,7 @@ const PROJECT_CLUSTER_POSITIONS = [
 const AtlasPage = () => {
   const navigate = useNavigate();
   const [searchParams, setSearchParams] = useSearchParams();
-  const { clusters, domains, totalDots, isLoading, threadUnlockReady } = useAtlas();
+  const { clusters, domains, totalDots, isLoading, threadUnlockReady, miniDotCounts } = useAtlas();
   const [selectedCluster, setSelectedCluster] = useState<ClusterWithState | null>(null);
   const prevUnlockedRef = useRef<Set<string>>(new Set());
   const highlightSlug = searchParams.get("highlight");
@@ -49,6 +51,8 @@ const AtlasPage = () => {
   const [showUnlockCard, setShowUnlockCard] = useState(false);
   const [intakeCompleted, setIntakeCompleted] = useState<boolean | null>(null);
   const [showOnboarding, setShowOnboarding] = useState(false);
+  const [opportunityDismissed, setOpportunityDismissed] = useState(false);
+  const { data: opportunity } = useOpportunityDetection(totalDots);
 
   // Check profile flags on mount
   useEffect(() => {
@@ -151,6 +155,16 @@ const AtlasPage = () => {
         </motion.div>
       )}
 
+      {/* Think Out of the Box Opportunity */}
+      {opportunity && !opportunityDismissed && !showUnlockCard && (
+        <div className="relative z-20">
+          <ThinkOutOfBoxCard
+            opportunity={opportunity}
+            onDismiss={() => setOpportunityDismissed(true)}
+          />
+        </div>
+      )}
+
       {/* Header */}
       <div className="relative z-10 px-5 pt-6 pb-2">
         <div className="flex items-center gap-2">
@@ -211,6 +225,9 @@ const AtlasPage = () => {
                 index={i}
                 onTap={() => setSelectedCluster(cluster)}
                 isHighlighted={highlightedSlug === cluster.slug}
+                miniDotCounts={miniDotCounts}
+                isFocused={!!selectedCluster && selectedCluster.id === cluster.id}
+                isFaded={!!selectedCluster && selectedCluster.id !== cluster.id}
               />
             </div>
           );
