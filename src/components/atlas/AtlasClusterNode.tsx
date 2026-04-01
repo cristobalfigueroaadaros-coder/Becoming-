@@ -76,7 +76,7 @@ export const AtlasClusterNode = ({ cluster, index, onTap, isHighlighted, miniDot
       initial={{ opacity: 0, scale: 0.6 }}
       animate={{ opacity: 1, scale: 1 }}
       transition={{ delay: index * 0.05, type: "spring", stiffness: 200, damping: 20 }}
-      className={`relative flex items-center justify-center ${style.opacity} ${state === "locked" ? "cursor-not-allowed" : ""}`}
+      className={`relative flex items-center justify-center ${style.opacity} ${fadeClass} ${state === "locked" ? "cursor-not-allowed" : ""} transition-opacity duration-300`}
       style={{ width: containerSize, height: containerSize }}
     >
       {/* Highlight pulse for newly created dot */}
