@@ -6,6 +6,8 @@ import { Button } from "@/components/ui/button";
 import { useAtlas, ClusterWithState, DOMAIN_COLORS, getCurrentPhase, getNextPhaseThreshold } from "@/hooks/useAtlas";
 import { AtlasClusterNode, AtlasClusterDetail } from "@/components/atlas";
 import { AtlasOnboardingOverlay } from "@/components/atlas/AtlasOnboardingOverlay";
+import { ThinkOutOfBoxCard } from "@/components/atlas/ThinkOutOfBoxCard";
+import { useOpportunityDetection } from "@/hooks/useOpportunityDetection";
 import { toast } from "@/hooks/use-toast";
 import { supabase } from "@/integrations/supabase/client";
 // Organic scatter positions for known clusters (percentage-based)
