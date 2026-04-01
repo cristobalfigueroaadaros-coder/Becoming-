@@ -267,7 +267,8 @@ export function useAtlas() {
     dots: allDots,
     totalDots,
     threadUnlockReady,
-    isLoading: domainsQuery.isLoading || clustersQuery.isLoading || dotsQuery.isLoading,
+    miniDotCounts,
+    isLoading: domainsQuery.isLoading || clustersQuery.isLoading || dotsQuery.isLoading || miniDotCountsQuery.isLoading,
     error: domainsQuery.error || clustersQuery.error || dotsQuery.error,
   };
 }
