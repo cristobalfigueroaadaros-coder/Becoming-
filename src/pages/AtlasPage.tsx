@@ -41,7 +41,7 @@ const PROJECT_CLUSTER_POSITIONS = [
 const AtlasPage = () => {
   const navigate = useNavigate();
   const [searchParams, setSearchParams] = useSearchParams();
-  const { clusters, domains, totalDots, isLoading, threadUnlockReady } = useAtlas();
+  const { clusters, domains, totalDots, isLoading, threadUnlockReady, miniDotCounts } = useAtlas();
   const [selectedCluster, setSelectedCluster] = useState<ClusterWithState | null>(null);
   const prevUnlockedRef = useRef<Set<string>>(new Set());
   const highlightSlug = searchParams.get("highlight");
