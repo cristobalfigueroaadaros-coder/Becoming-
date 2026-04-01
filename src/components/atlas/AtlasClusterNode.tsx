@@ -109,7 +109,7 @@ export const AtlasClusterNode = ({ cluster, index, onTap, isHighlighted, miniDot
         />
       )}
 
-      {/* Main circle */}
+      {/* Main circle — extra glow when cluster has depth (mini-dots) */}
       <div
         className="absolute rounded-full"
         style={{
@@ -119,6 +119,9 @@ export const AtlasClusterNode = ({ cluster, index, onTap, isHighlighted, miniDot
             ? "hsl(var(--muted))"
             : `radial-gradient(circle at 40% 35%, ${colors.glow}, transparent 70%)`,
           border: `1px solid ${state === "locked" || state === "dormant" ? "hsl(var(--border))" : colors.border}`,
+          boxShadow: hasDepth && state !== "locked"
+            ? `0 0 ${style.glowSize + 8 + clusterMiniDotTotal * 2}px ${colors.glow}`
+            : undefined,
         }}
       />
 
