@@ -60,8 +60,15 @@ export const AtlasClusterNode = ({ cluster, index, onTap, isHighlighted, miniDot
   const baseRadius = style.size / 2;
   const orbitPositions = getOrbitPositions(cluster.dots.length, baseRadius);
 
+  // Count total mini-dots in this cluster
+  const clusterMiniDotTotal = cluster.dots.reduce((sum, d) => sum + (miniDotCounts[d.id] || 0), 0);
+  const hasDepth = clusterMiniDotTotal > 0;
+
   // Container must be large enough for dots outside the circle
   const containerSize = style.size + 90;
+
+  // Fade/focus opacity
+  const fadeClass = isFaded ? "opacity-20 pointer-events-none" : "";
 
   return (
     <motion.button
