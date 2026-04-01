@@ -211,6 +211,9 @@ const AtlasPage = () => {
                 index={i}
                 onTap={() => setSelectedCluster(cluster)}
                 isHighlighted={highlightedSlug === cluster.slug}
+                miniDotCounts={miniDotCounts}
+                isFocused={!!selectedCluster && selectedCluster.id === cluster.id}
+                isFaded={!!selectedCluster && selectedCluster.id !== cluster.id}
               />
             </div>
           );
