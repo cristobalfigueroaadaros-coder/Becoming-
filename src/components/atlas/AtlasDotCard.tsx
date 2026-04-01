@@ -6,6 +6,7 @@ interface AtlasDotCardProps {
   dot: AtlasDot;
   color: string;
   onTap: () => void;
+  miniDotCount?: number;
 }
 
 export const AtlasDotCard = ({ dot, onTap }: AtlasDotCardProps) => {
