@@ -155,6 +155,16 @@ const AtlasPage = () => {
         </motion.div>
       )}
 
+      {/* Think Out of the Box Opportunity */}
+      {opportunity && !opportunityDismissed && !showUnlockCard && (
+        <div className="relative z-20">
+          <ThinkOutOfBoxCard
+            opportunity={opportunity}
+            onDismiss={() => setOpportunityDismissed(true)}
+          />
+        </div>
+      )}
+
       {/* Header */}
       <div className="relative z-10 px-5 pt-6 pb-2">
         <div className="flex items-center gap-2">
