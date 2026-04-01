@@ -17,6 +17,7 @@ export const AtlasDotCard = ({ dot, onTap, miniDotCount = 0 }: AtlasDotCardProps
     <button
       onClick={onTap}
       className="w-full text-left p-3 rounded-lg border border-border/50 bg-card/50 hover:bg-card transition-colors"
+      style={hasDepth ? { boxShadow: `0 0 8px ${dotColor}20`, borderColor: `${dotColor}30` } : undefined}
     >
       <div className="flex items-start gap-2">
         <span
