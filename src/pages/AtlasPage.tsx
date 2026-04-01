@@ -51,6 +51,8 @@ const AtlasPage = () => {
   const [showUnlockCard, setShowUnlockCard] = useState(false);
   const [intakeCompleted, setIntakeCompleted] = useState<boolean | null>(null);
   const [showOnboarding, setShowOnboarding] = useState(false);
+  const [opportunityDismissed, setOpportunityDismissed] = useState(false);
+  const { data: opportunity } = useOpportunityDetection(totalDots);
 
   // Check profile flags on mount
   useEffect(() => {
