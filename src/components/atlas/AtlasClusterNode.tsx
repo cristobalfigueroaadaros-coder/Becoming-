@@ -46,7 +46,7 @@ const GROWTH_STYLES: Record<string, { size: number; opacity: string; glowSize: n
   mature:    { size: 108, opacity: "opacity-100", glowSize: 28, pulse: true },
 };
 
-export const AtlasClusterNode = ({ cluster, index, onTap, isHighlighted }: AtlasClusterNodeProps) => {
+export const AtlasClusterNode = ({ cluster, index, onTap, isHighlighted, miniDotCounts = {}, isFocused, isFaded }: AtlasClusterNodeProps) => {
   const domainName = cluster.meta_domain?.name || "Person";
   const isGolden = cluster.slug === "golden-moments";
   const isProject = cluster.cluster_category === "project";
