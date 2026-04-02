@@ -56,9 +56,12 @@ export function useProgressiveUnlock() {
       const p = profile as any;
       if (!p) return;
 
-      let chatUnlocked = !!p.chat_unlocked;
-      let projectsUnlocked = !!p.projects_unlocked;
-      let creatorsUnlocked = !!p.creators_unlocked;
+      const prevChat = !!p.chat_unlocked;
+      const prevProjects = !!p.projects_unlocked;
+      const prevCreators = !!p.creators_unlocked;
+      let chatUnlocked = prevChat;
+      let projectsUnlocked = prevProjects;
+      let creatorsUnlocked = prevCreators;
 
       // Build phase gets faster unlocks
       const isBuild = p.entry_state === "BUILD";
