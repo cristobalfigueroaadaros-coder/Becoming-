@@ -22,7 +22,7 @@ const AtlasQuestPage = () => {
     );
   }
 
-  let questData: { quest: any; clusterId: string } | null = null;
+  let questData: { quest: any; clusterId: string; onboardingIndex?: number } | null = null;
 
   if (clusterId) {
     questData = getClusterQuest(clusterId);

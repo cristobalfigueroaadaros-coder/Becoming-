@@ -244,6 +244,9 @@ const Dashboard = () => {
         {/* Future Self Space */}
         <FutureSelfSpaceCard hasQuestPending={hasQuestPending} />
 
+        {/* Atlas Progress */}
+        <AtlasProgressCard />
+
         {/* Console Intake Notification */}
         {showIntakeNotification && <IntakeNotification />}
 
