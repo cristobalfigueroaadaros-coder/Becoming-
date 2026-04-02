@@ -6,6 +6,7 @@ import { DailyRitualModal } from "@/components/DailyRitualModal";
 import { useMentorOutreach } from "@/hooks/useMentorOutreach";
 import { VoiceOfSystemModal } from "@/components/voice/VoiceOfSystemModal";
 import IntakeNotification from "@/components/console-thread/IntakeNotification";
+import AtlasProgressCard from "@/components/dashboard/AtlasProgressCard";
 
 // Dashboard components
 import DashboardHeader from "@/components/dashboard/DashboardHeader";
@@ -243,6 +244,9 @@ const Dashboard = () => {
 
         {/* Future Self Space */}
         <FutureSelfSpaceCard hasQuestPending={hasQuestPending} />
+
+        {/* Atlas Progress */}
+        <AtlasProgressCard />
 
         {/* Console Intake Notification */}
         {showIntakeNotification && <IntakeNotification />}

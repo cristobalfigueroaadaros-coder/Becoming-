@@ -1139,6 +1139,44 @@ const ConsoleThread = ({ embedded = false, onProjectNameChange }: ConsoleThreadP
         } as any)
         .eq("id", user.id);
 
+      // Create project cluster in Atlas immediately
+      try {
+        const projectSlug = name.toLowerCase().replace(/[^a-z0-9]+/g, "-").replace(/(^-|-$)/g, "");
+        
+        // Create atlas_project_nodes entry
+        const { data: projectNode } = await supabase
+          .from("atlas_project_nodes")
+          .insert({ user_id: user.id, title: name, description })
+          .select("id")
+          .single();
+
+        if (projectNode) {
+          // Create atlas_clusters entry for the project
+          const { data: newCluster } = await supabase
+            .from("atlas_clusters")
+            .insert({
+              name,
+              slug: `project-${projectSlug}`,
+              cluster_category: "project",
+              state: "active",
+              sort_order: 100,
+              description: description || `Project: ${name}`,
+            })
+            .select("id")
+            .single();
+
+          if (newCluster) {
+            // Link project node to cluster
+            await supabase
+              .from("atlas_cluster_project_connections")
+              .insert({ cluster_id: newCluster.id, project_id: projectNode.id });
+          }
+        }
+      } catch (clusterErr) {
+        console.error("Project cluster creation failed:", clusterErr);
+        // Non-blocking — project still gets created
+      }
+
       // Seed initial capabilities in background (non-blocking)
       supabase.functions.invoke("seed-initial-capabilities", {
         body: {

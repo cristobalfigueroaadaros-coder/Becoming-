@@ -60,7 +60,12 @@ export const BottomNavigation = () => {
   const [councilBadge, setCouncilBadge] = useState(false);
   const [creatorRequestCount, setCreatorRequestCount] = useState(0);
   const [showAtlasBadge, setShowAtlasBadge] = useState(false);
-  const { isLocked, getLockMessage } = useProgressiveUnlock();
+  const { isLocked, getLockMessage, refreshUnlocks } = useProgressiveUnlock();
+
+  // Re-check unlocks when returning to nav (path change)
+  useEffect(() => {
+    refreshUnlocks();
+  }, [location.pathname, refreshUnlocks]);
 
   useEffect(() => {
     const checkBadges = async () => {
