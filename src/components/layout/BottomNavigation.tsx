@@ -1,14 +1,17 @@
 import { useLocation, useNavigate } from "react-router-dom";
-import { LayoutGrid, Users, FlaskConical, Globe, Compass } from "lucide-react";
+import { LayoutGrid, Users, FlaskConical, Globe, Compass, Lock } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { useProblemClarificationStatus } from "@/hooks/useProblemClarificationStatus";
 import { useEffect, useState } from "react";
 import { supabase } from "@/integrations/supabase/client";
+import { useProgressiveUnlock } from "@/hooks/useProgressiveUnlock";
+import { toast } from "sonner";
 
 interface NavItem {
   icon: React.ElementType;
   label: string;
   path: string;
+  unlockKey: string;
   matchPaths?: string[];
 }
 
@@ -17,30 +20,35 @@ const navItems: NavItem[] = [
     icon: LayoutGrid,
     label: "Home",
     path: "/dashboard",
+    unlockKey: "home",
     matchPaths: ["/dashboard"],
   },
   {
     icon: Compass,
     label: "Atlas",
     path: "/atlas",
+    unlockKey: "atlas",
     matchPaths: ["/atlas"],
   },
   {
     icon: Users,
     label: "Chats",
     path: "/council",
+    unlockKey: "chat",
     matchPaths: ["/council", "/council-meeting", "/chat", "/console-thread"],
   },
   {
     icon: FlaskConical,
     label: "Projects",
     path: "/creation-lab",
+    unlockKey: "projects",
     matchPaths: ["/creation-lab", "/future-self"],
   },
   {
     icon: Globe,
     label: "Creators",
     path: "/creators",
+    unlockKey: "creators",
     matchPaths: ["/creators"],
   },
 ];
@@ -52,6 +60,7 @@ export const BottomNavigation = () => {
   const [councilBadge, setCouncilBadge] = useState(false);
   const [creatorRequestCount, setCreatorRequestCount] = useState(0);
   const [showAtlasBadge, setShowAtlasBadge] = useState(false);
+  const { isLocked, getLockMessage } = useProgressiveUnlock();
 
   useEffect(() => {
     const checkBadges = async () => {
@@ -66,7 +75,6 @@ export const BottomNavigation = () => {
       setCouncilBadge(!!p?.onboarding_quest_completed && !p?.console_intake_completed);
       setShowAtlasBadge(!p?.atlas_onboarding_completed);
 
-      // Check pending creator chat requests
       const { count } = await supabase
         .from("creator_chat_requests")
         .select("*", { count: "exact", head: true })
@@ -79,16 +87,19 @@ export const BottomNavigation = () => {
 
   const isActive = (item: NavItem) => {
     const currentPath = location.pathname;
-    
-    // Check exact match first
     if (currentPath === item.path) return true;
-    
-    // Check if current path starts with any of the match paths
     if (item.matchPaths) {
       return item.matchPaths.some(path => currentPath.startsWith(path));
     }
-    
     return false;
+  };
+
+  const handleNavClick = (item: NavItem) => {
+    if (isLocked(item.unlockKey)) {
+      toast(getLockMessage(item.unlockKey), { duration: 3000 });
+      return;
+    }
+    navigate(item.path);
   };
 
   return (
@@ -97,34 +108,45 @@ export const BottomNavigation = () => {
         {navItems.map((item) => {
           const active = isActive(item);
           const Icon = item.icon;
-          // Hide badge when user is in the clarification session
-          const showCreationBadge = item.path === "/creation-lab" && needsClarification && badgeCount > 0 && !isInClarificationSession;
-          const showCouncilBadge = item.path === "/council" && (councilBadge || creatorRequestCount > 0);
+          const locked = isLocked(item.unlockKey);
+          const showCreationBadge = item.path === "/creation-lab" && needsClarification && badgeCount > 0 && !isInClarificationSession && !locked;
+          const showCouncilBadge = item.path === "/council" && (councilBadge || creatorRequestCount > 0) && !locked;
           const showAtlasDot = item.path === "/atlas" && showAtlasBadge;
           const showBadge = showCreationBadge || showCouncilBadge || showAtlasDot;
           
           return (
             <button
               key={item.path}
-              onClick={() => navigate(item.path)}
+              onClick={() => handleNavClick(item)}
               className={cn(
                 "relative flex flex-col items-center justify-center gap-1 flex-1 h-full transition-colors",
-                active 
-                  ? "text-primary" 
-                  : "text-muted-foreground hover:text-foreground"
+                locked
+                  ? "text-muted-foreground/40"
+                  : active 
+                    ? "text-primary" 
+                    : "text-muted-foreground hover:text-foreground"
               )}
             >
               <div className="relative">
-                <Icon className={cn("w-5 h-5", active && "text-primary")} />
-                {showBadge && (
-                  <span className="absolute -top-1.5 -right-1.5 w-4 h-4 rounded-full bg-destructive text-destructive-foreground text-[10px] font-bold flex items-center justify-center animate-pulse">
-                    {showAtlasDot ? "!" : showCouncilBadge ? (creatorRequestCount > 0 ? creatorRequestCount : "!") : badgeCount}
-                  </span>
+                {locked ? (
+                  <div className="relative">
+                    <Icon className="w-5 h-5 opacity-40" />
+                    <Lock className="w-2.5 h-2.5 absolute -bottom-0.5 -right-0.5 text-muted-foreground/60" />
+                  </div>
+                ) : (
+                  <>
+                    <Icon className={cn("w-5 h-5", active && "text-primary")} />
+                    {showBadge && (
+                      <span className="absolute -top-1.5 -right-1.5 w-4 h-4 rounded-full bg-destructive text-destructive-foreground text-[10px] font-bold flex items-center justify-center animate-pulse">
+                        {showAtlasDot ? "!" : showCouncilBadge ? (creatorRequestCount > 0 ? creatorRequestCount : "!") : badgeCount}
+                      </span>
+                    )}
+                  </>
                 )}
               </div>
               <span className={cn(
                 "text-xs font-medium",
-                active && "text-primary"
+                locked ? "text-muted-foreground/40" : active && "text-primary"
               )}>
                 {item.label}
               </span>
