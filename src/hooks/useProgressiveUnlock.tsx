@@ -127,6 +127,11 @@ export function useProgressiveUnlock() {
         }
       }
 
+      // Fire celebrations for newly unlocked sections
+      if (chatUnlocked && !prevChat) showUnlockCelebration("chat");
+      if (projectsUnlocked && !prevProjects) showUnlockCelebration("projects");
+      if (creatorsUnlocked && !prevCreators) showUnlockCelebration("creators");
+
       setUnlockState({
         home: true,
         atlas: true,

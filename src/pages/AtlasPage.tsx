@@ -260,8 +260,8 @@ const AtlasPage = () => {
         </svg>
       </div>
 
-      {/* Start Quest floating button */}
-      <div className="fixed bottom-20 right-4 z-20">
+      {/* Start Quest floating button — positioned above bottom nav, left-center to avoid cluster overlap */}
+      <div className="fixed bottom-20 left-1/2 -translate-x-1/2 z-20">
         <motion.div
           animate={{ scale: [1, 1.05, 1] }}
           transition={{ duration: 2, repeat: Infinity, ease: "easeInOut" }}

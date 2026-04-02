@@ -31,10 +31,24 @@ const AtlasQuestPage = () => {
   }
 
   if (!questData) {
-    return <Navigate to="/atlas" replace />;
+    return (
+      <div className="min-h-screen flex flex-col items-center justify-center gap-4 p-6 text-center">
+        <Compass className="w-10 h-10 text-primary" />
+        <h2 className="text-lg font-semibold text-foreground">All quests completed</h2>
+        <p className="text-sm text-muted-foreground max-w-xs">
+          You've explored every available quest. Keep adding dots and mini-dots to deepen your Atlas.
+        </p>
+        <button
+          onClick={() => window.history.back()}
+          className="mt-2 text-sm text-primary underline"
+        >
+          Back to Atlas
+        </button>
+      </div>
+    );
   }
 
-  return <AtlasQuestFlow quest={questData.quest} clusterId={questData.clusterId} />;
+  return <AtlasQuestFlow quest={questData.quest} clusterId={questData.clusterId} onboardingIndex={questData.onboardingIndex} />;
 };
 
 export default AtlasQuestPage;

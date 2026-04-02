@@ -100,12 +100,23 @@ export const AtlasClusterDetail = ({ cluster, open, onOpenChange }: AtlasCluster
     try {
       const { data: { user } } = await supabase.auth.getUser();
       if (!user) return;
+      // Default dot_category based on cluster type
+      const CLUSTER_DOT_CATEGORIES: Record<string, string> = {
+        "personal-frustrations": "shadow",
+        "external-reflections": "shadow",
+        "life-events": "life_imprint",
+        "childhood-signals": "life_imprint",
+        "aha-moments": "life_imprint",
+        "golden-moments": "golden_moment",
+      };
+      const defaultCategory = CLUSTER_DOT_CATEGORIES[cluster.slug] || "strength";
+
       const { error } = await supabase.from("atlas_dots").insert({
         user_id: user.id,
         cluster_id: cluster.id,
         title: newDotTitle.trim(),
         original_title: newDotTitle.trim(),
-        dot_category: "strength",
+        dot_category: defaultCategory,
         source_system: "user_created",
         origin: "user",
       } as any);
