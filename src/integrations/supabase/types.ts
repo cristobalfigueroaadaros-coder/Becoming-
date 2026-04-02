@@ -3165,6 +3165,7 @@ export type Database = {
           birth_time: string | null
           birth_time_unknown: boolean | null
           capability_map_unlocked: boolean | null
+          chat_unlocked: boolean | null
           console_intake_completed: boolean | null
           console_thread_phase: string | null
           constellation_insights: Json | null
@@ -3173,6 +3174,7 @@ export type Database = {
           council_unlocked_at: string | null
           created_at: string | null
           creation_gate_passed_at: string | null
+          creators_unlocked: boolean | null
           display_name: string | null
           emotional_tone: string | null
           entry_state: string | null
@@ -3201,6 +3203,7 @@ export type Database = {
           onboarding_completion_seen: boolean
           onboarding_quest_completed: boolean | null
           priority_growth_area: string | null
+          projects_unlocked: boolean | null
           purpose_path: string | null
           reflection_loop_count: number | null
           second_win_completed_at: string | null
@@ -3222,6 +3225,7 @@ export type Database = {
           birth_time?: string | null
           birth_time_unknown?: boolean | null
           capability_map_unlocked?: boolean | null
+          chat_unlocked?: boolean | null
           console_intake_completed?: boolean | null
           console_thread_phase?: string | null
           constellation_insights?: Json | null
@@ -3230,6 +3234,7 @@ export type Database = {
           council_unlocked_at?: string | null
           created_at?: string | null
           creation_gate_passed_at?: string | null
+          creators_unlocked?: boolean | null
           display_name?: string | null
           emotional_tone?: string | null
           entry_state?: string | null
@@ -3258,6 +3263,7 @@ export type Database = {
           onboarding_completion_seen?: boolean
           onboarding_quest_completed?: boolean | null
           priority_growth_area?: string | null
+          projects_unlocked?: boolean | null
           purpose_path?: string | null
           reflection_loop_count?: number | null
           second_win_completed_at?: string | null
@@ -3279,6 +3285,7 @@ export type Database = {
           birth_time?: string | null
           birth_time_unknown?: boolean | null
           capability_map_unlocked?: boolean | null
+          chat_unlocked?: boolean | null
           console_intake_completed?: boolean | null
           console_thread_phase?: string | null
           constellation_insights?: Json | null
@@ -3287,6 +3294,7 @@ export type Database = {
           council_unlocked_at?: string | null
           created_at?: string | null
           creation_gate_passed_at?: string | null
+          creators_unlocked?: boolean | null
           display_name?: string | null
           emotional_tone?: string | null
           entry_state?: string | null
@@ -3315,6 +3323,7 @@ export type Database = {
           onboarding_completion_seen?: boolean
           onboarding_quest_completed?: boolean | null
           priority_growth_area?: string | null
+          projects_unlocked?: boolean | null
           purpose_path?: string | null
           reflection_loop_count?: number | null
           second_win_completed_at?: string | null
