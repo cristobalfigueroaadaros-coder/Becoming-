@@ -9,8 +9,8 @@ const LIFE_IMPRINT_CLUSTERS = new Set(["life-events", "childhood-signals", "aha-
 const SHADOW_CLUSTERS = new Set(["personal-frustrations", "external-reflections"]);
 const SERVICE_CLUSTERS = new Set(["who-i-serve", "how-i-create-impact"]);
 const CORE_ONBOARDING_QUESTS = ONBOARDING_QUESTS.filter((quest) => quest.questKey.startsWith("onboarding_"));
-const SERVICE_QUESTS = ONBOARDING_QUESTS.filter((quest) => SERVICE_CLUSTERS.has(quest.clusterSlug));
-const DISCOVERY_QUESTS = [...ATLAS_QUESTS, ...SERVICE_QUESTS];
+// Service quests are in ATLAS_QUESTS, not ONBOARDING_QUESTS — include them in discovery pool
+const DISCOVERY_QUESTS = ATLAS_QUESTS;
 
 export function useAtlasQuests() {
   const { clusters, totalDots } = useAtlas();

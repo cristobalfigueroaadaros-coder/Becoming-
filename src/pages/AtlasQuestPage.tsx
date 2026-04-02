@@ -1,4 +1,4 @@
-import { useSearchParams, Navigate } from "react-router-dom";
+import { useSearchParams } from "react-router-dom";
 import { useAtlasQuests } from "@/hooks/useAtlasQuests";
 import { AtlasQuestFlow } from "@/components/atlas/AtlasQuestFlow";
 import { getQuestForCluster } from "@/data/atlasQuests";
