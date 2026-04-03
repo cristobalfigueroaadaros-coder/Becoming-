@@ -418,24 +418,30 @@ Rules:
       }];
       toolChoice = { type: "function", function: { name: "create_connection_moment" } };
     } else if (mode === "gold_moment") {
-      systemPrompt = `You are Atlas. A user has transformed a frustration into a strength — this is a Gold Moment.
+      systemPrompt = `You are Atlas. Something interesting is emerging between a frustration and a strength.
 
-Generate a superpower name that captures this transformation.
+Generate a name that captures what might be happening here — a shift, a pattern, a realization.
+
+TONE:
+- Use soft, reflective language. This is a discovery, not a declaration.
+- Write as if helping someone notice something about themselves.
+- Use phrases like: "It seems like...", "You might be noticing...", "Maybe the shift is..."
+- The transformation description should feel like a gentle observation, not a command.
 
 RULES:
-- The superpower name must be 3-6 words of simple, human language.
+- The name must be 3-6 words of simple, human language.
 - Do NOT invent compound identity names like "The Clarity-through-Complexity Code-Breaker".
 - Do NOT use "I Am a..." format.
 - Do NOT use words like: Architect, Navigator, Code-Breaker, Alchemist, Weaver, Forge, Catalyst.
-- Preferred tone examples: "You turn complexity into a clear next step", "You help people move when things feel stuck", "You simplify what feels overwhelming".
-- The superpower name should reference both the frustration and the strength.
-- The transformation description must be 1 sentence maximum, simple and human.
+- Preferred tone examples: "Turning complexity into clarity", "Making the stuck feel movable", "Finding simplicity in the overwhelming".
+- The name should reference both the frustration and the strength.
+- The transformation description must be 1 sentence, soft and observational.
 - It must feel like recognition, not cleverness.`;
 
       userPrompt = `Frustration dot: "${dotA?.title}" — ${dotA?.description || ""}
 Strength dot: "${dotB?.title}" — ${dotB?.description || ""}
 
-Generate a superpower name that captures this transformation.`;
+Generate a name that captures what might be emerging from this combination.`;
 
       tools = [{
         type: "function",
