@@ -106,7 +106,7 @@ export function useProgressiveUnlock() {
         }
       }
 
-      // Check creators unlock condition: has a project
+      // Check creators unlock condition: has a project (any type)
       if (!creatorsUnlocked && projectsUnlocked) {
         const { count: projectCount } = await supabase
           .from("integrator_projects")
@@ -118,7 +118,13 @@ export function useProgressiveUnlock() {
           .select("*", { count: "exact", head: true })
           .eq("user_id", user.id);
 
-        if ((projectCount || 0) >= 1 || (creationCount || 0) >= 1) {
+        // Also check atlas_project_nodes (created immediately on project acceptance)
+        const { count: atlasProjectCount } = await supabase
+          .from("atlas_project_nodes")
+          .select("*", { count: "exact", head: true })
+          .eq("user_id", user.id);
+
+        if ((projectCount || 0) >= 1 || (creationCount || 0) >= 1 || (atlasProjectCount || 0) >= 1) {
           creatorsUnlocked = true;
           await supabase
             .from("profiles")
