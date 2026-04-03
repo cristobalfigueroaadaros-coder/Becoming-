@@ -393,6 +393,24 @@ const Council = () => {
   };
 
   // Sidebar content - shared between mobile and desktop
+  // Determine if chats should be locked (only New Conversation visible initially)
+  const [chatsLocked, setChatsLocked] = useState(true);
+
+  useEffect(() => {
+    const checkChatLock = async () => {
+      const { data: { user } } = await supabase.auth.getUser();
+      if (!user) return;
+      const { data: profile } = await supabase
+        .from("profiles")
+        .select("console_intake_completed")
+        .eq("id", user.id)
+        .single();
+      // Unlock other chats once the first conversation is completed
+      setChatsLocked(!(profile as any)?.console_intake_completed);
+    };
+    checkChatLock();
+  }, []);
+
   const SidebarContent = () => (
     <div className="flex flex-col h-full">
       <div className="p-4 border-b border-border">
@@ -400,7 +418,7 @@ const Council = () => {
       </div>
       <ScrollArea className="flex-1">
         <div className="p-2 space-y-1">
-          {/* New Conversation / Intake Thread */}
+          {/* New Conversation / Intake Thread — always visible */}
           <button
             onClick={handleSelectIntake}
             className={cn(
@@ -421,24 +439,29 @@ const Council = () => {
               <span className="w-3 h-3 rounded-full bg-destructive animate-pulse shrink-0" />
             )}
           </button>
+
+          {/* All other threads — locked until first conversation completed */}
           {/* Console (Group Chat) */}
           <button
-            onClick={handleSelectConsole}
+            onClick={() => { if (chatsLocked) { toast("Complete your first conversation to unlock this.", { duration: 3000 }); return; } handleSelectConsole(); }}
             className={cn(
               "w-full flex items-center gap-3 p-3 rounded-lg transition-colors text-left",
-              isConsole && !showMobileList
-                ? "bg-primary/10 text-primary" 
-                : "hover:bg-muted"
+              chatsLocked
+                ? "opacity-40 cursor-not-allowed"
+                : isConsole && !showMobileList
+                  ? "bg-primary/10 text-primary" 
+                  : "hover:bg-muted"
             )}
           >
-            <div className="w-10 h-10 rounded-full bg-primary/20 flex items-center justify-center">
+            <div className="relative w-10 h-10 rounded-full bg-primary/20 flex items-center justify-center">
               <Users className="w-5 h-5 text-primary" />
+              {chatsLocked && <Lock className="w-3 h-3 absolute -bottom-0.5 -right-0.5 text-muted-foreground/60" />}
             </div>
             <div className="flex-1 min-w-0">
               <p className="font-medium truncate">Project Council</p>
               <p className="text-xs text-muted-foreground truncate">Your project mentors</p>
             </div>
-            {councilNotifications > 0 && (
+            {!chatsLocked && councilNotifications > 0 && (
               <Badge variant="destructive" className="rounded-full px-2">
                 {councilNotifications}
               </Badge>
@@ -448,18 +471,22 @@ const Council = () => {
           {/* Builder Team Thread */}
           <button
             onClick={() => {
+              if (chatsLocked) { toast("Complete your first conversation to unlock this.", { duration: 3000 }); return; }
               setSearchParams({ view: "builder-team" });
               setShowMobileList(false);
             }}
             className={cn(
               "w-full flex items-center gap-3 p-3 rounded-lg transition-colors text-left",
-              isBuilderTeam && !showMobileList
-                ? "bg-primary/10 text-primary" 
-                : "hover:bg-muted"
+              chatsLocked
+                ? "opacity-40 cursor-not-allowed"
+                : isBuilderTeam && !showMobileList
+                  ? "bg-primary/10 text-primary" 
+                  : "hover:bg-muted"
             )}
           >
-            <div className="w-10 h-10 rounded-full bg-lime-500/20 flex items-center justify-center">
+            <div className="relative w-10 h-10 rounded-full bg-lime-500/20 flex items-center justify-center">
               <Hammer className="w-5 h-5 text-lime-500" />
+              {chatsLocked && <Lock className="w-3 h-3 absolute -bottom-0.5 -right-0.5 text-muted-foreground/60" />}
             </div>
             <div className="flex-1 min-w-0">
               <p className="font-medium truncate">{threadProjectName ? `${threadProjectName} — Builder Team` : "Builder Team"}</p>
@@ -469,14 +496,18 @@ const Council = () => {
 
           {/* Inner Self Council (Group Chat) */}
           <button
-            onClick={() => navigate('/inner-self-council')}
+            onClick={() => {
+              if (chatsLocked) { toast("Complete your first conversation to unlock this.", { duration: 3000 }); return; }
+              navigate('/inner-self-council');
+            }}
             className={cn(
               "w-full flex items-center gap-3 p-3 rounded-lg transition-colors text-left",
-              "hover:bg-muted"
+              chatsLocked ? "opacity-40 cursor-not-allowed" : "hover:bg-muted"
             )}
           >
-            <div className="w-10 h-10 rounded-full bg-indigo-500/20 flex items-center justify-center">
+            <div className="relative w-10 h-10 rounded-full bg-indigo-500/20 flex items-center justify-center">
               <Heart className="w-5 h-5 text-indigo-500" />
+              {chatsLocked && <Lock className="w-3 h-3 absolute -bottom-0.5 -right-0.5 text-muted-foreground/60" />}
             </div>
             <div className="flex-1 min-w-0">
               <p className="font-medium truncate">Inner Self Council</p>
@@ -486,14 +517,18 @@ const Council = () => {
 
           {/* Transmutation Council (Group Chat) */}
           <button
-            onClick={() => navigate('/transmutation-council')}
+            onClick={() => {
+              if (chatsLocked) { toast("Complete your first conversation to unlock this.", { duration: 3000 }); return; }
+              navigate('/transmutation-council');
+            }}
             className={cn(
               "w-full flex items-center gap-3 p-3 rounded-lg transition-colors text-left",
-              "hover:bg-muted"
+              chatsLocked ? "opacity-40 cursor-not-allowed" : "hover:bg-muted"
             )}
           >
-            <div className="w-10 h-10 rounded-full bg-amber-500/20 flex items-center justify-center">
+            <div className="relative w-10 h-10 rounded-full bg-amber-500/20 flex items-center justify-center">
               <Sparkles className="w-5 h-5 text-amber-500" />
+              {chatsLocked && <Lock className="w-3 h-3 absolute -bottom-0.5 -right-0.5 text-muted-foreground/60" />}
             </div>
             <div className="flex-1 min-w-0">
               <p className="font-medium truncate">Transmutation Council</p>
@@ -502,7 +537,7 @@ const Council = () => {
           </button>
 
           {/* Creator Connections Section */}
-          {(chatRequests.length > 0 || creatorChats.length > 0) && (
+          {!chatsLocked && (chatRequests.length > 0 || creatorChats.length > 0) && (
             <>
               <div className="py-2">
                 <p className="px-3 text-xs font-medium text-muted-foreground uppercase tracking-wide">
@@ -569,24 +604,30 @@ const Council = () => {
             return (
               <button
                 key={mentorType}
-                onClick={() => handleSelectMentor(mentorType)}
+                onClick={() => {
+                  if (chatsLocked) { toast("Complete your first conversation to unlock this.", { duration: 3000 }); return; }
+                  handleSelectMentor(mentorType);
+                }}
                 className={cn(
-                  "w-full flex items-center gap-3 p-3 rounded-lg transition-colors text-left cursor-pointer",
-                  isSelected ? "bg-primary/10 text-primary" : "hover:bg-muted"
+                  "w-full flex items-center gap-3 p-3 rounded-lg transition-colors text-left",
+                  chatsLocked
+                    ? "opacity-40 cursor-not-allowed"
+                    : isSelected ? "bg-primary/10 text-primary" : "hover:bg-muted cursor-pointer"
                 )}
               >
                 <div className={cn(
-                  "w-10 h-10 rounded-full flex items-center justify-center",
+                  "relative w-10 h-10 rounded-full flex items-center justify-center",
                   config.color
                 )}>
                   <span className="text-lg">{config.icon}</span>
+                  {chatsLocked && <Lock className="w-3 h-3 absolute -bottom-0.5 -right-0.5 text-muted-foreground/60" />}
                 </div>
                 <div className="flex-1 min-w-0">
                   <p className="font-medium truncate">
                     {config.name}
                   </p>
                 </div>
-                {notifications > 0 && (
+                {!chatsLocked && notifications > 0 && (
                   <Badge 
                     variant="destructive" 
                     className="rounded-full px-2"
