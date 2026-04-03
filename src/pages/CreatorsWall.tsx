@@ -19,10 +19,21 @@ const CreatorsWall = () => {
   const { posts, isLoading, creatorCount, currentUserId, createPost, toggleResonance, addUpdate, addComment, useResonances, useUpdates, useComments } = useCreatorPosts();
   const [justPosted, setJustPosted] = useState(false);
   const [activeView, setActiveView] = useState<"wall" | "map">("wall");
+  const [showWelcome, setShowWelcome] = useState(false);
+
+  // Show welcome message on first Creator visit
+  useEffect(() => {
+    const welcomed = localStorage.getItem("creators_welcomed");
+    if (!welcomed) {
+      setShowWelcome(true);
+      localStorage.setItem("creators_welcomed", "true");
+    }
+  }, []);
 
   const handleCreatePost = async (post: Parameters<typeof createPost.mutateAsync>[0]) => {
     await createPost.mutateAsync(post);
     setJustPosted(true);
+    setShowWelcome(false);
     toast({ title: "Shared with the world! ✨" });
   };
 
