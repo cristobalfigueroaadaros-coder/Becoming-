@@ -91,10 +91,28 @@ const CreatorsWall = () => {
 
       {activeView === "wall" ? (
         <>
+          {/* Welcome message on first visit */}
+          {showWelcome && (
+            <div className="rounded-xl border border-primary/20 bg-primary/5 p-5 text-center space-y-2">
+              <p className="text-sm text-foreground leading-relaxed">
+                You're building something real now.
+              </p>
+              <p className="text-sm text-muted-foreground leading-relaxed">
+                If you feel like it, share what you're working on…<br />
+                your idea, your thoughts, where you're at.
+              </p>
+              <p className="text-xs text-muted-foreground/70">
+                This is how others connect with what you're creating.
+              </p>
+            </div>
+          )}
+
           {/* Guidance message */}
-          <p className="text-center text-xs text-muted-foreground/60">
-            This space is for sharing positive impact, supporting each other, and building a better world together.
-          </p>
+          {!showWelcome && (
+            <p className="text-center text-xs text-muted-foreground/60">
+              This space is for sharing positive impact, supporting each other, and building a better world together.
+            </p>
+          )}
 
           {/* Post Composer */}
           <PostComposer onSubmit={handleCreatePost} isSubmitting={createPost.isPending} />
