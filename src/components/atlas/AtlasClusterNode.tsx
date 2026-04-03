@@ -130,24 +130,52 @@ export const AtlasClusterNode = ({ cluster, index, onTap, isHighlighted, miniDot
         {cluster.dots.map((dot, i) => {
           const pos = orbitPositions[i];
           if (!pos) return null;
+          const dotMiniCount = miniDotCounts[dot.id] || 0;
+          const hasMinis = dotMiniCount > 0;
           return (
-            <motion.span
-              key={dot.id}
-              className="absolute rounded-full"
-              style={{
-                backgroundColor: getDotColor(dot),
-                left: `calc(50% + ${pos.x}px - 5px)`,
-                top: `calc(50% + ${pos.y}px - 5px)`,
-                boxShadow: (miniDotCounts[dot.id] || 0) > 0
-                  ? `0 0 ${6 + (miniDotCounts[dot.id] || 0) * 2}px ${getDotColor(dot)}80`
-                  : `0 0 4px ${getDotColor(dot)}60`,
-                width: (miniDotCounts[dot.id] || 0) > 0 ? 12 : 10,
-                height: (miniDotCounts[dot.id] || 0) > 0 ? 12 : 10,
-              }}
-              initial={{ opacity: 0, scale: 0 }}
-              animate={{ opacity: 1, scale: 1 }}
-              transition={{ delay: index * 0.05 + i * 0.03 }}
-            />
+            <div key={dot.id}>
+              {/* Main dot */}
+              <motion.span
+                className="absolute rounded-full"
+                style={{
+                  backgroundColor: getDotColor(dot),
+                  left: `calc(50% + ${pos.x}px - 5px)`,
+                  top: `calc(50% + ${pos.y}px - 5px)`,
+                  boxShadow: hasMinis
+                    ? `0 0 ${6 + dotMiniCount * 2}px ${getDotColor(dot)}80`
+                    : `0 0 4px ${getDotColor(dot)}60`,
+                  width: hasMinis ? 12 : 10,
+                  height: hasMinis ? 12 : 10,
+                }}
+                initial={{ opacity: 0, scale: 0 }}
+                animate={{ opacity: 1, scale: 1 }}
+                transition={{ delay: index * 0.05 + i * 0.03 }}
+              />
+              {/* Mini-dot satellites — tiny dots orbiting parent */}
+              {hasMinis && Array.from({ length: Math.min(dotMiniCount, 4) }).map((_, mi) => {
+                const miniAngle = (2 * Math.PI * mi) / Math.min(dotMiniCount, 4);
+                const miniRadius = 8;
+                const mx = pos.x + Math.cos(miniAngle) * miniRadius;
+                const my = pos.y + Math.sin(miniAngle) * miniRadius;
+                return (
+                  <motion.span
+                    key={`mini-${dot.id}-${mi}`}
+                    className="absolute rounded-full"
+                    style={{
+                      backgroundColor: getDotColor(dot),
+                      left: `calc(50% + ${mx}px - 2px)`,
+                      top: `calc(50% + ${my}px - 2px)`,
+                      width: 4,
+                      height: 4,
+                      opacity: 0.7,
+                    }}
+                    initial={{ opacity: 0, scale: 0 }}
+                    animate={{ opacity: [0.5, 0.9, 0.5], scale: 1 }}
+                    transition={{ delay: index * 0.05 + i * 0.03 + mi * 0.05, duration: 2, repeat: Infinity }}
+                  />
+                );
+              })}
+            </div>
           );
         })}
       </div>
