@@ -241,71 +241,47 @@ export const InsightActionSheet = ({
             </div>
           </motion.button>
 
-          {/* Option 2: Go Deeper Later */}
-          {!showMentorSelect ? (
-            <motion.button
-              whileHover={{ scale: 1.01 }}
-              whileTap={{ scale: 0.99 }}
-              onClick={() => setShowMentorSelect(true)}
-              disabled={saving}
-              className="w-full p-4 rounded-lg border-2 border-primary/30 hover:border-primary/60 bg-gradient-to-r from-primary/5 to-transparent transition-all text-left group disabled:opacity-50"
-            >
-              <div className="flex items-start gap-3">
-                <div className="w-10 h-10 rounded-full bg-primary/20 flex items-center justify-center flex-shrink-0 group-hover:bg-primary/30 transition-colors">
-                  <Clock className="w-5 h-5 text-primary" />
-                </div>
-                <div>
-                  <p className="font-medium">Go Deeper Later</p>
-                  <p className="text-sm text-muted-foreground mt-0.5">
-                    A mentor will reach out to discuss this with you
-                  </p>
-                </div>
-              </div>
-            </motion.button>
-          ) : (
-            <div className="p-4 rounded-lg border-2 border-primary/50 bg-primary/5 space-y-3">
-              <div className="flex items-center gap-2">
+          {/* Option 2: Go Deeper Later — auto-assigns the source mentor */}
+          <motion.button
+            whileHover={{ scale: 1.01 }}
+            whileTap={{ scale: 0.99 }}
+            onClick={() => {
+              // Use source mentor directly — no selection needed
+              const mentor = sourceMentor || 'future_self';
+              setSelectedMentor(mentor);
+              // Fire immediately
+              setSaving(true);
+              saveInsight(
+                insightText,
+                sourceType,
+                sourceMentor || null,
+                sourceContext,
+                { requestFollowup: true, followupMentor: mentor }
+              ).then(() => {
+                toast.success(`${mentorNames[mentor] || 'Your mentor'} will reach out soon`, {
+                  description: "They'll message you about this insight",
+                  icon: <MessageCircle className="w-4 h-4" />,
+                });
+                onOpenChange(false);
+              }).catch(() => {}).finally(() => setSaving(false));
+            }}
+            disabled={saving}
+            className="w-full p-4 rounded-lg border-2 border-primary/30 hover:border-primary/60 bg-gradient-to-r from-primary/5 to-transparent transition-all text-left group disabled:opacity-50"
+          >
+            <div className="flex items-start gap-3">
+              <div className="w-10 h-10 rounded-full bg-primary/20 flex items-center justify-center flex-shrink-0 group-hover:bg-primary/30 transition-colors">
                 <Clock className="w-5 h-5 text-primary" />
-                <p className="font-medium">Who should reach out?</p>
               </div>
-              
-              <Select value={selectedMentor} onValueChange={setSelectedMentor}>
-                <SelectTrigger className="w-full">
-                  <SelectValue placeholder="Select a mentor" />
-                </SelectTrigger>
-                <SelectContent>
-                  {availableMentors.map(([key, name]) => (
-                    <SelectItem key={key} value={key}>
-                      {name}
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
-
-              <div className="flex gap-2">
-                <Button
-                  variant="ghost"
-                  size="sm"
-                  onClick={() => {
-                    setShowMentorSelect(false);
-                    setSelectedMentor('');
-                  }}
-                  className="flex-1"
-                >
-                  Cancel
-                </Button>
-                <Button
-                  size="sm"
-                  onClick={handleGoDeeper}
-                  disabled={!selectedMentor || saving}
-                  className="flex-1 gap-2"
-                >
-                  <Check className="w-4 h-4" />
-                  Confirm
-                </Button>
+              <div>
+                <p className="font-medium">Go Deeper Later</p>
+                <p className="text-sm text-muted-foreground mt-0.5">
+                  {sourceMentor && mentorNames[sourceMentor]
+                    ? `${mentorNames[sourceMentor]} will reach out to discuss this`
+                    : 'A mentor will reach out to discuss this with you'}
+                </p>
               </div>
             </div>
-          )}
+          </motion.button>
         </div>
       </DialogContent>
     </Dialog>
