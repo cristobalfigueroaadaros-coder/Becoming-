@@ -591,8 +591,13 @@ const Council = () => {
             </p>
           </div>
 
-          {/* All Mentors List - showing locked/unlocked state */}
-          {allMentorTypes.map((mentorType) => {
+          {/* All Mentors List - sorted: mentors with notifications first */}
+          {[...allMentorTypes].sort((a, b) => {
+            const aN = mentorNotifications[a] || 0;
+            const bN = mentorNotifications[b] || 0;
+            if (bN !== aN) return bN - aN;
+            return 0;
+          }).map((mentorType) => {
             const config = mentorConfig[mentorType] || { 
               name: mentorType, 
               color: "bg-muted", 
