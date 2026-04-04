@@ -1,8 +1,6 @@
 import { useState } from 'react';
-import { Lightbulb, Clock, MessageCircle, Check } from 'lucide-react';
+import { Lightbulb, Clock, MessageCircle } from 'lucide-react';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from '@/components/ui/dialog';
-import { Button } from '@/components/ui/button';
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { toast } from 'sonner';
 import { useSavedInsights } from '@/hooks/useSavedInsights';
 import { motion } from 'framer-motion';
