@@ -145,7 +145,7 @@ const AtlasPage = () => {
           <p className="text-xs text-muted-foreground mt-1">I'm starting to see something interesting.</p>
           <p className="text-[10px] text-muted-foreground mt-2">The more you explore, the clearer this becomes.</p>
           <div className="flex gap-2 mt-3">
-            <Button size="sm" className="gap-1.5" onClick={() => navigate("/console")}>
+            <Button size="sm" className="gap-1.5" onClick={() => navigate("/council?view=intake")}>
               Start Your Journey <ArrowRight className="w-3 h-3" />
             </Button>
             <Button size="sm" variant="outline" onClick={() => { setShowUnlockCard(false); navigate("/atlas/quest"); }}>
