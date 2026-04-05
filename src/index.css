@@ -29,7 +29,7 @@
     --accent-foreground: 240 20% 6%;
 
     --muted: 240 15% 15%;
-    --muted-foreground: 240 10% 55%;
+    --muted-foreground: 240 10% 72%;
 
     --destructive: 0 72% 55%;
     --destructive-foreground: 0 0% 100%;
@@ -80,7 +80,7 @@
     --accent: 35 90% 60%;
     --accent-foreground: 240 20% 6%;
     --muted: 240 15% 15%;
-    --muted-foreground: 240 10% 55%;
+    --muted-foreground: 240 10% 72%;
     --destructive: 0 72% 55%;
     --destructive-foreground: 0 0% 100%;
     --border: 240 15% 16%;
