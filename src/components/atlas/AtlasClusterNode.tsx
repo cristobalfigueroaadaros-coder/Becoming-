@@ -189,14 +189,14 @@ export const AtlasClusterNode = ({ cluster, index, onTap, isHighlighted, miniDot
             <span
               className="text-[10px] font-semibold leading-tight text-center max-w-[60px] px-1.5 py-0.5 rounded"
               style={{
-                color: "#000000",
+                color: "hsl(var(--foreground))",
                 backgroundColor: "hsl(var(--background) / 0.85)",
               }}
             >
               {cluster.name}
             </span>
             {cluster.dotCount > 0 && (
-              <span className="text-[9px] mt-0.5 font-medium" style={{ color: "#000000" }}>
+              <span className="text-[9px] mt-0.5 font-medium" style={{ color: "hsl(var(--foreground) / 0.8)" }}>
                 {cluster.dotCount}
               </span>
             )}
