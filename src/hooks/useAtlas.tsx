@@ -82,10 +82,10 @@ function computeState(dotCount: number, unlocked: boolean): ClusterState {
 }
 
 export const DOMAIN_COLORS: Record<string, { bg: string; text: string; glow: string; border: string }> = {
-  Person: { bg: "hsl(270 60% 60%)", text: "hsl(270 60% 85%)", glow: "hsl(270 60% 60% / 0.3)", border: "hsl(270 60% 50%)" },
-  Process: { bg: "hsl(210 80% 55%)", text: "hsl(210 80% 85%)", glow: "hsl(210 80% 55% / 0.3)", border: "hsl(210 80% 45%)" },
-  Product: { bg: "hsl(155 60% 45%)", text: "hsl(155 60% 85%)", glow: "hsl(155 60% 45% / 0.3)", border: "hsl(155 60% 35%)" },
-  Environment: { bg: "hsl(25 90% 55%)", text: "hsl(25 90% 85%)", glow: "hsl(25 90% 55% / 0.3)", border: "hsl(25 90% 45%)" },
+  Person: { bg: "hsl(280 75% 58%)", text: "hsl(280 60% 88%)", glow: "hsl(280 75% 58% / 0.35)", border: "hsl(280 70% 48%)" },
+  Process: { bg: "hsl(220 90% 58%)", text: "hsl(220 80% 88%)", glow: "hsl(220 90% 58% / 0.35)", border: "hsl(220 85% 48%)" },
+  Product: { bg: "hsl(155 65% 48%)", text: "hsl(155 60% 88%)", glow: "hsl(155 65% 48% / 0.35)", border: "hsl(155 60% 38%)" },
+  Environment: { bg: "hsl(28 90% 55%)", text: "hsl(28 85% 88%)", glow: "hsl(28 90% 55% / 0.35)", border: "hsl(28 85% 45%)" },
 };
 
 export const CLUSTER_COLORS: Record<string, { bg: string; glow: string }> = {
