@@ -16,41 +16,11 @@ interface NavItem {
 }
 
 const navItems: NavItem[] = [
-  {
-    icon: LayoutGrid,
-    label: "Home",
-    path: "/dashboard",
-    unlockKey: "home",
-    matchPaths: ["/dashboard"],
-  },
-  {
-    icon: Compass,
-    label: "Atlas",
-    path: "/atlas",
-    unlockKey: "atlas",
-    matchPaths: ["/atlas"],
-  },
-  {
-    icon: Users,
-    label: "Chats",
-    path: "/council",
-    unlockKey: "chat",
-    matchPaths: ["/council", "/council-meeting", "/chat", "/console-thread"],
-  },
-  {
-    icon: FlaskConical,
-    label: "Projects",
-    path: "/creation-lab",
-    unlockKey: "projects",
-    matchPaths: ["/creation-lab", "/future-self"],
-  },
-  {
-    icon: Globe,
-    label: "Creators",
-    path: "/creators",
-    unlockKey: "creators",
-    matchPaths: ["/creators"],
-  },
+  { icon: LayoutGrid, label: "Home", path: "/dashboard", unlockKey: "home", matchPaths: ["/dashboard"] },
+  { icon: Compass, label: "Atlas", path: "/atlas", unlockKey: "atlas", matchPaths: ["/atlas"] },
+  { icon: Users, label: "Chats", path: "/council", unlockKey: "chat", matchPaths: ["/council", "/council-meeting", "/chat", "/console-thread"] },
+  { icon: FlaskConical, label: "Projects", path: "/creation-lab", unlockKey: "projects", matchPaths: ["/creation-lab", "/future-self"] },
+  { icon: Globe, label: "Creators", path: "/creators", unlockKey: "creators", matchPaths: ["/creators"] },
 ];
 
 export const BottomNavigation = () => {
@@ -62,10 +32,7 @@ export const BottomNavigation = () => {
   const [showAtlasBadge, setShowAtlasBadge] = useState(false);
   const { isLocked, getLockMessage, refreshUnlocks } = useProgressiveUnlock();
 
-  // Re-check unlocks when returning to nav (path change)
-  useEffect(() => {
-    refreshUnlocks();
-  }, [location.pathname, refreshUnlocks]);
+  useEffect(() => { refreshUnlocks(); }, [location.pathname, refreshUnlocks]);
 
   useEffect(() => {
     const checkBadges = async () => {
@@ -93,9 +60,7 @@ export const BottomNavigation = () => {
   const isActive = (item: NavItem) => {
     const currentPath = location.pathname;
     if (currentPath === item.path) return true;
-    if (item.matchPaths) {
-      return item.matchPaths.some(path => currentPath.startsWith(path));
-    }
+    if (item.matchPaths) return item.matchPaths.some(path => currentPath.startsWith(path));
     return false;
   };
 
@@ -108,8 +73,8 @@ export const BottomNavigation = () => {
   };
 
   return (
-    <nav className="fixed bottom-0 left-0 right-0 z-50 bg-background/95 backdrop-blur-sm border-t border-border safe-area-bottom">
-      <div className="flex items-center justify-around h-14 max-w-lg mx-auto px-1">
+    <nav className="fixed bottom-0 left-0 right-0 z-50 bg-background/90 backdrop-blur-xl border-t border-border/40 safe-area-bottom">
+      <div className="flex items-center justify-around h-16 max-w-lg mx-auto px-1">
         {navItems.map((item) => {
           const active = isActive(item);
           const Icon = item.icon;
@@ -118,31 +83,36 @@ export const BottomNavigation = () => {
           const showCouncilBadge = item.path === "/council" && (councilBadge || creatorRequestCount > 0) && !locked;
           const showAtlasDot = item.path === "/atlas" && showAtlasBadge;
           const showBadge = showCreationBadge || showCouncilBadge || showAtlasDot;
-          
+
           return (
             <button
               key={item.path}
               onClick={() => handleNavClick(item)}
               className={cn(
-                "relative flex flex-col items-center justify-center gap-1 flex-1 h-full transition-colors",
+                "relative flex flex-col items-center justify-center gap-1 flex-1 h-full transition-all duration-200",
                 locked
-                  ? "text-muted-foreground/40"
-                  : active 
-                    ? "text-primary" 
+                  ? "text-muted-foreground/30"
+                  : active
+                    ? "text-primary"
                     : "text-muted-foreground hover:text-foreground"
               )}
             >
               <div className="relative">
                 {locked ? (
                   <div className="relative">
-                    <Icon className="w-5 h-5 opacity-40" />
-                    <Lock className="w-2.5 h-2.5 absolute -bottom-0.5 -right-0.5 text-muted-foreground/60" />
+                    <Icon className="w-5 h-5 opacity-30" />
+                    <Lock className="w-2.5 h-2.5 absolute -bottom-0.5 -right-0.5 text-muted-foreground/50" />
                   </div>
                 ) : (
                   <>
-                    <Icon className={cn("w-5 h-5", active && "text-primary")} />
+                    <div className={cn(
+                      "p-1.5 rounded-xl transition-all duration-200",
+                      active && "bg-primary/10 shadow-[0_0_15px_hsl(265_90%_62%/0.2)]"
+                    )}>
+                      <Icon className={cn("w-5 h-5", active && "text-primary drop-shadow-[0_0_8px_hsl(265_90%_62%/0.5)]")} />
+                    </div>
                     {showBadge && (
-                      <span className="absolute -top-1.5 -right-1.5 w-4 h-4 rounded-full bg-destructive text-destructive-foreground text-[10px] font-bold flex items-center justify-center animate-pulse">
+                      <span className="absolute -top-1 -right-1 w-4 h-4 rounded-full bg-destructive text-destructive-foreground text-[10px] font-bold flex items-center justify-center animate-pulse shadow-[0_0_8px_hsl(0_72%_55%/0.4)]">
                         {showAtlasDot ? "!" : showCouncilBadge ? (creatorRequestCount > 0 ? creatorRequestCount : "!") : badgeCount}
                       </span>
                     )}
@@ -150,8 +120,8 @@ export const BottomNavigation = () => {
                 )}
               </div>
               <span className={cn(
-                "text-xs font-medium",
-                locked ? "text-muted-foreground/40" : active && "text-primary"
+                "text-[10px] font-medium transition-all duration-200",
+                locked ? "text-muted-foreground/30" : active && "text-primary font-semibold"
               )}>
                 {item.label}
               </span>
