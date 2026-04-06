@@ -106,7 +106,7 @@ mentor_stage rules:
 - "grow" if patterns show direction → route to strategist
 - "build" if patterns show readiness for action → route to strategist (or business_mentor if monetization-ready)`;
 
-    const response = await fetch("https://api.lovable.dev/v1/chat/completions", {
+    const response = await fetch("https://ai.gateway.lovable.dev/v1/chat/completions", {
       method: "POST",
       headers: {
         "Content-Type": "application/json",
