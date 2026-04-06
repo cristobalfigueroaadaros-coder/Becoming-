@@ -2,90 +2,97 @@
 @tailwind components;
 @tailwind utilities;
 
-/* Bcoming Design System — Deep Indigo + Purple Glow + Warmth */
+/* Bcoming Design System — Living Cosmic Identity System */
+/* Inspired by: Superneon + Bcoming Logo (Spiral + Triangle + Light) */
 
 @layer base {
   :root {
-    /* Dark cosmic base */
-    --background: 240 20% 6%;
-    --foreground: 240 10% 95%;
+    /* Deep cosmic base — NOT black, alive & expanding */
+    --background: 232 45% 7%;
+    --foreground: 220 20% 95%;
 
-    --card: 240 18% 10%;
-    --card-foreground: 240 10% 95%;
+    --card: 232 40% 11%;
+    --card-foreground: 220 20% 95%;
 
-    --popover: 240 18% 10%;
-    --popover-foreground: 240 10% 95%;
+    --popover: 232 40% 11%;
+    --popover-foreground: 220 20% 95%;
 
-    /* Primary — Neon purple */
-    --primary: 265 85% 65%;
+    /* Primary — Neon violet-purple (logo-aligned) */
+    --primary: 265 90% 62%;
     --primary-foreground: 0 0% 100%;
 
-    /* Secondary — Electric blue */
-    --secondary: 220 90% 60%;
+    /* Secondary — Electric blue (clarity) */
+    --secondary: 220 95% 58%;
     --secondary-foreground: 0 0% 100%;
 
-    /* Accent — Warm gold/orange for transformation */
-    --accent: 35 90% 60%;
-    --accent-foreground: 240 20% 6%;
+    /* Accent — Warm gold (transformation, rare) */
+    --accent: 38 92% 58%;
+    --accent-foreground: 232 45% 7%;
 
-    --muted: 240 15% 15%;
-    --muted-foreground: 240 10% 72%;
+    --muted: 232 30% 15%;
+    --muted-foreground: 220 15% 72%;
 
     --destructive: 0 72% 55%;
     --destructive-foreground: 0 0% 100%;
 
-    --border: 240 15% 16%;
-    --input: 240 15% 16%;
-    --ring: 265 85% 65%;
+    --border: 232 25% 18%;
+    --input: 232 25% 18%;
+    --ring: 265 90% 62%;
 
     --radius: 0.75rem;
 
-    /* Mentor colors */
-    --mamba: 330 75% 48%;
-    --creative: 280 70% 60%;
-    --quantum: 220 90% 60%;
-    --sage: 140 35% 48%;
-    --elder: 35 65% 58%;
+    /* Mentor colors — Neon, NOT pastel */
+    --mamba: 330 80% 55%;
+    --creative: 280 75% 58%;
+    --quantum: 220 90% 58%;
+    --sage: 155 55% 48%;
+    --elder: 38 70% 55%;
 
     /* Future Self */
     --future-self: 330 85% 60%;
     --future-self-light: 330 75% 70%;
     --future-self-glow: 330 85% 85%;
 
+    /* Extended gradient palette (blue → purple → magenta) */
+    --gradient-start: 220 95% 58%;
+    --gradient-mid: 265 90% 62%;
+    --gradient-end: 320 80% 55%;
+
     /* Gradients */
-    --gradient-primary: linear-gradient(135deg, hsl(265 85% 65%), hsl(220 90% 60%));
-    --gradient-accent: linear-gradient(135deg, hsl(35 90% 60%), hsl(25 95% 55%));
-    --gradient-glow: linear-gradient(135deg, hsl(265 85% 65% / 0.3), hsl(220 90% 60% / 0.1));
-    --gradient-surface: linear-gradient(180deg, hsl(240 18% 12%), hsl(240 20% 8%));
+    --gradient-primary: linear-gradient(135deg, hsl(220 95% 58%), hsl(265 90% 62%), hsl(320 80% 55%));
+    --gradient-accent: linear-gradient(135deg, hsl(38 92% 58%), hsl(28 95% 52%));
+    --gradient-glow: linear-gradient(135deg, hsl(265 90% 62% / 0.3), hsl(220 95% 58% / 0.1));
+    --gradient-surface: linear-gradient(180deg, hsl(232 40% 13%), hsl(232 45% 8%));
+    --gradient-cosmic: linear-gradient(135deg, hsl(232 45% 7%), hsl(250 40% 12%), hsl(232 45% 7%));
 
     /* Effects */
-    --shadow-glow-sm: 0 0 20px hsl(265 85% 65% / 0.15);
-    --shadow-glow-md: 0 0 40px hsl(265 85% 65% / 0.2);
-    --shadow-glow-lg: 0 0 80px hsl(265 85% 65% / 0.25);
+    --shadow-glow-sm: 0 0 20px hsl(265 90% 62% / 0.15);
+    --shadow-glow-md: 0 0 40px hsl(265 90% 62% / 0.2);
+    --shadow-glow-lg: 0 0 80px hsl(265 90% 62% / 0.25);
     --shadow-soft: 0 4px 24px -4px hsl(0 0% 0% / 0.4);
+    --shadow-neon: 0 0 30px hsl(265 90% 62% / 0.3), 0 0 60px hsl(265 90% 62% / 0.1);
   }
 
   .dark {
-    /* Same as root — the product IS dark mode */
-    --background: 240 20% 6%;
-    --foreground: 240 10% 95%;
-    --card: 240 18% 10%;
-    --card-foreground: 240 10% 95%;
-    --popover: 240 18% 10%;
-    --popover-foreground: 240 10% 95%;
-    --primary: 265 85% 65%;
+    --background: 232 45% 7%;
+    --foreground: 220 20% 95%;
+    --card: 232 40% 11%;
+    --card-foreground: 220 20% 95%;
+    --popover: 232 40% 11%;
+    --popover-foreground: 220 20% 95%;
+    --primary: 265 90% 62%;
     --primary-foreground: 0 0% 100%;
-    --secondary: 220 90% 60%;
+    --secondary: 220 95% 58%;
     --secondary-foreground: 0 0% 100%;
-    --accent: 35 90% 60%;
-    --accent-foreground: 240 20% 6%;
-    --muted: 240 15% 15%;
-    --muted-foreground: 240 10% 72%;
+    --accent: 38 92% 58%;
+    --accent-foreground: 232 45% 7%;
+    --muted: 232 30% 15%;
+    --muted-foreground: 220 15% 72%;
     --destructive: 0 72% 55%;
     --destructive-foreground: 0 0% 100%;
-    --border: 240 15% 16%;
-    --input: 240 15% 16%;
-    --ring: 265 85% 65%;
+    --border: 232 25% 18%;
+    --input: 232 25% 18%;
+    --ring: 265 90% 62%;
   }
 }
 
@@ -104,47 +111,99 @@
   }
 }
 
-/* Utility classes for glow effects */
+/* Utility classes for glow effects — controlled use */
 @layer utilities {
+  /* Primary neon glow */
   .glow-purple {
-    box-shadow: 0 0 30px hsl(265 85% 65% / 0.3), 0 0 60px hsl(265 85% 65% / 0.1);
+    box-shadow: 0 0 30px hsl(265 90% 62% / 0.3), 0 0 60px hsl(265 90% 62% / 0.1);
   }
 
   .glow-purple-sm {
-    box-shadow: 0 0 15px hsl(265 85% 65% / 0.2);
+    box-shadow: 0 0 15px hsl(265 90% 62% / 0.2);
   }
 
   .glow-blue {
-    box-shadow: 0 0 30px hsl(220 90% 60% / 0.3), 0 0 60px hsl(220 90% 60% / 0.1);
+    box-shadow: 0 0 30px hsl(220 95% 58% / 0.3), 0 0 60px hsl(220 95% 58% / 0.1);
   }
 
   .glow-gold {
-    box-shadow: 0 0 30px hsl(35 90% 60% / 0.3), 0 0 60px hsl(35 90% 60% / 0.1);
+    box-shadow: 0 0 30px hsl(38 92% 58% / 0.3), 0 0 60px hsl(38 92% 58% / 0.1);
   }
 
+  .glow-magenta {
+    box-shadow: 0 0 30px hsl(320 80% 55% / 0.3), 0 0 60px hsl(320 80% 55% / 0.1);
+  }
+
+  /* Text glow for key headings */
   .text-glow {
-    text-shadow: 0 0 40px hsl(265 85% 65% / 0.4);
+    text-shadow: 0 0 40px hsl(265 90% 62% / 0.4);
   }
 
+  /* Gradient text — blue → purple → magenta */
   .gradient-text {
     @apply bg-clip-text text-transparent;
-    background-image: linear-gradient(135deg, hsl(265 85% 70%), hsl(220 90% 65%));
+    background-image: linear-gradient(135deg, hsl(220 95% 65%), hsl(265 90% 68%), hsl(320 80% 60%));
   }
 
   .gradient-text-warm {
     @apply bg-clip-text text-transparent;
-    background-image: linear-gradient(135deg, hsl(35 90% 60%), hsl(25 95% 55%));
+    background-image: linear-gradient(135deg, hsl(38 92% 58%), hsl(28 95% 52%));
   }
 
+  /* Glassmorphism — cosmic depth */
   .glass {
-    background: hsl(240 18% 10% / 0.6);
+    background: hsl(232 40% 11% / 0.6);
     backdrop-filter: blur(20px);
-    border: 1px solid hsl(240 15% 20% / 0.5);
+    border: 1px solid hsl(232 25% 22% / 0.5);
   }
 
   .glass-strong {
-    background: hsl(240 18% 12% / 0.8);
+    background: hsl(232 40% 13% / 0.8);
     backdrop-filter: blur(30px);
-    border: 1px solid hsl(240 15% 22% / 0.6);
+    border: 1px solid hsl(232 25% 24% / 0.6);
+  }
+
+  /* Gradient border effect */
+  .gradient-border {
+    position: relative;
+  }
+
+  .gradient-border::before {
+    content: '';
+    position: absolute;
+    inset: 0;
+    border-radius: inherit;
+    padding: 1px;
+    background: linear-gradient(135deg, hsl(220 95% 58% / 0.5), hsl(265 90% 62% / 0.5), hsl(320 80% 55% / 0.3));
+    -webkit-mask: linear-gradient(#fff 0 0) content-box, linear-gradient(#fff 0 0);
+    -webkit-mask-composite: xor;
+    mask-composite: exclude;
+    pointer-events: none;
+  }
+
+  /* Cosmic background (for main containers) */
+  .bg-cosmic {
+    background: 
+      radial-gradient(ellipse at 20% 30%, hsl(265 90% 62% / 0.06) 0%, transparent 50%),
+      radial-gradient(ellipse at 80% 60%, hsl(220 95% 58% / 0.04) 0%, transparent 50%),
+      radial-gradient(ellipse at 50% 80%, hsl(320 80% 55% / 0.03) 0%, transparent 40%),
+      hsl(var(--background));
+  }
+
+  /* Button gradient */
+  .btn-gradient {
+    background: linear-gradient(135deg, hsl(220 95% 58%), hsl(265 90% 62%), hsl(320 80% 55%));
+    transition: all 0.3s ease;
+  }
+
+  .btn-gradient:hover {
+    box-shadow: 0 0 25px hsl(265 90% 62% / 0.4), 0 0 50px hsl(265 90% 62% / 0.15);
+    transform: translateY(-1px);
+    filter: brightness(1.1);
+  }
+
+  /* Neon line (for connections) */
+  .neon-line {
+    filter: drop-shadow(0 0 4px hsl(265 90% 62% / 0.4));
   }
 }

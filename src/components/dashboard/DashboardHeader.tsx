@@ -40,7 +40,7 @@ const DashboardHeader = ({ displayName }: DashboardHeaderProps) => {
     <div className="flex items-center justify-between">
       <div className="space-y-1">
         <div className="flex items-center gap-3 mb-1">
-          <img src={bcomingLogo} alt="Bcoming" className="h-8 w-auto" />
+          <img src={bcomingLogo} alt="Bcoming" className="h-10 w-auto drop-shadow-[0_0_12px_hsl(265_90%_62%/0.3)]" />
         </div>
         <h1 className="text-3xl md:text-4xl font-bold">
           {greeting.text}, {name} {greeting.emoji}

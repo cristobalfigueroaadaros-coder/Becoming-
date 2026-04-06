@@ -13,12 +13,11 @@ interface AtlasClusterNodeProps {
   isFaded?: boolean;
 }
 
-// Compute positions for dots in concentric orbits OUTSIDE the cluster center
 function getOrbitPositions(dotCount: number, baseRadius: number): { x: number; y: number }[] {
   const orbits = [
-    { radius: baseRadius + 12, maxDots: 6 },
-    { radius: baseRadius + 24, maxDots: 8 },
-    { radius: baseRadius + 36, maxDots: 12 },
+    { radius: baseRadius + 14, maxDots: 6 },
+    { radius: baseRadius + 28, maxDots: 8 },
+    { radius: baseRadius + 40, maxDots: 12 },
   ];
   const positions: { x: number; y: number }[] = [];
   let remaining = dotCount;
@@ -40,10 +39,10 @@ function getOrbitPositions(dotCount: number, baseRadius: number): { x: number; y
 const GROWTH_STYLES: Record<string, { size: number; opacity: string; glowSize: number; pulse: boolean }> = {
   locked:    { size: 64, opacity: "opacity-30", glowSize: 0, pulse: false },
   dormant:   { size: 72, opacity: "opacity-50", glowSize: 0, pulse: false },
-  activated: { size: 80, opacity: "opacity-75", glowSize: 8, pulse: true },
-  growing:   { size: 88, opacity: "opacity-85", glowSize: 14, pulse: true },
-  resonant:  { size: 96, opacity: "opacity-95", glowSize: 20, pulse: true },
-  mature:    { size: 108, opacity: "opacity-100", glowSize: 28, pulse: true },
+  activated: { size: 80, opacity: "opacity-80", glowSize: 10, pulse: true },
+  growing:   { size: 88, opacity: "opacity-90", glowSize: 16, pulse: true },
+  resonant:  { size: 96, opacity: "opacity-95", glowSize: 22, pulse: true },
+  mature:    { size: 108, opacity: "opacity-100", glowSize: 30, pulse: true },
 };
 
 export const AtlasClusterNode = ({ cluster, index, onTap, isHighlighted, miniDotCounts = {}, isFocused, isFaded }: AtlasClusterNodeProps) => {
@@ -51,32 +50,43 @@ export const AtlasClusterNode = ({ cluster, index, onTap, isHighlighted, miniDot
   const isGolden = cluster.slug === "golden-moments";
   const isProject = cluster.cluster_category === "project";
   const colors = isProject
-    ? { bg: "hsl(0, 75%, 55%)", glow: "hsl(0, 75%, 55%, 0.3)", border: "hsl(0, 75%, 45%)" }
+    ? { bg: "hsl(0, 75%, 55%)", glow: "hsl(0, 75%, 55%, 0.35)", border: "hsl(0, 75%, 45%)", gradient: "linear-gradient(135deg, hsl(0, 75%, 55%), hsl(350, 80%, 45%))" }
     : isGolden
-    ? { bg: "hsl(40, 80%, 55%)", glow: "hsl(40, 80%, 55%, 0.3)", border: "hsl(40, 80%, 55%, 0.6)" }
-    : DOMAIN_COLORS[domainName] || DOMAIN_COLORS.Person;
+    ? { bg: "hsl(40, 85%, 55%)", glow: "hsl(40, 85%, 55%, 0.35)", border: "hsl(40, 85%, 55%, 0.6)", gradient: "linear-gradient(135deg, hsl(40, 85%, 55%), hsl(30, 90%, 50%))" }
+    : { 
+        bg: DOMAIN_COLORS[domainName]?.bg || DOMAIN_COLORS.Person.bg,
+        glow: DOMAIN_COLORS[domainName]?.glow || DOMAIN_COLORS.Person.glow,
+        border: DOMAIN_COLORS[domainName]?.border || DOMAIN_COLORS.Person.border,
+        gradient: `linear-gradient(135deg, ${DOMAIN_COLORS[domainName]?.bg || "hsl(265, 90%, 62%)"}, ${DOMAIN_COLORS[domainName]?.border || "hsl(265, 80%, 50%)"})`,
+      };
   const state = cluster.computedState;
   const style = GROWTH_STYLES[state] || GROWTH_STYLES.dormant;
   const baseRadius = style.size / 2;
   const orbitPositions = getOrbitPositions(cluster.dots.length, baseRadius);
 
-  // Count total mini-dots in this cluster
   const clusterMiniDotTotal = cluster.dots.reduce((sum, d) => sum + (miniDotCounts[d.id] || 0), 0);
   const hasDepth = clusterMiniDotTotal > 0;
-
-  // Container must be large enough for dots outside the circle
-  const containerSize = style.size + 90;
-
-  // Fade/focus opacity
+  const containerSize = style.size + 100;
   const fadeClass = isFaded ? "opacity-20 pointer-events-none" : "";
 
   return (
     <motion.button
       onClick={state !== "locked" ? onTap : undefined}
       initial={{ opacity: 0, scale: 0.6 }}
-      animate={{ opacity: 1, scale: 1 }}
-      transition={{ delay: index * 0.05, type: "spring", stiffness: 200, damping: 20 }}
-      className={`relative flex items-center justify-center ${style.opacity} ${fadeClass} ${state === "locked" ? "cursor-not-allowed" : ""} transition-opacity duration-300`}
+      animate={{ 
+        opacity: 1, 
+        scale: 1,
+        y: state !== "locked" ? [0, -3, 0] : 0,
+      }}
+      transition={{ 
+        delay: index * 0.05, 
+        type: "spring", 
+        stiffness: 200, 
+        damping: 20,
+        y: { duration: 4 + index * 0.5, repeat: Infinity, ease: "easeInOut" }
+      }}
+      whileHover={state !== "locked" ? { scale: 1.08 } : undefined}
+      className={`relative flex items-center justify-center ${style.opacity} ${fadeClass} ${state === "locked" ? "cursor-not-allowed" : "cursor-pointer"} transition-opacity duration-300`}
       style={{ width: containerSize, height: containerSize }}
     >
       {/* Highlight pulse for newly created dot */}
@@ -84,48 +94,48 @@ export const AtlasClusterNode = ({ cluster, index, onTap, isHighlighted, miniDot
         <motion.div
           className="absolute rounded-full"
           style={{
-            width: style.size + 16,
-            height: style.size + 16,
-            boxShadow: `0 0 24px ${colors.glow}`,
+            width: style.size + 20,
+            height: style.size + 20,
+            boxShadow: `0 0 30px ${colors.glow}, 0 0 60px ${colors.glow}`,
             border: `2px solid ${colors.border}`,
           }}
-          animate={{ opacity: [0.3, 1, 0.3], scale: [1, 1.1, 1] }}
+          animate={{ opacity: [0.3, 1, 0.3], scale: [1, 1.15, 1] }}
           transition={{ duration: 1.5, repeat: 2 }}
         />
       )}
 
-      {/* Glow ring for activated+ */}
+      {/* Outer glow ring */}
       {style.pulse && (
         <motion.div
           className="absolute rounded-full"
           style={{
-            width: style.size + 8,
-            height: style.size + 8,
-            boxShadow: `0 0 ${style.glowSize}px ${colors.glow}`,
-            border: `1.5px solid ${colors.border}`,
+            width: style.size + 10,
+            height: style.size + 10,
+            boxShadow: `0 0 ${style.glowSize}px ${colors.glow}, 0 0 ${style.glowSize * 2}px ${colors.glow}`,
+            border: `1px solid ${colors.border}`,
           }}
-          animate={{ opacity: [0.4, 0.9, 0.4] }}
+          animate={{ opacity: [0.3, 0.7, 0.3] }}
           transition={{ duration: 3, repeat: Infinity }}
         />
       )}
 
-      {/* Main circle — extra glow when cluster has depth (mini-dots) */}
+      {/* Main circle — gradient fill */}
       <div
-        className="absolute rounded-full"
+        className="absolute rounded-full transition-all duration-300"
         style={{
           width: style.size,
           height: style.size,
           background: state === "locked"
-            ? "hsl(var(--muted))"
-            : `radial-gradient(circle at 40% 35%, ${colors.glow}, transparent 70%)`,
-          border: `1px solid ${state === "locked" || state === "dormant" ? "hsl(var(--border))" : colors.border}`,
+            ? "hsl(232, 30%, 15%)"
+            : colors.gradient,
+          border: `1.5px solid ${state === "locked" || state === "dormant" ? "hsl(232, 25%, 22%)" : colors.border}`,
           boxShadow: hasDepth && state !== "locked"
-            ? `0 0 ${style.glowSize + 8 + clusterMiniDotTotal * 2}px ${colors.glow}`
-            : undefined,
+            ? `0 0 ${style.glowSize + 10 + clusterMiniDotTotal * 2}px ${colors.glow}, inset 0 0 20px hsla(0, 0%, 100%, 0.05)`
+            : state !== "locked" ? `inset 0 0 20px hsla(0, 0%, 100%, 0.05)` : undefined,
         }}
       />
 
-      {/* Orbit dots — rendered OUTSIDE the main circle, pointer-events-none so they don't block clicks */}
+      {/* Orbit dots */}
       <div className="absolute inset-0 pointer-events-none">
         {cluster.dots.map((dot, i) => {
           const pos = orbitPositions[i];
@@ -134,16 +144,13 @@ export const AtlasClusterNode = ({ cluster, index, onTap, isHighlighted, miniDot
           const hasMinis = dotMiniCount > 0;
           return (
             <div key={dot.id}>
-              {/* Main dot */}
               <motion.span
                 className="absolute rounded-full"
                 style={{
                   backgroundColor: getDotColor(dot),
                   left: `calc(50% + ${pos.x}px - 5px)`,
                   top: `calc(50% + ${pos.y}px - 5px)`,
-                  boxShadow: hasMinis
-                    ? `0 0 ${6 + dotMiniCount * 2}px ${getDotColor(dot)}80`
-                    : `0 0 4px ${getDotColor(dot)}60`,
+                  boxShadow: `0 0 ${hasMinis ? 8 + dotMiniCount * 2 : 6}px ${getDotColor(dot)}80`,
                   width: hasMinis ? 12 : 10,
                   height: hasMinis ? 12 : 10,
                 }}
@@ -151,7 +158,6 @@ export const AtlasClusterNode = ({ cluster, index, onTap, isHighlighted, miniDot
                 animate={{ opacity: 1, scale: 1 }}
                 transition={{ delay: index * 0.05 + i * 0.03 }}
               />
-              {/* Mini-dot satellites — tiny dots orbiting parent */}
               {hasMinis && Array.from({ length: Math.min(dotMiniCount, 4) }).map((_, mi) => {
                 const miniAngle = (2 * Math.PI * mi) / Math.min(dotMiniCount, 4);
                 const miniRadius = 8;
@@ -170,7 +176,7 @@ export const AtlasClusterNode = ({ cluster, index, onTap, isHighlighted, miniDot
                       opacity: 0.7,
                     }}
                     initial={{ opacity: 0, scale: 0 }}
-                    animate={{ opacity: [0.5, 0.9, 0.5], scale: 1 }}
+                    animate={{ opacity: [0.4, 0.9, 0.4], scale: 1 }}
                     transition={{ delay: index * 0.05 + i * 0.03 + mi * 0.05, duration: 2, repeat: Infinity }}
                   />
                 );
@@ -180,23 +186,27 @@ export const AtlasClusterNode = ({ cluster, index, onTap, isHighlighted, miniDot
         })}
       </div>
 
-      {/* Content — z-20 to stay above orbit dots */}
+      {/* Content */}
       <div className="relative z-20 flex flex-col items-center px-1">
         {state === "locked" ? (
-          <Lock className="w-4 h-4 text-muted-foreground" />
+          <Lock className="w-4 h-4 text-muted-foreground/50" />
         ) : (
           <>
             <span
-              className="text-[10px] font-semibold leading-tight text-center max-w-[60px] px-1.5 py-0.5 rounded"
+              className="text-[10px] font-semibold leading-tight text-center max-w-[60px] px-1.5 py-0.5 rounded-md"
               style={{
-                color: "hsl(var(--foreground))",
-                backgroundColor: "hsl(var(--background) / 0.85)",
+                color: "hsl(220, 20%, 95%)",
+                backgroundColor: "hsl(232, 45%, 7% / 0.8)",
+                textShadow: "0 0 10px hsla(0, 0%, 100%, 0.2)",
               }}
             >
               {cluster.name}
             </span>
             {cluster.dotCount > 0 && (
-              <span className="text-[9px] mt-0.5 font-medium" style={{ color: "hsl(var(--foreground) / 0.8)" }}>
+              <span 
+                className="text-[9px] mt-0.5 font-medium"
+                style={{ color: "hsl(220, 20%, 80%)" }}
+              >
                 {cluster.dotCount}
               </span>
             )}
