@@ -3202,6 +3202,8 @@ export type Database = {
           numerology_signals: Json | null
           onboarding_completion_seen: boolean
           onboarding_quest_completed: boolean | null
+          payment_completed_at: string | null
+          payment_status: string
           priority_growth_area: string | null
           projects_unlocked: boolean | null
           purpose_path: string | null
@@ -3262,6 +3264,8 @@ export type Database = {
           numerology_signals?: Json | null
           onboarding_completion_seen?: boolean
           onboarding_quest_completed?: boolean | null
+          payment_completed_at?: string | null
+          payment_status?: string
           priority_growth_area?: string | null
           projects_unlocked?: boolean | null
           purpose_path?: string | null
@@ -3322,6 +3326,8 @@ export type Database = {
           numerology_signals?: Json | null
           onboarding_completion_seen?: boolean
           onboarding_quest_completed?: boolean | null
+          payment_completed_at?: string | null
+          payment_status?: string
           priority_growth_area?: string | null
           projects_unlocked?: boolean | null
           purpose_path?: string | null
