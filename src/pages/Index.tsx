@@ -42,7 +42,9 @@ const Index = () => {
         if (authData.user) {
           const { data: profile } = await supabase
             .from("profiles")
-            .select("birth_name, gravity_orientation_completed, gravity_transition_completed, council_introduction_completed, first_project_created_at, onboarding_completion_seen")
+            .select(
+              "birth_name, gravity_orientation_completed, gravity_transition_completed, council_introduction_completed, first_project_created_at, onboarding_completion_seen",
+            )
             .eq("id", authData.user.id)
             .single();
           if (!profile?.gravity_orientation_completed) navigate("/gravity/orientation");
@@ -76,26 +78,41 @@ const Index = () => {
       icon: Compass,
       title: "Atlas",
       subtitle: "Map Your Inner World",
-      description: "Discover your skills, passions, frustrations, and hidden patterns through guided self-exploration quests.",
+      description:
+        "Discover your skills, passions, frustrations, and hidden patterns through guided self-exploration quests.",
     },
     {
       icon: MessageCircle,
       title: "AI Mentors",
       subtitle: "Guidance That Knows You",
-      description: "Five distinct mentor personalities that learn from your journey and guide you with personalized wisdom.",
+      description:
+        "Five distinct mentor personalities that learn from your journey and guide you with personalized wisdom.",
     },
     {
       icon: Rocket,
       title: "Creation Lab",
       subtitle: "Turn Insight Into Action",
-      description: "Transform your discoveries into real projects with structured tools, design thinking, and step-by-step execution.",
+      description:
+        "Transform your discoveries into real projects with structured tools, design thinking, and step-by-step execution.",
     },
   ];
 
   const steps = [
-    { number: "01", title: "Explore", description: "Answer deep questions that reveal your natural gifts, passions, and growth edges." },
-    { number: "02", title: "Discover", description: "Watch patterns emerge as the system connects your dots into a living map of who you are." },
-    { number: "03", title: "Create", description: "Turn your deepest insights into real projects, guided by AI mentors who truly know you." },
+    {
+      number: "01",
+      title: "Explore",
+      description: "Answer deep questions that reveal your natural gifts, passions, and growth edges.",
+    },
+    {
+      number: "02",
+      title: "Discover",
+      description: "Watch patterns emerge as the system connects your dots into a living map of who you are.",
+    },
+    {
+      number: "03",
+      title: "Create",
+      description: "Turn your deepest insights into real projects, guided by AI mentors who truly know you.",
+    },
   ];
 
   return (
@@ -104,28 +121,34 @@ const Index = () => {
       <nav className="fixed top-0 left-0 right-0 z-50 glass-strong">
         <div className="max-w-7xl mx-auto px-6 h-16 flex items-center justify-between">
           <div className="flex items-center gap-2.5">
-            <img src={bcomingLogo} alt="Bcoming" className="h-8 w-8 rounded-lg" />
+            <img src={bcomingLogo} alt="Bcoming" className="h-15 w-15 rounded-lg" />
             <span className="font-sora font-bold text-lg text-foreground">Bcoming</span>
           </div>
           <div className="hidden md:flex items-center gap-8">
-            <a href="#features" className="text-sm text-muted-foreground hover:text-foreground transition-colors">Features</a>
-            <a href="#how-it-works" className="text-sm text-muted-foreground hover:text-foreground transition-colors">How it works</a>
-            <a href="#vision" className="text-sm text-muted-foreground hover:text-foreground transition-colors">Vision</a>
+            <a href="#features" className="text-sm text-muted-foreground hover:text-foreground transition-colors">
+              Features
+            </a>
+            <a href="#how-it-works" className="text-sm text-muted-foreground hover:text-foreground transition-colors">
+              How it works
+            </a>
+            <a href="#vision" className="text-sm text-muted-foreground hover:text-foreground transition-colors">
+              Vision
+            </a>
           </div>
           <div className="flex items-center gap-3">
             <Button
               variant="ghost"
               size="sm"
               className="text-muted-foreground hover:text-foreground"
-              onClick={() => { setShowAuth(true); setIsSignUp(false); setTimeout(() => document.getElementById("auth-section")?.scrollIntoView({ behavior: "smooth" }), 100); }}
+              onClick={() => {
+                setShowAuth(true);
+                setIsSignUp(false);
+                setTimeout(() => document.getElementById("auth-section")?.scrollIntoView({ behavior: "smooth" }), 100);
+              }}
             >
               Log in
             </Button>
-            <Button
-              size="sm"
-              className="glow-purple-sm"
-              onClick={scrollToAuth}
-            >
+            <Button size="sm" className="glow-purple-sm" onClick={scrollToAuth}>
               Start your journey
             </Button>
           </div>
@@ -142,16 +165,9 @@ const Index = () => {
         </div>
 
         <div className="relative z-10 max-w-5xl mx-auto px-6 text-center">
-          <motion.div
-            initial="hidden"
-            animate="visible"
-            variants={fadeUp}
-            custom={0}
-            className="mb-6"
-          >
+          <motion.div initial="hidden" animate="visible" variants={fadeUp} custom={0} className="mb-6">
             <span className="inline-flex items-center gap-2 px-4 py-1.5 rounded-full border border-primary/20 bg-primary/5 text-sm text-primary">
-              <Sparkles className="w-3.5 h-3.5" />
-              A new way to grow
+              <Sparkles className="w-3.5 h-3.5" />A new way to grow
             </span>
           </motion.div>
 
@@ -174,8 +190,8 @@ const Index = () => {
             custom={2}
             className="text-lg md:text-xl text-muted-foreground max-w-2xl mx-auto mb-10 leading-relaxed"
           >
-            Bcoming is a transformational platform that helps you uncover your gifts,
-            understand your patterns, and turn them into real projects and meaningful paths.
+            Bcoming is a transformational platform that helps you uncover your gifts, understand your patterns, and turn
+            them into real projects and meaningful paths.
           </motion.p>
 
           <motion.div
@@ -185,11 +201,7 @@ const Index = () => {
             custom={3}
             className="flex flex-col sm:flex-row items-center justify-center gap-4"
           >
-            <Button
-              size="lg"
-              className="text-lg px-8 py-6 glow-purple gap-2"
-              onClick={scrollToAuth}
-            >
+            <Button size="lg" className="text-lg px-8 py-6 glow-purple gap-2" onClick={scrollToAuth}>
               Start your journey <ArrowRight className="w-5 h-5" />
             </Button>
             <Button
@@ -220,8 +232,8 @@ const Index = () => {
               You know there's more inside you.
             </h2>
             <p className="text-lg text-muted-foreground leading-relaxed max-w-2xl mx-auto mb-8">
-              You have skills, ideas, and a deep sense that you're meant for something bigger.
-              But without clarity, it stays trapped — as potential that never becomes real.
+              You have skills, ideas, and a deep sense that you're meant for something bigger. But without clarity, it
+              stays trapped — as potential that never becomes real.
             </p>
             <div className="grid md:grid-cols-3 gap-6 mt-12">
               {[
@@ -266,9 +278,8 @@ const Index = () => {
               <span className="gradient-text">becomes creation</span>
             </h2>
             <p className="text-lg text-muted-foreground leading-relaxed max-w-2xl mx-auto">
-              Bcoming connects who you are with what you can build.
-              Through guided exploration, AI mentors, and real project tools —
-              your identity becomes your strategy.
+              Bcoming connects who you are with what you can build. Through guided exploration, AI mentors, and real
+              project tools — your identity becomes your strategy.
             </p>
           </motion.div>
         </div>
@@ -279,11 +290,7 @@ const Index = () => {
         <div className="absolute top-0 left-0 right-0 h-px bg-gradient-to-r from-transparent via-border to-transparent" />
         <div className="max-w-6xl mx-auto px-6">
           <div className="text-center mb-16">
-            <motion.div
-              initial={{ opacity: 0, y: 20 }}
-              whileInView={{ opacity: 1, y: 0 }}
-              viewport={{ once: true }}
-            >
+            <motion.div initial={{ opacity: 0, y: 20 }} whileInView={{ opacity: 1, y: 0 }} viewport={{ once: true }}>
               <h2 className="font-sora text-3xl md:text-4xl font-bold text-foreground mb-4">
                 Three pillars of transformation
               </h2>
@@ -330,17 +337,9 @@ const Index = () => {
         </div>
         <div className="max-w-5xl mx-auto px-6 relative z-10">
           <div className="text-center mb-16">
-            <motion.div
-              initial={{ opacity: 0, y: 20 }}
-              whileInView={{ opacity: 1, y: 0 }}
-              viewport={{ once: true }}
-            >
-              <h2 className="font-sora text-3xl md:text-4xl font-bold text-foreground mb-4">
-                How it works
-              </h2>
-              <p className="text-muted-foreground text-lg max-w-xl mx-auto">
-                Three steps from curiosity to creation.
-              </p>
+            <motion.div initial={{ opacity: 0, y: 20 }} whileInView={{ opacity: 1, y: 0 }} viewport={{ once: true }}>
+              <h2 className="font-sora text-3xl md:text-4xl font-bold text-foreground mb-4">How it works</h2>
+              <p className="text-muted-foreground text-lg max-w-xl mx-auto">Three steps from curiosity to creation.</p>
             </motion.div>
           </div>
 
@@ -354,9 +353,7 @@ const Index = () => {
                 transition={{ delay: i * 0.15, duration: 0.5 }}
                 className="text-center md:text-left"
               >
-                <span className="font-sora text-5xl font-bold gradient-text opacity-60 mb-4 block">
-                  {step.number}
-                </span>
+                <span className="font-sora text-5xl font-bold gradient-text opacity-60 mb-4 block">{step.number}</span>
                 <h3 className="font-sora text-xl font-bold text-foreground mb-2">{step.title}</h3>
                 <p className="text-muted-foreground leading-relaxed">{step.description}</p>
               </motion.div>
@@ -378,19 +375,12 @@ const Index = () => {
             <div className="w-16 h-16 mx-auto mb-8 rounded-2xl bg-accent/10 flex items-center justify-center">
               <Zap className="w-8 h-8 text-accent" />
             </div>
-            <h2 className="font-sora text-3xl md:text-4xl font-bold text-foreground mb-6">
-              We become by building.
-            </h2>
+            <h2 className="font-sora text-3xl md:text-4xl font-bold text-foreground mb-6">We become by building.</h2>
             <p className="text-lg text-muted-foreground leading-relaxed max-w-2xl mx-auto mb-10">
-              Bcoming is not a tool — it's a transformational space.
-              A place where who you are and what you create become the same thing.
-              Your identity is your greatest asset. Let's unlock it.
+              Bcoming is not a tool — it's a transformational space. A place where who you are and what you create
+              become the same thing. Your identity is your greatest asset. Let's unlock it.
             </p>
-            <Button
-              size="lg"
-              className="text-lg px-10 py-6 glow-purple gap-2"
-              onClick={scrollToAuth}
-            >
+            <Button size="lg" className="text-lg px-10 py-6 glow-purple gap-2" onClick={scrollToAuth}>
               Begin your transformation <ArrowRight className="w-5 h-5" />
             </Button>
           </motion.div>
@@ -423,7 +413,9 @@ const Index = () => {
             <div className="p-8 rounded-2xl border border-border/50 bg-card/50 backdrop-blur-xl">
               <form onSubmit={handleAuth} className="space-y-4">
                 <div className="space-y-2">
-                  <Label htmlFor="email" className="text-sm text-muted-foreground">Email</Label>
+                  <Label htmlFor="email" className="text-sm text-muted-foreground">
+                    Email
+                  </Label>
                   <Input
                     id="email"
                     type="email"
@@ -435,7 +427,9 @@ const Index = () => {
                   />
                 </div>
                 <div className="space-y-2">
-                  <Label htmlFor="password" className="text-sm text-muted-foreground">Password</Label>
+                  <Label htmlFor="password" className="text-sm text-muted-foreground">
+                    Password
+                  </Label>
                   <Input
                     id="password"
                     type="password"
@@ -447,11 +441,7 @@ const Index = () => {
                     className="bg-muted/50 border-border/50 focus:border-primary/50"
                   />
                 </div>
-                <Button
-                  type="submit"
-                  className="w-full text-base py-5 glow-purple-sm"
-                  disabled={loading}
-                >
+                <Button type="submit" className="w-full text-base py-5 glow-purple-sm" disabled={loading}>
                   {loading ? "..." : isSignUp ? "Create account" : "Sign in"}
                 </Button>
               </form>
@@ -477,9 +467,7 @@ const Index = () => {
             <img src={bcomingLogo} alt="Bcoming" className="h-6 w-6 rounded-md" />
             <span className="font-sora font-semibold text-sm text-foreground">Bcoming</span>
           </div>
-          <p className="text-sm text-muted-foreground">
-            © {new Date().getFullYear()} Bcoming. We become by building.
-          </p>
+          <p className="text-sm text-muted-foreground">© {new Date().getFullYear()} Bcoming. We become by building.</p>
         </div>
       </footer>
     </div>
