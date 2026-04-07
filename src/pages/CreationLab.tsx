@@ -339,6 +339,9 @@ const CreationLab = () => {
       animate={{ opacity: 1 }}
       transition={{ duration: 0.3 }}
     >
+      {/* Payment Modal */}
+      <PaymentModal open={showPaymentModal} onClose={() => setShowPaymentModal(false)} />
+
       {/* Only show Purpose Modal for Creating project type, not Becoming */}
       {projectType === "creating" && (
         <PurposeOnboardingModal 
