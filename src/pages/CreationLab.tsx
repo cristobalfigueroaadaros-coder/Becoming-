@@ -19,6 +19,7 @@ import type { BecomingMode } from "@/components/creation-lab/BecomingModeSelecto
 import { useProblemClarificationStatus } from "@/hooks/useProblemClarificationStatus";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
+import { PaymentModal } from "@/components/PaymentModal";
 
 const modeConfig: Record<CreationLabMode, { title: string; description: string; color: string }> = {
   focus: {

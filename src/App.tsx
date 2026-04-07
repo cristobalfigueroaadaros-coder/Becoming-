@@ -68,6 +68,7 @@ import CreatorProfile from "./pages/CreatorProfile";
 import LifeAssessment from "./pages/LifeAssessment";
 import AtlasPage from "./pages/AtlasPage";
 import AtlasQuestPage from "./pages/AtlasQuestPage";
+import PaymentSuccess from "./pages/PaymentSuccess";
 
 
 const queryClient = new QueryClient();
@@ -432,6 +433,10 @@ const App = () => {
             <Route
               path="/momentum"
               element={session ? <AppLayout><MomentumDashboard /></AppLayout> : <Navigate to="/" />}
+            />
+            <Route
+              path="/payment-success"
+              element={session ? <PaymentSuccess /> : <Navigate to="/" />}
             />
             <Route path="*" element={<NotFound />} />
           </Routes>
