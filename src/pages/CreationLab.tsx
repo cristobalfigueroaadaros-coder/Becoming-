@@ -56,7 +56,7 @@ const CreationLab = () => {
   const location = useLocation();
   const [searchParams, setSearchParams] = useSearchParams();
   const [showPurposeModal, setShowPurposeModal] = useState(false);
-  
+  const [showPaymentModal, setShowPaymentModal] = useState(false);
   // PDR: Project type toggle (Becoming vs Creating)
   const typeParam = searchParams.get("type") as ProjectType | null;
   const [projectType, setProjectType] = useState<ProjectType>(
@@ -146,10 +146,21 @@ const CreationLab = () => {
   // Clear navigation state after reading it
   useEffect(() => {
     if (navState?.projectName) {
-      // Clear state to prevent re-showing on refresh
       window.history.replaceState({}, document.title);
     }
   }, [navState]);
+
+  // Payment modal trigger — show once after 12s for free users
+  useEffect(() => {
+    const alreadyShown = localStorage.getItem("payment_popup_shown");
+    if (alreadyShown) return;
+
+    const timer = setTimeout(() => {
+      setShowPaymentModal(true);
+    }, 12000);
+
+    return () => clearTimeout(timer);
+  }, []);
 
   const handleCompleteStep = async (stepId: string, insight?: string) => {
     await completeStep(stepId, insight);
