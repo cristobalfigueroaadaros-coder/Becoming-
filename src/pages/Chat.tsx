@@ -1098,7 +1098,7 @@ const Chat = ({ mentorTypeOverride, embedded = false, locationState: propState }
 
           {messages.map((message) => (
             <div key={message.id} className={cn("flex", message.role === "user" ? "justify-end" : "justify-start")}>
-              <Card className={cn("max-w-[80%] p-4", message.role === "user" ? "bg-primary text-primary-foreground" : "bg-card")}>
+              <Card className={cn("max-w-[80%] p-4", message.role === "user" ? "btn-gradient text-white border-0" : "bg-card")}>
                 {message.role === "user" ? (
                   <p className="whitespace-pre-wrap">{message.content}</p>
                 ) : (

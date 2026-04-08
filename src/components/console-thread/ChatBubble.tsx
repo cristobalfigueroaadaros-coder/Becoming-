@@ -195,7 +195,7 @@ const ChatBubble = ({ message, index, perspectiveIndex }: ChatBubbleProps) => {
 
       {isUser && (
         <div className="max-w-[80%]">
-          <div className="bg-primary text-primary-foreground rounded-2xl rounded-tr-sm px-4 py-2.5 text-sm leading-relaxed whitespace-pre-wrap">
+          <div className="btn-gradient text-white border-0 rounded-2xl rounded-tr-sm px-4 py-2.5 text-sm leading-relaxed whitespace-pre-wrap">
             {message.content}
           </div>
         </div>
