@@ -82,21 +82,25 @@ function computeState(dotCount: number, unlocked: boolean): ClusterState {
 }
 
 export const DOMAIN_COLORS: Record<string, { bg: string; text: string; glow: string; border: string }> = {
-  Person: { bg: "hsl(280 75% 58%)", text: "hsl(280 60% 88%)", glow: "hsl(280 75% 58% / 0.35)", border: "hsl(280 70% 48%)" },
-  Process: { bg: "hsl(220 90% 58%)", text: "hsl(220 80% 88%)", glow: "hsl(220 90% 58% / 0.35)", border: "hsl(220 85% 48%)" },
-  Product: { bg: "hsl(155 65% 48%)", text: "hsl(155 60% 88%)", glow: "hsl(155 65% 48% / 0.35)", border: "hsl(155 60% 38%)" },
-  Environment: { bg: "hsl(28 90% 55%)", text: "hsl(28 85% 88%)", glow: "hsl(28 90% 55% / 0.35)", border: "hsl(28 85% 45%)" },
+  // Person → hot magenta/pink (distinct from button purple which is 265)
+  Person: { bg: "hsl(330 85% 62%)", text: "hsl(330 70% 90%)", glow: "hsl(330 85% 62% / 0.4)", border: "hsl(330 80% 50%)" },
+  // Process → electric cyan-blue (more vivid)
+  Process: { bg: "hsl(205 95% 60%)", text: "hsl(205 80% 90%)", glow: "hsl(205 95% 60% / 0.4)", border: "hsl(205 90% 48%)" },
+  // Product → neon emerald
+  Product: { bg: "hsl(155 75% 52%)", text: "hsl(155 60% 90%)", glow: "hsl(155 75% 52% / 0.4)", border: "hsl(155 70% 40%)" },
+  // Environment → neon amber/orange
+  Environment: { bg: "hsl(35 100% 58%)", text: "hsl(35 85% 90%)", glow: "hsl(35 100% 58% / 0.4)", border: "hsl(35 95% 45%)" },
 };
 
 export const CLUSTER_COLORS: Record<string, { bg: string; glow: string }> = {
-  "golden-moments": { bg: "hsl(40 90% 55%)", glow: "hsl(40 90% 55% / 0.4)" },
-  project: { bg: "hsl(0 75% 55%)", glow: "hsl(0 75% 55% / 0.4)" },
+  "golden-moments": { bg: "hsl(45 100% 58%)", glow: "hsl(45 100% 58% / 0.45)" },
+  project: { bg: "hsl(0 80% 58%)", glow: "hsl(0 80% 58% / 0.45)" },
 };
 
 export const DOT_TYPE_COLORS: Record<string, string> = {
-  strength: "hsl(195 80% 55%)",
-  shadow: "hsl(280 60% 50%)",
-  life_imprint: "hsl(40 80% 55%)",
+  strength: "hsl(195 90% 60%)",
+  shadow: "hsl(330 75% 58%)",
+  life_imprint: "hsl(45 100% 58%)",
 };
 
 export function getDotColor(dot: AtlasDot): string {

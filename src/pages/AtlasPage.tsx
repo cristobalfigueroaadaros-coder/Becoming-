@@ -60,9 +60,9 @@ function generateConnections(clusters: ClusterWithState[]) {
       
       const sameDomain = a.meta_domain_id === b.meta_domain_id;
       const domainName = a.meta_domain?.name || "Person";
-      const color = sameDomain 
-        ? (DOMAIN_COLORS[domainName]?.glow || "hsl(265, 90%, 62%, 0.15)")
-        : "hsl(265, 90%, 62%, 0.08)";
+      const color = sameDomain
+        ? (DOMAIN_COLORS[domainName]?.glow || "hsl(265, 90%, 62%, 0.3)")
+        : "hsl(265, 90%, 62%, 0.15)";
       
       connections.push({ from: posA, to: posB, strength: Math.min(strength, 1), color });
     }
@@ -264,7 +264,7 @@ const AtlasPage = () => {
               strokeWidth={conn.strength > 0.5 ? 1.5 : 0.8}
               filter={conn.strength > 0.5 ? "url(#connection-glow)" : undefined}
               initial={{ pathLength: 0, opacity: 0 }}
-              animate={{ pathLength: 1, opacity: conn.strength * 0.6 }}
+              animate={{ pathLength: 1, opacity: conn.strength * 0.9 }}
               transition={{ delay: i * 0.02, duration: 1 }}
             />
           ))}
