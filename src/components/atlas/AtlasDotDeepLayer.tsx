@@ -50,6 +50,7 @@ export const AtlasDotDeepLayer = ({ dot, clusterSlug, clusterName, onBack }: Atl
       } else {
         setCompleted(true);
         queryClient.invalidateQueries({ queryKey: ["atlas-mini-dots", dot.id] });
+        queryClient.invalidateQueries({ queryKey: ["atlas-mini-dot-counts"] });
         toast.success(`${newCount} deeper insight${newCount > 1 ? "s" : ""} created`);
       }
     } catch (e) {

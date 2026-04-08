@@ -61,6 +61,7 @@ export const AtlasDotView = ({ dot, clusterName, clusterSlug, onBack, onGoDeeper
       setInsightText("");
       setShowInsightInput(false);
       queryClient.invalidateQueries({ queryKey: ["atlas-mini-dots", dot.id] });
+      queryClient.invalidateQueries({ queryKey: ["atlas-mini-dot-counts"] });
       toast.success("Insight added");
     } catch (e) {
       toast.error("Failed to save insight");
