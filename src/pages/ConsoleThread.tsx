@@ -134,47 +134,58 @@ const getPhaseQuestions = (entryState: string): string[] => {
 // Phase-aware intro messages for Future Self
 const getPhaseIntroMessages = (state: string): string[] => {
   if (state === "BUILD") return [
-    "It sounds like you're already building something.",
-    "Before we dive in, I want to understand your project and where you are right now so I can assemble the right mentor council to help you move forward.",
-    "I'll ask you three quick questions.",
+    "It sounds like you're already building something. Before we dive in — three quick questions so I can assemble the right mentor council.",
   ];
   if (state === "GROW") return [
-    "It sounds like you already have an idea or direction you're interested in exploring.",
-    "Before we take the next step, I want to understand your idea a bit better so I can bring in the right mentors to help you develop it.",
-    "I'll ask you three questions.",
+    "Sounds like you have a direction. Let me understand it better before I bring in the right mentors — three questions.",
   ];
   // DISCOVER
   return [
-    "Right now it sounds like you're still exploring what direction might feel meaningful for you. That's completely fine.",
-    "Before we decide what to build, I'd like to understand a bit more about you, your experiences, and what naturally interests you.",
-    "I'll ask you three questions.",
+    "I'd like to understand you better before I assemble the right mentors. Three questions.",
   ];
 };
 
-const generateReflection = (answer: string): string | null => {
+const generateReflection = (answer: string, questionIndex: number = 0): string | null => {
   const lower = answer.toLowerCase();
   const len = answer.length;
 
   // Too short to reflect on meaningfully
   if (len < 15) return null;
 
-  // Pattern-match for common themes
-  if (/build|creat|launch|start|mak/i.test(lower)) return "That creative drive says a lot about where you're headed.";
-  if (/help|support|serv|communit|people/i.test(lower)) return "That kind of purpose — helping others — runs deep.";
-  if (/design|art|music|writ|story/i.test(lower)) return "There's something powerful about channeling ideas into form.";
-  if (/tech|code|engineer|develop|software/i.test(lower)) return "Sounds like you've built real depth in that space.";
-  if (/teach|mentor|coach|educ/i.test(lower)) return "Guiding others is one of the most meaningful things you can do.";
-  if (/heal|therap|psych|well|mind/i.test(lower)) return "Working with the inner world takes real courage and depth.";
-  if (/travel|explor|discover|adventure/i.test(lower)) return "That kind of curiosity usually leads somewhere important.";
-  if (/mean|purpose|impact|legacy|matter/i.test(lower)) return "Building something around meaning and purpose is powerful work.";
-  if (/struggle|challeng|hard|difficult|stuck/i.test(lower)) return "Acknowledging that takes honesty — it's a sign of real self-awareness.";
-  if (/dream|vision|imagin|future|hope/i.test(lower)) return "That vision is worth paying attention to.";
-  if (/business|entrepreneur|company|startup/i.test(lower)) return "Building something of your own takes real conviction.";
-  if (/grow|learn|improv|evolv|develop/i.test(lower)) return "That growth mindset is your biggest asset.";
+  // Q1 (background) — reflect on WHO they are and where they come from
+  if (questionIndex === 0) {
+    if (/travel|explor|world|cultur|country|abroad/i.test(lower)) return "That kind of exposure shapes how you see problems differently from most people.";
+    if (/build|creat|launch|start|mak/i.test(lower)) return "That drive to build things — it's in how you see the world.";
+    if (/help|support|serv|communit|people/i.test(lower)) return "That instinct to serve others usually comes from somewhere real.";
+    if (/design|art|music|writ|story/i.test(lower)) return "There's something powerful about channeling ideas into form.";
+    if (/tech|code|engineer|develop|software/i.test(lower)) return "Sounds like you've built real depth in that space.";
+    if (/teach|mentor|coach|educ/i.test(lower)) return "Guiding others is one of the most meaningful things you can do.";
+    if (/heal|therap|psych|well|mind/i.test(lower)) return "Working with the inner world takes real courage and depth.";
+    if (/business|entrepreneur|company|startup/i.test(lower)) return "Building something of your own takes real conviction.";
+    if (len > 100) return "There's a lot of texture in what you just described.";
+    return "That background has shaped you in ways you probably don't fully see yet.";
+  }
 
-  // Generic but warm fallbacks based on length
-  if (len > 100) return "There's a lot of depth in what you just shared.";
-  return "That's a meaningful starting point.";
+  // Q2 (interests/problems) — reflect on WHAT they're drawn to
+  if (questionIndex === 1) {
+    if (/authentic|honest|real|genuine|truth/i.test(lower)) return "That pull toward truth — most people avoid it. You're drawn to it.";
+    if (/connect|relationship|belong|community|together/i.test(lower)) return "Connection is one of the deepest human needs. You already know that.";
+    if (/justice|fair|equal|right|wrong/i.test(lower)) return "People who are moved by injustice usually end up doing something about it.";
+    if (/creat|innovat|new|idea|imagin/i.test(lower)) return "Curiosity about what's possible — that's where things start.";
+    if (/mind|conscious|aware|grow|learn/i.test(lower)) return "Questions about human potential don't let you go easily.";
+    if (/problem|solv|fix|broken|better/i.test(lower)) return "That itch to fix what's broken — that's where builders come from.";
+    if (len > 100) return "There's specificity in what you care about. That's rare.";
+    return "What pulls your attention usually points to what you're meant to work on.";
+  }
+
+  // Q3 (5-year vision) — reflect on WHERE they're going
+  if (/impact|change|difference|transform/i.test(lower)) return "Impact at that scale starts with one person whose life shifts because of you.";
+  if (/help|people|others|serve|support/i.test(lower)) return "That clarity about wanting to help — hold onto that when things get hard.";
+  if (/lead|build|creat|found|own/i.test(lower)) return "The version of you that built that is closer than you think.";
+  if (/free|independ|own.*time|flexib/i.test(lower)) return "Freedom built through purpose is different from freedom built by accident.";
+  if (/mean|fulfil|purposeful|alive|love/i.test(lower)) return "Meaningful work and good work tend to be the same work — you already know that.";
+  if (len > 100) return "That vision is concrete enough to build toward.";
+  return "Five years is closer than it sounds. Let's make it count.";
 };
 
 interface ConsoleThreadProps {
@@ -540,9 +551,8 @@ const ConsoleThread = ({ embedded = false, onProjectNameChange }: ConsoleThreadP
       const nextPhase: Phase = "intake_q2";
       setPhase(nextPhase);
       persistPhase(nextPhase);
-      // Reflection on answer
       await showTyping("future_self", 1500);
-      const reflection = generateReflection(text);
+      const reflection = generateReflection(text, 0);
       if (reflection) {
         addSystemMessage(reflection, "future_self", nextPhase);
         await showTyping("future_self", 1200);
@@ -554,9 +564,8 @@ const ConsoleThread = ({ embedded = false, onProjectNameChange }: ConsoleThreadP
       const nextPhase: Phase = "intake_q3";
       setPhase(nextPhase);
       persistPhase(nextPhase);
-      // Reflection on answer
       await showTyping("future_self", 1500);
-      const reflection = generateReflection(text);
+      const reflection = generateReflection(text, 1);
       if (reflection) {
         addSystemMessage(reflection, "future_self", nextPhase);
         await showTyping("future_self", 1200);
@@ -688,7 +697,7 @@ const ConsoleThread = ({ embedded = false, onProjectNameChange }: ConsoleThreadP
 
       // Reflection after final answer
       await showTyping("future_self", 1500);
-      const reflection = generateReflection(answers[2]);
+      const reflection = generateReflection(answers[2], 2);
       if (reflection) {
         addSystemMessage(reflection, "future_self", "processing");
         await showTyping("future_self", 1200);
@@ -702,12 +711,8 @@ const ConsoleThread = ({ embedded = false, onProjectNameChange }: ConsoleThreadP
 
       await showTyping("future_self", 2500);
 
-      // Explain the council
-      addSystemMessage("Inside Becoming, you'll work with a small council of mentors.", "future_self", "council_reveal");
-      await showTyping("future_self", 1800);
-      addSystemMessage("Each mentor brings a different perspective — strategy, creativity, philosophy, psychology, and real-world experience.", "future_self", "council_reveal");
-      await showTyping("future_self", 1800);
-      addSystemMessage("They will challenge your thinking, help you see blind spots, and guide you as you define your project.", "future_self", "council_reveal");
+      // Explain the council — one message instead of three
+      addSystemMessage("Inside Becoming, you work with a small mentor council — each one a different lens: strategy, creativity, philosophy, psychology, and real-world experience. They'll challenge your thinking, surface blind spots, and help you define your path.", "future_self", "council_reveal");
 
       await showTyping("future_self", 2000);
 
@@ -771,22 +776,10 @@ const ConsoleThread = ({ embedded = false, onProjectNameChange }: ConsoleThreadP
     setPhase(nextPhase);
     persistPhase(nextPhase);
 
-    // Multi-message handoff
+    // Single handoff message
     await showTyping("future_self", 1200);
     addSystemMessage(
-      "Now you're going to interact with your mentor council.",
-      "future_self",
-      nextPhase
-    );
-    await showTyping("future_self", 1500);
-    addSystemMessage(
-      "They'll help you define a project to work on and guide your next steps.",
-      "future_self",
-      nextPhase
-    );
-    await showTyping("future_self", 1200);
-    addSystemMessage(
-      `Write "let's go" when you're ready.`,
+      `Your council is ready. They'll help you define a project and guide your next steps.\n\nWrite "let's go" when you're ready.`,
       "future_self",
       nextPhase
     );
@@ -869,7 +862,7 @@ const ConsoleThread = ({ embedded = false, onProjectNameChange }: ConsoleThreadP
         const config = mentorConfig[handoffMentor];
         await showTyping("future_self", 800);
         addSystemMessage(
-          `I think you're ready to work 1-to-1 with ${config?.name || handoffMentor}.\\\\n\\\\nIf you're ready, type "let's go".`,
+          `I think you're ready to work 1-to-1 with ${config?.name || handoffMentor}.\n\nIf you're ready, type "let's go".`,
           "future_self",
           "handoff_offer"
         );
@@ -982,7 +975,7 @@ const ConsoleThread = ({ embedded = false, onProjectNameChange }: ConsoleThreadP
             const config = mentorConfig[data.suggestedMentorFor1to1.mentorType];
             await showTyping("future_self", 800);
             addSystemMessage(
-              `I think you're ready to work 1-to-1 with ${config?.name || data.suggestedMentorFor1to1.mentorName}.\\\\n\\\\nIf you're ready, type "let's go".`,
+              `I think you're ready to work 1-to-1 with ${config?.name || data.suggestedMentorFor1to1.mentorName}.\n\nIf you're ready, type "let's go".`,
               "future_self",
               "handoff_offer"
             );
