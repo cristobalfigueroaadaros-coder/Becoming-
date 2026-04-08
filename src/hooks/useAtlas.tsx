@@ -82,25 +82,25 @@ function computeState(dotCount: number, unlocked: boolean): ClusterState {
 }
 
 export const DOMAIN_COLORS: Record<string, { bg: string; text: string; glow: string; border: string }> = {
-  // Person → hot magenta/pink (distinct from button purple which is 265)
-  Person: { bg: "hsl(330 85% 62%)", text: "hsl(330 70% 90%)", glow: "hsl(330 85% 62% / 0.4)", border: "hsl(330 80% 50%)" },
-  // Process → electric cyan-blue (more vivid)
-  Process: { bg: "hsl(205 95% 60%)", text: "hsl(205 80% 90%)", glow: "hsl(205 95% 60% / 0.4)", border: "hsl(205 90% 48%)" },
-  // Product → neon emerald
-  Product: { bg: "hsl(155 75% 52%)", text: "hsl(155 60% 90%)", glow: "hsl(155 75% 52% / 0.4)", border: "hsl(155 70% 40%)" },
-  // Environment → neon amber/orange
-  Environment: { bg: "hsl(35 100% 58%)", text: "hsl(35 85% 90%)", glow: "hsl(35 100% 58% / 0.4)", border: "hsl(35 95% 45%)" },
+  // Person → electric magenta/hot pink (fully saturated, distinct from button purple 265)
+  Person: { bg: "hsl(320 100% 60%)", text: "hsl(320 80% 92%)", glow: "hsl(320 100% 60% / 0.5)", border: "hsl(320 100% 50%)" },
+  // Process → pure electric teal/cyan
+  Process: { bg: "hsl(192 100% 52%)", text: "hsl(192 80% 92%)", glow: "hsl(192 100% 52% / 0.5)", border: "hsl(192 100% 42%)" },
+  // Product → neon lime-green
+  Product: { bg: "hsl(135 100% 50%)", text: "hsl(135 70% 92%)", glow: "hsl(135 100% 50% / 0.5)", border: "hsl(135 100% 40%)" },
+  // Environment → vivid electric orange
+  Environment: { bg: "hsl(28 100% 58%)", text: "hsl(28 90% 92%)", glow: "hsl(28 100% 58% / 0.5)", border: "hsl(28 100% 46%)" },
 };
 
 export const CLUSTER_COLORS: Record<string, { bg: string; glow: string }> = {
-  "golden-moments": { bg: "hsl(45 100% 58%)", glow: "hsl(45 100% 58% / 0.45)" },
-  project: { bg: "hsl(0 80% 58%)", glow: "hsl(0 80% 58% / 0.45)" },
+  "golden-moments": { bg: "hsl(50 100% 55%)", glow: "hsl(50 100% 55% / 0.55)" },
+  project: { bg: "hsl(355 100% 60%)", glow: "hsl(355 100% 60% / 0.55)" },
 };
 
 export const DOT_TYPE_COLORS: Record<string, string> = {
-  strength: "hsl(195 90% 60%)",
-  shadow: "hsl(330 75% 58%)",
-  life_imprint: "hsl(45 100% 58%)",
+  strength: "hsl(192 100% 55%)",
+  shadow: "hsl(320 100% 58%)",
+  life_imprint: "hsl(50 100% 55%)",
 };
 
 export function getDotColor(dot: AtlasDot): string {

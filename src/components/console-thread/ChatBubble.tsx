@@ -4,26 +4,27 @@ import { ReactNode } from "react";
 import { InsightActionButton } from "@/components/InsightActionButton";
 
 // Hex color map for inline styling (Tailwind purges dynamic classes)
+// Using vivid neon/electric colors inspired by vibrant gradient palette
 const mentorHexColors: Record<string, string> = {
-  "bg-orange-500": "#f97316",
-  "bg-blue-500": "#3b82f6",
-  "bg-purple-500": "#a855f7",
-  "bg-cyan-500": "#06b6d4",
-  "bg-indigo-500": "#6366f1",
-  "bg-green-500": "#22c55e",
-  "bg-pink-500": "#ec4899",
-  "bg-teal-500": "#14b8a6",
-  "bg-rose-500": "#f43f5e",
-  "bg-amber-600": "#d97706",
-  "bg-emerald-500": "#10b981",
-  "bg-violet-500": "#8b5cf6",
-  "bg-primary": "#6366f1",
-  "bg-sky-500": "#0ea5e9",
-  "bg-red-600": "#dc2626",
-  "bg-lime-500": "#84cc16",
-  "bg-slate-600": "#475569",
-  "bg-indigo-600": "#4f46e5",
-  "bg-teal-600": "#0d9488",
+  "bg-orange-500": "#ff6d00",   // discipline_mentor — electric orange
+  "bg-blue-500": "#0091ff",     // strategist_mentor — vivid electric blue
+  "bg-purple-500": "#e040fb",   // creative_visionary — electric magenta-violet
+  "bg-cyan-500": "#00e5ff",     // quantum_inventor — neon cyan
+  "bg-indigo-500": "#7c4dff",   // mystic_mentor — deep electric violet
+  "bg-green-500": "#00e676",    // business_mentor — neon emerald
+  "bg-pink-500": "#ff1a8c",     // marketing_mentor — hot neon pink
+  "bg-teal-500": "#00e5cc",     // scientific_mentor — electric teal
+  "bg-rose-500": "#ff2d55",     // heart_mentor — vivid coral-red
+  "bg-amber-600": "#ffab00",    // ancient_sage — pure gold
+  "bg-emerald-500": "#00ffcc",  // alignment_mentor — neon mint
+  "bg-violet-500": "#aa00ff",   // oracle_mother — electric deep violet
+  "bg-primary": "#8b5cf6",      // future_self — primary purple
+  "bg-sky-500": "#00b0ff",      // perspective_mentor — vivid sky
+  "bg-red-600": "#ff1744",      // challenger_mentor — vivid red
+  "bg-lime-500": "#c6ff00",     // design_thinking_mentor — neon lime
+  "bg-slate-600": "#536dfe",    // problem_mentor — electric indigo
+  "bg-indigo-600": "#7986cb",   // inner_clarity_mentor — medium indigo
+  "bg-teal-600": "#1de9b6",     // release_mentor — electric aqua
 };
 
 function getHexColor(tailwindClass?: string): string | undefined {
