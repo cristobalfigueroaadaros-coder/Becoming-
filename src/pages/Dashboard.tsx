@@ -101,7 +101,7 @@ const Dashboard = () => {
       const { data: profile } = await supabase
         .from("profiles")
         .select(
-          "council_introduction_completed, display_name, council_unlocked, self_discovery_completed, first_project_created_at, gravity_transition_completed",
+          "council_introduction_completed, display_name, birth_name, council_unlocked, self_discovery_completed, first_project_created_at, gravity_transition_completed",
         )
         .eq("id", user.id)
         .single();
@@ -128,7 +128,13 @@ const Dashboard = () => {
       }
 
       if (profile) {
-        setDisplayName(profile.display_name || undefined);
+        // Self-heal: if display_name is missing but birth_name exists, derive and backfill it
+        let resolvedName = profile.display_name;
+        if (!resolvedName && (profile as any).birth_name) {
+          resolvedName = (profile as any).birth_name.split(' ')[0];
+          supabase.from("profiles").update({ display_name: resolvedName }).eq("id", user.id);
+        }
+        setDisplayName(resolvedName || undefined);
 
         const selfDiscoveryCompleted = profile.self_discovery_completed === true;
         setHasQuestPending(!selfDiscoveryCompleted);
