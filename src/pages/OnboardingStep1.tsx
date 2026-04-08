@@ -167,8 +167,13 @@ const OnboardingStep1 = () => {
                           max={format(new Date(), "yyyy-MM-dd")}
                           value={field.value ? format(field.value, "yyyy-MM-dd") : ""}
                           onChange={(e) => {
-                            const date = e.target.value ? new Date(e.target.value) : undefined;
-                            field.onChange(date);
+                            if (e.target.value) {
+                              const [year, month, day] = e.target.value.split('-').map(Number);
+                              const date = new Date(year, month - 1, day);
+                              field.onChange(date);
+                            } else {
+                              field.onChange(undefined);
+                            }
                           }}
                         />
                       </FormControl>

@@ -87,7 +87,8 @@ serve(async (req) => {
       { data: lifeDomains },
       { data: recentOutreach },
       { data: recentChats },
-      { data: pendingFollowups }
+      { data: pendingFollowups },
+      { data: activeProject }
     ] = await Promise.all([
       supabase.from('profiles').select('*').eq('id', user.id).single(),
       supabase.from('council_meetings').select('*').eq('user_id', user.id).order('created_at', { ascending: false }).limit(3),
@@ -95,7 +96,8 @@ serve(async (req) => {
       supabase.from('life_domains').select('*').eq('user_id', user.id),
       supabase.from('mentor_daily_outreach').select('mentor_type, created_at').eq('user_id', user.id).order('created_at', { ascending: false }).limit(7),
       supabase.from('chats').select('mentor_type, content, created_at').eq('user_id', user.id).order('created_at', { ascending: false }).limit(20),
-      supabase.from('mentor_followup_queue').select('*, saved_insights(*)').eq('user_id', user.id).eq('status', 'pending').lte('scheduled_for', new Date().toISOString()).limit(3)
+      supabase.from('mentor_followup_queue').select('*, saved_insights(*)').eq('user_id', user.id).eq('status', 'pending').lte('scheduled_for', new Date().toISOString()).limit(3),
+      supabase.from('integrator_projects').select('project_title, project_description').eq('user_id', user.id).eq('status', 'active').limit(1).maybeSingle()
     ]);
 
     // PRIORITY 1: Check for pending insight follow-ups
@@ -188,81 +190,67 @@ RULES:
     // Determine which mentor should reach out (avoid recent ones)
     const recentMentors = recentOutreach?.map(o => o.mentor_type) || [];
     const availableMentors = Object.keys(mentorOutreachPrompts).filter(m => !recentMentors.includes(m));
-    
-    // Prioritize based on context
+
     let selectedMentor = 'future_self';
-    let messageType = 'encouragement';
+    let messageType = 'proactive_insight';
     let contextSource = 'general';
 
-    // Check for incomplete goals → Discipline Mentor
-    if (dailyGoals && dailyGoals.length > 0 && availableMentors.includes('discipline_mentor')) {
-      selectedMentor = 'discipline_mentor';
-      messageType = 'goal_check';
-      contextSource = 'daily_goal';
-    }
-    // Check for recent council meeting → Related mentor based on topic
-    else if (recentCouncil && recentCouncil.length > 0) {
+    // PRIORITY 1: Council participants who haven't outreached yet
+    // Pick a mentor who spoke in the most recent council and hasn't DM'd recently
+    if (recentCouncil && recentCouncil.length > 0) {
       const latestCouncil = recentCouncil[0];
-      const emotionalTone = latestCouncil.emotional_tone || '';
-      
-      if (emotionalTone.includes('business') || emotionalTone.includes('revenue')) {
-        if (availableMentors.includes('business_mentor')) {
-          selectedMentor = 'business_mentor';
-          messageType = 'strategic_question';
-          contextSource = 'council_meeting';
-        }
-      } else if (emotionalTone.includes('creative') || emotionalTone.includes('idea')) {
-        if (availableMentors.includes('creative_visionary')) {
-          selectedMentor = 'creative_visionary';
-          messageType = 'idea';
-          contextSource = 'council_meeting';
-        }
-      } else if (emotionalTone.includes('relationship') || emotionalTone.includes('emotional')) {
-        if (availableMentors.includes('heart_mentor')) {
-          selectedMentor = 'heart_mentor';
-          messageType = 'emotional_check';
-          contextSource = 'council_meeting';
-        }
+      const councilParticipants = Object.keys(latestCouncil.answers || {});
+      const availableParticipants = councilParticipants.filter(m =>
+        !recentMentors.includes(m) && mentorOutreachPrompts[m]
+      );
+      if (availableParticipants.length > 0) {
+        selectedMentor = availableParticipants[Math.floor(Math.random() * availableParticipants.length)];
+        messageType = 'proactive_insight';
+        contextSource = 'council_meeting';
       }
     }
-    // Check life domains for gaps → Strategist
-    else if (lifeDomains && lifeDomains.some(d => d.current_score < 5) && availableMentors.includes('strategist_mentor')) {
-      selectedMentor = 'strategist_mentor';
-      messageType = 'pattern_insight';
-      contextSource = 'life_domain';
+
+    // PRIORITY 2: Inactivity → Discipline Mentor (only if no council context)
+    if (contextSource === 'general' && dailyGoals && dailyGoals.length > 0 && availableMentors.includes('discipline_mentor')) {
+      selectedMentor = 'discipline_mentor';
+      messageType = 'accountability';
+      contextSource = 'daily_goal';
     }
-    // Default to Future Self for journey suggestions
-    else if (availableMentors.includes('future_self')) {
-      selectedMentor = 'future_self';
-      messageType = 'journey_suggestion';
-      contextSource = 'pattern';
-    }
-    // Fallback to any available mentor
-    else if (availableMentors.length > 0) {
-      selectedMentor = availableMentors[Math.floor(Math.random() * availableMentors.length)];
-      messageType = mentorOutreachPrompts[selectedMentor].types[0];
+
+    // PRIORITY 3: Default to Future Self
+    if (contextSource === 'general') {
+      selectedMentor = availableMentors.includes('future_self') ? 'future_self' : (availableMentors[0] || 'future_self');
+      messageType = 'proactive_insight';
     }
 
     // Build context for AI
     const contextData: Record<string, unknown> = {};
-    let contextPrompt = '';
+    let mentorPerspectiveContext = '';
+    let projectContext = '';
+    let councilQuestionContext = '';
 
-    if (contextSource === 'daily_goal' && dailyGoals) {
-      contextData.goals = dailyGoals.map(g => g.goal_text);
-      contextPrompt = `User has these pending goals: ${dailyGoals.map(g => g.goal_text).join(', ')}`;
-    } else if (contextSource === 'council_meeting' && recentCouncil?.[0]) {
-      contextData.council = recentCouncil[0];
-      contextPrompt = `User recently discussed: "${recentCouncil[0].question}". Resolution: "${recentCouncil[0].resolution || 'ongoing'}"`;
-    } else if (contextSource === 'life_domain' && lifeDomains) {
-      const lowDomains = lifeDomains.filter(d => d.current_score < 5);
-      contextData.lowDomains = lowDomains;
-      contextPrompt = `User's life domains needing attention: ${lowDomains.map(d => `${d.domain_name} (${d.current_score}/10)`).join(', ')}`;
+    if (activeProject) {
+      projectContext = `"${activeProject.project_title}"${activeProject.project_description ? ` — ${activeProject.project_description}` : ''}`;
     }
 
-    // Add recent chat context for journey suggestions
-    if (selectedMentor === 'future_self' && recentChats && recentChats.length > 0) {
-      const recentTopics = recentChats.slice(0, 10).map(c => c.content.substring(0, 100));
-      contextPrompt += `\n\nRecent conversation topics:\n${recentTopics.join('\n')}`;
+    if (contextSource === 'council_meeting' && recentCouncil?.[0]) {
+      const council = recentCouncil[0];
+      councilQuestionContext = council.question || '';
+      mentorPerspectiveContext = council.answers?.[selectedMentor] || '';
+      contextData.council = { question: councilQuestionContext, mentorPerspective: mentorPerspectiveContext };
+    } else if (contextSource === 'daily_goal' && dailyGoals) {
+      contextData.goals = dailyGoals.map((g: any) => g.goal_text);
+    }
+
+    // Add recent chat context
+    if (recentChats && recentChats.length > 0) {
+      const myRecentChats = recentChats
+        .filter((c: any) => c.mentor_type === selectedMentor)
+        .slice(0, 5)
+        .map((c: any) => c.content.substring(0, 120));
+      if (myRecentChats.length > 0) {
+        contextData.recentChat = myRecentChats;
+      }
     }
 
     // Generate the message using AI
@@ -272,26 +260,27 @@ RULES:
     }
 
     const mentorConfig = mentorOutreachPrompts[selectedMentor];
-    
-    const systemPrompt = `You are ${selectedMentor.replace(/_/g, ' ')}. ${mentorConfig.personality}
+    const mentorDisplayName = selectedMentor.replace(/_/g, ' ').replace(/\b\w/g, (l: string) => l.toUpperCase());
 
-You are sending a proactive daily message to a user of a personal growth app. This is NOT a response to their message - you are reaching out to them.
+    const systemPrompt = `You are ${mentorDisplayName}. ${mentorConfig.personality}
 
-MESSAGE TYPE: ${messageType}
-${contextPrompt}
+You are reaching out to a user because something has been on your mind since your last interaction.
+${projectContext ? `\nTHEIR PROJECT: ${projectContext}` : ''}
+${councilQuestionContext ? `\nWHAT THEY BROUGHT TO THE COUNCIL: "${councilQuestionContext}"` : ''}
+${mentorPerspectiveContext ? `\nWHAT YOU SAID IN THE COUNCIL: "${mentorPerspectiveContext}"` : ''}
+${messageType === 'accountability' && dailyGoals ? `\nPENDING GOALS: ${dailyGoals.map((g: any) => g.goal_text).join(', ')}` : ''}
 
-RULES:
-- Be personal and warm, like a real mentor checking in
-- Keep it to 2-3 sentences MAX
-- Ask a specific question OR give a specific insight
-- Reference their actual context/goals if provided
-- If you're Future Self suggesting a journey, recommend which mentors to talk to in what order
-- NO generic advice - be specific to their situation
-- Use **bold** for key phrases (max 2-3 highlights)`;
+WRITE A DM (2-3 sentences) that:
+- Opens as if you've been thinking about this — not a generic greeting
+- Delivers ONE specific idea, angle, reframe, or question from YOUR lens
+- References something concrete: their project, what they said, or what you said in the council
+- Ends with ONE question that makes them want to respond
 
-    const userPrompt = messageType === 'journey_suggestion' 
-      ? 'Generate a message suggesting a multi-mentor journey the user should take based on their recent activity. Recommend specific mentors in a specific order.'
-      : `Generate a ${messageType} message for the user.`;
+NOT a check-in. NOT generic. Give them something worth reading.
+Sound like yourself — your voice, your blind spot, your take.
+Use **bold** for 1 key phrase max. No bullet lists. No intro labels.`;
+
+    const userPrompt = `Generate the message.`;
 
     const response = await fetch('https://ai.gateway.lovable.dev/v1/chat/completions', {
       method: 'POST',
@@ -305,7 +294,7 @@ RULES:
           { role: 'system', content: systemPrompt },
           { role: 'user', content: userPrompt }
         ],
-        max_tokens: 300,
+        max_tokens: 450,
       }),
     });
 
@@ -316,7 +305,7 @@ RULES:
     }
 
     const aiData = await response.json();
-    const generatedMessage = aiData.choices?.[0]?.message?.content || 'How are you progressing today?';
+    const generatedMessage = aiData.choices?.[0]?.message?.content || "I've been thinking about where you're headed. What's the one thing you keep putting off that you know matters most right now?";
 
     // Save the outreach message
     const { data: outreach, error: insertError } = await supabase

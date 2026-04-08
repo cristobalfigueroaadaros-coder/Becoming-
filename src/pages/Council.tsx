@@ -265,12 +265,16 @@ const Council = () => {
         .eq("user_id", user.id)
         .eq("mentor_type", mentorType);
 
-      // Mark daily outreach as read
+      // Mark daily outreach as read — but NOT messages injected into the chat.
+      // insight_followup, proactive_insight, council_handover are handled by Chat.tsx.
       await supabase
         .from("mentor_daily_outreach")
         .update({ read_at: new Date().toISOString() })
         .eq("user_id", user.id)
-        .eq("mentor_type", mentorType);
+        .eq("mentor_type", mentorType)
+        .neq("message_type", "insight_followup")
+        .neq("message_type", "proactive_insight")
+        .neq("message_type", "council_handover");
 
       // Update local state immediately
       setMentorNotifications(prev => ({

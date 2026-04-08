@@ -478,10 +478,47 @@ const Chat = ({ mentorTypeOverride, embedded = false, locationState: propState }
           .filter((m: any) => m.role === "user")
           .slice(-3)
           .map((m: any) => m.content.substring(0, 50));
-        
+
         if (recentUserMessages.length > 0) {
           setConversationSummary(`We discussed: ${recentUserMessages.join("... / ")}...`);
           setShowWelcomeBack(true);
+        }
+      }
+
+      // Inject any pending mentor outreach as the opening message
+      // Handles: insight followups ("Go Deeper Later"), proactive insights, council handovers
+      const { data: pendingOutreach } = await supabase
+        .from("mentor_daily_outreach")
+        .select("*")
+        .eq("user_id", user.id)
+        .eq("mentor_type", mentorType as any)
+        .in("message_type", ["insight_followup", "proactive_insight", "council_handover"])
+        .is("read_at", null)
+        .order("created_at", { ascending: false })
+        .limit(1)
+        .maybeSingle();
+
+      if (pendingOutreach) {
+        // Save the outreach message into the chat conversation
+        const { data: injectedMsg } = await supabase
+          .from("chats")
+          .insert({
+            user_id: user.id,
+            mentor_type: mentorType as any,
+            role: "assistant",
+            content: pendingOutreach.message,
+          })
+          .select()
+          .single();
+
+        // Mark outreach as read so it won't be injected again
+        await supabase
+          .from("mentor_daily_outreach")
+          .update({ read_at: new Date().toISOString() })
+          .eq("id", pendingOutreach.id);
+
+        if (injectedMsg) {
+          setMessages(prev => [...prev, injectedMsg]);
         }
       }
     } catch (error: any) {
@@ -1079,8 +1116,12 @@ const Chat = ({ mentorTypeOverride, embedded = false, locationState: propState }
           ))}
           {loading && (
             <div className="flex justify-start">
-              <Card className="max-w-[80%] p-4 bg-card">
-                <p className="text-muted-foreground italic">Thinking...</p>
+              <Card className="max-w-[80%] px-5 py-4 bg-card">
+                <div className="flex items-center gap-1.5">
+                  <span className="w-2 h-2 rounded-full bg-muted-foreground/60 animate-bounce [animation-delay:0ms]" />
+                  <span className="w-2 h-2 rounded-full bg-muted-foreground/60 animate-bounce [animation-delay:150ms]" />
+                  <span className="w-2 h-2 rounded-full bg-muted-foreground/60 animate-bounce [animation-delay:300ms]" />
+                </div>
               </Card>
             </div>
           )}

@@ -12,7 +12,6 @@ import { AchievementBadge } from "@/components/AchievementBadge";
 import { ThemeCustomizationModal } from "@/components/ThemeCustomizationModal";
 import { ProfileBadges } from "@/components/ProfileBadges";
 import { BirthInfoEditor } from "@/components/BirthInfoEditor";
-import { BodygraphChart } from "@/components/human-design/BodygraphChart";
 import { useProfileBadges } from "@/hooks/useProfileBadges";
 import { toast } from "sonner";
 import { cn } from "@/lib/utils";
@@ -76,18 +75,6 @@ interface BirthInfo {
   birth_time_unknown: boolean | null;
 }
 
-interface HumanDesignData {
-  type: string;
-  strategy: string;
-  authority: string;
-  profile: string;
-  defined_centers: string[];
-  undefined_centers: string[];
-  key_gates?: Array<{ gate: number; description: string }>;
-  incarnation_cross?: string;
-  is_approximate: boolean;
-}
-
 const themeColorMap: Record<string, string> = {
   purple: "from-purple-500/10 via-background to-purple-500/5",
   blue: "from-blue-500/10 via-background to-blue-500/5",
@@ -122,7 +109,6 @@ const Profile = () => {
   const [purposeHistory, setPurposeHistory] = useState<PurposeHistoryEntry[]>([]);
   const [showPurposeHistory, setShowPurposeHistory] = useState(false);
   const [birthInfo, setBirthInfo] = useState<BirthInfo | null>(null);
-  const [humanDesignData, setHumanDesignData] = useState<HumanDesignData | null>(null);
   const [currentUserId, setCurrentUserId] = useState<string>("");
   const { getUserBadgesWithDetails, loading: badgesLoading } = useProfileBadges(userId);
   const userBadges = getUserBadgesWithDetails();
@@ -157,7 +143,7 @@ const Profile = () => {
       // Load user purpose and birth info from profiles table
       const { data: profileDetails } = await supabase
         .from("profiles")
-        .select("main_mission, birth_date, birth_time, birth_location, birth_time_unknown, human_design_data")
+        .select("main_mission, birth_date, birth_time, birth_location, birth_time_unknown")
         .eq("id", targetUserId)
         .maybeSingle();
 
@@ -174,10 +160,6 @@ const Profile = () => {
           birth_time_unknown: profileDetails.birth_time_unknown,
         });
         
-        // Set Human Design data if it exists
-        if (profileDetails.human_design_data && typeof profileDetails.human_design_data === 'object') {
-          setHumanDesignData(profileDetails.human_design_data as unknown as HumanDesignData);
-        }
       }
 
       // Load purpose history (only for own profile)
@@ -589,70 +571,6 @@ const Profile = () => {
             initialData={birthInfo || undefined}
             onUpdate={loadProfile}
           />
-        )}
-
-        {/* Human Design Section */}
-        {humanDesignData && humanDesignData.defined_centers && humanDesignData.defined_centers.length > 0 ? (
-          <BodygraphChart data={humanDesignData} showLabels={true} />
-        ) : isOwnProfile && (
-          <Card className="border-2 border-primary/20 bg-gradient-to-br from-primary/5 to-mentor-future/5">
-            <CardHeader>
-              <div className="flex items-center gap-3">
-                <div className="w-12 h-12 rounded-full bg-primary/10 flex items-center justify-center">
-                  <Compass className="w-6 h-6 text-primary" />
-                </div>
-                <div>
-                  <CardTitle className="text-xl">Discover Your Human Design</CardTitle>
-                  <p className="text-sm text-muted-foreground mt-1">
-                    Unlock insights into your unique energy blueprint
-                  </p>
-                </div>
-              </div>
-            </CardHeader>
-            <CardContent className="space-y-4">
-              <p className="text-sm text-muted-foreground">
-                Human Design combines ancient wisdom with modern science to reveal your authentic self. 
-                Complete your birth information above to generate your personalized bodygraph chart.
-              </p>
-              <div className="flex flex-col sm:flex-row gap-3">
-                <div className="flex-1 p-4 rounded-lg bg-card/50 border border-border/50">
-                  <div className="flex items-center gap-2 mb-2">
-                    <Target className="w-4 h-4 text-primary" />
-                    <span className="text-sm font-semibold">Your Type</span>
-                  </div>
-                  <p className="text-xs text-muted-foreground">
-                    Discover your energetic blueprint
-                  </p>
-                </div>
-                <div className="flex-1 p-4 rounded-lg bg-card/50 border border-border/50">
-                  <div className="flex items-center gap-2 mb-2">
-                    <Zap className="w-4 h-4 text-primary" />
-                    <span className="text-sm font-semibold">Your Strategy</span>
-                  </div>
-                  <p className="text-xs text-muted-foreground">
-                    Learn how to make aligned decisions
-                  </p>
-                </div>
-                <div className="flex-1 p-4 rounded-lg bg-card/50 border border-border/50">
-                  <div className="flex items-center gap-2 mb-2">
-                    <Award className="w-4 h-4 text-primary" />
-                    <span className="text-sm font-semibold">Your Centers</span>
-                  </div>
-                  <p className="text-xs text-muted-foreground">
-                    Understand your energy centers
-                  </p>
-                </div>
-              </div>
-              {!birthInfo?.birth_date && (
-                <div className="p-3 rounded-lg bg-primary/10 border border-primary/20">
-                  <p className="text-sm text-foreground">
-                    👆 <strong>Get started:</strong> Fill in your birth information in the editor above, 
-                    then save to generate your Human Design chart.
-                  </p>
-                </div>
-              )}
-            </CardContent>
-          </Card>
         )}
 
         {/* Stats Grid */}

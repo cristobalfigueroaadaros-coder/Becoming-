@@ -7,6 +7,36 @@ import { Target, TrendingUp, Rocket } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { supabase } from "@/integrations/supabase/client";
 
+const STAGE_MENTORS: Record<string, string[]> = {
+  DISCOVER: [
+    "strategist_mentor",
+    "creative_visionary",
+    "inner_clarity_mentor",
+    "problem_mentor",
+    "perspective_mentor",
+    "alignment_mentor",
+    "challenger_mentor",
+  ],
+  GROW: [
+    "strategist_mentor",
+    "creative_visionary",
+    "business_mentor",
+    "marketing_mentor",
+    "perspective_mentor",
+    "challenger_mentor",
+    "design_thinking_mentor",
+  ],
+  BUILD: [
+    "strategist_mentor",
+    "creative_visionary",
+    "business_mentor",
+    "discipline_mentor",
+    "marketing_mentor",
+    "problem_mentor",
+    "design_thinking_mentor",
+  ],
+};
+
 const options = [
   {
     id: "discover_purpose",
@@ -57,20 +87,28 @@ const OnboardingStep2 = () => {
       localStorage.setItem("onboarding_focus", selectedOption);
 
       const { data: { user } } = await supabase.auth.getUser();
-      if (user) {
-        const { error } = await supabase
-          .from("profiles")
-          .update({ entry_state: selected.entryState })
-          .eq("id", user.id);
-        if (error) {
-          console.error("Failed to save entry_state:", error);
-        }
-      }
+      if (!user) throw new Error("Not authenticated");
 
-      navigate("/onboarding/step4");
+      // Save entry state
+      await supabase
+        .from("profiles")
+        .update({ entry_state: selected.entryState })
+        .eq("id", user.id);
+
+      // Silently assign mentors based on selected phase
+      const mentors = STAGE_MENTORS[selected.entryState] || STAGE_MENTORS.DISCOVER;
+      await supabase.from("user_mentors").delete().eq("user_id", user.id);
+      await supabase.from("user_mentors").insert(
+        mentors.map((mentorType) => ({
+          user_id: user.id,
+          mentor_type: mentorType as any,
+        }))
+      );
+
+      navigate("/onboarding/quest");
     } catch (error) {
       console.error("Failed to save entry state:", error);
-      navigate("/onboarding/step4");
+      navigate("/onboarding/quest");
     } finally {
       setSaving(false);
     }
