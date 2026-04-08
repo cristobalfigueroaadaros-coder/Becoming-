@@ -284,6 +284,9 @@ const ConsoleThread = ({ embedded = false, onProjectNameChange }: ConsoleThreadP
         .eq("user_id", user.id)
         .order("created_at", { ascending: true });
 
+      // DB fetches complete — show the chat UI now so typing indicators are visible
+      setInitialLoading(false);
+
       if (savedMessages && savedMessages.length > 0) {
         const restored: ChatMessage[] = savedMessages.map((m: any) => ({
           id: m.id,
@@ -321,12 +324,16 @@ const ConsoleThread = ({ embedded = false, onProjectNameChange }: ConsoleThreadP
           }
         }
       } else {
+        // Fresh conversation — show Future Self typing while we fetch context
+        setTyping({ name: mentorConfig.future_self.name, icon: mentorConfig.future_self.icon, color: mentorConfig.future_self.color });
+
         // Check if Atlas signals are available — if so, skip starter quest
         let hasAtlasSignals = false;
         try {
           const { data: atlasData, error: atlasError } = await supabase.functions.invoke("extract-atlas-signals", {
             body: { mode: "generateReflectionMessages" },
           });
+          setTyping(null);
           if (!atlasError && atlasData && atlasData.identitySignals?.length >= 2) {
             hasAtlasSignals = true;
             setAtlasSignals(atlasData);
@@ -335,6 +342,7 @@ const ConsoleThread = ({ embedded = false, onProjectNameChange }: ConsoleThreadP
             await startAtlasReflection(name, atlasData);
           }
         } catch (e) {
+          setTyping(null);
           console.error("Atlas signal extraction failed (non-fatal):", e);
         }
 
@@ -360,8 +368,6 @@ const ConsoleThread = ({ embedded = false, onProjectNameChange }: ConsoleThreadP
           }
         }
       }
-
-      setInitialLoading(false);
     };
     init();
   }, []);
