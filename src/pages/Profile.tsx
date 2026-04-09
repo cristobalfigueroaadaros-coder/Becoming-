@@ -7,12 +7,13 @@ import { Badge } from "@/components/ui/badge";
 import { Progress } from "@/components/ui/progress";
 import { Avatar, AvatarFallback } from "@/components/ui/avatar";
 import { Textarea } from "@/components/ui/textarea";
-import { ArrowLeft, Trophy, Flame, Target, Zap, Award, Calendar, Ghost, Users, BookOpen, Settings, Compass, Edit2, Check, X } from "lucide-react";
+import { ArrowLeft, Trophy, Flame, Target, Zap, Award, Calendar, Ghost, Users, BookOpen, Settings, Compass, Edit2, Check, X, Crown, Heart, Sparkles } from "lucide-react";
 import { AchievementBadge } from "@/components/AchievementBadge";
 import { ThemeCustomizationModal } from "@/components/ThemeCustomizationModal";
 import { ProfileBadges } from "@/components/ProfileBadges";
 import { BirthInfoEditor } from "@/components/BirthInfoEditor";
 import { useProfileBadges } from "@/hooks/useProfileBadges";
+import { PaymentModal } from "@/components/PaymentModal";
 import { toast } from "sonner";
 import { cn } from "@/lib/utils";
 
@@ -102,6 +103,8 @@ const Profile = () => {
   const [isOwnProfile, setIsOwnProfile] = useState(false);
   const [themePreferences, setThemePreferences] = useState<ThemePreferences | null>(null);
   const [customizeModalOpen, setCustomizeModalOpen] = useState(false);
+  const [paymentModalOpen, setPaymentModalOpen] = useState(false);
+  const [paymentStatus, setPaymentStatus] = useState<string>("free");
   const [purpose, setPurpose] = useState<string>("");
   const [editingPurpose, setEditingPurpose] = useState(false);
   const [purposeText, setPurposeText] = useState("");
@@ -143,9 +146,13 @@ const Profile = () => {
       // Load user purpose and birth info from profiles table
       const { data: profileDetails } = await supabase
         .from("profiles")
-        .select("main_mission, birth_date, birth_time, birth_location, birth_time_unknown")
+        .select("main_mission, birth_date, birth_time, birth_location, birth_time_unknown, payment_status")
         .eq("id", targetUserId)
         .maybeSingle();
+
+      if (profileDetails?.payment_status) {
+        setPaymentStatus(profileDetails.payment_status);
+      }
 
       if (profileDetails?.main_mission) {
         setPurpose(profileDetails.main_mission);
