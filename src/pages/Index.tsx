@@ -6,7 +6,7 @@ import { Label } from "@/components/ui/label";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
 import { motion } from "framer-motion";
-import { ArrowRight, Compass, MessageCircle, Rocket, Sparkles, Star, Zap } from "lucide-react";
+import { ArrowRight, Compass, Heart, MessageCircle, Rocket, Sparkles, Star, Users, Zap, Crown } from "lucide-react";
 import bcomingLogo from "@/assets/bcoming-logo.png";
 
 const fadeUp = {
@@ -77,41 +77,75 @@ const Index = () => {
     {
       icon: Compass,
       title: "Atlas",
-      subtitle: "Map Your Inner World",
       description:
-        "Discover your skills, passions, frustrations, and hidden patterns through guided self-exploration quests.",
+        "Discover and connect your skills, passions, frustrations, and life patterns through guided quests that reveal who you truly are.",
     },
     {
       icon: MessageCircle,
       title: "AI Mentors",
-      subtitle: "Guidance That Knows You",
       description:
-        "Five distinct mentor personalities that learn from your journey and guide you with personalized wisdom.",
+        "A personalized council of mentors that learns from your journey and guides you with wisdom that actually fits where you are.",
     },
     {
       icon: Rocket,
       title: "Creation Lab",
-      subtitle: "Turn Insight Into Action",
       description:
-        "Transform your discoveries into real projects with structured tools, design thinking, and step-by-step execution.",
+        "Turn what you discover into real projects, with structure, tools, and step-by-step guidance to help you build and ship.",
+    },
+    {
+      icon: Users,
+      title: "Creators",
+      description:
+        "Join a growing network of people building from their gifts. Share, connect, and grow together. Because the best things are built in community.",
     },
   ];
 
   const steps = [
     {
       number: "01",
-      title: "Explore",
-      description: "Answer deep questions that reveal your natural gifts, passions, and growth edges.",
+      title: "Discover",
+      description: "Don't know where to start? We help you understand yourself first.",
     },
     {
       number: "02",
-      title: "Discover",
-      description: "Watch patterns emerge as the system connects your dots into a living map of who you are.",
+      title: "Grow",
+      description: "Have ideas but lack clarity? We help you connect the dots.",
     },
     {
       number: "03",
-      title: "Create",
-      description: "Turn your deepest insights into real projects, guided by AI mentors who truly know you.",
+      title: "Build",
+      description: "Already creating? We help you move forward with focus and real guidance.",
+    },
+  ];
+
+  const pricingTiers = [
+    {
+      id: "supporter",
+      label: "Early Supporter",
+      price: "$10",
+      period: "one-time",
+      icon: Heart,
+      description: "Support the vision. Get early access forever.",
+      color: "from-accent to-[hsl(28,95%,52%)]",
+    },
+    {
+      id: "monthly",
+      label: "Monthly",
+      price: "$12.99",
+      period: "/month",
+      icon: Zap,
+      description: "Full access. Cancel anytime.",
+      color: "from-primary to-[hsl(265,90%,50%)]",
+    },
+    {
+      id: "yearly",
+      label: "Yearly",
+      price: "$99",
+      period: "/year",
+      icon: Crown,
+      description: "Best value. Save 36%.",
+      badge: "Best Value",
+      color: "from-secondary to-[hsl(220,95%,45%)]",
     },
   ];
 
@@ -131,8 +165,8 @@ const Index = () => {
             <a href="#how-it-works" className="text-sm text-muted-foreground hover:text-foreground transition-colors">
               How it works
             </a>
-            <a href="#vision" className="text-sm text-muted-foreground hover:text-foreground transition-colors">
-              Vision
+            <a href="#pricing" className="text-sm text-muted-foreground hover:text-foreground transition-colors">
+              Pricing
             </a>
           </div>
           <div className="flex items-center gap-3">
@@ -157,7 +191,6 @@ const Index = () => {
 
       {/* Hero Section */}
       <section className="relative min-h-screen flex items-center justify-center pt-16">
-        {/* Background glow effects */}
         <div className="absolute inset-0 overflow-hidden">
           <div className="absolute top-1/4 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[800px] h-[600px] rounded-full bg-primary/8 blur-[120px]" />
           <div className="absolute bottom-1/4 left-1/3 w-[400px] h-[400px] rounded-full bg-secondary/5 blur-[100px]" />
@@ -180,7 +213,7 @@ const Index = () => {
           >
             <span className="text-foreground">Discover who you are.</span>
             <br />
-            <span className="gradient-text">Build what matters.</span>
+            <span className="gradient-text">Build what actually matters.</span>
           </motion.h1>
 
           <motion.p
@@ -190,8 +223,7 @@ const Index = () => {
             custom={2}
             className="text-lg md:text-xl text-muted-foreground max-w-2xl mx-auto mb-10 leading-relaxed"
           >
-            Bcoming is a transformational platform that helps you uncover your gifts, understand your patterns, and turn
-            them into real projects and meaningful paths.
+            Bcoming helps you understand yourself, uncover your gifts, and turn them into real projects that serve something bigger than you.
           </motion.p>
 
           <motion.div
@@ -229,17 +261,19 @@ const Index = () => {
             transition={{ duration: 0.6 }}
           >
             <h2 className="font-sora text-3xl md:text-4xl font-bold mb-6 text-foreground">
-              You know there's more inside you.
+              Wherever you are, something feels missing.
             </h2>
             <p className="text-lg text-muted-foreground leading-relaxed max-w-2xl mx-auto mb-8">
-              You have skills, ideas, and a deep sense that you're meant for something bigger. But without clarity, it
-              stays trapped — as potential that never becomes real.
+              Maybe you're just starting and don't know where to go. Maybe you have ideas but can't make them real. Or maybe you're already building but feel stuck and alone in it.
             </p>
-            <div className="grid md:grid-cols-3 gap-6 mt-12">
+            <p className="text-base text-foreground/80 max-w-xl mx-auto mb-12">
+              You know there's more. You just need clarity, guidance, and a real place to begin.
+            </p>
+            <div className="grid md:grid-cols-3 gap-6">
               {[
-                { text: "You don't lack talent — you lack a map", icon: "🧭" },
-                { text: "You don't need more advice — you need the right guide", icon: "🔮" },
-                { text: "You don't need motivation — you need direction", icon: "⚡" },
+                { text: "Not a lack of talent, a lack of direction", icon: "🧭" },
+                { text: "Not more information, the right guidance", icon: "🔮" },
+                { text: "Not motivation, knowing what to build", icon: "⚡" },
               ].map((item, i) => (
                 <motion.div
                   key={i}
@@ -273,34 +307,33 @@ const Index = () => {
               What is Bcoming
             </span>
             <h2 className="font-sora text-3xl md:text-4xl font-bold mb-6 text-foreground">
-              The space where self-discovery
+              Where who you are
               <br />
-              <span className="gradient-text">becomes creation</span>
+              <span className="gradient-text">becomes what you build.</span>
             </h2>
             <p className="text-lg text-muted-foreground leading-relaxed max-w-2xl mx-auto">
-              Bcoming connects who you are with what you can build. Through guided exploration, AI mentors, and real
-              project tools — your identity becomes your strategy.
+              Bcoming helps you connect your gifts, skills, and life experiences into something real. Through guided exploration and a personal council of AI mentors, your identity stops being a question and starts becoming your greatest asset.
             </p>
           </motion.div>
         </div>
       </section>
 
-      {/* Features */}
+      {/* Features — Four Pillars */}
       <section id="features" className="py-24 md:py-32 relative">
         <div className="absolute top-0 left-0 right-0 h-px bg-gradient-to-r from-transparent via-border to-transparent" />
         <div className="max-w-6xl mx-auto px-6">
           <div className="text-center mb-16">
             <motion.div initial={{ opacity: 0, y: 20 }} whileInView={{ opacity: 1, y: 0 }} viewport={{ once: true }}>
               <h2 className="font-sora text-3xl md:text-4xl font-bold text-foreground mb-4">
-                Three pillars of transformation
+                From reflection to real creation.
               </h2>
               <p className="text-muted-foreground text-lg max-w-xl mx-auto">
-                Each part of Bcoming works together to take you from reflection to reality.
+                Each part of Bcoming works together to take you from self-discovery to building something meaningful.
               </p>
             </motion.div>
           </div>
 
-          <div className="grid md:grid-cols-3 gap-6">
+          <div className="grid md:grid-cols-2 lg:grid-cols-4 gap-6">
             {features.map((feature, i) => {
               const Icon = feature.icon;
               return (
@@ -312,14 +345,12 @@ const Index = () => {
                   transition={{ delay: i * 0.15, duration: 0.5 }}
                   className="group relative p-8 rounded-2xl border border-border/50 bg-card/30 hover:border-primary/30 hover:bg-card/60 transition-all duration-300"
                 >
-                  {/* Glow on hover */}
                   <div className="absolute inset-0 rounded-2xl opacity-0 group-hover:opacity-100 transition-opacity duration-500 bg-gradient-to-br from-primary/5 to-transparent" />
                   <div className="relative z-10">
                     <div className="w-12 h-12 rounded-xl bg-primary/10 flex items-center justify-center mb-5 group-hover:glow-purple-sm transition-shadow duration-300">
                       <Icon className="w-6 h-6 text-primary" />
                     </div>
-                    <h3 className="font-sora text-xl font-bold text-foreground mb-1">{feature.title}</h3>
-                    <p className="text-sm text-primary mb-3">{feature.subtitle}</p>
+                    <h3 className="font-sora text-xl font-bold text-foreground mb-3">{feature.title}</h3>
                     <p className="text-muted-foreground leading-relaxed">{feature.description}</p>
                   </div>
                 </motion.div>
@@ -339,7 +370,9 @@ const Index = () => {
           <div className="text-center mb-16">
             <motion.div initial={{ opacity: 0, y: 20 }} whileInView={{ opacity: 1, y: 0 }} viewport={{ once: true }}>
               <h2 className="font-sora text-3xl md:text-4xl font-bold text-foreground mb-4">How it works</h2>
-              <p className="text-muted-foreground text-lg max-w-xl mx-auto">Three steps from curiosity to creation.</p>
+              <p className="text-muted-foreground text-lg max-w-xl mx-auto">
+                Your journey adapts to you. Everyone starts somewhere different. Bcoming meets you where you are.
+              </p>
             </motion.div>
           </div>
 
@@ -362,7 +395,107 @@ const Index = () => {
         </div>
       </section>
 
-      {/* Vision / Social Proof */}
+      {/* Belief Section */}
+      <section className="py-24 md:py-32 relative">
+        <div className="absolute top-0 left-0 right-0 h-px bg-gradient-to-r from-transparent via-border to-transparent" />
+        <div className="absolute inset-0 overflow-hidden">
+          <div className="absolute top-1/3 right-1/4 w-[500px] h-[500px] rounded-full bg-accent/4 blur-[130px]" />
+        </div>
+        <div className="max-w-4xl mx-auto px-6 text-center relative z-10">
+          <motion.div
+            initial={{ opacity: 0, y: 20 }}
+            whileInView={{ opacity: 1, y: 0 }}
+            viewport={{ once: true }}
+            transition={{ duration: 0.6 }}
+          >
+            <span className="inline-flex items-center gap-2 px-4 py-1.5 rounded-full border border-accent/20 bg-accent/5 text-sm text-accent mb-6">
+              <Heart className="w-3.5 h-3.5" />
+              What we believe
+            </span>
+            <h2 className="font-sora text-3xl md:text-4xl font-bold mb-6 text-foreground">
+              We believe every person has a gift.
+            </h2>
+            <p className="text-lg text-muted-foreground leading-relaxed max-w-2xl mx-auto mb-6">
+              Something unique. A way of seeing, creating, or connecting that only you carry.
+            </p>
+            <p className="text-lg text-muted-foreground leading-relaxed max-w-2xl mx-auto mb-6">
+              We believe real happiness comes from finding that gift, crafting something with it, and offering it back to the world.
+            </p>
+            <p className="text-base text-foreground/80 leading-relaxed max-w-2xl mx-auto mb-6">
+              That's why we built Bcoming. Not as a productivity tool. As a space where people discover who they are, do something meaningful with what they find, and connect with creators around the world.
+            </p>
+            <p className="font-sora text-xl font-semibold gradient-text">
+              Because we can change the world together.
+            </p>
+          </motion.div>
+        </div>
+      </section>
+
+      {/* Pricing Section */}
+      <section id="pricing" className="py-24 md:py-32 relative">
+        <div className="absolute top-0 left-0 right-0 h-px bg-gradient-to-r from-transparent via-border to-transparent" />
+        <div className="absolute inset-0 overflow-hidden">
+          <div className="absolute bottom-1/3 left-1/3 w-[500px] h-[500px] rounded-full bg-primary/4 blur-[130px]" />
+        </div>
+        <div className="max-w-4xl mx-auto px-6 relative z-10">
+          <div className="text-center mb-16">
+            <motion.div initial={{ opacity: 0, y: 20 }} whileInView={{ opacity: 1, y: 0 }} viewport={{ once: true }}>
+              <span className="inline-flex items-center gap-2 px-4 py-1.5 rounded-full border border-primary/20 bg-primary/5 text-sm text-primary mb-6">
+                <Sparkles className="w-3.5 h-3.5" />
+                Simple, honest pricing
+              </span>
+              <h2 className="font-sora text-3xl md:text-4xl font-bold text-foreground mb-4">
+                Support the journey
+              </h2>
+              <p className="text-muted-foreground text-lg max-w-xl mx-auto">
+                Bcoming is free to explore. If it resonates, consider supporting the vision.
+              </p>
+            </motion.div>
+          </div>
+
+          <div className="grid md:grid-cols-3 gap-6">
+            {pricingTiers.map((tier, i) => {
+              const Icon = tier.icon;
+              return (
+                <motion.div
+                  key={tier.id}
+                  initial={{ opacity: 0, y: 30 }}
+                  whileInView={{ opacity: 1, y: 0 }}
+                  viewport={{ once: true }}
+                  transition={{ delay: i * 0.15, duration: 0.5 }}
+                  className={`relative p-8 rounded-2xl border bg-card/30 transition-all duration-300 hover:bg-card/60 ${
+                    tier.badge ? "border-primary/40 hover:border-primary/60" : "border-border/50 hover:border-primary/30"
+                  }`}
+                >
+                  {tier.badge && (
+                    <span className="absolute -top-3 left-1/2 -translate-x-1/2 text-[10px] font-bold uppercase px-3 py-1 rounded-full bg-primary/20 text-primary border border-primary/30">
+                      {tier.badge}
+                    </span>
+                  )}
+                  <div className={`w-12 h-12 rounded-xl bg-gradient-to-br ${tier.color} flex items-center justify-center mb-5`}>
+                    <Icon className="w-6 h-6 text-foreground" />
+                  </div>
+                  <h3 className="font-sora text-xl font-bold text-foreground mb-1">{tier.label}</h3>
+                  <p className="text-muted-foreground text-sm mb-4">{tier.description}</p>
+                  <div className="mb-6">
+                    <span className="font-sora text-3xl font-bold text-foreground">{tier.price}</span>
+                    <span className="text-muted-foreground text-sm ml-1">{tier.period}</span>
+                  </div>
+                  <Button className="w-full glow-purple-sm" onClick={scrollToAuth}>
+                    Get started
+                  </Button>
+                </motion.div>
+              );
+            })}
+          </div>
+
+          <p className="text-center text-sm text-muted-foreground mt-8">
+            All features are available for free during early access. Payments are optional and support development.
+          </p>
+        </div>
+      </section>
+
+      {/* Closing CTA */}
       <section id="vision" className="py-24 md:py-32 relative">
         <div className="absolute top-0 left-0 right-0 h-px bg-gradient-to-r from-transparent via-border to-transparent" />
         <div className="max-w-4xl mx-auto px-6 text-center">
@@ -377,11 +510,10 @@ const Index = () => {
             </div>
             <h2 className="font-sora text-3xl md:text-4xl font-bold text-foreground mb-6">We become by building.</h2>
             <p className="text-lg text-muted-foreground leading-relaxed max-w-2xl mx-auto mb-10">
-              Bcoming is not a tool — it's a transformational space. A place where who you are and what you create
-              become the same thing. Your identity is your greatest asset. Let's unlock it.
+              Bcoming is not a tool. It's a space where who you are and what you create finally become the same thing. Your gifts are your greatest asset. Let's use them.
             </p>
             <Button size="lg" className="text-lg px-10 py-6 glow-purple gap-2" onClick={scrollToAuth}>
-              Begin your transformation <ArrowRight className="w-5 h-5" />
+              Start your journey <ArrowRight className="w-5 h-5" />
             </Button>
           </motion.div>
         </div>
