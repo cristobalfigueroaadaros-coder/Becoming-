@@ -580,7 +580,111 @@ const Profile = () => {
           />
         )}
 
-        {/* Stats Grid */}
+        {/* Membership / Plan */}
+        {isOwnProfile && (
+          <Card className={cn("border-2 border-primary/20", getCardClass())}>
+            <CardHeader>
+              <CardTitle className="flex items-center gap-2">
+                <Crown className="w-5 h-5 text-accent" />
+                Membership
+              </CardTitle>
+            </CardHeader>
+            <CardContent>
+              <div className="space-y-4">
+                {/* Current plan */}
+                <div className="flex items-center justify-between p-4 rounded-xl border border-border/50 bg-muted/30">
+                  <div className="flex items-center gap-3">
+                    <div className={cn(
+                      "w-10 h-10 rounded-lg flex items-center justify-center",
+                      paymentStatus === "free"
+                        ? "bg-muted"
+                        : "bg-gradient-to-br from-primary to-accent"
+                    )}>
+                      {paymentStatus === "free" ? (
+                        <Sparkles className="w-5 h-5 text-muted-foreground" />
+                      ) : paymentStatus === "supporter" ? (
+                        <Heart className="w-5 h-5 text-foreground" />
+                      ) : (
+                        <Crown className="w-5 h-5 text-foreground" />
+                      )}
+                    </div>
+                    <div>
+                      <p className="font-semibold text-foreground">
+                        {paymentStatus === "free" && "Free Plan"}
+                        {paymentStatus === "supporter" && "Early Supporter"}
+                        {paymentStatus === "subscriber_monthly" && "Monthly Subscriber"}
+                        {paymentStatus === "subscriber_yearly" && "Yearly Subscriber"}
+                      </p>
+                      <p className="text-sm text-muted-foreground">
+                        {paymentStatus === "free"
+                          ? "You're exploring for free. Support the journey anytime."
+                          : "Thank you for supporting Bcoming! 🙏"}
+                      </p>
+                    </div>
+                  </div>
+                  {paymentStatus !== "free" && (
+                    <Badge className="bg-accent/20 text-accent border-accent/30">Active</Badge>
+                  )}
+                </div>
+
+                {/* Upgrade options */}
+                {paymentStatus === "free" && (
+                  <div className="space-y-3">
+                    <p className="text-sm text-muted-foreground">
+                      Bcoming is free to use. If this journey resonates with you, consider supporting the vision.
+                    </p>
+                    <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
+                      {[
+                        { label: "Early Supporter", price: "$10", period: "one-time", icon: Heart, color: "from-accent to-[hsl(28,95%,52%)]" },
+                        { label: "Monthly", price: "$12.99", period: "/month", icon: Zap, color: "from-primary to-[hsl(265,90%,50%)]" },
+                        { label: "Yearly", price: "$99", period: "/year", icon: Crown, color: "from-secondary to-[hsl(220,95%,45%)]", badge: "Save 36%" },
+                      ].map((tier) => {
+                        const Icon = tier.icon;
+                        return (
+                          <button
+                            key={tier.label}
+                            onClick={() => setPaymentModalOpen(true)}
+                            className="relative p-4 rounded-xl border border-border/50 bg-card/30 hover:border-primary/30 hover:bg-card/60 transition-all text-left group"
+                          >
+                            {tier.badge && (
+                              <span className="absolute -top-2 right-3 text-[9px] font-bold uppercase px-2 py-0.5 rounded-full bg-primary/20 text-primary border border-primary/30">
+                                {tier.badge}
+                              </span>
+                            )}
+                            <div className={`w-8 h-8 rounded-lg bg-gradient-to-br ${tier.color} flex items-center justify-center mb-2`}>
+                              <Icon className="w-4 h-4 text-foreground" />
+                            </div>
+                            <p className="font-semibold text-foreground text-sm">{tier.label}</p>
+                            <p className="text-foreground">
+                              <span className="text-lg font-bold">{tier.price}</span>
+                              <span className="text-xs text-muted-foreground ml-1">{tier.period}</span>
+                            </p>
+                          </button>
+                        );
+                      })}
+                    </div>
+                  </div>
+                )}
+
+                {/* Already a supporter — option to change */}
+                {paymentStatus === "supporter" && (
+                  <p className="text-sm text-muted-foreground">
+                    Want more? You can upgrade to a monthly or yearly plan anytime.{" "}
+                    <button onClick={() => setPaymentModalOpen(true)} className="text-primary hover:underline">
+                      View plans →
+                    </button>
+                  </p>
+                )}
+
+                {(paymentStatus === "subscriber_monthly" || paymentStatus === "subscriber_yearly") && (
+                  <p className="text-sm text-muted-foreground">
+                    Your subscription is active. Thank you for believing in what we're building together.
+                  </p>
+                )}
+              </div>
+            </CardContent>
+          </Card>
+        )}
         {canShowStats && (
           <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
             <Card className={getCardClass()}>
