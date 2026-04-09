@@ -808,6 +808,14 @@ const Profile = () => {
         onClose={() => setCustomizeModalOpen(false)}
         onUpdate={loadProfile}
       />
+
+      <PaymentModal
+        open={paymentModalOpen}
+        onClose={() => {
+          setPaymentModalOpen(false);
+          loadProfile();
+        }}
+      />
     </div>
   );
 };
