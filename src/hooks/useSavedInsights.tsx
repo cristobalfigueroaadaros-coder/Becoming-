@@ -86,10 +86,8 @@ export const useSavedInsights = () => {
       // If follow-up requested, insert directly into mentor_daily_outreach
       // for the exact mentor who sent the insight — no edge function dependency
       if (requestFollowup && followupMentor) {
+        console.log('[GoDeeper] inserting outreach for mentor:', followupMentor);
         const preview = insightText.length > 120 ? insightText.slice(0, 120) + '…' : insightText;
-        const mentorDisplayName = followupMentor
-          .replace(/_/g, ' ')
-          .replace(/\b\w/g, (l: string) => l.toUpperCase());
 
         const followupMessage = `I've been sitting with what you saved: **"${preview}"** — and I want to go deeper on this with you. What feels most alive or unresolved about it right now?`;
 
@@ -104,8 +102,11 @@ export const useSavedInsights = () => {
             context_data: { insight_text: insightText },
           })
           .then(({ error }) => {
-            if (error) console.error('Outreach insert error:', error);
+            if (error) console.error('[GoDeeper] Outreach insert error:', error);
+            else console.log('[GoDeeper] Outreach inserted successfully for:', followupMentor);
           });
+      } else {
+        console.log('[GoDeeper] skipped — requestFollowup:', requestFollowup, 'followupMentor:', followupMentor);
       }
 
       await fetchInsights();

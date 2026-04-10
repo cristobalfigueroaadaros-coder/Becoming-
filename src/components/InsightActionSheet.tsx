@@ -157,6 +157,7 @@ export const InsightActionSheet = ({
   };
 
   const handleGoDeeper = () => {
+    console.log('[GoDeeper] sourceMentor:', sourceMentor, '→ followupMentor:', followupMentor);
     setSaving(true);
     saveInsight(
       insightText,
