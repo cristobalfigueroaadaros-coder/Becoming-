@@ -540,7 +540,8 @@ const Chat = ({ mentorTypeOverride, embedded = false, locationState: propState }
           .eq("id", pendingOutreach.id);
 
         if (injectedMsg) {
-          setMessages(prev => [...prev, injectedMsg]);
+          // Dedup: realtime subscription may have already added this message
+          setMessages(prev => prev.some(m => m.id === injectedMsg.id) ? prev : [...prev, injectedMsg]);
         }
       }
     } catch (error: any) {

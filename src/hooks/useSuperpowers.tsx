@@ -54,8 +54,32 @@ export function useSuperpowers() {
 
       if (error) throw error;
 
-      const newSuperpowers = data?.superpowers || [];
+      const newSuperpowers: Superpower[] = data?.superpowers || [];
       setSuperpowers(prev => [...newSuperpowers, ...prev]);
+
+      // Write each superpower as an Atlas dot so it appears in the user's identity map
+      if (newSuperpowers.length > 0) {
+        const { data: { user } } = await supabase.auth.getUser();
+        if (user) {
+          const atlasDots = newSuperpowers.map(sp => ({
+            user_id: user.id,
+            title: sp.name,
+            short_description: sp.description,
+            dot_category: "strength",
+            source_system: "transmutation",
+            origin: `transmutation:${patternId}`,
+            signal_strength: 85,
+            confidence_score: 0.85,
+            is_gold_moment: true,
+            signal_tags: [sp.category, "superpower", patternName].filter(Boolean),
+            signal_sources: { superpower_id: sp.id, pattern_name: patternName, category: sp.category },
+          }));
+
+          const { error: dotError } = await supabase.from("atlas_dots").insert(atlasDots);
+          if (dotError) console.error("Failed to write superpowers to Atlas:", dotError);
+        }
+      }
+
       return newSuperpowers;
     } catch (err: any) {
       console.error("Error extracting superpowers:", err);
