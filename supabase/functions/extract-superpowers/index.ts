@@ -161,7 +161,7 @@ Use these color mappings:
     // Guaranteed fallback: if empty, create a default from the pattern
     if (!superpowers || superpowers.length === 0) {
       console.log("No superpowers extracted, using fallback for pattern:", patternName);
-      const fallbackName = (patternName || "Inner Growth").split(" ").slice(0, 3).map(w => w.charAt(0).toUpperCase() + w.slice(1)).join(" ");
+      const fallbackName = (patternName || "Inner Growth").split(" ").slice(0, 3).map((w: string) => w.charAt(0).toUpperCase() + w.slice(1)).join(" ");
       superpowers = [
         {
           name: fallbackName.toUpperCase(),
