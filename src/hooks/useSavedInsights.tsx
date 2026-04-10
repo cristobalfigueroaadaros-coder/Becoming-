@@ -85,7 +85,8 @@ export const useSavedInsights = () => {
 
       // If follow-up requested, add to queue and trigger outreach immediately
       if (requestFollowup && followupMentor) {
-        const { error: queueError } = await supabase
+        // Queue insert (best-effort — not awaited so it doesn't block)
+        supabase
           .from('mentor_followup_queue')
           .insert({
             user_id: user.id,
@@ -93,17 +94,18 @@ export const useSavedInsights = () => {
             mentor_type: followupMentor,
             insight_text: insightText,
             status: 'pending',
-            scheduled_for: new Date().toISOString(), // Schedule for NOW
-          });
+            scheduled_for: new Date().toISOString(),
+          })
+          .then(({ error }) => { if (error) console.error('Queue insert error:', error); });
 
-        if (queueError) {
-          console.error('Error adding to followup queue:', queueError);
-        } else {
-          // Trigger the mentor outreach immediately
-          supabase.functions.invoke('generate-daily-mentor-outreach', {
-            body: { forceGenerate: true }
-          }).catch(err => console.error('Error triggering mentor outreach:', err));
-        }
+        // Pass mentor type and insight directly — don't rely on queue lookup
+        supabase.functions.invoke('generate-daily-mentor-outreach', {
+          body: {
+            forceGenerate: true,
+            mentorType: followupMentor,
+            insightText: insightText,
+          }
+        }).catch(err => console.error('Error triggering mentor outreach:', err));
       }
 
       await fetchInsights();

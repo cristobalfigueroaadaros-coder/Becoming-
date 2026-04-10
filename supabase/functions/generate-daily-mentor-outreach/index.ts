@@ -59,7 +59,67 @@ serve(async (req) => {
       throw new Error('Unauthorized');
     }
 
-    const { forceGenerate } = await req.json().catch(() => ({}));
+    const { forceGenerate, mentorType: directMentorType, insightText: directInsightText } = await req.json().catch(() => ({}));
+
+    // PRIORITY 0: Direct followup — mentor type passed explicitly from "Go Deeper Later"
+    // This is the most reliable path: no queue lookup, no race condition
+    if (directMentorType && directInsightText) {
+      const mentorConfig = mentorOutreachPrompts[directMentorType] || { personality: 'Wise and caring mentor.' };
+      const LOVABLE_API_KEY = Deno.env.get('LOVABLE_API_KEY');
+      if (!LOVABLE_API_KEY) throw new Error('LOVABLE_API_KEY not configured');
+
+      const mentorDisplayName = directMentorType.replace(/_/g, ' ').replace(/\b\w/g, (l: string) => l.toUpperCase());
+      const systemPrompt = `You are ${mentorDisplayName}. ${mentorConfig.personality}
+
+The user just saved one of your messages and asked you to go deeper on it later. This is your follow-up.
+
+THE INSIGHT THEY SAVED:
+"${directInsightText}"
+
+RULES:
+- Open by referencing the insight they saved — they wanted to explore this with you
+- Be warm and inviting, showing you've been thinking about their insight
+- Ask one open question that invites deeper exploration
+- Keep it to 3-4 sentences MAX
+- Use **bold** for 1-2 key phrases`;
+
+      const aiResponse = await fetch('https://ai.gateway.lovable.dev/v1/chat/completions', {
+        method: 'POST',
+        headers: { 'Authorization': `Bearer ${LOVABLE_API_KEY}`, 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          model: 'google/gemini-2.5-flash',
+          messages: [
+            { role: 'system', content: systemPrompt },
+            { role: 'user', content: 'Generate the follow-up message.' }
+          ],
+          max_tokens: 400,
+        }),
+      });
+
+      if (!aiResponse.ok) throw new Error('Failed to generate follow-up message');
+      const aiData = await aiResponse.json();
+      const generatedMessage = aiData.choices?.[0]?.message?.content
+        || `I've been thinking about what you shared: "${directInsightText.slice(0, 80)}...". Let's explore this together.`;
+
+      const { data: outreach, error: insertError } = await supabase
+        .from('mentor_daily_outreach')
+        .insert({
+          user_id: user.id,
+          mentor_type: directMentorType,
+          message: generatedMessage,
+          message_type: 'insight_followup',
+          context_source: 'saved_insight',
+          context_data: { insight_text: directInsightText }
+        })
+        .select()
+        .single();
+
+      if (insertError) throw insertError;
+
+      return new Response(JSON.stringify({ success: true, outreach, isFollowup: true }), {
+        headers: { ...corsHeaders, 'Content-Type': 'application/json' }
+      });
+    }
 
     // Check if user already has a message today (unless forcing)
     if (!forceGenerate) {
@@ -72,9 +132,9 @@ serve(async (req) => {
         .limit(1);
 
       if (existingMessage && existingMessage.length > 0) {
-        return new Response(JSON.stringify({ 
+        return new Response(JSON.stringify({
           message: 'Already generated today',
-          existing: true 
+          existing: true
         }), { headers: { ...corsHeaders, 'Content-Type': 'application/json' } });
       }
     }
