@@ -1172,8 +1172,50 @@ Keep it under 25 words. Just the reflection, no labels.`;
 
     // === SUGGESTED NEXT QUESTION (Q1 ONLY — max 2 questions rule) ===
     let suggestedNextQuestion = null;
-    
-    if (isQ1 && !lowerQuestion.includes("i'm ready")) {
+
+    if (isQ1 && !lowerQuestion.includes("i'm ready") && councilType === 'transmutation') {
+      // === TRANSMUTATION: Generate a pattern-digging follow-up question ===
+      // Do NOT use journey-stage detection (DISCOVERY/CLARITY/ACTION) — transmutation is always
+      // about excavating emotion, belief, and pattern from a past event, not about forward action.
+      const transmutationFollowUpPrompt = `You are the Transmutation Council. The user just shared a past life experience.
+
+USER'S EXPERIENCE: "${question}"
+
+MENTOR PERSPECTIVES GIVEN:
+${Object.entries(mentorPerspectives).map(([m, p]) => `${mentorNames[m]}: ${p}`).join('\n')}
+
+Your job: generate ONE short question (max 12 words) that helps excavate the CORE of this experience.
+
+The question must do ONE of these:
+- Surface the emotion underneath the event ("What did you feel most deeply in that moment?")
+- Reveal the belief that formed ("What did you tell yourself about yourself because of this?")
+- Name what was really being protected or feared ("What were you most afraid would happen?")
+- Find what the event cost them ("What did holding onto that belief cost you?")
+
+Rules:
+- Reference their specific experience directly — never be generic
+- Past tense — this already happened
+- No "what's next" or forward-looking questions — this is excavation, not planning
+- One question only. Just the question text, nothing else.`;
+
+      const transmutationFollowUpResponse = await fetch("https://ai.gateway.lovable.dev/v1/chat/completions", {
+        method: "POST",
+        headers: {
+          "Authorization": `Bearer ${Deno.env.get("LOVABLE_API_KEY")}`,
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({
+          model: "google/gemini-2.5-flash",
+          messages: [{ role: "user", content: transmutationFollowUpPrompt }],
+        }),
+      });
+
+      if (transmutationFollowUpResponse.ok) {
+        const data = await transmutationFollowUpResponse.json();
+        suggestedNextQuestion = data.choices[0].message.content.trim();
+        console.log("Generated transmutation follow-up question:", suggestedNextQuestion);
+      }
+    } else if (isQ1 && !lowerQuestion.includes("i'm ready")) {
       // === STEP 1: Detect user's JOURNEY STAGE ===
       const journeyStagePrompt = `Analyze this conversation to detect the user's current JOURNEY STAGE.
 
