@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { Lightbulb, Clock, MessageCircle, ChevronLeft } from 'lucide-react';
+import { Lightbulb, Clock, MessageCircle } from 'lucide-react';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from '@/components/ui/dialog';
 import { toast } from 'sonner';
 import { useSavedInsights } from '@/hooks/useSavedInsights';
@@ -15,23 +15,21 @@ interface InsightActionSheetProps {
   sourceContext?: any;
 }
 
-const mentorList: { key: string; name: string; icon: string }[] = [
-  { key: "future_self", name: "Future Self", icon: "✨" },
-  { key: "discipline_mentor", name: "Discipline Mentor", icon: "🎯" },
-  { key: "strategist_mentor", name: "Strategist Mentor", icon: "♟️" },
-  { key: "creative_visionary", name: "Creative Visionary", icon: "🎨" },
-  { key: "quantum_inventor", name: "Quantum Inventor", icon: "⚡" },
-  { key: "mystic_mentor", name: "Mystic Mentor", icon: "🔮" },
-  { key: "business_mentor", name: "Business Mentor", icon: "📈" },
-  { key: "marketing_mentor", name: "Marketing Mentor", icon: "📣" },
-  { key: "scientific_mentor", name: "Scientific Mentor", icon: "🔬" },
-  { key: "heart_mentor", name: "Heart Mentor", icon: "💗" },
-  { key: "ancient_sage", name: "Ancient Sage", icon: "📜" },
-  { key: "alignment_mentor", name: "Alignment Mentor", icon: "🧭" },
-  { key: "oracle_mother", name: "Oracle Mother", icon: "🌙" },
-];
-
-const mentorNames: Record<string, string> = Object.fromEntries(mentorList.map(m => [m.key, m.name]));
+const mentorNames: Record<string, string> = {
+  discipline_mentor: "Discipline Mentor",
+  strategist_mentor: "Strategist Mentor",
+  creative_visionary: "Creative Visionary",
+  quantum_inventor: "Quantum Inventor",
+  mystic_mentor: "Mystic Mentor",
+  business_mentor: "Business Mentor",
+  marketing_mentor: "Marketing Mentor",
+  scientific_mentor: "Scientific Mentor",
+  heart_mentor: "Heart Mentor",
+  ancient_sage: "Ancient Sage",
+  alignment_mentor: "Alignment Mentor",
+  oracle_mother: "Oracle Mother",
+  future_self: "Future Self",
+};
 
 export const InsightActionSheet = ({
   open,
@@ -43,13 +41,11 @@ export const InsightActionSheet = ({
 }: InsightActionSheetProps) => {
   const { saveInsight } = useSavedInsights();
   const [saving, setSaving] = useState(false);
-  const [showMentorPicker, setShowMentorPicker] = useState(false);
   const [showFullText, setShowFullText] = useState(false);
 
-  const handleClose = () => {
-    onOpenChange(false);
-    setShowMentorPicker(false);
-  };
+  // The mentor who sent the insight is the one who reaches out.
+  // Fall back to Future Self only if the insight has no specific source mentor.
+  const followupMentor = sourceMentor || 'future_self';
 
   const handleAddToConcepts = async () => {
     setSaving(true);
@@ -151,7 +147,7 @@ export const InsightActionSheet = ({
         });
       }
 
-      handleClose();
+      onOpenChange(false);
     } catch (error) {
       console.error('Error:', error);
       toast.error('Failed to save');
@@ -160,29 +156,21 @@ export const InsightActionSheet = ({
     }
   };
 
-  const handleSelectMentor = async (mentorKey: string) => {
+  const handleGoDeeper = () => {
     setSaving(true);
-    try {
-      await saveInsight(
-        insightText,
-        sourceType,
-        sourceMentor || null,
-        sourceContext,
-        {
-          requestFollowup: true,
-          followupMentor: mentorKey,
-        }
-      );
-      toast.success(`${mentorNames[mentorKey] || 'Your mentor'} will reach out soon`, {
+    saveInsight(
+      insightText,
+      sourceType,
+      sourceMentor || null,
+      sourceContext,
+      { requestFollowup: true, followupMentor }
+    ).then(() => {
+      toast.success(`${mentorNames[followupMentor] || 'Your mentor'} will reach out soon`, {
         description: "They'll message you about this insight",
         icon: <MessageCircle className="w-4 h-4" />,
       });
-      handleClose();
-    } catch (error) {
-      // Error handled in hook
-    } finally {
-      setSaving(false);
-    }
+      onOpenChange(false);
+    }).catch(() => {}).finally(() => setSaving(false));
   };
 
   // Truncate text for display with read more option
@@ -192,117 +180,73 @@ export const InsightActionSheet = ({
     : insightText.substring(0, 150) + '...';
 
   return (
-    <Dialog open={open} onOpenChange={handleClose}>
+    <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent className="max-w-md">
-        {showMentorPicker ? (
-          <>
-            <DialogHeader>
-              <div className="flex items-center gap-2">
-                <button
-                  onClick={() => setShowMentorPicker(false)}
-                  className="text-muted-foreground hover:text-foreground transition-colors"
-                >
-                  <ChevronLeft className="w-5 h-5" />
-                </button>
-                <DialogTitle className="text-base">Who should reach out?</DialogTitle>
+        <DialogHeader>
+          <DialogTitle className="text-lg">What would you like to do?</DialogTitle>
+          <DialogDescription className="text-sm">
+            This insight feels meaningful to you.
+          </DialogDescription>
+        </DialogHeader>
+
+        {/* Preview of saved text */}
+        <div className="p-3 rounded-lg bg-muted/50 border-l-4 border-accent text-sm text-muted-foreground italic">
+          "{displayText}"
+          {isLongText && (
+            <button
+              onClick={() => setShowFullText(!showFullText)}
+              className="ml-2 text-primary hover:underline text-xs font-medium not-italic"
+            >
+              {showFullText ? "Show less" : "Read more"}
+            </button>
+          )}
+        </div>
+
+        <div className="space-y-3 pt-2">
+          {/* Option 1: Add to Creative Space */}
+          <motion.button
+            whileHover={{ scale: 1.01 }}
+            whileTap={{ scale: 0.99 }}
+            onClick={handleAddToConcepts}
+            disabled={saving}
+            className="w-full p-4 rounded-lg border-2 border-accent/30 hover:border-accent/60 bg-gradient-to-r from-accent/5 to-transparent transition-all text-left group disabled:opacity-50"
+          >
+            <div className="flex items-start gap-3">
+              <div className="w-10 h-10 rounded-full bg-accent/20 flex items-center justify-center flex-shrink-0 group-hover:bg-accent/30 transition-colors">
+                <Lightbulb className="w-5 h-5 text-accent" />
               </div>
-              <DialogDescription className="text-sm pl-7">
-                Pick a mentor — even locked ones will send you a notification.
-              </DialogDescription>
-            </DialogHeader>
-
-            <div className="grid grid-cols-2 gap-2 max-h-[60vh] overflow-y-auto py-1">
-              {mentorList.map((mentor) => {
-                const isSource = mentor.key === sourceMentor;
-                return (
-                  <motion.button
-                    key={mentor.key}
-                    whileTap={{ scale: 0.97 }}
-                    onClick={() => handleSelectMentor(mentor.key)}
-                    disabled={saving}
-                    className={`flex items-center gap-2 p-3 rounded-lg border text-left transition-all disabled:opacity-50 ${
-                      isSource
-                        ? 'border-primary/60 bg-primary/10 text-primary'
-                        : 'border-border hover:border-primary/40 hover:bg-muted/60'
-                    }`}
-                  >
-                    <span className="text-xl">{mentor.icon}</span>
-                    <span className="text-xs font-medium leading-tight">{mentor.name}</span>
-                    {isSource && (
-                      <span className="ml-auto text-[10px] text-primary/70 shrink-0">suggested</span>
-                    )}
-                  </motion.button>
-                );
-              })}
+              <div>
+                <p className="font-medium">Add to Creative Space</p>
+                <p className="text-sm text-muted-foreground mt-0.5">
+                  Save as an idea tile to explore freely
+                </p>
+              </div>
             </div>
-          </>
-        ) : (
-          <>
-            <DialogHeader>
-              <DialogTitle className="text-lg">What would you like to do?</DialogTitle>
-              <DialogDescription className="text-sm">
-                This insight feels meaningful to you.
-              </DialogDescription>
-            </DialogHeader>
+          </motion.button>
 
-            {/* Preview of saved text */}
-            <div className="p-3 rounded-lg bg-muted/50 border-l-4 border-accent text-sm text-muted-foreground italic">
-              "{displayText}"
-              {isLongText && (
-                <button
-                  onClick={() => setShowFullText(!showFullText)}
-                  className="ml-2 text-primary hover:underline text-xs font-medium not-italic"
-                >
-                  {showFullText ? "Show less" : "Read more"}
-                </button>
-              )}
+          {/* Option 2: Go Deeper Later — the same mentor reaches back out */}
+          <motion.button
+            whileHover={{ scale: 1.01 }}
+            whileTap={{ scale: 0.99 }}
+            onClick={handleGoDeeper}
+            disabled={saving}
+            className="w-full p-4 rounded-lg border-2 border-primary/30 hover:border-primary/60 bg-gradient-to-r from-primary/5 to-transparent transition-all text-left group disabled:opacity-50"
+          >
+            <div className="flex items-start gap-3">
+              <div className="w-10 h-10 rounded-full bg-primary/20 flex items-center justify-center flex-shrink-0 group-hover:bg-primary/30 transition-colors">
+                <Clock className="w-5 h-5 text-primary" />
+              </div>
+              <div>
+                <p className="font-medium">Go Deeper Later</p>
+                <p className="text-sm text-muted-foreground mt-0.5">
+                  {mentorNames[followupMentor]
+                    ? `${mentorNames[followupMentor]} will reach out to discuss this`
+                    : 'A mentor will reach out to discuss this with you'}
+                </p>
+              </div>
             </div>
-
-            <div className="space-y-3 pt-2">
-              {/* Option 1: Add to Creative Space */}
-              <motion.button
-                whileHover={{ scale: 1.01 }}
-                whileTap={{ scale: 0.99 }}
-                onClick={handleAddToConcepts}
-                disabled={saving}
-                className="w-full p-4 rounded-lg border-2 border-accent/30 hover:border-accent/60 bg-gradient-to-r from-accent/5 to-transparent transition-all text-left group disabled:opacity-50"
-              >
-                <div className="flex items-start gap-3">
-                  <div className="w-10 h-10 rounded-full bg-accent/20 flex items-center justify-center flex-shrink-0 group-hover:bg-accent/30 transition-colors">
-                    <Lightbulb className="w-5 h-5 text-accent" />
-                  </div>
-                  <div>
-                    <p className="font-medium">Add to Creative Space</p>
-                    <p className="text-sm text-muted-foreground mt-0.5">
-                      Save as an idea tile to explore freely
-                    </p>
-                  </div>
-                </div>
-              </motion.button>
-
-              {/* Option 2: Go Deeper Later — pick any mentor */}
-              <motion.button
-                whileHover={{ scale: 1.01 }}
-                whileTap={{ scale: 0.99 }}
-                onClick={() => setShowMentorPicker(true)}
-                disabled={saving}
-                className="w-full p-4 rounded-lg border-2 border-primary/30 hover:border-primary/60 bg-gradient-to-r from-primary/5 to-transparent transition-all text-left group disabled:opacity-50"
-              >
-                <div className="flex items-start gap-3">
-                  <div className="w-10 h-10 rounded-full bg-primary/20 flex items-center justify-center flex-shrink-0 group-hover:bg-primary/30 transition-colors">
-                    <Clock className="w-5 h-5 text-primary" />
-                  </div>
-                  <div>
-                    <p className="font-medium">Go Deeper Later</p>
-                    <p className="text-sm text-muted-foreground mt-0.5">
-                      Choose a mentor — they'll reach out to explore this with you
-                    </p>
-                  </div>
-                </div>
-              </motion.button>
-            </div>
-          </>
-        )}
+          </motion.button>
+        </div>
       </DialogContent>
     </Dialog>
   );
