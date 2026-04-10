@@ -83,29 +83,29 @@ export const useSavedInsights = () => {
 
       if (error) throw error;
 
-      // If follow-up requested, add to queue and trigger outreach immediately
+      // If follow-up requested, insert directly into mentor_daily_outreach
+      // for the exact mentor who sent the insight — no edge function dependency
       if (requestFollowup && followupMentor) {
-        // Queue insert (best-effort — not awaited so it doesn't block)
+        const preview = insightText.length > 120 ? insightText.slice(0, 120) + '…' : insightText;
+        const mentorDisplayName = followupMentor
+          .replace(/_/g, ' ')
+          .replace(/\b\w/g, (l: string) => l.toUpperCase());
+
+        const followupMessage = `I've been sitting with what you saved: **"${preview}"** — and I want to go deeper on this with you. What feels most alive or unresolved about it right now?`;
+
         supabase
-          .from('mentor_followup_queue')
+          .from('mentor_daily_outreach')
           .insert({
             user_id: user.id,
-            saved_insight_id: savedInsight.id,
             mentor_type: followupMentor,
-            insight_text: insightText,
-            status: 'pending',
-            scheduled_for: new Date().toISOString(),
+            message: followupMessage,
+            message_type: 'insight_followup',
+            context_source: 'saved_insight',
+            context_data: { insight_text: insightText },
           })
-          .then(({ error }) => { if (error) console.error('Queue insert error:', error); });
-
-        // Pass mentor type and insight directly — don't rely on queue lookup
-        supabase.functions.invoke('generate-daily-mentor-outreach', {
-          body: {
-            forceGenerate: true,
-            mentorType: followupMentor,
-            insightText: insightText,
-          }
-        }).catch(err => console.error('Error triggering mentor outreach:', err));
+          .then(({ error }) => {
+            if (error) console.error('Outreach insert error:', error);
+          });
       }
 
       await fetchInsights();
