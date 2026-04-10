@@ -1,6 +1,7 @@
 import { useState, useEffect, useCallback } from 'react';
 import { supabase } from '@/integrations/supabase/client';
-import { PhaseType, PhaseContentData, ProjectInfo, EvolutionMilestone, PhaseNote, KeyLearning } from '@/components/design-thinking-lab/types';
+import { PhaseType, PhaseContentData, ProjectInfo, EvolutionMilestone, PhaseNote, KeyLearning, DesignThinkingIteration } from '@/components/design-thinking-lab/types';
+import { PHASE_ORDER } from '@/components/design-thinking-lab/constants';
 
 interface UseDesignThinkingLabReturn {
   phaseContent: Record<PhaseType, PhaseContentData>;
@@ -10,34 +11,31 @@ interface UseDesignThinkingLabReturn {
   beforeNow: { before: string; now: string } | null;
   loading: boolean;
   error: Error | null;
+  iterations: DesignThinkingIteration[];
+  currentIteration: number;
   addNoteToPhase: (phase: PhaseType, note: string) => Promise<void>;
   updateReflection: (phase: PhaseType, response: string) => Promise<void>;
   addMilestone: (title: string, explanation: string, phase?: PhaseType) => Promise<void>;
+  completeIteration: () => Promise<void>;
+  switchIteration: (iterationNumber: number) => void;
   refetch: () => Promise<void>;
 }
 
-const emptyPhaseContent: PhaseContentData = {
-  phase: 'empathize',
+const makeEmptyPhaseContent = (phase: PhaseType): PhaseContentData => ({
+  phase,
   notes: [],
   autoPopulatedItems: [],
-};
+});
 
-const defaultPhaseContent: Record<PhaseType, PhaseContentData> = {
-  empathize: { ...emptyPhaseContent, phase: 'empathize' },
-  define: { ...emptyPhaseContent, phase: 'define' },
-  ideate: { ...emptyPhaseContent, phase: 'ideate' },
-  prototype: { ...emptyPhaseContent, phase: 'prototype' },
-  test: { ...emptyPhaseContent, phase: 'test' },
-};
+const makeDefaultPhaseContent = (): Record<PhaseType, PhaseContentData> =>
+  Object.fromEntries(PHASE_ORDER.map(p => [p, makeEmptyPhaseContent(p)])) as Record<PhaseType, PhaseContentData>;
 
-// Helper: Summarize text to max length (no quotes, no dialogue patterns)
 const summarizeText = (text: string, maxLength: number = 100): string => {
   if (!text) return '';
   let clean = text
     .replace(/["'].*?["']/g, '')
     .replace(/^(I think|I believe|Well,|So,|You know,)/gi, '')
     .trim();
-  
   if (clean.length > maxLength) {
     clean = clean.substring(0, maxLength).replace(/\s+\S*$/, '') + '...';
   }
@@ -45,15 +43,16 @@ const summarizeText = (text: string, maxLength: number = 100): string => {
 };
 
 export function useDesignThinkingLab(projectId: string): UseDesignThinkingLabReturn {
-  const [phaseContent, setPhaseContent] = useState<Record<PhaseType, PhaseContentData>>(defaultPhaseContent);
+  const [phaseContent, setPhaseContent] = useState<Record<PhaseType, PhaseContentData>>(makeDefaultPhaseContent());
   const [projectInfo, setProjectInfo] = useState<ProjectInfo | null>(null);
   const [evolutionTimeline, setEvolutionTimeline] = useState<EvolutionMilestone[]>([]);
   const [keyLearnings, setKeyLearnings] = useState<KeyLearning[]>([]);
   const [beforeNow, setBeforeNow] = useState<{ before: string; now: string } | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<Error | null>(null);
+  const [iterations, setIterations] = useState<DesignThinkingIteration[]>([]);
+  const [currentIteration, setCurrentIteration] = useState(1);
 
-  // Fetch auto-populated content for EMPATHIZE phase
   const fetchEmpathizeContent = useCallback(async (userId: string): Promise<PhaseNote[]> => {
     const { data: insights } = await supabase
       .from('saved_insights')
@@ -73,11 +72,9 @@ export function useDesignThinkingLab(projectId: string): UseDesignThinkingLabRet
     })) || [];
   }, []);
 
-  // Fetch auto-populated content for DEFINE phase
   const fetchDefineContent = useCallback(async (userId: string): Promise<PhaseNote[]> => {
     const results: PhaseNote[] = [];
 
-    // Get evolution nodes (show how definition evolved)
     const { data: nodes } = await supabase
       .from('evolution_nodes')
       .select('*')
@@ -94,7 +91,6 @@ export function useDesignThinkingLab(projectId: string): UseDesignThinkingLabRet
       createdAt: n.created_at,
     }));
 
-    // Get insights from challenger/perspective mentors
     const { data: insights } = await supabase
       .from('saved_insights')
       .select('*')
@@ -115,11 +111,9 @@ export function useDesignThinkingLab(projectId: string): UseDesignThinkingLabRet
     return results;
   }, []);
 
-  // Fetch auto-populated content for IDEATE phase
   const fetchIdeateContent = useCallback(async (userId: string, projId: string): Promise<PhaseNote[]> => {
     const results: PhaseNote[] = [];
 
-    // Get conversation breakthroughs
     const { data: breakthroughs } = await supabase
       .from('conversation_breakthroughs')
       .select('*')
@@ -136,7 +130,6 @@ export function useDesignThinkingLab(projectId: string): UseDesignThinkingLabRet
       createdAt: b.created_at,
     }));
 
-    // Get name changes (conceptual type)
     const { data: nameChanges } = await supabase
       .from('project_name_history')
       .select('*')
@@ -155,11 +148,9 @@ export function useDesignThinkingLab(projectId: string): UseDesignThinkingLabRet
     return results;
   }, []);
 
-  // Fetch auto-populated content for PROTOTYPE phase (directly connected to daily tasks)
   const fetchPrototypeContent = useCallback(async (projId: string): Promise<PhaseNote[]> => {
     const results: PhaseNote[] = [];
 
-    // Get completed daily tasks
     const { data: tasks } = await supabase
       .from('integrator_daily_steps')
       .select('*')
@@ -177,7 +168,6 @@ export function useDesignThinkingLab(projectId: string): UseDesignThinkingLabRet
       createdAt: t.completed_at || t.created_at,
     }));
 
-    // Get name changes (action-driven type)
     const { data: nameChanges } = await supabase
       .from('project_name_history')
       .select('*')
@@ -196,11 +186,9 @@ export function useDesignThinkingLab(projectId: string): UseDesignThinkingLabRet
     return results;
   }, []);
 
-  // Fetch auto-populated content for TEST phase
   const fetchTestContent = useCallback(async (userId: string, projId: string): Promise<PhaseNote[]> => {
     const results: PhaseNote[] = [];
 
-    // Get task feedback with insights
     const { data: feedback } = await supabase
       .from('task_feedback')
       .select('*, integrator_daily_steps!inner(project_id, step_title)')
@@ -221,7 +209,6 @@ export function useDesignThinkingLab(projectId: string): UseDesignThinkingLabRet
       createdAt: f.created_at,
     }));
 
-    // Also get completed tasks with insights (if no feedback table data)
     if (results.length === 0) {
       const { data: tasks } = await supabase
         .from('integrator_daily_steps')
@@ -245,11 +232,9 @@ export function useDesignThinkingLab(projectId: string): UseDesignThinkingLabRet
     return results;
   }, []);
 
-  // Fetch evolution timeline from multiple sources
   const fetchEvolutionTimeline = useCallback(async (userId: string, projId: string): Promise<EvolutionMilestone[]> => {
     const timeline: EvolutionMilestone[] = [];
 
-    // 1. Manual milestones
     const { data: milestones } = await supabase
       .from('project_thread_milestones')
       .select('*')
@@ -264,7 +249,6 @@ export function useDesignThinkingLab(projectId: string): UseDesignThinkingLabRet
       type: 'manual',
     }));
 
-    // 2. Name changes
     const { data: nameChanges } = await supabase
       .from('project_name_history')
       .select('*')
@@ -280,7 +264,6 @@ export function useDesignThinkingLab(projectId: string): UseDesignThinkingLabRet
       sourceData: nc,
     }));
 
-    // 3. Significant task completions (tasks with insights)
     const { data: tasks } = await supabase
       .from('integrator_daily_steps')
       .select('*')
@@ -298,13 +281,11 @@ export function useDesignThinkingLab(projectId: string): UseDesignThinkingLabRet
       type: 'task_completed',
     }));
 
-    // Sort by date descending
-    return timeline.sort((a, b) => 
+    return timeline.sort((a, b) =>
       new Date(b.date).getTime() - new Date(a.date).getTime()
     );
   }, []);
 
-  // Fetch key learnings
   const fetchKeyLearnings = useCallback(async (projId: string): Promise<KeyLearning[]> => {
     const { data: completedTasks } = await supabase
       .from('integrator_daily_steps')
@@ -323,17 +304,7 @@ export function useDesignThinkingLab(projectId: string): UseDesignThinkingLabRet
     })) || [];
   }, []);
 
-  // Fetch before/now comparison
   const fetchBeforeNow = useCallback(async (projId: string, currentDescription: string): Promise<{ before: string; now: string }> => {
-    // Try to get first name from history
-    const { data: nameHistory } = await supabase
-      .from('project_name_history')
-      .select('old_name')
-      .eq('project_id', projId)
-      .order('created_at', { ascending: true })
-      .limit(1);
-
-    // Get evolution nodes for original description
     const { data: nodes } = await supabase
       .from('evolution_nodes')
       .select('refined_description')
@@ -341,17 +312,72 @@ export function useDesignThinkingLab(projectId: string): UseDesignThinkingLabRet
       .limit(1);
 
     const before = nodes?.[0]?.refined_description || currentDescription;
-    
     return { before, now: currentDescription };
   }, []);
 
-  const fetchData = useCallback(async () => {
+  // Fetch iterations for the project — gracefully falls back if table doesn't exist yet
+  const fetchIterations = useCallback(async (userId: string, projId: string): Promise<DesignThinkingIteration[]> => {
+    try {
+      const { data, error } = await supabase
+        .from('design_thinking_iterations')
+        .select('*')
+        .eq('project_id', projId)
+        .order('iteration_number', { ascending: true });
+
+      if (error) {
+        // Table may not exist yet (migration pending) — return a local fallback
+        return [{ id: 'local-1', iterationNumber: 1, status: 'active', createdAt: new Date().toISOString() }];
+      }
+
+      if (!data || data.length === 0) {
+        // Seed iteration 1
+        const { data: seeded, error: seedError } = await supabase
+          .from('design_thinking_iterations')
+          .insert({ project_id: projId, user_id: userId, iteration_number: 1, status: 'active' })
+          .select()
+          .single();
+
+        if (seedError) {
+          return [{ id: 'local-1', iterationNumber: 1, status: 'active', createdAt: new Date().toISOString() }];
+        }
+
+        return seeded ? [{
+          id: seeded.id,
+          iterationNumber: 1,
+          status: 'active',
+          createdAt: seeded.created_at,
+        }] : [{ id: 'local-1', iterationNumber: 1, status: 'active', createdAt: new Date().toISOString() }];
+      }
+
+      return data.map((row: any) => ({
+        id: row.id,
+        iterationNumber: row.iteration_number,
+        status: row.status,
+        summary: row.summary || undefined,
+        completedAt: row.completed_at || undefined,
+        createdAt: row.created_at,
+      }));
+    } catch {
+      return [{ id: 'local-1', iterationNumber: 1, status: 'active', createdAt: new Date().toISOString() }];
+    }
+  }, []);
+
+  const fetchData = useCallback(async (iterationNum?: number) => {
     if (!projectId) return;
-    
     setLoading(true);
     try {
       const { data: { user } } = await supabase.auth.getUser();
       if (!user) throw new Error('Not authenticated');
+
+      // Fetch iterations first
+      const iterationList = await fetchIterations(user.id, projectId);
+      setIterations(iterationList);
+
+      // Use the active iteration or the one requested
+      const activeIteration = iterationNum ?? (
+        iterationList.find(i => i.status === 'active')?.iterationNumber ?? iterationList[iterationList.length - 1]?.iterationNumber ?? 1
+      );
+      setCurrentIteration(activeIteration);
 
       // Fetch project info
       const { data: project } = await supabase
@@ -368,18 +394,31 @@ export function useDesignThinkingLab(projectId: string): UseDesignThinkingLabRet
           currentFocus: project.why_this_matters || undefined,
         });
 
-        // Fetch before/now
         const beforeNowData = await fetchBeforeNow(projectId, project.project_description);
         setBeforeNow(beforeNowData);
       }
 
-      // Fetch user-created phase content
-      const { data: contentData } = await supabase
+      // Fetch user-created phase content for this iteration
+      // Falls back to unfiltered query if iteration_number column doesn't exist yet
+      let contentData: any[] | null = null;
+      const { data: contentWithIter, error: contentError } = await supabase
         .from('design_thinking_content')
         .select('*')
-        .eq('project_id', projectId);
+        .eq('project_id', projectId)
+        .eq('iteration_number', activeIteration);
 
-      // Fetch auto-populated content for each phase
+      if (contentError) {
+        // iteration_number column may not exist yet — fetch without it
+        const { data: contentFallback } = await supabase
+          .from('design_thinking_content')
+          .select('*')
+          .eq('project_id', projectId);
+        contentData = contentFallback;
+      } else {
+        contentData = contentWithIter;
+      }
+
+      // Auto-populated content (always global, not iteration-scoped)
       const [empathizeAuto, defineAuto, ideateAuto, prototypeAuto, testAuto] = await Promise.all([
         fetchEmpathizeContent(user.id),
         fetchDefineContent(user.id),
@@ -388,33 +427,29 @@ export function useDesignThinkingLab(projectId: string): UseDesignThinkingLabRet
         fetchTestContent(user.id, projectId),
       ]);
 
-      // Build phase content combining user notes and auto-populated
-      const newPhaseContent = { ...defaultPhaseContent };
-      
-      // Set auto-populated items
+      const newPhaseContent = makeDefaultPhaseContent();
       newPhaseContent.empathize.autoPopulatedItems = empathizeAuto;
       newPhaseContent.define.autoPopulatedItems = defineAuto;
       newPhaseContent.ideate.autoPopulatedItems = ideateAuto;
       newPhaseContent.prototype.autoPopulatedItems = prototypeAuto;
       newPhaseContent.test.autoPopulatedItems = testAuto;
 
-      // Merge user-created notes
       contentData?.forEach((item: any) => {
         const phase = item.phase as PhaseType;
-        newPhaseContent[phase] = {
-          ...newPhaseContent[phase],
-          notes: (item.content as PhaseNote[]) || [],
-          reflectionResponse: item.reflection_response || undefined,
-        };
+        if (newPhaseContent[phase]) {
+          newPhaseContent[phase] = {
+            ...newPhaseContent[phase],
+            notes: (item.content as PhaseNote[]) || [],
+            reflectionResponse: item.reflection_response || undefined,
+          };
+        }
       });
 
       setPhaseContent(newPhaseContent);
 
-      // Fetch evolution timeline
       const timeline = await fetchEvolutionTimeline(user.id, projectId);
       setEvolutionTimeline(timeline);
 
-      // Fetch key learnings
       const learnings = await fetchKeyLearnings(projectId);
       setKeyLearnings(learnings);
 
@@ -423,7 +458,7 @@ export function useDesignThinkingLab(projectId: string): UseDesignThinkingLabRet
     } finally {
       setLoading(false);
     }
-  }, [projectId, fetchEmpathizeContent, fetchDefineContent, fetchIdeateContent, fetchPrototypeContent, fetchTestContent, fetchEvolutionTimeline, fetchKeyLearnings, fetchBeforeNow]);
+  }, [projectId, fetchIterations, fetchEmpathizeContent, fetchDefineContent, fetchIdeateContent, fetchPrototypeContent, fetchTestContent, fetchEvolutionTimeline, fetchKeyLearnings, fetchBeforeNow]);
 
   useEffect(() => {
     fetchData();
@@ -443,24 +478,35 @@ export function useDesignThinkingLab(projectId: string): UseDesignThinkingLabRet
     const currentNotes = phaseContent[phase].notes || [];
     const updatedNotes = [...currentNotes, newNote];
 
+    // Try with iteration_number first; fall back to without if column missing
     const { error: upsertError } = await supabase
       .from('design_thinking_content')
       .upsert({
         project_id: projectId,
         user_id: user.id,
         phase,
+        iteration_number: currentIteration,
         content: updatedNotes as unknown as any,
         updated_at: new Date().toISOString(),
-      } as any, {
-        onConflict: 'project_id,phase'
-      });
+      } as any, { onConflict: 'project_id,phase,iteration_number' });
 
-    if (!upsertError) {
-      setPhaseContent(prev => ({
-        ...prev,
-        [phase]: { ...prev[phase], notes: updatedNotes }
-      }));
+    if (upsertError) {
+      await supabase
+        .from('design_thinking_content')
+        .upsert({
+          project_id: projectId,
+          user_id: user.id,
+          phase,
+          content: updatedNotes as unknown as any,
+          updated_at: new Date().toISOString(),
+        } as any, { onConflict: 'project_id,phase' });
     }
+
+    // Always update local state
+    setPhaseContent(prev => ({
+      ...prev,
+      [phase]: { ...prev[phase], notes: updatedNotes }
+    }));
   };
 
   const updateReflection = async (phase: PhaseType, response: string) => {
@@ -473,18 +519,27 @@ export function useDesignThinkingLab(projectId: string): UseDesignThinkingLabRet
         project_id: projectId,
         user_id: user.id,
         phase,
+        iteration_number: currentIteration,
         reflection_response: response,
         updated_at: new Date().toISOString(),
-      } as any, {
-        onConflict: 'project_id,phase'
-      });
+      } as any, { onConflict: 'project_id,phase,iteration_number' });
 
-    if (!upsertError) {
-      setPhaseContent(prev => ({
-        ...prev,
-        [phase]: { ...prev[phase], reflectionResponse: response }
-      }));
+    if (upsertError) {
+      await supabase
+        .from('design_thinking_content')
+        .upsert({
+          project_id: projectId,
+          user_id: user.id,
+          phase,
+          reflection_response: response,
+          updated_at: new Date().toISOString(),
+        } as any, { onConflict: 'project_id,phase' });
     }
+
+    setPhaseContent(prev => ({
+      ...prev,
+      [phase]: { ...prev[phase], reflectionResponse: response }
+    }));
   };
 
   const addMilestone = async (title: string, explanation: string, phase?: PhaseType) => {
@@ -515,6 +570,53 @@ export function useDesignThinkingLab(projectId: string): UseDesignThinkingLabRet
     }
   };
 
+  // Complete the current iteration: call edge function for AI summary, unlock next iteration
+  const completeIteration = async () => {
+    const { data: { user } } = await supabase.auth.getUser();
+    if (!user) return;
+
+    try {
+      // Call edge function to generate AI summary
+      const { data: summaryData, error: fnError } = await supabase.functions.invoke('generate-iteration-summary', {
+        body: { projectId, iterationNumber: currentIteration },
+      });
+
+      const summary = !fnError && summaryData?.summary ? summaryData.summary : null;
+
+      // Mark current iteration as completed
+      await supabase
+        .from('design_thinking_iterations')
+        .update({
+          status: 'completed',
+          summary,
+          completed_at: new Date().toISOString(),
+        })
+        .eq('project_id', projectId)
+        .eq('iteration_number', currentIteration);
+
+      const nextIterationNumber = currentIteration + 1;
+
+      // Create next iteration
+      await supabase
+        .from('design_thinking_iterations')
+        .insert({
+          project_id: projectId,
+          user_id: user.id,
+          iteration_number: nextIterationNumber,
+          status: 'active',
+        });
+
+      // Refresh everything with new iteration
+      await fetchData(nextIterationNumber);
+    } catch (err) {
+      console.error('Failed to complete iteration:', err);
+    }
+  };
+
+  const switchIteration = (iterationNumber: number) => {
+    fetchData(iterationNumber);
+  };
+
   return {
     phaseContent,
     projectInfo,
@@ -523,9 +625,13 @@ export function useDesignThinkingLab(projectId: string): UseDesignThinkingLabRet
     beforeNow,
     loading,
     error,
+    iterations,
+    currentIteration,
     addNoteToPhase,
     updateReflection,
     addMilestone,
+    completeIteration,
+    switchIteration,
     refetch: fetchData,
   };
 }

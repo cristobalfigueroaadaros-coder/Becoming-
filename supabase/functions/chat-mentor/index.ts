@@ -1947,13 +1947,16 @@ One clear observation. One sharp question. That's it.
 - Never repeat the same insight in different words
 - Trust silence. One real question beats three paragraphs every time.
 
-=== INTAKE (first exchange if no context yet) ===
-You need to know where they are RIGHT NOW. Ask about exactly ONE of:
+=== INTAKE (first exchange) ===
+Whether or not you have their profile data, open with ONE sharp question or ONE precise observation — never both.
+
+If you have their data: make ONE observation rooted in something specific from their story, then ask the one question that matters most right now.
+If you have no context: ask about exactly ONE of:
 - What they're currently working on or stuck on
 - What they keep avoiding
 - What decision they've been putting off
 
-Not all three. Not a welcome speech. Just the one question that opens the door.
+Not all three. Not a summary of what you know about them. Not a welcome speech. One sentence — then stop.
 
 === WHAT YOU NEVER DO ===
 - Never say "That's amazing" or "Incredible" — you're them, you're not impressed, you're proud
@@ -1961,6 +1964,8 @@ Not all three. Not a welcome speech. Just the one question that opens the door.
 - Never give advice that could apply to anyone ("take one small step", "believe in yourself")
 - Never over-explain. Say the thing. Ask the question. Stop.
 - Never repeat what the user said back to them before your actual response
+- NEVER ask "Does that feel right?" or "Does that resonate?" — you are their future self, you KNOW what's true, you don't validate observations with them
+- Never send multiple observations about the same theme in one response — ONE insight, ONE question
 
 === TONE CALIBRATION ===
 Think: a phone call from your future self who's busy but made time to talk. They get to the point. They say the one thing you needed to hear. They ask the question that unlocks the next hour.
@@ -2321,15 +2326,17 @@ Example: "I see you've been building on this idea from ${journeyPath[0]?.replace
       chatHistory = data;
       console.log("Transmutation session: fetched", chatHistory?.length || 0, "messages since", transmutationSessionStart.toISOString());
     } else {
-      // Standard query for non-transmutation sessions
+      // Fetch the LAST 30 messages (descending) then reverse to get chronological order.
+      // Using descending + limit ensures we always get the MOST RECENT context,
+      // not the oldest — critical when conversations have >20 messages.
       const { data } = await supabaseClient
         .from("chats")
         .select("role, content, created_at")
         .eq("user_id", user.id)
         .eq("mentor_type", mentorType)
-        .order("created_at", { ascending: true })
-        .limit(20);
-      chatHistory = data;
+        .order("created_at", { ascending: false })
+        .limit(30);
+      chatHistory = data ? [...data].reverse() : null;
     }
 
     // Get conversation depth for handoff and breakthrough detection (current mentor only)
@@ -2678,6 +2685,44 @@ NEVER in Pattern Mode:
     // Add value map progress context
     if (valueMapContext) {
       systemPrompt += `\n\n${valueMapContext}`;
+    }
+
+    // === ACTIVE PROJECT CONTEXT (injected for all project-mode mentors) ===
+    // Always fetch and inject the user's active project so the mentor never
+    // loses track of what they're building — especially on return visits.
+    if (currentMode === 'PROJECT') {
+      try {
+        const { data: activeProject } = await supabaseClient
+          .from("integrator_projects")
+          .select("name, description, status, created_at")
+          .eq("user_id", user.id)
+          .eq("status", "active")
+          .order("created_at", { ascending: false })
+          .limit(1)
+          .maybeSingle();
+
+        if (activeProject) {
+          systemPrompt += `
+
+=== ACTIVE PROJECT (ALWAYS REMEMBER THIS) ===
+The user has an active project:
+Name: "${activeProject.name}"
+${activeProject.description ? `Description: ${activeProject.description}` : ''}
+Status: Active
+
+CRITICAL INSTRUCTIONS:
+- NEVER ask "What are you working on?" — you already know.
+- When the user says "ready for next step", "let's continue", or similar:
+  Continue FROM the project context. Ask about their progress on the current milestone.
+  Example: "Great — so for '${activeProject.name}', where are you on [the milestone you last agreed on]?"
+- Always reference this project by name in your responses.
+- If the user seems to have lost track, remind them of the project name and last milestone.
+=== END ACTIVE PROJECT ===
+`;
+        }
+      } catch (projErr) {
+        console.log("Active project fetch failed (non-fatal):", projErr);
+      }
     }
 
     // Add handoff context if present

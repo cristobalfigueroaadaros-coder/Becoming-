@@ -1,7 +1,7 @@
+import { useState, useEffect } from "react";
 import { useSearchParams } from "react-router-dom";
 import { useAtlasQuests } from "@/hooks/useAtlasQuests";
 import { AtlasQuestFlow } from "@/components/atlas/AtlasQuestFlow";
-import { getQuestForCluster } from "@/data/atlasQuests";
 import { useAtlas } from "@/hooks/useAtlas";
 import { Compass } from "lucide-react";
 import { motion } from "framer-motion";
@@ -9,10 +9,25 @@ import { motion } from "framer-motion";
 const AtlasQuestPage = () => {
   const [searchParams] = useSearchParams();
   const clusterId = searchParams.get("cluster");
-  const { clusters, isLoading } = useAtlas();
-  const { getNextQuest, getQuestForCluster: getClusterQuest } = useAtlasQuests();
+  const { isLoading } = useAtlas();
+  const { getNextQuest, getQuestForCluster: getClusterQuest, isLoading: questsLoading, isFetching: questsFetching } = useAtlasQuests();
 
-  if (isLoading) {
+  // Lock in the quest once after all data is fresh — prevents stale cache from picking
+  // a wrong quest, and prevents Math.random() from drifting on re-renders.
+  // We must wait for isFetching too: after quest completion, the query is invalidated
+  // and the cache is stale until the refetch finishes. Locking with stale data would
+  // pick the just-completed quest again or the wrong next one.
+  type QuestData = { quest: any; clusterId: string; onboardingIndex?: number } | null;
+  const [lockedQuestData, setLockedQuestData] = useState<QuestData | "none">("none");
+
+  useEffect(() => {
+    if (isLoading || questsLoading || questsFetching) return;
+    if (lockedQuestData !== "none") return; // already locked
+    const data = clusterId ? getClusterQuest(clusterId) : getNextQuest();
+    setLockedQuestData(data ?? null);
+  }, [isLoading, questsLoading, questsFetching]);
+
+  if (isLoading || questsLoading || questsFetching || lockedQuestData === "none") {
     return (
       <div className="min-h-screen flex items-center justify-center">
         <motion.div animate={{ rotate: 360 }} transition={{ duration: 2, repeat: Infinity, ease: "linear" }}>
@@ -22,13 +37,7 @@ const AtlasQuestPage = () => {
     );
   }
 
-  let questData: { quest: any; clusterId: string; onboardingIndex?: number } | null = null;
-
-  if (clusterId) {
-    questData = getClusterQuest(clusterId);
-  } else {
-    questData = getNextQuest();
-  }
+  const questData = lockedQuestData;
 
   if (!questData) {
     return (

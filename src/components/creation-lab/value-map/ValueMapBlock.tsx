@@ -2,11 +2,35 @@ import { useState } from 'react';
 import { Card, CardContent } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
-import { Lock, Unlock, Sparkles, Check, X, Edit3 } from 'lucide-react';
+import { Lock, Unlock, Sparkles, Check, X, Edit3, GitBranch } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { BlockConfig, ValueMapBlock as ValueMapBlockType, ValueMapSuggestion } from '@/hooks/useValueMap';
 import { ValueMapBlockEditor } from './ValueMapBlockEditor';
 import { cn } from '@/lib/utils';
+
+function getSuggestionSourceLabel(suggestion: ValueMapSuggestion): string {
+  if (suggestion.source_type === 'design_thinking') {
+    const ctx = suggestion.source_context as any;
+    return ctx?.phaseLabel ? `Design Thinking · ${ctx.phaseLabel}` : 'Design Thinking';
+  }
+  if (suggestion.source_type === 'focus_mode') return 'Focus Mode';
+  if (suggestion.source_type === 'profile') return 'Your Profile';
+  if (suggestion.source_type === 'mentor') return 'Mentor Session';
+  return suggestion.source_type;
+}
+
+function SuggestionSourceBadge({ suggestion }: { suggestion: ValueMapSuggestion }) {
+  const isDT = suggestion.source_type === 'design_thinking';
+  return (
+    <div className="flex items-center gap-1.5 mt-3">
+      {isDT && <GitBranch className="w-3 h-3 text-emerald-400" />}
+      {!isDT && <Sparkles className="w-3 h-3 text-muted-foreground" />}
+      <span className="text-xs text-muted-foreground">
+        {getSuggestionSourceLabel(suggestion)}
+      </span>
+    </div>
+  );
+}
 
 interface ValueMapBlockProps {
   config: BlockConfig;
@@ -225,9 +249,7 @@ export const ValueMapBlock = ({
                       <X className="w-3 h-3" />
                     </Button>
                   </div>
-                  <p className="text-xs text-muted-foreground mt-3">
-                    Source: {suggestions[0].source_type}
-                  </p>
+                  <SuggestionSourceBadge suggestion={suggestions[0]} />
                 </CardContent>
               </Card>
             </motion.div>

@@ -11,7 +11,6 @@ import AtlasProgressCard from "@/components/dashboard/AtlasProgressCard";
 // Dashboard components
 import DashboardHeader from "@/components/dashboard/DashboardHeader";
 import FutureSelfSpaceCard from "@/components/dashboard/FutureSelfSpaceCard";
-import NarrativeSystemCard from "@/components/dashboard/NarrativeSystemCard";
 import MomentumCard from "@/components/dashboard/MomentumCard";
 import TodaysFocusCard from "@/components/dashboard/TodaysFocusCard";
 import DailyRitualCard from "@/components/dashboard/DailyRitualCard";
@@ -248,8 +247,19 @@ const Dashboard = () => {
         {/* Header */}
         <DashboardHeader displayName={displayName} />
 
-        {/* Future Self Space */}
+        {/* Daily Ritual — return ritual, first thing on open */}
+        <DailyRitualCard
+          hasCompletedToday={hasCompletedRitualToday}
+          currentStreak={currentStreak}
+          todayGoal={todayGoal}
+          onStartRitual={() => setRitualModalOpen(true)}
+        />
+
+        {/* Journey Progress — XP + Level */}
         <FutureSelfSpaceCard hasQuestPending={hasQuestPending} />
+
+        {/* Today's Focus - PRIMARY ANCHOR */}
+        <TodaysFocusCard onOpenVoice={() => setShowVoiceModal(true)} />
 
         {/* Atlas Progress */}
         <AtlasProgressCard />
@@ -257,22 +267,8 @@ const Dashboard = () => {
         {/* Console Intake Notification */}
         {showIntakeNotification && <IntakeNotification />}
 
-        {/* Narrative System - Connection between values and actions */}
-        <NarrativeSystemCard />
-
         {/* Momentum Dashboard */}
         <MomentumCard />
-
-        {/* Today's Focus - PRIMARY ANCHOR */}
-        <TodaysFocusCard onOpenVoice={() => setShowVoiceModal(true)} />
-
-        {/* Daily Ritual */}
-        <DailyRitualCard 
-          hasCompletedToday={hasCompletedRitualToday}
-          currentStreak={currentStreak}
-          todayGoal={todayGoal}
-          onStartRitual={() => setRitualModalOpen(true)}
-        />
 
         {/* Coming Soon */}
         <ComingSoonSection />

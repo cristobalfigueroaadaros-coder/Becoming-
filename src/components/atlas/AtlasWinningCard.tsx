@@ -14,7 +14,7 @@ export type ValidationMode = "initial" | "picking" | "regenerating" | "editing" 
 interface Props {
   dot: DotInterpretation;
   clusterName: string;
-  onConfirm: (editedDot?: DotInterpretation, userEdited?: boolean) => void;
+  onConfirm: (primary?: DotInterpretation, extras?: DotInterpretation[], userEdited?: boolean) => void;
   onRegenerate: (feedback?: string) => void;
   isLoading?: boolean;
   isPatternBased?: boolean;
@@ -42,6 +42,17 @@ export const AtlasWinningCard = ({
   const [editTitle, setEditTitle] = useState(dot.title);
   const [editDesc, setEditDesc] = useState(dot.description);
   const [discardFeedback, setDiscardFeedback] = useState("");
+  const [selectedVars, setSelectedVars] = useState<DotInterpretation[]>([]);
+  const MAX_SELECTIONS = 2;
+
+  const toggleVariation = (v: DotInterpretation) => {
+    setSelectedVars(prev => {
+      const isSelected = prev.some(s => s.title === v.title);
+      if (isSelected) return prev.filter(s => s.title !== v.title);
+      if (prev.length >= MAX_SELECTIONS) return prev;
+      return [...prev, v];
+    });
+  };
 
   useEffect(() => {
     if (validationMode === "picking" && variations && variations.length > 0) {
@@ -66,13 +77,13 @@ export const AtlasWinningCard = ({
     headerLabel = "New Atlas Dot";
   }
 
-  // Default: 3-option picking mode
+  // Default: multi-select picking mode
   if ((validationMode === "picking" || validationMode === "initial") && variations && variations.length > 0) {
     return (
       <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} className="flex flex-col items-center text-center gap-4 px-6 w-full">
         <div className="space-y-1">
           <p className="text-xs uppercase tracking-wider text-muted-foreground">{headerLabel}</p>
-          <p className="text-sm text-muted-foreground">Pick the one that feels most like you:</p>
+          <p className="text-sm text-muted-foreground">Pick the ones that feel like you <span className="text-muted-foreground/60">(up to {MAX_SELECTIONS})</span></p>
         </div>
 
         {mirrorFeedback && (
@@ -83,14 +94,27 @@ export const AtlasWinningCard = ({
           {variations.map((v, i) => {
             const vColor = DOT_TYPE_COLORS[v.dotCategory || "strength"] || DOT_TYPE_COLORS.strength;
             const vCat = CATEGORY_CONFIG[v.dotCategory || "strength"] || CATEGORY_CONFIG.strength;
+            const isSelected = selectedVars.some(s => s.title === v.title);
+            const isMaxed = selectedVars.length >= MAX_SELECTIONS && !isSelected;
             return (
               <button
                 key={i}
-                onClick={() => onConfirm(v)}
-                disabled={isLoading}
-                className="w-full text-left p-4 rounded-xl border border-border hover:border-primary/50 transition-all space-y-2 active:scale-[0.98]"
+                onClick={() => !isMaxed && toggleVariation(v)}
+                disabled={isLoading || isMaxed}
+                className={`w-full text-left p-4 rounded-xl border-2 transition-all space-y-2 active:scale-[0.98] relative ${
+                  isSelected
+                    ? "border-primary bg-primary/5"
+                    : isMaxed
+                    ? "border-border opacity-40 cursor-not-allowed"
+                    : "border-border hover:border-primary/50"
+                }`}
               >
-                <div className="flex items-center justify-between">
+                {isSelected && (
+                  <div className="absolute top-3 right-3 w-5 h-5 rounded-full bg-primary flex items-center justify-center">
+                    <Check className="w-3 h-3 text-primary-foreground" />
+                  </div>
+                )}
+                <div className="flex items-center justify-between pr-6">
                   <p className="font-semibold text-foreground">{v.title}</p>
                   <div
                     className="px-2 py-0.5 rounded-full text-[10px] font-medium"
@@ -105,28 +129,40 @@ export const AtlasWinningCard = ({
           })}
         </div>
 
-        <div className="flex gap-3 mt-1">
+        <div className="w-full max-w-sm space-y-2">
           <Button
-            variant="ghost"
-            size="sm"
-            className="text-xs text-muted-foreground"
-            disabled={isLoading}
-            onClick={() => onSetValidationMode("discarded")}
+            onClick={() => onConfirm(selectedVars[0], selectedVars.slice(1))}
+            disabled={selectedVars.length === 0 || isLoading}
+            className="w-full gap-2"
           >
-            <X className="w-3 h-3 mr-1" /> None of these
+            <Sparkles className="w-4 h-4" />
+            Add to Atlas{selectedVars.length > 0 ? ` (${selectedVars.length})` : ""}
+            <ArrowRight className="w-4 h-4 ml-auto" />
           </Button>
-          <Button
-            variant="ghost"
-            size="sm"
-            className="text-xs text-muted-foreground"
-            onClick={() => {
-              setEditTitle(variations[0]?.title || dot.title);
-              setEditDesc(variations[0]?.description || dot.description);
-              onSetValidationMode("editing");
-            }}
-          >
-            <Pencil className="w-3 h-3 mr-1" /> Let me edit
-          </Button>
+
+          <div className="flex gap-3 justify-center">
+            <Button
+              variant="ghost"
+              size="sm"
+              className="text-xs text-muted-foreground"
+              disabled={isLoading}
+              onClick={() => onSetValidationMode("discarded")}
+            >
+              <X className="w-3 h-3 mr-1" /> None of these
+            </Button>
+            <Button
+              variant="ghost"
+              size="sm"
+              className="text-xs text-muted-foreground"
+              onClick={() => {
+                setEditTitle(variations[0]?.title || dot.title);
+                setEditDesc(variations[0]?.description || dot.description);
+                onSetValidationMode("editing");
+              }}
+            >
+              <Pencil className="w-3 h-3 mr-1" /> Let me edit
+            </Button>
+          </div>
         </div>
       </motion.div>
     );
@@ -156,7 +192,7 @@ export const AtlasWinningCard = ({
           <Button
             size="sm"
             disabled={!editTitle.trim()}
-            onClick={() => onConfirm({ title: editTitle, description: editDesc, dotCategory }, true)}
+            onClick={() => onConfirm({ title: editTitle, description: editDesc, dotCategory }, [], true)}
           >
             <Check className="w-4 h-4 mr-1" /> Save
           </Button>

@@ -68,7 +68,7 @@ interface UseCreativeSpaceReturn {
   updateTileContent: (tileId: string, title: string, content?: string) => Promise<void>;
   updateTileColor: (tileId: string, color: string) => Promise<void>;
   deleteTile: (tileId: string) => Promise<void>;
-  assignTileToProject: (tileId: string) => Promise<void>;
+  assignTileToProject: (tileId: string, position?: {x: number, y: number}) => Promise<void>;
   
   // Connection operations
   addConnection: (fromTileId: string, toTileId: string, color?: string) => Promise<void>;
@@ -356,7 +356,7 @@ export function useCreativeSpace(projectId: string | null): UseCreativeSpaceRetu
     }
   };
 
-  const assignTileToProject = async (tileId: string) => {
+  const assignTileToProject = async (tileId: string, position?: {x: number, y: number}) => {
     if (!projectId) {
       toast.error('No project selected');
       return;
@@ -365,12 +365,18 @@ export function useCreativeSpace(projectId: string | null): UseCreativeSpaceRetu
     const { data: { user } } = await supabase.auth.getUser();
     if (!user) return;
 
+    const updateData: Record<string, unknown> = {
+      project_id: projectId,
+      page_id: currentPage?.id || null,
+    };
+    if (position) {
+      updateData.position_x = position.x;
+      updateData.position_y = position.y;
+    }
+
     const { error } = await supabase
       .from('creative_space_tiles')
-      .update({ 
-        project_id: projectId,
-        page_id: currentPage?.id || null
-      })
+      .update(updateData)
       .eq('id', tileId);
 
     if (error) {
@@ -381,7 +387,12 @@ export function useCreativeSpace(projectId: string | null): UseCreativeSpaceRetu
     // Move tile from unassigned to tiles
     const tile = unassignedTiles.find(t => t.id === tileId);
     if (tile) {
-      const updatedTile = { ...tile, project_id: projectId, page_id: currentPage?.id || null };
+      const updatedTile = {
+        ...tile,
+        project_id: projectId,
+        page_id: currentPage?.id || null,
+        ...(position ? { position_x: position.x, position_y: position.y } : {}),
+      };
       setUnassignedTiles(prev => prev.filter(t => t.id !== tileId));
       setTiles(prev => [...prev, updatedTile]);
       toast.success('Tile added to this project');

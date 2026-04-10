@@ -8,7 +8,10 @@ const STRENGTH_CLUSTERS = new Set(["passions", "skills", "natural-talents", "exp
 const LIFE_IMPRINT_CLUSTERS = new Set(["life-events", "childhood-signals", "aha-moments"]);
 const SHADOW_CLUSTERS = new Set(["personal-frustrations", "external-reflections"]);
 const SERVICE_CLUSTERS = new Set(["who-i-serve", "how-i-create-impact"]);
-const CORE_ONBOARDING_QUESTS = ONBOARDING_QUESTS.filter((quest) => quest.questKey.startsWith("onboarding_"));
+// Order is driven by ONBOARDING_QUEST_SEQUENCE — DO NOT sort by array position
+const CORE_ONBOARDING_QUESTS = ONBOARDING_QUEST_SEQUENCE
+  .map(slug => ONBOARDING_QUESTS.find(q => q.clusterSlug === slug && q.questKey.startsWith("onboarding_")))
+  .filter((q): q is AtlasQuestDefinition => q !== undefined);
 // Service quests are in ATLAS_QUESTS, not ONBOARDING_QUESTS — include them in discovery pool
 const DISCOVERY_QUESTS = ATLAS_QUESTS;
 
@@ -192,6 +195,7 @@ export function useAtlasQuests() {
     aggregatedSignals,
     detectedPatternKeys,
     isLoading: completedQuery.isLoading,
+    isFetching: completedQuery.isFetching || profileQuery.isFetching,
     isOnboarding,
     isOnboardingCompleted,
     getNextQuest,

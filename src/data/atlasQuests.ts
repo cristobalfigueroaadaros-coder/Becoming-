@@ -788,11 +788,26 @@ export const ATLAS_QUESTS: AtlasQuestDefinition[] = [
   },
 ];
 
-// ===== ONBOARDING QUESTS (13 guided quests in fixed sequence) =====
+// ===== ONBOARDING QUESTS (14 guided quests in fixed sequence) =====
+// DO NOT REORDER — sequence is intentional and feeds AI personalization for mentors + Future Self.
+// Phase 1 (1–5): Identity core — who they are and what drives/blocks them
+// Phase 2 (6–9): Depth layer — values, inspiration, roots, growth moments
+// Phase 3 (10–14): Purpose + direction — who they serve, how they contribute, their vision
 export const ONBOARDING_QUEST_SEQUENCE: string[] = [
-  "skills", "passions", "personal-frustrations", "experiments",
-  "aha-moments", "life-events", "natural-talents", "inspirations",
-  "values", "ideal-life", "childhood-signals", "external-reflections", "vision-for-a-better-world",
+  "skills",               // 1. What they've built — capability baseline
+  "passions",             // 2. What drives them — motivational fuel
+  "personal-frustrations",// 3. What blocks them — shadow (makes quest 4 answers more honest)
+  "natural-talents",      // 4. What comes naturally — answered after shadow is activated
+  "life-events",          // 5. Their story — WHY behind quests 1–4
+  "values",               // 6. What they stand for — filter for all mentor advice from here on
+  "inspirations",         // 7. Who shaped them — mirrors their aspirational identity
+  "childhood-signals",    // 8. Deep roots — early programming, only works after trust is built
+  "aha-moments",          // 9. How they grow — rich after 8 quests of self-reflection
+  "who-i-serve",          // 10. Who they want to help — bridge to project + creator system
+  "experiments",          // 11. What they've tried — grounds vision in real experience
+  "ideal-life",           // 12. Personal vision — what their fulfilled life looks like
+  "external-reflections", // 13. What others see in them — often surprising, deepens self-awareness
+  "vision-for-a-better-world", // 14. World vision — purpose beyond self, closes the arc
 ];
 
 export const ONBOARDING_QUESTS: AtlasQuestDefinition[] = [
@@ -972,7 +987,21 @@ export const ONBOARDING_QUESTS: AtlasQuestDefinition[] = [
     ],
     interpret: (r) => pick(["Creates Space for People", "People Come When Things Fall Apart", "Recognized as the One Who Connects"], r),
   },
-  // 13. Vision for a Better World
+  // 10. Who I Serve — bridge to project + creator system
+  {
+    questKey: "onboarding_who_i_serve",
+    clusterSlug: "who-i-serve",
+    clusterName: "Who I Serve",
+    intro: "You've mapped who you are. Now let's discover who you feel called to help.",
+    interactions: [
+      { type: "multi_select", prompt: "Who do you feel most drawn to help?", options: ["People who feel lost", "Creators without direction", "Entrepreneurs starting out", "People without mentors", "Families", "Young professionals", "Kids", "People in transition"], minSelect: 1, maxSelect: 3 },
+      { type: "card_pick", prompt: "Why do you care about this group?", options: ["I was once in their shoes", "I see their potential clearly", "The world overlooks them", "I have exactly what they need"] },
+      { type: "sentence_completion", prompt: "Complete this:", sentenceStem: "The person I most want to help is someone who" },
+      { type: "reflection", prompt: "Who do you feel most called to help, and why them specifically? What do you understand about them that most people miss?" },
+    ],
+    interpret: (r) => pick(["Feels Called to Help Others Find Direction", "Drawn to Supporting the Overlooked", "Wants to Help People Grow"], r),
+  },
+  // 14. Vision for a Better World
   {
     questKey: "onboarding_vision",
     clusterSlug: "vision-for-a-better-world",

@@ -1,14 +1,13 @@
 import { motion } from "framer-motion";
-import { Target, Network, Lightbulb } from "lucide-react";
+import { Target, Lightbulb } from "lucide-react";
 import { cn } from "@/lib/utils";
 
-export type CreationLabMode = "focus" | "constellation" | "purpose";
+export type CreationLabMode = "focus" | "purpose";
 
 interface ModeSelectorProps {
   currentMode: CreationLabMode;
   onModeChange: (mode: CreationLabMode) => void;
   hasActiveProject?: boolean;
-  dotCount?: number;
   needsProblemClarification?: boolean;
   isInClarificationSession?: boolean;
 }
@@ -22,15 +21,6 @@ const modes = [
     color: "hsl(var(--primary))",
     bgColor: "bg-primary/10",
     activeColor: "bg-primary text-primary-foreground",
-  },
-  {
-    id: "constellation" as const,
-    label: "Living Constellation",
-    icon: Network,
-    description: "Visualize patterns & connections",
-    color: "hsl(var(--accent))",
-    bgColor: "bg-accent/10",
-    activeColor: "bg-accent text-accent-foreground",
   },
   {
     id: "purpose" as const,
@@ -47,7 +37,6 @@ export const ModeSelector = ({
   currentMode,
   onModeChange,
   hasActiveProject,
-  dotCount = 0,
   needsProblemClarification = false,
   isInClarificationSession = false,
 }: ModeSelectorProps) => {
@@ -106,14 +95,6 @@ export const ModeSelector = ({
                 isActive ? "bg-white/90 text-primary" : "bg-destructive text-destructive-foreground"
               )}>
                 1
-              </span>
-            )}
-            {mode.id === "constellation" && dotCount > 0 && (
-              <span className={cn(
-                "relative z-10 text-xs px-1.5 py-0.5 rounded-full ml-auto",
-                isActive ? "bg-white/20" : "bg-muted"
-              )}>
-                {dotCount}
               </span>
             )}
           </motion.button>

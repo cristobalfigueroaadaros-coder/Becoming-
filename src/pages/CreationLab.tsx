@@ -10,7 +10,6 @@ import { motion } from "framer-motion";
 import { useCreationLabData } from "@/hooks/useCreationLabData";
 import { ModeSelector, type CreationLabMode } from "@/components/creation-lab/ModeSelector";
 import { FocusMode } from "@/components/creation-lab/FocusMode";
-import { LivingConstellation } from "@/components/creation-lab/LivingConstellation";
 import { PurposeToValueMap } from "@/components/creation-lab/PurposeToValueMap";
 import { PurposeOnboardingModal } from "@/components/PurposeOnboardingModal";
 import { ProjectTypeSelector, type ProjectType } from "@/components/creation-lab/ProjectTypeSelector";
@@ -26,11 +25,6 @@ const modeConfig: Record<CreationLabMode, { title: string; description: string; 
     title: "Creation Lab • Focus",
     description: "Execute your current project with daily micro-steps",
     color: "from-primary/20 to-primary/5",
-  },
-  constellation: {
-    title: "Creation Lab • Living Constellation",
-    description: "Visualize patterns and connections in your journey",
-    color: "from-accent/20 to-accent/5",
   },
   purpose: {
     title: "Creation Lab • Business Plan",
@@ -77,8 +71,8 @@ const CreationLab = () => {
   // Get mode from URL or default to 'focus'
   const modeParam = searchParams.get("mode") as CreationLabMode | null;
   const [currentMode, setCurrentMode] = useState<CreationLabMode>(
-    modeParam && ["focus", "constellation", "purpose"].includes(modeParam) 
-      ? modeParam 
+    modeParam && ["focus", "purpose"].includes(modeParam)
+      ? modeParam
       : "focus"
   );
 
@@ -98,10 +92,6 @@ const CreationLab = () => {
     getMissedSteps,
     skipMissedSteps,
     loadProjects,
-    // Constellation data
-    insightDots,
-    dotConnections,
-    
     // Purpose
     userPurpose,
     
@@ -138,7 +128,7 @@ const CreationLab = () => {
 
   // Sync mode from URL on mount
   useEffect(() => {
-    if (modeParam && ["focus", "constellation", "purpose"].includes(modeParam)) {
+    if (modeParam && ["focus", "purpose"].includes(modeParam)) {
       setCurrentMode(modeParam as CreationLabMode);
     }
   }, [modeParam]);
@@ -395,7 +385,6 @@ const CreationLab = () => {
             currentMode={currentMode}
             onModeChange={handleModeChange}
             hasActiveProject={!!activeProject}
-            dotCount={insightDots.length}
             needsProblemClarification={needsProblemClarification}
           />
         )}
@@ -428,16 +417,6 @@ const CreationLab = () => {
                 onRescheduleStep={rescheduleStep}
                 onSkipMissedSteps={skipMissedSteps}
                 onProjectUpdate={(updates) => setActiveProject(prev => prev ? { ...prev, ...updates } : null)}
-              />
-            )}
-
-            {currentMode === "constellation" && (
-              <LivingConstellation
-                dots={insightDots}
-                connections={dotConnections}
-                userPurpose={userPurpose}
-                onDataChange={refreshData}
-                onEditPurpose={() => setShowPurposeModal(true)}
               />
             )}
 

@@ -267,7 +267,9 @@ export const useValueMap = () => {
     setLoading(true);
     await Promise.all([loadBlocks(), loadSuggestions()]);
     setLoading(false);
-  }, [loadBlocks, loadSuggestions]);
+    // Non-blocking: auto-populate from Design Thinking after blocks are ready
+    checkDesignThinkingAutoPopulate();
+  }, [loadBlocks, loadSuggestions, checkDesignThinkingAutoPopulate]);
 
   useEffect(() => {
     loadAll();
@@ -401,6 +403,137 @@ export const useValueMap = () => {
     }
   };
 
+  // ── Design Thinking → Business Plan auto-population ─────────────────────────
+  const DT_TO_CANVAS: Record<string, string[]> = {
+    define:    ['audience', 'problems', 'alternatives'],
+    empathize: ['audience', 'problems'],
+    ideate:    ['unique_value', 'solution'],
+    prototype: ['solution'],
+    test:      ['signals', 'impact'],
+    iterate:   ['solution'],
+  };
+
+  const DT_PHASE_LABELS: Record<string, string> = {
+    define: 'Define', empathize: 'Empathize', ideate: 'Ideate',
+    prototype: 'Prototype', test: 'Test', iterate: 'Iterate',
+  };
+
+  const checkDesignThinkingAutoPopulate = useCallback(async () => {
+    try {
+      const { data: { user } } = await supabase.auth.getUser();
+      if (!user) return;
+
+      // Get active project
+      const { data: projects } = await supabase
+        .from('integrator_projects')
+        .select('id, project_title')
+        .eq('user_id', user.id)
+        .eq('status', 'active')
+        .limit(1);
+
+      if (!projects || projects.length === 0) return;
+      const project = projects[0];
+
+      // Fetch all DT phase content
+      const { data: phaseContent, error: dtError } = await supabase
+        .from('design_thinking_content')
+        .select('phase, content, reflection_response')
+        .eq('project_id', project.id);
+
+      if (dtError || !phaseContent || phaseContent.length === 0) return;
+
+      // Get current block unlock state directly from DB (avoids stale closure)
+      const { data: currentBlocks } = await supabase
+        .from('value_map_blocks')
+        .select('block_key, is_unlocked')
+        .eq('user_id', user.id);
+
+      const unlockedKeys = new Set((currentBlocks || []).filter(b => b.is_unlocked).map(b => b.block_key));
+
+      let newSuggestionsCreated = false;
+
+      for (const row of phaseContent) {
+        const targetBlocks = DT_TO_CANVAS[row.phase];
+        if (!targetBlocks) continue;
+
+        // Build suggestion text from notes + reflection
+        const notes = ((row.content as any[]) || []).map((n: any) => n.text).filter(Boolean);
+        const reflection = row.reflection_response as string | null;
+        if (notes.length === 0 && !reflection) continue;
+
+        let suggestionText = notes.map(n => `• ${n}`).join('\n');
+        if (reflection) {
+          if (suggestionText) suggestionText += '\n\nReflection: ' + reflection;
+          else suggestionText = reflection;
+        }
+
+        const sourceId = `${project.id}:${row.phase}`;
+
+        for (const blockKey of targetBlocks) {
+          // Check if suggestion already exists for this phase+block
+          const { data: existing } = await supabase
+            .from('value_map_suggestions')
+            .select('id, status, suggestion_text')
+            .eq('user_id', user.id)
+            .eq('block_key', blockKey)
+            .eq('source_type', 'design_thinking')
+            .eq('source_id', sourceId)
+            .maybeSingle();
+
+          if (existing) {
+            // Skip if already acted on; update text if still pending and content changed
+            if (['accepted', 'edited', 'discarded'].includes(existing.status)) continue;
+            if (existing.suggestion_text !== suggestionText) {
+              await supabase
+                .from('value_map_suggestions')
+                .update({ suggestion_text: suggestionText })
+                .eq('id', existing.id);
+              newSuggestionsCreated = true;
+            }
+          } else {
+            await supabase
+              .from('value_map_suggestions')
+              .insert({
+                user_id: user.id,
+                block_key: blockKey,
+                suggestion_text: suggestionText,
+                source_type: 'design_thinking',
+                source_id: sourceId,
+                source_context: {
+                  phase: row.phase,
+                  phaseLabel: DT_PHASE_LABELS[row.phase],
+                  projectTitle: project.project_title,
+                },
+                status: 'pending',
+              });
+            newSuggestionsCreated = true;
+          }
+
+          // Auto-unlock the block if it has DT content and isn't already unlocked
+          if (!unlockedKeys.has(blockKey)) {
+            await supabase
+              .from('value_map_blocks')
+              .update({
+                is_unlocked: true,
+                unlocked_at: new Date().toISOString(),
+                unlock_source: 'design_thinking',
+                unlock_source_id: sourceId,
+              })
+              .eq('user_id', user.id)
+              .eq('block_key', blockKey);
+            unlockedKeys.add(blockKey);
+          }
+        }
+      }
+
+      if (newSuggestionsCreated) {
+        await Promise.all([loadBlocks(), loadSuggestions()]);
+      }
+    } catch (error) {
+      console.error('DT auto-populate error (non-fatal):', error);
+    }
+  }, [loadBlocks, loadSuggestions]);
+
   const checkAutoUnlocks = async (profileData?: { main_mission?: string; main_strengths?: string[] }) => {
     const { data: { user } } = await supabase.auth.getUser();
     if (!user) return;
@@ -511,6 +644,7 @@ export const useValueMap = () => {
     analyzeAndGenerateSuggestions,
     checkAutoUnlocks,
     checkFocusModeUnlocks,
+    checkDesignThinkingAutoPopulate,
     refresh: loadAll
   };
 };

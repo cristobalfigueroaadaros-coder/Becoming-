@@ -1,5 +1,4 @@
 import { motion } from "framer-motion";
-import { FutureSelfInbox } from "@/components/becoming/FutureSelfInbox";
 import { IdealLifeSnapshot } from "@/components/becoming/IdealLifeSnapshot";
 import { SelfDiscoveryQuests } from "@/components/becoming/SelfDiscoveryQuests";
 import { CoreDiscoveries } from "@/components/becoming/CoreDiscoveries";
@@ -19,9 +18,6 @@ export const BecomingHome = () => {
       <div className="grid gap-6 lg:grid-cols-2">
         {/* Left Column - Primary Journey */}
         <div className="space-y-6">
-          {/* Future Self Inbox - Primary communication */}
-          <FutureSelfInbox />
-
           {/* Self-Discovery Quests */}
           <SelfDiscoveryQuests />
 

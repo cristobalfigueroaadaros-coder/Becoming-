@@ -215,7 +215,7 @@ export const AtlasQuestFlow = ({ quest, clusterId, onboardingIndex }: Props) => 
     }
   };
 
-  const handleConfirm = async (editedDot?: DotInterpretation, userEdited?: boolean) => {
+  const handleConfirm = async (editedDot?: DotInterpretation, extras?: DotInterpretation[], userEdited?: boolean) => {
     const finalDot = editedDot || dotResult;
     if (!finalDot) return;
     setIsSaving(true);
@@ -285,6 +285,30 @@ export const AtlasQuestFlow = ({ quest, clusterId, onboardingIndex }: Props) => 
         completed_at: new Date().toISOString(),
         is_onboarding: isOnboarding, onboarding_sequence: onboardingIndex ?? null,
       } as any);
+
+      // Save extra selected dots (user picked more than one variation)
+      if (extras && extras.length > 0) {
+        for (const extra of extras) {
+          const { data: existingExtra } = await supabase
+            .from("atlas_dots")
+            .select("id")
+            .eq("user_id", user.id)
+            .eq("cluster_id", dotClusterId)
+            .eq("title", extra.title)
+            .maybeSingle();
+          if (!existingExtra) {
+            await supabase.from("atlas_dots").insert({
+              user_id: user.id, cluster_id: dotClusterId, title: extra.title,
+              short_description: extra.description,
+              dot_type: isPatternBased ? "pattern_discovery" : "quest_discovery",
+              dot_category: extra.dotCategory || dotCategory,
+              signal_sources: signalSourceNames, signal_strength: totalStrength,
+              source_system: "quest_system", confidence_score: 0.8,
+              user_validated: true, original_title: extra.title, original_description: extra.description,
+            } as any);
+          }
+        }
+      }
 
       // Insert signals
       if (newSignals.length > 0) {
@@ -478,7 +502,7 @@ export const AtlasQuestFlow = ({ quest, clusterId, onboardingIndex }: Props) => 
             <ConnectionMomentCard
               key="connection-moment"
               questIndex={onboardingIndex ?? 0}
-              userDots={allExistingDots.map(d => ({ title: d.title, dot_category: d.dot_category, cluster_id: d.cluster_id }))}
+              userDots={Array.from(new Map(allExistingDots.map(d => [d.title, { title: d.title, dot_category: d.dot_category, cluster_id: d.cluster_id }])).values())}
               onContinue={handleConnectionMomentContinue}
               isIdentityMoment={onboardingIndex !== undefined && isIdentityMoment(onboardingIndex)}
             />

@@ -127,12 +127,14 @@ export function NoteTile({
           <p className="text-sm font-medium text-black/80 leading-tight line-clamp-2">
             {tile.title}
           </p>
-          {tile.content && tile.content !== tile.title && (
+          {tile.source_type !== 'keyword' && tile.content && tile.content !== tile.title && (
             <p className="text-xs text-black/60 mt-1 line-clamp-2">
               {tile.content}
             </p>
           )}
-          <p className="text-[10px] text-black/40 mt-2">Double-click to edit</p>
+          {tile.source_type !== 'keyword' && (
+            <p className="text-[10px] text-black/40 mt-2">Double-click to edit</p>
+          )}
         </>
       )}
 

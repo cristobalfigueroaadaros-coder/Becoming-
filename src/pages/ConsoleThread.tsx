@@ -90,7 +90,8 @@ type Phase =
   | "perspectives" | "banter"
   | "user_reply"
   | "handoff_offer" | "mentor_1to1"
-  | "project_detected" | "complete" | "post_project";
+  | "project_detected" | "complete" | "post_project"
+  | "return_greeting";
 
 // Phase-aware intake labels for context sent to AI
 const getIntakeLabels = (state: string): string[] => {
@@ -306,6 +307,20 @@ const ConsoleThread = ({ embedded = false, onProjectNameChange }: ConsoleThreadP
             setTimeout(() => {
               transitionToIntake();
             }, 1500);
+          } else if (
+            savedPhase === "post_project" ||
+            savedPhase === "complete" ||
+            savedPhase === "mentor_1to1" ||
+            savedPhase === "handoff_offer" ||
+            savedPhase === "user_reply" ||
+            savedPhase === "return_greeting"
+          ) {
+            // User has an active project — greet them on return
+            setPhase(savedPhase);
+            const profileName = (profile as any)?.display_name || "there";
+            setTimeout(() => {
+              startReturnFlow(profileName);
+            }, 1500);
           } else {
             setPhase(savedPhase);
             // Restore answers by phase prefix to avoid mixing starter/intake
@@ -443,6 +458,43 @@ const ConsoleThread = ({ embedded = false, onProjectNameChange }: ConsoleThreadP
     addSystemMessage(firstQ, "future_self", "intake_q1");
   };
 
+  const startReturnFlow = async (userName: string) => {
+    // Fetch active project for context
+    try {
+      const { data: { user } } = await supabase.auth.getUser();
+      if (!user) return;
+      const { data: project } = await supabase
+        .from("integrator_projects")
+        .select("name")
+        .eq("user_id", user.id)
+        .eq("status", "active")
+        .order("created_at", { ascending: false })
+        .limit(1)
+        .maybeSingle();
+
+      const activeProjectName = project?.name || projectName;
+
+      await showTyping("future_self", 1400);
+      if (activeProjectName) {
+        addSystemMessage(`Hey ${userName}! 👋 Welcome back. How are things going with "${activeProjectName}"?`, "future_self", "return_greeting");
+      } else {
+        addSystemMessage(`Hey ${userName}! 👋 Welcome back. What's on your mind today?`, "future_self", "return_greeting");
+      }
+
+      await showTyping("future_self", 2000);
+      addSystemMessage(
+        `What would you like to do right now?\n\n• Keep working on the project with the Strategist\n• Talk to the Council about something new\n• I'm stuck and need guidance`,
+        "future_self",
+        "return_greeting"
+      );
+
+      setPhase("return_greeting");
+      persistPhase("return_greeting");
+    } catch (err) {
+      console.error("Return flow error:", err);
+    }
+  };
+
   const addSystemMessage = (content: string, mentorType?: string, phaseForPersist?: Phase, messageType?: "perspective" | "banter" | "standard" | "notification") => {
     const config = mentorType ? mentorConfig[mentorType] : undefined;
     const msg: ChatMessage = {
@@ -450,6 +502,7 @@ const ConsoleThread = ({ embedded = false, onProjectNameChange }: ConsoleThreadP
       role: "mentor",
       content,
       mentorName: config?.name,
+      mentorType,
       mentorIcon: config?.icon,
       mentorColor: config?.color,
       messageType,
@@ -593,6 +646,53 @@ const ConsoleThread = ({ embedded = false, onProjectNameChange }: ConsoleThreadP
       await handleHandoffResponse(text);
     } else if (phase === "mentor_1to1") {
       await handleMentor1to1(text);
+    } else if (phase === "return_greeting") {
+      setLoading(true);
+      try {
+        const lower = text.toLowerCase();
+        const wantsProject = /strateg|project|keep|continu|working on|next step/i.test(lower);
+        const wantsCouncil = /council|new|different|something else|explore/i.test(lower);
+        const wantsHelp = /stuck|lost|help|struggling|don.t know|unclear|confused/i.test(lower);
+
+        if (wantsProject) {
+          // Route to strategist 1-to-1
+          setHandoffMentor("strategist_mentor");
+          await showTyping("future_self", 1200);
+          addSystemMessage(
+            `Let's pick up where you left off. Tell the Strategist what you've done so far — or just say "let's go" and they'll jump in.`,
+            "future_self", "return_greeting"
+          );
+          setPhase("mentor_1to1");
+          persistPhase("mentor_1to1");
+        } else if (wantsCouncil) {
+          await showTyping("future_self", 1200);
+          addSystemMessage(
+            `Got it. What do you want to bring to the Council today? Give me a quick topic or question.`,
+            "future_self", "return_greeting"
+          );
+          setPhase("user_reply");
+          persistPhase("user_reply");
+        } else if (wantsHelp) {
+          await showTyping("future_self", 1500);
+          addSystemMessage(
+            `Tell me more — what specifically feels stuck right now? Is it knowing what to do next, motivation, clarity on the direction, or something else?`,
+            "future_self", "return_greeting"
+          );
+          // Stay in return_greeting — next reply routes them
+        } else {
+          // Generic — treat as project context, route to strategist
+          setHandoffMentor("strategist_mentor");
+          await showTyping("future_self", 1200);
+          addSystemMessage(
+            `Got it. The Strategist will help you move that forward — just continue the conversation.`,
+            "future_self", "return_greeting"
+          );
+          setPhase("mentor_1to1");
+          persistPhase("mentor_1to1");
+        }
+      } finally {
+        setLoading(false);
+      }
     } else if (phase === "post_project") {
       await handlePostProjectMessage(text);
     }
@@ -795,6 +895,24 @@ const ConsoleThread = ({ embedded = false, onProjectNameChange }: ConsoleThreadP
 
   const runCouncilMeeting = async () => {
     setLoading(true);
+
+    // Immediately cycle typing indicators through all mentors so user sees activity
+    // right after "let's go" — before the API even returns.
+    let typingCancelled = false;
+    const allMentorTypes = [...userMentors, "future_self"];
+    const cycleTypingWhileWaiting = async () => {
+      let i = 0;
+      while (!typingCancelled) {
+        const mt = allMentorTypes[i % allMentorTypes.length];
+        const cfg = mentorConfig[mt];
+        setTyping({ name: cfg?.name, icon: cfg?.icon, color: cfg?.color });
+        await new Promise<void>(r => setTimeout(r, 1100));
+        i++;
+      }
+      setTyping(null);
+    };
+    cycleTypingWhileWaiting();
+
     try {
       const projectIdea = intakeAnswers[2] || "I want to build something meaningful";
 
@@ -803,17 +921,17 @@ const ConsoleThread = ({ embedded = false, onProjectNameChange }: ConsoleThreadP
       const fullIntakeContext = `${labels[0]}: ${intakeAnswers[0] || "Not shared"}\n\n${labels[1]}: ${intakeAnswers[1] || "Not shared"}\n\n${labels[2]}: ${intakeAnswers[2] || projectIdea}`;
 
       // Pass EMPTY conversationHistory for first council call so edge function treats as Q1
-      // This ensures suggestedNextQuestion is generated (isQ1 = true)
       const { data, error } = await supabase.functions.invoke("council-meeting", {
         body: {
           question: fullIntakeContext,
-          mentorTypes: [...userMentors, "future_self"],
+          mentorTypes: allMentorTypes,
           conversationHistory: [],
           entryState,
           atlasSignals,
         },
       });
 
+      typingCancelled = true; // stop the cycling loop
       if (error) throw error;
 
       const perspectives = data.mentorPerspectives || {};
@@ -821,8 +939,9 @@ const ConsoleThread = ({ embedded = false, onProjectNameChange }: ConsoleThreadP
       setPhase(perspPhase);
       persistPhase(perspPhase);
 
-    for (const [mentorType, perspective] of Object.entries(perspectives)) {
-        await showTyping(mentorType, 5000 + Math.random() * 15000);
+      // Messages arrive fast now — user already waited during the API call
+      for (const [mentorType, perspective] of Object.entries(perspectives)) {
+        await showTyping(mentorType, 900 + Math.random() * 700);
         addSystemMessage(perspective as string, mentorType, perspPhase, "perspective");
       }
 
@@ -837,7 +956,7 @@ const ConsoleThread = ({ embedded = false, onProjectNameChange }: ConsoleThreadP
         setPhase(banterPhase);
         persistPhase(banterPhase);
         for (const line of banterLines) {
-          await showTyping(line.mentor, 4000 + Math.random() * 10000);
+          await showTyping(line.mentor, 700 + Math.random() * 600);
           addSystemMessage(line.text, line.mentor, banterPhase, "banter");
         }
       }
@@ -854,6 +973,7 @@ const ConsoleThread = ({ embedded = false, onProjectNameChange }: ConsoleThreadP
       setPhase(nextPhase);
       persistPhase(nextPhase);
     } catch (error: any) {
+      typingCancelled = true;
       console.error("Error in council meeting:", error);
       toast.error("Council meeting failed");
     } finally {
@@ -892,8 +1012,8 @@ const ConsoleThread = ({ embedded = false, onProjectNameChange }: ConsoleThreadP
         if (error) throw error;
 
         const perspectives = data.mentorPerspectives || {};
-      for (const [mentorType, perspective] of Object.entries(perspectives)) {
-          await showTyping(mentorType, 5000 + Math.random() * 12000);
+        for (const [mentorType, perspective] of Object.entries(perspectives)) {
+          await showTyping(mentorType, 900 + Math.random() * 700);
           addSystemMessage(perspective as string, mentorType, "user_reply", "perspective");
         }
 
@@ -904,7 +1024,7 @@ const ConsoleThread = ({ embedded = false, onProjectNameChange }: ConsoleThreadP
 
         if (data.banterLines?.length > 0) {
           for (const line of data.banterLines) {
-            await showTyping(line.mentor, 4000 + Math.random() * 10000);
+            await showTyping(line.mentor, 700 + Math.random() * 600);
             addSystemMessage(line.text, line.mentor, "user_reply", "banter");
           }
         }
@@ -1013,6 +1133,18 @@ const ConsoleThread = ({ embedded = false, onProjectNameChange }: ConsoleThreadP
     if (!handoffMentor) return;
     setLoading(true);
 
+    // Show typing immediately — user already said "let's go"
+    let handoffTypingCancelled = false;
+    const cycleHandoffTyping = async () => {
+      while (!handoffTypingCancelled) {
+        const cfg = mentorConfig[handoffMentor];
+        setTyping({ name: cfg?.name, icon: cfg?.icon, color: cfg?.color });
+        await new Promise<void>(r => setTimeout(r, 1100));
+      }
+      setTyping(null);
+    };
+    cycleHandoffTyping();
+
     try {
       const { data: { user } } = await supabase.auth.getUser();
       if (!user) return;
@@ -1041,11 +1173,12 @@ const ConsoleThread = ({ embedded = false, onProjectNameChange }: ConsoleThreadP
         body: { mentorType: handoffMentor, message: "__HANDOFF_INIT__", handoffId: handoff.id },
       });
 
+      handoffTypingCancelled = true;
       if (error) throw error;
 
       await supabase.from("conversation_handoffs").update({ processed: true }).eq("id", handoff.id);
 
-      await showTyping(handoffMentor, 1000);
+      await showTyping(handoffMentor, 600);
       addSystemMessage(data.response, handoffMentor, "mentor_1to1");
 
       await supabase.from("chats").insert({
@@ -1058,6 +1191,7 @@ const ConsoleThread = ({ embedded = false, onProjectNameChange }: ConsoleThreadP
       setPhase("mentor_1to1");
       persistPhase("mentor_1to1");
     } catch (error: any) {
+      handoffTypingCancelled = true;
       console.error("Error in handoff:", error);
       toast.error("Handoff failed");
     } finally {
@@ -1068,6 +1202,18 @@ const ConsoleThread = ({ embedded = false, onProjectNameChange }: ConsoleThreadP
   const handleMentor1to1 = async (text: string) => {
     if (!handoffMentor) return;
     setLoading(true);
+
+    // Show typing immediately and keep it visible through the entire API call
+    let mentor1to1TypingCancelled = false;
+    const cycleMentor1to1Typing = async () => {
+      while (!mentor1to1TypingCancelled) {
+        const cfg = mentorConfig[handoffMentor];
+        setTyping({ name: cfg?.name, icon: cfg?.icon, color: cfg?.color });
+        await new Promise<void>(r => setTimeout(r, 1100));
+      }
+      setTyping(null);
+    };
+    cycleMentor1to1Typing();
 
     try {
       const { data: { user } } = await supabase.auth.getUser();
@@ -1080,12 +1226,11 @@ const ConsoleThread = ({ embedded = false, onProjectNameChange }: ConsoleThreadP
         content: text,
       });
 
-      await showTyping(handoffMentor, 800 + Math.random() * 800);
-
       const { data, error } = await supabase.functions.invoke("chat-mentor", {
         body: { mentorType: handoffMentor, message: text },
       });
 
+      mentor1to1TypingCancelled = true;
       if (error) throw error;
 
       await supabase.from("chats").insert({
@@ -1095,6 +1240,7 @@ const ConsoleThread = ({ embedded = false, onProjectNameChange }: ConsoleThreadP
         content: data.response,
       });
 
+      await showTyping(handoffMentor, 500);
       addSystemMessage(data.response, handoffMentor, "mentor_1to1");
 
       if (data.projectCoherence?.isCoherent) {
@@ -1117,6 +1263,7 @@ const ConsoleThread = ({ embedded = false, onProjectNameChange }: ConsoleThreadP
         );
       }
     } catch (error: any) {
+      mentor1to1TypingCancelled = true;
       console.error("Error in 1-to-1:", error);
       toast.error("Something went wrong");
     } finally {

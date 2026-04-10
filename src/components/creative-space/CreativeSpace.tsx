@@ -122,16 +122,27 @@ export function CreativeSpace({ projectId, projectTitle }: CreativeSpaceProps) {
     tiles.filter(t => t.source_type === 'keyword').map(t => t.title.toLowerCase())
   );
 
+  const getCanvasCenter = () => {
+    if (!canvasRef.current) return undefined;
+    const w = canvasRef.current.offsetWidth;
+    const h = canvasRef.current.offsetHeight;
+    const spread = 40;
+    return {
+      x: Math.max(0, w / 2 - 75 + (Math.random() - 0.5) * spread),
+      y: Math.max(0, h / 2 - 30 + (Math.random() - 0.5) * spread),
+    };
+  };
+
   const handleQuickNoteSubmit = () => {
     if (quickNote.trim()) {
-      addNoteTile(quickNote.trim());
+      addNoteTile(quickNote.trim(), getCanvasCenter());
       setQuickNote('');
     }
   };
 
   const handleKeywordClick = (keyword: string) => {
     if (!keywordsInSpace.has(keyword.toLowerCase())) {
-      addKeywordTile(keyword);
+      addKeywordTile(keyword, getCanvasCenter());
     }
   };
 
@@ -212,7 +223,7 @@ export function CreativeSpace({ projectId, projectTitle }: CreativeSpaceProps) {
             <Button
               variant="ghost"
               size="icon"
-              onClick={() => addNoteTile()}
+              onClick={() => addNoteTile(undefined, getCanvasCenter())}
               className="h-8 w-8"
             >
               <Plus className="w-4 h-4" />
@@ -243,7 +254,7 @@ export function CreativeSpace({ projectId, projectTitle }: CreativeSpaceProps) {
                   key={tile.id}
                   variant="secondary"
                   className="cursor-pointer hover:bg-primary/20 transition-colors flex items-center gap-1.5 py-1.5 px-3"
-                  onClick={() => assignTileToProject(tile.id)}
+                  onClick={() => assignTileToProject(tile.id, getCanvasCenter())}
                 >
                   <span className="max-w-[200px] truncate">{tile.title}</span>
                   <Plus className="w-3 h-3 opacity-70" />
@@ -347,7 +358,7 @@ export function CreativeSpace({ projectId, projectTitle }: CreativeSpaceProps) {
             "relative rounded-lg border border-dashed border-muted-foreground/20 overflow-hidden",
             "bg-[radial-gradient(circle,hsl(var(--muted-foreground)/0.1)_1px,transparent_1px)]",
             "bg-[size:20px_20px]",
-            isExpanded ? "h-[calc(100vh-200px)]" : "h-80",
+            isExpanded ? "h-[calc(100vh-200px)]" : "h-[520px]",
             connectingFrom && "cursor-crosshair"
           )}
         >
@@ -409,11 +420,11 @@ export function CreativeSpace({ projectId, projectTitle }: CreativeSpaceProps) {
               <p className="text-xs mt-1 opacity-70">
                 Save insights from mentors or add notes to begin
               </p>
-              <Button 
-                variant="outline" 
-                size="sm" 
+              <Button
+                variant="outline"
+                size="sm"
                 className="mt-4"
-                onClick={() => addNoteTile()}
+                onClick={() => addNoteTile(undefined, getCanvasCenter())}
               >
                 <Plus className="w-4 h-4 mr-2" />
                 Add First Note

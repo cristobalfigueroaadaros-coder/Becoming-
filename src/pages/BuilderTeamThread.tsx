@@ -93,6 +93,7 @@ const BuilderTeamThread = ({ embedded = false }: BuilderTeamThreadProps) => {
       role: "mentor",
       content,
       mentorName: config?.name,
+      mentorType,
       mentorIcon: config?.icon,
       mentorColor: config?.color,
       messageType,

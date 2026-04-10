@@ -1,8 +1,10 @@
 import React, { useState } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { Palette, Loader2 } from 'lucide-react';
+import { Palette, Loader2, Lock, CheckCircle2 } from 'lucide-react';
 import { MicroGuide } from "@/components/MicroGuide";
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
+import { Badge } from '@/components/ui/badge';
+import { cn } from '@/lib/utils';
 import { PhaseType } from './types';
 import { PhaseCircle } from './PhaseCircle';
 import { PhaseContent } from './PhaseContent';
@@ -12,7 +14,7 @@ import { useProblemClarificationStatus } from '@/hooks/useProblemClarificationSt
 
 interface DesignThinkingLabProps {
   projectId: string;
-  needsProblemClarification?: boolean; // PDR 3
+  needsProblemClarification?: boolean;
 }
 
 export const DesignThinkingLab: React.FC<DesignThinkingLabProps> = ({ projectId, needsProblemClarification = false }) => {
@@ -29,9 +31,13 @@ export const DesignThinkingLab: React.FC<DesignThinkingLabProps> = ({ projectId,
     keyLearnings,
     beforeNow,
     loading,
+    iterations,
+    currentIteration,
     addNoteToPhase,
     updateReflection,
     addMilestone,
+    completeIteration,
+    switchIteration,
   } = useDesignThinkingLab(projectId);
 
   const generateSnapshot = () => {
@@ -54,6 +60,11 @@ export const DesignThinkingLab: React.FC<DesignThinkingLabProps> = ({ projectId,
     );
   }
 
+  // Max iterations to show in tabs (completed + active + 2 locked ahead)
+  const activeIterationNum = iterations.find(i => i.status === 'active')?.iterationNumber ?? 1;
+  const maxTabsToShow = Math.max(activeIterationNum + 2, iterations.length + 2);
+  const tabNumbers = Array.from({ length: maxTabsToShow }, (_, i) => i + 1);
+
   return (
     <Card className="bg-card/50 backdrop-blur-sm border-border/50 overflow-hidden">
       <CardHeader className="pb-2">
@@ -63,17 +74,62 @@ export const DesignThinkingLab: React.FC<DesignThinkingLabProps> = ({ projectId,
           <MicroGuide
             guideKey="design_thinking"
             title="Design Thinking Lab"
-            description={"This lab helps you improve and iterate your project.\n\nHere you analyze ideas, refine direction, and observe how your project evolves over time."}
+            description={"A continuous refinement cycle: Define → Ideate → Prototype → Test → Empathize → Iterate.\n\nComplete the Iterate phase to finish one cycle and unlock the next iteration. Each iteration builds on the last."}
           />
         </CardTitle>
       </CardHeader>
-      
+
+      {/* Iteration tabs */}
+      <div className="px-4 pb-2">
+        <div className="flex items-center gap-1.5 overflow-x-auto pb-1 scrollbar-none">
+          {tabNumbers.map((num) => {
+            const iter = iterations.find(i => i.iterationNumber === num);
+            const isCompleted = iter?.status === 'completed';
+            const isActive = iter?.status === 'active';
+            const isLocked = !iter;
+            const isCurrent = num === currentIteration;
+
+            return (
+              <button
+                key={num}
+                disabled={isLocked}
+                onClick={() => !isLocked && switchIteration(num)}
+                className={cn(
+                  "flex items-center gap-1 px-3 py-1 rounded-full text-xs font-medium whitespace-nowrap transition-all",
+                  isCurrent && !isLocked
+                    ? "bg-primary text-primary-foreground shadow-sm"
+                    : isCompleted
+                      ? "bg-muted text-muted-foreground hover:bg-muted/80 cursor-pointer"
+                      : isActive && !isCurrent
+                        ? "bg-muted/60 text-muted-foreground hover:bg-muted cursor-pointer"
+                        : "bg-muted/30 text-muted-foreground/40 cursor-not-allowed"
+                )}
+              >
+                {isCompleted && <CheckCircle2 className="w-3 h-3 text-green-500" />}
+                {isLocked && <Lock className="w-3 h-3" />}
+                {`Iteration ${num}`}
+              </button>
+            );
+          })}
+        </div>
+
+        {/* Summary for completed iterations */}
+        {currentIteration < activeIterationNum && (() => {
+          const iter = iterations.find(i => i.iterationNumber === currentIteration);
+          return iter?.summary ? (
+            <div className="mt-2 p-3 rounded-lg bg-muted/40 border border-border/40">
+              <p className="text-xs text-muted-foreground italic">{iter.summary}</p>
+            </div>
+          ) : null;
+        })()}
+      </div>
+
       <CardContent className="relative min-h-[420px]">
         <AnimatePresence mode="wait">
           {/* Default View - Phase Circle */}
           {!selectedPhase && !showThread && (
             <motion.div
-              key="circle"
+              key={`circle-${currentIteration}`}
               initial={{ opacity: 0 }}
               animate={{ opacity: 1 }}
               exit={{ opacity: 0 }}
@@ -90,10 +146,9 @@ export const DesignThinkingLab: React.FC<DesignThinkingLabProps> = ({ projectId,
                 onHoverPhase={setHoveredPhase}
                 onOpenThread={() => setShowThread(true)}
               />
-              
-              {/* Hint text */}
+
               <p className="text-xs text-muted-foreground text-center mt-4">
-                Click a phase to explore, or tap the center to view your project thread
+                Define → Ideate → Prototype → Test → Empathize → Iterate
               </p>
             </motion.div>
           )}
@@ -101,15 +156,17 @@ export const DesignThinkingLab: React.FC<DesignThinkingLabProps> = ({ projectId,
           {/* Phase Content View */}
           {selectedPhase && !showThread && (
             <PhaseContent
-              key={`phase-${selectedPhase}`}
+              key={`phase-${selectedPhase}-${currentIteration}`}
               phase={selectedPhase}
               content={phaseContent[selectedPhase]}
               needsProblemClarification={needsClarification && selectedPhase === 'define'}
               projectId={projectId}
               projectName={projectInfo?.title}
+              isCurrentIterationActive={currentIteration === activeIterationNum}
               onClose={() => setSelectedPhase(null)}
               onAddNote={(note) => addNoteToPhase(selectedPhase, note)}
               onUpdateReflection={(response) => updateReflection(selectedPhase, response)}
+              onCompleteIteration={selectedPhase === 'iterate' ? completeIteration : undefined}
             />
           )}
 

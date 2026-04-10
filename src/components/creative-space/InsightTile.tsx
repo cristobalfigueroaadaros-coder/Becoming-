@@ -2,7 +2,7 @@ import React, { useState } from 'react';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
-import { Link2, Trash2, Palette, Sparkles, Users } from 'lucide-react';
+import { Link2, Trash2, Palette, Sparkles, Users, X } from 'lucide-react';
 import { CreativeSpaceTile } from '@/hooks/useCreativeSpace';
 import { cn } from '@/lib/utils';
 
@@ -37,23 +37,27 @@ export function InsightTile({
   onDelete
 }: InsightTileProps) {
   const [showActions, setShowActions] = useState(false);
+  const [isExpanded, setIsExpanded] = useState(false);
 
   const SourceIcon = tile.source_type === 'council' ? Users : Sparkles;
 
   return (
     <div
-      draggable
+      draggable={!isExpanded}
       onDragStart={(e) => {
+        if (isExpanded) { e.preventDefault(); return; }
         e.dataTransfer.effectAllowed = 'move';
         onDragStart();
       }}
       onDragEnd={onDragEnd}
       onMouseEnter={() => setShowActions(true)}
       onMouseLeave={() => setShowActions(false)}
+      onDoubleClick={() => setIsExpanded(true)}
       className={cn(
         "absolute cursor-grab active:cursor-grabbing",
-        "w-[150px] rounded-lg p-3 shadow-lg transition-all duration-200",
+        "rounded-lg p-3 shadow-lg transition-all duration-200",
         "border-2 border-white/20",
+        isExpanded ? "w-[280px] cursor-auto z-30" : "w-[150px]",
         isConnecting && "ring-2 ring-primary ring-offset-2 ring-offset-background"
       )}
       style={{
@@ -64,8 +68,8 @@ export function InsightTile({
     >
       {/* Source badge */}
       {tile.source_label && (
-        <Badge 
-          variant="secondary" 
+        <Badge
+          variant="secondary"
           className="absolute -top-2 -right-2 text-[10px] px-1.5 py-0 bg-background/90 border"
         >
           <SourceIcon className="w-2.5 h-2.5 mr-1" />
@@ -73,13 +77,37 @@ export function InsightTile({
         </Badge>
       )}
 
-      {/* Title */}
-      <p className="text-sm font-medium text-white leading-tight line-clamp-3">
-        {tile.title}
-      </p>
+      {isExpanded ? (
+        <>
+          <Button
+            variant="ghost"
+            size="icon"
+            className="absolute top-1 right-1 h-5 w-5 text-white/70 hover:text-white hover:bg-white/20"
+            onClick={(e) => { e.stopPropagation(); setIsExpanded(false); }}
+          >
+            <X className="w-3 h-3" />
+          </Button>
+          <p className="text-sm font-semibold text-white leading-tight mb-2 pr-6">
+            {tile.title}
+          </p>
+          {tile.content && (
+            <p className="text-xs text-white/85 leading-relaxed whitespace-pre-wrap max-h-48 overflow-y-auto">
+              {tile.content}
+            </p>
+          )}
+        </>
+      ) : (
+        <>
+          {/* Title */}
+          <p className="text-sm font-medium text-white leading-tight line-clamp-3">
+            {tile.title}
+          </p>
+          <p className="text-[10px] text-white/50 mt-1.5">Double-click to expand</p>
+        </>
+      )}
 
       {/* Action buttons */}
-      {showActions && (
+      {showActions && !isExpanded && (
         <div className="absolute -bottom-3 left-1/2 -translate-x-1/2 flex gap-1 bg-background rounded-full px-2 py-1 shadow-md border">
           <Button
             variant="ghost"

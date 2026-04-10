@@ -37,6 +37,7 @@ export interface ChatMessage {
   role: "user" | "system" | "mentor";
   content: string;
   mentorName?: string;
+  mentorType?: string;
   mentorIcon?: string;
   mentorColor?: string;
   card?: ReactNode;
@@ -138,7 +139,7 @@ const ChatBubble = ({ message, index, perspectiveIndex }: ChatBubbleProps) => {
             <InsightActionButton
               insightText={message.content}
               sourceType="council_banter"
-              sourceMentor={message.mentorName}
+              sourceMentor={message.mentorType}
               className="opacity-0 group-hover/banter:opacity-100 mt-1 -mb-0.5"
             />
           </div>
@@ -184,7 +185,7 @@ const ChatBubble = ({ message, index, perspectiveIndex }: ChatBubbleProps) => {
                 <InsightActionButton
                   insightText={message.content}
                   sourceType={message.messageType === "perspective" ? "mentor_perspective" : "council_guidance"}
-                  sourceMentor={message.mentorName}
+                  sourceMentor={message.mentorType}
                   className="opacity-0 group-hover/msg:opacity-100 mt-1.5 -mb-0.5"
                   showTutorialArrow={showTutorialArrow}
                 />

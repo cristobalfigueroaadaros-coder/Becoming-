@@ -2,13 +2,13 @@ import { useNavigate } from "react-router-dom";
 import { motion } from "framer-motion";
 import { useState, useEffect } from "react";
 import { Button } from "@/components/ui/button";
-import { ArrowLeft, Star, RefreshCw } from "lucide-react";
+import { ArrowLeft, RefreshCw } from "lucide-react";
 import FutureSelfBackground from "@/components/FutureSelfBackground";
 import { Card } from "@/components/ui/card";
 import { HumanDesignCard } from "@/components/human-design/HumanDesignCard";
 import { BodygraphChart } from "@/components/human-design/BodygraphChart";
 import { supabase } from "@/integrations/supabase/client";
-import { generateMockHumanDesignData, generateHumanDesignDots } from "@/lib/humanDesignDots";
+import { generateMockHumanDesignData } from "@/lib/humanDesignDots";
 import { toast } from "sonner";
 import { NumerologyInsights } from "@/components/NumerologyInsights";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
@@ -40,7 +40,6 @@ const ActualSelfPage = () => {
   const [birthName, setBirthName] = useState<string | null>(null);
   const [birthDate, setBirthDate] = useState<string | null>(null);
   const [loading, setLoading] = useState(true);
-  const [generatingDots, setGeneratingDots] = useState(false);
   const [regenerating, setRegenerating] = useState(false);
   const [activeTab, setActiveTab] = useState("numerology");
 
@@ -98,51 +97,12 @@ const ActualSelfPage = () => {
           .update({ human_design_data: hdData as any })
           .eq("id", user.id);
 
-        await handleGenerateDots(hdData, user.id);
       }
     } catch (error) {
       console.error("Error loading data:", error);
       toast.error("Failed to load data");
     } finally {
       setLoading(false);
-    }
-  };
-
-  const handleGenerateDots = async (hdData?: any, userId?: string) => {
-    setGeneratingDots(true);
-    try {
-      const { data: { user } } = await supabase.auth.getUser();
-      if (!user) throw new Error("Not authenticated");
-
-      const dataToUse = hdData || humanDesignData;
-      const userIdToUse = userId || user.id;
-
-      if (!dataToUse) {
-        toast.error("No Human Design data available");
-        return;
-      }
-
-      const { data: existingDots } = await supabase
-        .from("insight_dots")
-        .select("id")
-        .eq("user_id", userIdToUse)
-        .like("source_type", "human_design%")
-        .limit(1);
-
-      if (existingDots && existingDots.length > 0) {
-        toast.info("Human Design insights already added to your constellation");
-        return;
-      }
-
-      await generateHumanDesignDots(userIdToUse, dataToUse);
-      toast.success("Human Design insights added to your constellation!", {
-        description: "Check the Mapping page to see your new dots"
-      });
-    } catch (error: any) {
-      console.error("Error generating dots:", error);
-      toast.error("Failed to generate constellation dots");
-    } finally {
-      setGeneratingDots(false);
     }
   };
 
@@ -286,16 +246,6 @@ const ActualSelfPage = () => {
                   <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
                     <HumanDesignCard data={humanDesignData} />
                     <BodygraphChart data={humanDesignData} />
-                  </div>
-                  <div className="flex justify-center">
-                    <Button
-                      onClick={() => handleGenerateDots()}
-                      disabled={generatingDots}
-                      className="gap-2"
-                    >
-                      <Star className="w-4 h-4" />
-                      {generatingDots ? "Adding to Constellation..." : "View in Constellation Map"}
-                    </Button>
                   </div>
                 </div>
               ) : (

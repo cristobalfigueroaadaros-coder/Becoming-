@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import { motion } from 'framer-motion';
-import { X, Plus, MessageSquare, Zap, CheckCircle, PenLine } from 'lucide-react';
+import { X, Plus, MessageSquare, Zap, CheckCircle, PenLine, RefreshCw, Sparkles, Lock } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Textarea } from '@/components/ui/textarea';
 import { Input } from '@/components/ui/input';
@@ -17,9 +17,11 @@ interface PhaseContentProps {
   needsProblemClarification?: boolean;
   projectId?: string;
   projectName?: string;
+  isCurrentIterationActive?: boolean;
   onClose: () => void;
   onAddNote: (note: string) => Promise<void>;
   onUpdateReflection: (response: string) => Promise<void>;
+  onCompleteIteration?: () => Promise<void>;
 }
 
 const SOURCE_ICONS: Record<string, React.ComponentType<{ className?: string }>> = {
@@ -44,13 +46,22 @@ export const PhaseContent: React.FC<PhaseContentProps> = ({
   needsProblemClarification = false,
   projectId,
   projectName,
+  isCurrentIterationActive = true,
   onClose,
   onAddNote,
   onUpdateReflection,
+  onCompleteIteration,
 }) => {
   const config = PHASE_CONFIG[phase];
   const Icon = config.icon;
   const navigate = useNavigate();
+
+  const [newNote, setNewNote] = useState('');
+  const [reflection, setReflection] = useState(content.reflectionResponse || '');
+  const [isAddingNote, setIsAddingNote] = useState(false);
+  const [isSavingReflection, setIsSavingReflection] = useState(false);
+  const [isCompletingIteration, setIsCompletingIteration] = useState(false);
+  const [iterationCompleted, setIterationCompleted] = useState(false);
 
   // CRITICAL: Define phase + first-time = special read-only UI with clarification prompt
   if (phase === 'define' && needsProblemClarification) {
@@ -61,22 +72,19 @@ export const PhaseContent: React.FC<PhaseContentProps> = ({
         exit={{ opacity: 0, x: 20 }}
         className="absolute inset-0 z-20 bg-background/98 backdrop-blur-lg rounded-2xl border border-border overflow-hidden"
       >
-        {/* Header */}
-        <div 
+        <div
           className="flex items-center justify-between p-4 border-b border-border"
           style={{ borderColor: config.borderColor }}
         >
           <div className="flex items-center gap-3">
-            <div 
+            <div
               className="w-10 h-10 rounded-xl flex items-center justify-center"
               style={{ background: config.bgColor }}
             >
               <Icon className="w-5 h-5" style={{ color: config.color }} />
             </div>
             <div>
-              <h2 className="font-semibold capitalize" style={{ color: config.color }}>
-                Define
-              </h2>
+              <h2 className="font-semibold capitalize" style={{ color: config.color }}>Define</h2>
               <p className="text-xs text-muted-foreground">Design Thinking Phase</p>
             </div>
           </div>
@@ -84,18 +92,13 @@ export const PhaseContent: React.FC<PhaseContentProps> = ({
             <X className="w-5 h-5" />
           </Button>
         </div>
-
         <ScrollArea className="h-[calc(100%-64px)]">
           <div className="p-4">
             <DefinePhaseClarificationPrompt
               projectName={projectName || 'your project'}
               onStartClarification={() => {
                 navigate('/chat/business_mentor', {
-                  state: {
-                    problemClarificationMode: true,
-                    projectId,
-                    projectName
-                  }
+                  state: { problemClarificationMode: true, projectId, projectName }
                 });
                 onClose();
               }}
@@ -106,18 +109,12 @@ export const PhaseContent: React.FC<PhaseContentProps> = ({
     );
   }
 
-  // Standard phase content for all other phases OR Define after clarification
-  const [newNote, setNewNote] = useState('');
-  const [reflection, setReflection] = useState(content.reflectionResponse || '');
-  const [isAddingNote, setIsAddingNote] = useState(false);
-  const [isSavingReflection, setIsSavingReflection] = useState(false);
-
   const allNotes = [...content.notes, ...content.autoPopulatedItems].sort(
     (a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime()
   );
 
   const handleAddNote = async () => {
-    if (!newNote.trim()) return;
+    if (!newNote.trim() || !isCurrentIterationActive) return;
     setIsAddingNote(true);
     await onAddNote(newNote.trim());
     setNewNote('');
@@ -125,15 +122,25 @@ export const PhaseContent: React.FC<PhaseContentProps> = ({
   };
 
   const handleSaveReflection = async () => {
+    if (!isCurrentIterationActive) return;
     setIsSavingReflection(true);
     await onUpdateReflection(reflection);
     setIsSavingReflection(false);
   };
 
   const handleMentorClick = () => {
-    // Navigate to Council view with the mentor, not the legacy /chat route
     navigate(`/council?view=${config.mentorType}`);
     onClose();
+  };
+
+  const handleCompleteIteration = async () => {
+    if (!onCompleteIteration) return;
+    setIsCompletingIteration(true);
+    await onCompleteIteration();
+    setIterationCompleted(true);
+    setIsCompletingIteration(false);
+    // Close after short delay so user sees feedback
+    setTimeout(onClose, 1200);
   };
 
   return (
@@ -144,12 +151,12 @@ export const PhaseContent: React.FC<PhaseContentProps> = ({
       className="absolute inset-0 z-20 bg-background/98 backdrop-blur-lg rounded-2xl border border-border overflow-hidden"
     >
       {/* Header */}
-      <div 
+      <div
         className="flex items-center justify-between p-4 border-b border-border"
         style={{ borderColor: config.borderColor }}
       >
         <div className="flex items-center gap-3">
-          <div 
+          <div
             className="w-10 h-10 rounded-xl flex items-center justify-center"
             style={{ background: config.bgColor }}
           >
@@ -169,8 +176,16 @@ export const PhaseContent: React.FC<PhaseContentProps> = ({
 
       <ScrollArea className="h-[calc(100%-64px)]">
         <div className="p-4 space-y-6">
+          {/* Read-only notice for past iterations */}
+          {!isCurrentIterationActive && (
+            <div className="flex items-center gap-2 p-3 rounded-lg bg-muted/40 border border-border/40">
+              <Lock className="w-4 h-4 text-muted-foreground shrink-0" />
+              <p className="text-xs text-muted-foreground">This is a completed iteration — content is read-only.</p>
+            </div>
+          )}
+
           {/* Core Question */}
-          <div 
+          <div
             className="p-4 rounded-xl"
             style={{ background: config.bgColor }}
           >
@@ -187,46 +202,48 @@ export const PhaseContent: React.FC<PhaseContentProps> = ({
                 {allNotes.length} items
               </Badge>
             </div>
-            
-            {/* Add note input */}
-            <div className="flex gap-2">
-              <Input
-                placeholder={PHASE_PLACEHOLDERS[phase]}
-                value={newNote}
-                onChange={(e) => setNewNote(e.target.value)}
-                onKeyDown={(e) => e.key === 'Enter' && handleAddNote()}
-                className="flex-1"
-              />
-              <Button 
-                size="icon" 
-                onClick={handleAddNote}
-                disabled={isAddingNote || !newNote.trim()}
-              >
-                <Plus className="w-4 h-4" />
-              </Button>
-            </div>
 
-            {/* Notes list */}
+            {isCurrentIterationActive && (
+              <div className="flex gap-2">
+                <Input
+                  placeholder={PHASE_PLACEHOLDERS[phase]}
+                  value={newNote}
+                  onChange={(e) => setNewNote(e.target.value)}
+                  onKeyDown={(e) => e.key === 'Enter' && handleAddNote()}
+                  className="flex-1"
+                />
+                <Button
+                  size="icon"
+                  onClick={handleAddNote}
+                  disabled={isAddingNote || !newNote.trim()}
+                >
+                  <Plus className="w-4 h-4" />
+                </Button>
+              </div>
+            )}
+
             <div className="space-y-2 max-h-48 overflow-y-auto">
               {allNotes.length === 0 ? (
                 <div className="text-center py-8 space-y-3">
                   <p className="text-sm text-muted-foreground">
                     No content yet in this phase.
                   </p>
-                  <Button 
-                    variant="outline" 
-                    onClick={handleMentorClick}
-                    className="gap-2"
-                  >
-                    <MessageSquare className="w-4 h-4" />
-                    Start a conversation
-                  </Button>
+                  {isCurrentIterationActive && (
+                    <Button
+                      variant="outline"
+                      onClick={handleMentorClick}
+                      className="gap-2"
+                    >
+                      <MessageSquare className="w-4 h-4" />
+                      Start a conversation
+                    </Button>
+                  )}
                 </div>
               ) : (
                 allNotes.map((note) => {
                   const SourceIcon = SOURCE_ICONS[note.source] || Zap;
                   return (
-                    <div 
+                    <div
                       key={note.id}
                       className="flex items-start gap-2 p-3 rounded-lg bg-muted/50"
                     >
@@ -258,11 +275,12 @@ export const PhaseContent: React.FC<PhaseContentProps> = ({
               placeholder="Your thoughts..."
               value={reflection}
               onChange={(e) => setReflection(e.target.value)}
+              disabled={!isCurrentIterationActive}
               className="min-h-[80px] resize-none"
             />
-            {reflection !== content.reflectionResponse && (
-              <Button 
-                size="sm" 
+            {isCurrentIterationActive && reflection !== content.reflectionResponse && (
+              <Button
+                size="sm"
                 onClick={handleSaveReflection}
                 disabled={isSavingReflection}
               >
@@ -272,18 +290,61 @@ export const PhaseContent: React.FC<PhaseContentProps> = ({
           </div>
 
           {/* Mentor Shortcut */}
-          <Button 
-            variant="outline" 
-            className="w-full justify-center gap-2"
-            style={{ 
-              borderColor: config.borderColor,
-              color: config.color,
-            }}
-            onClick={handleMentorClick}
-          >
-            <MessageSquare className="w-4 h-4" />
-            {config.mentorLabel}
-          </Button>
+          {isCurrentIterationActive && (
+            <Button
+              variant="outline"
+              className="w-full justify-center gap-2"
+              style={{ borderColor: config.borderColor, color: config.color }}
+              onClick={handleMentorClick}
+            >
+              <MessageSquare className="w-4 h-4" />
+              {config.mentorLabel}
+            </Button>
+          )}
+
+          {/* Complete Iteration CTA — only on Iterate phase, active iteration */}
+          {phase === 'iterate' && isCurrentIterationActive && (
+            <div
+              className="rounded-xl p-4 space-y-3 border"
+              style={{ borderColor: config.borderColor, background: config.bgColor }}
+            >
+              <div className="flex items-center gap-2">
+                <RefreshCw className="w-4 h-4" style={{ color: config.color }} />
+                <h3 className="text-sm font-semibold" style={{ color: config.color }}>
+                  Complete this iteration
+                </h3>
+              </div>
+              <p className="text-xs text-muted-foreground">
+                When you've applied your learnings and are ready to start a new cycle, complete this iteration.
+                An AI summary will be generated and the next iteration will unlock.
+              </p>
+              {iterationCompleted ? (
+                <div className="flex items-center gap-2 text-green-500 text-sm font-medium">
+                  <CheckCircle className="w-4 h-4" />
+                  Iteration complete! Unlocking next cycle...
+                </div>
+              ) : (
+                <Button
+                  className="w-full gap-2"
+                  onClick={handleCompleteIteration}
+                  disabled={isCompletingIteration}
+                  style={{ background: config.color, color: 'hsl(var(--background))' }}
+                >
+                  {isCompletingIteration ? (
+                    <>
+                      <Sparkles className="w-4 h-4 animate-pulse" />
+                      Generating summary...
+                    </>
+                  ) : (
+                    <>
+                      <RefreshCw className="w-4 h-4" />
+                      Complete Iteration & Start Next
+                    </>
+                  )}
+                </Button>
+              )}
+            </div>
+          )}
         </div>
       </ScrollArea>
     </motion.div>

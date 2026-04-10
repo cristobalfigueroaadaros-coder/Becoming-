@@ -803,9 +803,12 @@ const TransmutationCouncil = () => {
                 animate={{ opacity: 1, y: 0 }}
                 transition={{ delay: 0.4 }}
               >
-                <Card 
+                <Card
                   className="border-dashed border-2 border-amber-500/40 hover:border-amber-500/60 transition-colors cursor-pointer"
-                  onClick={() => continueAsking(suggestedNextQuestion)}
+                  onClick={() => {
+                    setClarityQuestion(suggestedNextQuestion || "");
+                    setAnswerDialogOpen(true);
+                  }}
                 >
                   <CardContent className="pt-4">
                     <div className="flex items-center gap-3">

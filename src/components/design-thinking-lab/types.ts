@@ -1,4 +1,4 @@
-export type PhaseType = 'empathize' | 'define' | 'ideate' | 'prototype' | 'test';
+export type PhaseType = 'define' | 'ideate' | 'prototype' | 'test' | 'empathize' | 'iterate';
 
 export interface PhaseNote {
   id: string;
@@ -54,4 +54,13 @@ export interface KeyLearning {
 export interface BeforeNowComparison {
   before: string;
   now: string;
+}
+
+export interface DesignThinkingIteration {
+  id: string;
+  iterationNumber: number;
+  status: 'active' | 'completed';
+  summary?: string;
+  completedAt?: string;
+  createdAt: string;
 }

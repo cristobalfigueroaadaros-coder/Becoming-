@@ -95,6 +95,7 @@ const Council = () => {
   const location = useLocation();
   const [userMentors, setUserMentors] = useState<string[]>([]);
   const [mentorNotifications, setMentorNotifications] = useState<Record<string, number>>({});
+  const [insightFollowupMentors, setInsightFollowupMentors] = useState<Set<string>>(new Set());
   const [councilNotifications, setCouncilNotifications] = useState(0);
   const [loading, setLoading] = useState(true);
   const [showMobileList, setShowMobileList] = useState(true);
@@ -115,6 +116,35 @@ const Council = () => {
 
   useEffect(() => {
     loadData();
+
+    // Realtime: update badge counts instantly when a new outreach message is inserted
+    // This fires immediately after "Go Deeper Later" — no page refresh needed
+    const channel = supabase
+      .channel("mentor-outreach-notifications")
+      .on(
+        "postgres_changes",
+        { event: "INSERT", schema: "public", table: "mentor_daily_outreach" },
+        (payload: any) => {
+          const mentorType = payload.new?.mentor_type;
+          const messageType = payload.new?.message_type;
+          if (!mentorType) return;
+          setMentorNotifications((prev) => ({
+            ...prev,
+            [mentorType]: (prev[mentorType] || 0) + 1,
+          }));
+          if (messageType === "insight_followup") {
+            setInsightFollowupMentors((prev) => new Set([...prev, mentorType]));
+          }
+        }
+      )
+      .on(
+        "postgres_changes",
+        { event: "UPDATE", schema: "public", table: "mentor_daily_outreach" },
+        () => { loadData(); } // Re-sync when messages are marked as read
+      )
+      .subscribe();
+
+    return () => { supabase.removeChannel(channel); };
   }, []);
 
   // When view changes, hide mobile list if a conversation is selected
@@ -181,19 +211,25 @@ const Council = () => {
 
       const { data: outreachNotifications } = await supabase
         .from("mentor_daily_outreach")
-        .select("mentor_type")
+        .select("mentor_type, message_type")
         .eq("user_id", user.id)
         .is("read_at", null);
 
       const counts: Record<string, number> = {};
+      const followupMentors = new Set<string>();
+
       privateNotifications?.forEach((n) => {
         counts[n.mentor_type] = (counts[n.mentor_type] || 0) + 1;
       });
       outreachNotifications?.forEach((n) => {
         counts[n.mentor_type] = (counts[n.mentor_type] || 0) + 1;
+        if (n.message_type === "insight_followup") {
+          followupMentors.add(n.mentor_type);
+        }
       });
-      
+
       setMentorNotifications(counts);
+      setInsightFollowupMentors(followupMentors);
 
       // Load council notifications
       const { count } = await supabase
@@ -608,19 +644,34 @@ const Council = () => {
               icon: "👤" 
             };
             const notifications = mentorNotifications[mentorType] || 0;
+            const hasFollowup = insightFollowupMentors.has(mentorType);
             const isSelected = selectedMentor === mentorType && !showMobileList;
+            // Locked mentors with a waiting message get less dim — the notification is the hook
+            const lockedWithMessage = chatsLocked && hasFollowup;
 
             return (
               <button
                 key={mentorType}
                 onClick={() => {
-                  if (chatsLocked) { toast("Complete your first conversation to unlock this.", { duration: 3000 }); return; }
+                  if (chatsLocked) {
+                    if (hasFollowup) {
+                      toast("Unlock conversations to read their message", {
+                        duration: 3000,
+                        description: `${config.name} is waiting to discuss your insight`,
+                      });
+                    } else {
+                      toast("Complete your first conversation to unlock this.", { duration: 3000 });
+                    }
+                    return;
+                  }
                   handleSelectMentor(mentorType);
                 }}
                 className={cn(
                   "w-full flex items-center gap-3 p-3 rounded-lg transition-colors text-left",
                   chatsLocked
-                    ? "opacity-40 cursor-not-allowed"
+                    ? lockedWithMessage
+                      ? "opacity-80 cursor-not-allowed ring-1 ring-destructive/30 bg-destructive/5"
+                      : "opacity-40 cursor-not-allowed"
                     : isSelected ? "bg-primary/10 text-primary" : "hover:bg-muted cursor-pointer"
                 )}
               >
@@ -632,13 +683,14 @@ const Council = () => {
                   {chatsLocked && <Lock className="w-3 h-3 absolute -bottom-0.5 -right-0.5 text-muted-foreground/60" />}
                 </div>
                 <div className="flex-1 min-w-0">
-                  <p className="font-medium truncate">
-                    {config.name}
-                  </p>
+                  <p className="font-medium truncate">{config.name}</p>
+                  {lockedWithMessage && (
+                    <p className="text-xs text-destructive/80 truncate">Message waiting...</p>
+                  )}
                 </div>
-                {!chatsLocked && notifications > 0 && (
-                  <Badge 
-                    variant="destructive" 
+                {notifications > 0 && (
+                  <Badge
+                    variant="destructive"
                     className="rounded-full px-2"
                   >
                     {notifications}

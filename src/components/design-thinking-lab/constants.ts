@@ -1,4 +1,4 @@
-import { Users, Target, Lightbulb, Hammer, CheckSquare, LucideIcon } from 'lucide-react';
+import { Users, Target, Lightbulb, Hammer, CheckSquare, RefreshCw, LucideIcon } from 'lucide-react';
 import { PhaseType } from './types';
 
 export interface PhaseConfig {
@@ -13,16 +13,6 @@ export interface PhaseConfig {
 }
 
 export const PHASE_CONFIG: Record<PhaseType, PhaseConfig> = {
-  empathize: {
-    icon: Users,
-    color: 'hsl(48, 89%, 70%)',
-    bgColor: 'hsl(48, 89%, 70%, 0.15)',
-    borderColor: 'hsl(48, 89%, 60%)',
-    coreQuestion: "What is really happening for the people involved?",
-    reflectionPrompt: "What surprised you the most so far?",
-    mentorType: 'perspective',
-    mentorLabel: "Explore this with the Perspective mentor"
-  },
   define: {
     icon: Target,
     color: 'hsl(20, 85%, 72%)',
@@ -62,23 +52,46 @@ export const PHASE_CONFIG: Record<PhaseType, PhaseConfig> = {
     reflectionPrompt: "What changed after taking action?",
     mentorType: 'design-thinking',
     mentorLabel: "Explore this with the Design Thinking mentor"
-  }
+  },
+  empathize: {
+    icon: Users,
+    color: 'hsl(48, 89%, 70%)',
+    bgColor: 'hsl(48, 89%, 70%, 0.15)',
+    borderColor: 'hsl(48, 89%, 60%)',
+    coreQuestion: "What is really happening for the people involved?",
+    reflectionPrompt: "What surprised you the most so far?",
+    mentorType: 'perspective',
+    mentorLabel: "Explore this with the Perspective mentor"
+  },
+  iterate: {
+    icon: RefreshCw,
+    color: 'hsl(174, 72%, 56%)',
+    bgColor: 'hsl(174, 72%, 56%, 0.15)',
+    borderColor: 'hsl(174, 72%, 46%)',
+    coreQuestion: "How am I applying what I learned to the next cycle?",
+    reflectionPrompt: "What's the most important change going into the next iteration?",
+    mentorType: 'strategist_mentor',
+    mentorLabel: "Plan your next iteration with the Strategist"
+  },
 };
 
-export const PHASE_ORDER: PhaseType[] = ['empathize', 'define', 'ideate', 'prototype', 'test'];
+// Cycle order: Define → Ideate → Prototype → Test → Empathize → Iterate → (back to Define)
+export const PHASE_ORDER: PhaseType[] = ['define', 'ideate', 'prototype', 'test', 'empathize', 'iterate'];
 
 export const PHASE_ANGLES: Record<PhaseType, { start: number; end: number }> = {
-  empathize: { start: -90, end: -18 },
-  define: { start: -18, end: 54 },
-  ideate: { start: 54, end: 126 },
-  prototype: { start: 126, end: 198 },
-  test: { start: 198, end: 270 }
+  define:    { start: -90, end: -30 },
+  ideate:    { start: -30, end:  30 },
+  prototype: { start:  30, end:  90 },
+  test:      { start:  90, end: 150 },
+  empathize: { start: 150, end: 210 },
+  iterate:   { start: 210, end: 270 },
 };
 
 export const PHASE_PLACEHOLDERS: Record<PhaseType, string> = {
-  empathize: "e.g., 'Users feel overwhelmed by too many choices'",
-  define: "e.g., 'The core problem is decision paralysis'",
-  ideate: "e.g., 'What if we simplified to 3 options?'",
+  define:    "e.g., 'The core problem is decision paralysis'",
+  ideate:    "e.g., 'What if we simplified to 3 options?'",
   prototype: "e.g., 'Testing a simple A/B flow'",
-  test: "e.g., 'Users preferred option B by 3:1'"
+  test:      "e.g., 'Users preferred option B by 3:1'",
+  empathize: "e.g., 'Users feel overwhelmed by too many choices'",
+  iterate:   "e.g., 'Adding fun interactions based on user feedback'",
 };

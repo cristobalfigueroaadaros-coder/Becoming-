@@ -2,8 +2,9 @@ import { useValueMap, BLOCK_CONFIGS } from '@/hooks/useValueMap';
 import { ValueMapBlock } from './ValueMapBlock';
 import { ValueMapProgress } from './ValueMapProgress';
 import { Button } from '@/components/ui/button';
-import { Sparkles, RefreshCw } from 'lucide-react';
+import { Sparkles, RefreshCw, GitBranch } from 'lucide-react';
 import { motion } from 'framer-motion';
+import { useState } from 'react';
 
 export const ValueMapCanvas = () => {
   const {
@@ -21,8 +22,17 @@ export const ValueMapCanvas = () => {
     acceptSuggestion,
     discardSuggestion,
     analyzeAndGenerateSuggestions,
+    checkDesignThinkingAutoPopulate,
     refresh
   } = useValueMap();
+
+  const [syncing, setSyncing] = useState(false);
+
+  const handleDTSync = async () => {
+    setSyncing(true);
+    await checkDesignThinkingAutoPopulate();
+    setSyncing(false);
+  };
 
   if (loading) {
     return (
@@ -54,19 +64,35 @@ export const ValueMapCanvas = () => {
             unlocked={unlockedCount} 
             total={13} 
           />
-          <Button
-            variant="outline"
-            size="sm"
-            onClick={analyzeAndGenerateSuggestions}
-            disabled={analyzing}
-          >
-            {analyzing ? (
-              <RefreshCw className="w-4 h-4 mr-2 animate-spin" />
-            ) : (
-              <Sparkles className="w-4 h-4 mr-2" />
-            )}
-            Generate Suggestions
-          </Button>
+          <div className="flex items-center gap-2">
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={handleDTSync}
+              disabled={syncing}
+              title="Sync suggestions from your Design Thinking phases"
+            >
+              {syncing ? (
+                <RefreshCw className="w-4 h-4 mr-2 animate-spin" />
+              ) : (
+                <GitBranch className="w-4 h-4 mr-2" />
+              )}
+              Sync from Design Thinking
+            </Button>
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={analyzeAndGenerateSuggestions}
+              disabled={analyzing}
+            >
+              {analyzing ? (
+                <RefreshCw className="w-4 h-4 mr-2 animate-spin" />
+              ) : (
+                <Sparkles className="w-4 h-4 mr-2" />
+              )}
+              Generate Suggestions
+            </Button>
+          </div>
         </div>
       </div>
 
