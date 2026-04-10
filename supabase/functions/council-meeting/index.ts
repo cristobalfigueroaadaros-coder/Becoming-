@@ -497,7 +497,30 @@ Aspirations: ${foundationSummary.aspirations?.join(', ') || 'Not specified'}
 
 `;
 
-      if (openerType === "breakthrough_followup" && notificationContext.breakthrough_title) {
+      if (openerType === "sprint_review" && notificationContext.sprintReviewContext) {
+        const ctx = notificationContext.sprintReviewContext;
+        const completionPct = Math.round((ctx.completionRate || 0) * 100) / 100;
+        openerPrompt += `
+The user just completed their weekly sprint review and is ready to reflect and plan next week. Here's what happened:
+- Momentum Score: ${ctx.momentumScore}/100
+- Completion Rate: ${completionPct}%
+- Active Days: ${ctx.activeDays}/7
+- Biggest Win: ${ctx.biggestWin || 'not shared'}
+- Main Friction: ${ctx.frictionType || 'not shared'}
+- Direction Confidence: ${ctx.directionConfidence}/10
+- Streak: ${ctx.streak} week(s) in a row
+${ctx.topWins?.length ? `- Top Wins: ${ctx.topWins.slice(0, 2).join(', ')}` : ''}
+
+Generate a warm, energizing opening message (2-3 sentences) that:
+- Acknowledges their commitment to showing up (reference streak if > 1, otherwise just this week)
+- Picks ONE specific detail from their week (a win, friction, or score) and reflects it back
+- Invites them to go deeper — opens the door to exploring what worked, what didn't, and what's next
+- Feels like the Future Self welcoming them back to the council, not a report summary
+
+Example tone: "You showed up again — and that matters more than the score. I noticed [specific win/friction]. Before we plan next week, tell me: what actually moved you this week, underneath the tasks?"
+
+Keep it under 3 sentences. No bullet points. Speak directly to them.`;
+      } else if (openerType === "breakthrough_followup" && notificationContext.breakthrough_title) {
         openerPrompt += `
 The user recently had a breakthrough: "${notificationContext.breakthrough_title}"
 ${notificationContext.breakthrough_description ? `Details: "${notificationContext.breakthrough_description}"` : ''}

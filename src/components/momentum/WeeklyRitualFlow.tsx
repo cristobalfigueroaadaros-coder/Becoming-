@@ -1,15 +1,13 @@
-import { useState, useEffect, useCallback } from "react";
+import { useState, useEffect } from "react";
+import { useNavigate } from "react-router-dom";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
-import { EvolutionNarrative } from "./EvolutionNarrative";
 import { StructuredQuestions, type StructuredAnswers } from "./StructuredQuestions";
-import { SprintConsole } from "./SprintConsole";
-import { SprintWinnerCard } from "./SprintWinnerCard";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
 import { format, startOfWeek, endOfWeek } from "date-fns";
 import type { WeeklyData } from "@/hooks/useMomentumData";
-import { Wind, Sparkles } from "lucide-react";
+import { Wind, Loader2 } from "lucide-react";
 
 interface WeeklyRitualFlowProps {
   open: boolean;
@@ -18,25 +16,18 @@ interface WeeklyRitualFlowProps {
   weeklyData: WeeklyData;
 }
 
-type Step = "grounding" | "questions" | "narrative" | "console" | "confirm" | "winner";
+type Step = "grounding" | "questions" | "saving";
 
 export function WeeklyRitualFlow({ open, onClose, onComplete, weeklyData }: WeeklyRitualFlowProps) {
+  const navigate = useNavigate();
   const [step, setStep] = useState<Step>("grounding");
   const [timer, setTimer] = useState(30);
-  const [answers, setAnswers] = useState<StructuredAnswers | null>(null);
-  const [narrative, setNarrative] = useState<string | null>(null);
-  const [narrativeLoading, setNarrativeLoading] = useState(false);
-  const [sprintDirection, setSprintDirection] = useState<string | null>(null);
   const [saving, setSaving] = useState(false);
-  const [streak, setStreak] = useState(0);
 
   useEffect(() => {
     if (open) {
       setStep("grounding");
       setTimer(30);
-      setNarrative(null);
-      setAnswers(null);
-      setSprintDirection(null);
     }
   }, [open]);
 
@@ -47,39 +38,6 @@ export function WeeklyRitualFlow({ open, onClose, onComplete, weeklyData }: Week
     const id = setInterval(() => setTimer((t) => t - 1), 1000);
     return () => clearInterval(id);
   }, [step, timer, open]);
-
-  const generateNarrative = useCallback(async (structuredAnswers: StructuredAnswers) => {
-    setNarrativeLoading(true);
-    try {
-      const { data, error } = await supabase.functions.invoke("generate-momentum-narrative", {
-        body: {
-          weeklyData,
-          selfRatings: {
-            energy: 5, clarity: 5, confidence: structuredAnswers.directionConfidence, direction: structuredAnswers.directionConfidence,
-          },
-          structuredAnswers,
-        },
-      });
-      if (error) throw error;
-      setNarrative(data?.narrative || "Your momentum is building. Keep going.");
-    } catch (err) {
-      console.error("Narrative generation failed:", err);
-      setNarrative("This week moved you forward. Reflect on what worked and carry it into the next sprint.");
-    } finally {
-      setNarrativeLoading(false);
-    }
-  }, [weeklyData]);
-
-  const handleQuestionsComplete = (a: StructuredAnswers) => {
-    setAnswers(a);
-    setStep("narrative");
-    generateNarrative(a);
-  };
-
-  const handleDirectionDecided = (direction: string) => {
-    setSprintDirection(direction);
-    setStep("confirm");
-  };
 
   const detectBehavioralCapabilities = async (userId: string, reports: any[]) => {
     if (reports.length < 3) return;
@@ -113,7 +71,6 @@ export function WeeklyRitualFlow({ open, onClose, onComplete, weeklyData }: Week
       const toInsert = capChecks.filter((c) => c.condition);
       if (toInsert.length === 0) return;
 
-      // Check which already exist
       const { data: existing } = await supabase
         .from("momentum_capabilities")
         .select("capability_name")
@@ -142,8 +99,9 @@ export function WeeklyRitualFlow({ open, onClose, onComplete, weeklyData }: Week
     }
   };
 
-  const handleConfirm = async () => {
+  const handleQuestionsComplete = async (answers: StructuredAnswers) => {
     setSaving(true);
+    setStep("saving");
     try {
       const { data: { user } } = await supabase.auth.getUser();
       if (!user) throw new Error("Not authenticated");
@@ -166,7 +124,7 @@ export function WeeklyRitualFlow({ open, onClose, onComplete, weeklyData }: Week
         if (daysDiff <= 10) newStreak = (lastReport[0].streak_weeks || 0) + 1;
       }
 
-      const { error } = await supabase.from("momentum_weekly_reports").insert({
+      await supabase.from("momentum_weekly_reports").insert({
         user_id: user.id,
         week_start: weekStart,
         week_end: weekEnd,
@@ -180,37 +138,53 @@ export function WeeklyRitualFlow({ open, onClose, onComplete, weeklyData }: Week
         top_insights: weeklyData.topInsights as any,
         friction_points: weeklyData.frictionPoints as any,
         phases_active: weeklyData.phasesActive as any,
-        evolution_narrative: narrative,
         self_ratings: answers as any,
         ritual_completed_at: now.toISOString(),
         streak_weeks: newStreak,
         momentum_score: weeklyData.momentumScore,
-        sprint_direction: sprintDirection,
-        friction_type: answers?.frictionType || null,
-        biggest_win_type: answers?.biggestWin || null,
-        usefulness_answer: answers?.usefulness || null,
+        friction_type: answers.frictionType || null,
+        biggest_win_type: answers.biggestWin || null,
+        usefulness_answer: answers.usefulness || null,
         reflection_rate: weeklyData.reflectionRate,
         active_days: weeklyData.activeDays,
       });
 
-      if (error) throw error;
-
-      // Run behavioral capability detection in background
-      const { data: allReports } = await supabase
+      // Detect behavioral capabilities in the background
+      supabase
         .from("momentum_weekly_reports")
         .select("*")
         .eq("user_id", user.id)
         .order("week_start", { ascending: false })
-        .limit(6);
-      if (allReports) {
-        detectBehavioralCapabilities(user.id, allReports);
-      }
+        .limit(6)
+        .then(({ data: allReports }) => {
+          if (allReports) detectBehavioralCapabilities(user.id, allReports);
+        });
 
-      setStreak(newStreak);
-      setStep("winner");
+      // Close dialog and hand off to the real Console
+      onClose();
+      onComplete();
+      navigate("/council", {
+        state: {
+          openerType: "sprint_review",
+          notificationContext: {
+            sprintReviewContext: {
+              momentumScore: weeklyData.momentumScore,
+              completionRate: weeklyData.completionRate,
+              activeDays: weeklyData.activeDays,
+              frictionType: answers.frictionType,
+              biggestWin: answers.biggestWin,
+              usefulness: answers.usefulness,
+              directionConfidence: answers.directionConfidence,
+              topWins: weeklyData.topWins,
+              streak: newStreak,
+            },
+          },
+        },
+      });
     } catch (err: any) {
       console.error("Failed to save ritual:", err);
       toast.error("Failed to save. Please try again.");
+      setStep("questions");
     } finally {
       setSaving(false);
     }
@@ -219,10 +193,7 @@ export function WeeklyRitualFlow({ open, onClose, onComplete, weeklyData }: Week
   const stepTitles: Record<Step, string> = {
     grounding: "Weekly Grounding",
     questions: "Quick Self-Check",
-    narrative: "Your Evolution Narrative",
-    console: "Sprint Direction",
-    confirm: "Confirm & Continue",
-    winner: "🎉",
+    saving: "Locking in your week...",
   };
 
   return (
@@ -245,51 +216,11 @@ export function WeeklyRitualFlow({ open, onClose, onComplete, weeklyData }: Week
           <StructuredQuestions onComplete={handleQuestionsComplete} />
         )}
 
-        {step === "narrative" && (
-          <div className="space-y-4 py-2">
-            <EvolutionNarrative narrative={narrative} loading={narrativeLoading} />
-            {!narrativeLoading && narrative && (
-              <Button className="w-full" onClick={() => setStep("console")}>
-                <Sparkles className="h-4 w-4 mr-2" /> Continue to Console
-              </Button>
-            )}
+        {step === "saving" && (
+          <div className="flex flex-col items-center gap-4 py-8">
+            <Loader2 className="h-8 w-8 animate-spin text-primary" />
+            <p className="text-sm text-muted-foreground">Saving your week, opening the Console...</p>
           </div>
-        )}
-
-        {step === "console" && answers && (
-          <SprintConsole
-            weeklyData={weeklyData}
-            answers={answers}
-            onDirectionDecided={handleDirectionDecided}
-          />
-        )}
-
-        {step === "confirm" && (
-          <div className="space-y-4 py-2 text-center">
-            <div className="bg-primary/10 rounded-lg p-4">
-              <p className="text-xs text-muted-foreground mb-1">Sprint Direction</p>
-              <p className="font-medium">{sprintDirection}</p>
-            </div>
-            <p className="text-sm text-muted-foreground">
-              Ready to lock in this week and carry forward?
-            </p>
-            <div className="flex gap-2">
-              <Button variant="outline" className="flex-1" onClick={() => setStep("console")}>
-                Adjust
-              </Button>
-              <Button className="flex-1" onClick={handleConfirm} disabled={saving}>
-                {saving ? "Saving..." : "Confirm & Close"}
-              </Button>
-            </div>
-          </div>
-        )}
-
-        {step === "winner" && (
-          <SprintWinnerCard
-            streak={streak}
-            direction={sprintDirection || "Continue and deepen"}
-            onDismiss={onComplete}
-          />
         )}
       </DialogContent>
     </Dialog>
