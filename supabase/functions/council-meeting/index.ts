@@ -596,6 +596,16 @@ Be direct but caring. Acknowledge their reflection, then push toward creation.`;
 
     // Profile already fetched above, no need to re-fetch
 
+    // Get active project for context in perspectives and handoff
+    const { data: activeProject } = await supabaseClient
+      .from("integrator_projects")
+      .select("project_title, project_description")
+      .eq("user_id", user.id)
+      .eq("status", "active")
+      .order("updated_at", { ascending: false })
+      .limit(1)
+      .maybeSingle();
+
     const { data: futureProgress } = await supabaseClient
       .from("future_self_progress")
       .select("*")
