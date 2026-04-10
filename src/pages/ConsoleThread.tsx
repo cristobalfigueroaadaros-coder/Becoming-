@@ -472,7 +472,7 @@ const ConsoleThread = ({ embedded = false, onProjectNameChange }: ConsoleThreadP
         .limit(1)
         .maybeSingle();
 
-      const activeProjectName = project?.name || projectName;
+      const activeProjectName = (project as any)?.project_title || projectName;
 
       await showTyping("future_self", 1400);
       if (activeProjectName) {
