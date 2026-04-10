@@ -105,6 +105,28 @@ interface ChatProps {
   } | null;
 }
 
+const mentorConfig: Record<string, { name: string; icon: string; color: string }> = {
+  discipline_mentor:      { name: "Discipline Mentor",       icon: "🎯", color: "#f97316" },
+  strategist_mentor:      { name: "Strategist Mentor",       icon: "♟️", color: "#3b82f6" },
+  creative_visionary:     { name: "Creative Visionary",      icon: "🎨", color: "#a855f7" },
+  quantum_inventor:       { name: "Quantum Inventor",        icon: "⚡", color: "#06b6d4" },
+  mystic_mentor:          { name: "Mystic Mentor",           icon: "🔮", color: "#6366f1" },
+  business_mentor:        { name: "Business Mentor",         icon: "📈", color: "#22c55e" },
+  marketing_mentor:       { name: "Marketing Mentor",        icon: "📣", color: "#ec4899" },
+  scientific_mentor:      { name: "Scientific Mentor",       icon: "🔬", color: "#14b8a6" },
+  heart_mentor:           { name: "Heart Mentor",            icon: "💗", color: "#f43f5e" },
+  ancient_sage:           { name: "Ancient Sage",            icon: "📜", color: "#d97706" },
+  alignment_mentor:       { name: "Alignment Mentor",        icon: "🧭", color: "#10b981" },
+  oracle_mother:          { name: "Oracle Mother",           icon: "🌙", color: "#8b5cf6" },
+  future_self:            { name: "Future Self",             icon: "✨", color: "hsl(var(--primary))" },
+  perspective_mentor:     { name: "Perspective Mentor",      icon: "🗺️", color: "#0ea5e9" },
+  challenger_mentor:      { name: "Challenger Mentor",       icon: "⚔️", color: "#dc2626" },
+  design_thinking_mentor: { name: "Design Thinking Mentor",  icon: "🧪", color: "#84cc16" },
+  problem_mentor:         { name: "Problem Mentor",          icon: "🔍", color: "#475569" },
+  inner_clarity_mentor:   { name: "Inner Clarity Mentor",    icon: "🪞", color: "#4f46e5" },
+  release_mentor:         { name: "Release Mentor",          icon: "🌊", color: "#0d9488" },
+};
+
 const Chat = ({ mentorTypeOverride, embedded = false, locationState: propState }: ChatProps) => {
   const { mentorType: mentorTypeParam } = useParams<{ mentorType: string }>();
   const mentorType = mentorTypeOverride || mentorTypeParam;
@@ -1098,6 +1120,17 @@ const Chat = ({ mentorTypeOverride, embedded = false, locationState: propState }
 
           {messages.map((message) => (
             <div key={message.id} className={cn("flex", message.role === "user" ? "justify-end" : "justify-start")}>
+              {message.role !== "user" && (() => {
+                const cfg = mentorType ? mentorConfig[mentorType] : undefined;
+                return cfg ? (
+                  <div
+                    className="w-8 h-8 rounded-full flex items-center justify-center shrink-0 text-sm mr-2.5 mt-1 self-start"
+                    style={{ backgroundColor: `${cfg.color}33` }}
+                  >
+                    {cfg.icon}
+                  </div>
+                ) : null;
+              })()}
               <Card className={cn("max-w-[80%] p-4", message.role === "user" ? "btn-gradient text-white border-0" : "bg-card")}>
                 {message.role === "user" ? (
                   <p className="whitespace-pre-wrap">{message.content}</p>
@@ -1116,6 +1149,17 @@ const Chat = ({ mentorTypeOverride, embedded = false, locationState: propState }
           ))}
           {loading && (
             <div className="flex justify-start">
+              {(() => {
+                const cfg = mentorType ? mentorConfig[mentorType] : undefined;
+                return cfg ? (
+                  <div
+                    className="w-8 h-8 rounded-full flex items-center justify-center shrink-0 text-sm mr-2.5 mt-1 self-start"
+                    style={{ backgroundColor: `${cfg.color}33` }}
+                  >
+                    {cfg.icon}
+                  </div>
+                ) : null;
+              })()}
               <Card className="max-w-[80%] px-5 py-4 bg-card">
                 <div className="flex items-center gap-1.5">
                   <span className="w-2 h-2 rounded-full bg-muted-foreground/60 animate-bounce [animation-delay:0ms]" />
