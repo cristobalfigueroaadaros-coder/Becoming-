@@ -2301,7 +2301,7 @@ Example: "I see you've been building on this idea from ${journeyPath[0]?.replace
       const voiceCtx = recentHandoff?.[0]?.voice_context as any;
       if (voiceCtx?.flow === 'transmutation_pattern_discovery' || voiceCtx?.phase === 'white' || voiceCtx?.phase === 'red' || voiceCtx?.phase === 'gold') {
         isTransmutationSession = true;
-        transmutationSessionStart = new Date(recentHandoff[0].created_at);
+        transmutationSessionStart = new Date(recentHandoff![0].created_at);
         transmutationLifeEvent = voiceCtx.userInput || voiceCtx.patternName || null;
         transmutationCouncilContext = voiceCtx.councilContext || null;
         console.log("Transmutation session detected for", mentorType, "- Life event:", transmutationLifeEvent?.substring(0, 50));

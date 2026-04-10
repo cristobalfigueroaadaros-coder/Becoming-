@@ -267,9 +267,7 @@ export const useValueMap = () => {
     setLoading(true);
     await Promise.all([loadBlocks(), loadSuggestions()]);
     setLoading(false);
-    // Non-blocking: auto-populate from Design Thinking after blocks are ready
-    checkDesignThinkingAutoPopulate();
-  }, [loadBlocks, loadSuggestions, checkDesignThinkingAutoPopulate]);
+  }, [loadBlocks, loadSuggestions]);
 
   useEffect(() => {
     loadAll();

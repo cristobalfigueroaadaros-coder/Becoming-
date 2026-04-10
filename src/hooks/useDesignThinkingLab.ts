@@ -318,7 +318,7 @@ export function useDesignThinkingLab(projectId: string): UseDesignThinkingLabRet
   // Fetch iterations for the project — gracefully falls back if table doesn't exist yet
   const fetchIterations = useCallback(async (userId: string, projId: string): Promise<DesignThinkingIteration[]> => {
     try {
-      const { data, error } = await supabase
+      const { data, error } = await (supabase as any)
         .from('design_thinking_iterations')
         .select('*')
         .eq('project_id', projId)
@@ -331,7 +331,7 @@ export function useDesignThinkingLab(projectId: string): UseDesignThinkingLabRet
 
       if (!data || data.length === 0) {
         // Seed iteration 1
-        const { data: seeded, error: seedError } = await supabase
+        const { data: seeded, error: seedError } = await (supabase as any)
           .from('design_thinking_iterations')
           .insert({ project_id: projId, user_id: userId, iteration_number: 1, status: 'active' })
           .select()
@@ -401,7 +401,7 @@ export function useDesignThinkingLab(projectId: string): UseDesignThinkingLabRet
       // Fetch user-created phase content for this iteration
       // Falls back to unfiltered query if iteration_number column doesn't exist yet
       let contentData: any[] | null = null;
-      const { data: contentWithIter, error: contentError } = await supabase
+      const { data: contentWithIter, error: contentError } = await (supabase as any)
         .from('design_thinking_content')
         .select('*')
         .eq('project_id', projectId)
@@ -584,7 +584,7 @@ export function useDesignThinkingLab(projectId: string): UseDesignThinkingLabRet
       const summary = !fnError && summaryData?.summary ? summaryData.summary : null;
 
       // Mark current iteration as completed
-      await supabase
+      await (supabase as any)
         .from('design_thinking_iterations')
         .update({
           status: 'completed',
@@ -597,7 +597,7 @@ export function useDesignThinkingLab(projectId: string): UseDesignThinkingLabRet
       const nextIterationNumber = currentIteration + 1;
 
       // Create next iteration
-      await supabase
+      await (supabase as any)
         .from('design_thinking_iterations')
         .insert({
           project_id: projectId,

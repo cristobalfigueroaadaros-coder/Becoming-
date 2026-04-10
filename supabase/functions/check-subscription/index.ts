@@ -85,7 +85,7 @@ serve(async (req) => {
     });
 
     const completedOneTime = sessions.data.find(
-      (s) => s.mode === "payment" && s.payment_status === "paid"
+      (s: any) => s.mode === "payment" && s.payment_status === "paid"
     );
 
     if (completedOneTime) {
