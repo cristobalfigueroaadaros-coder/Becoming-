@@ -600,6 +600,11 @@ const Index = () => {
             <span className="font-sora font-semibold text-sm text-foreground">Bcoming</span>
           </div>
           <p className="text-sm text-muted-foreground">© {new Date().getFullYear()} Bcoming. We become by building.</p>
+          <div className="flex items-center gap-4 text-xs text-muted-foreground">
+            <a href="/privacy" className="hover:text-foreground transition-colors">Privacy Policy</a>
+            <a href="/terms" className="hover:text-foreground transition-colors">Terms of Service</a>
+            <a href="mailto:support@bcoming.app" className="hover:text-foreground transition-colors">Contact</a>
+          </div>
         </div>
       </footer>
     </div>
