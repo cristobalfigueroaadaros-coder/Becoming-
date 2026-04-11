@@ -69,6 +69,7 @@ import LifeAssessment from "./pages/LifeAssessment";
 import AtlasPage from "./pages/AtlasPage";
 import AtlasQuestPage from "./pages/AtlasQuestPage";
 import PaymentSuccess from "./pages/PaymentSuccess";
+import ProjectEngine from "./pages/ProjectEngine";
 import PrivacyPolicy from "./pages/PrivacyPolicy";
 import TermsOfService from "./pages/TermsOfService";
 
