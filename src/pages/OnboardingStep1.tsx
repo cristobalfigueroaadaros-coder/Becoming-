@@ -11,16 +11,16 @@ import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from "
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { Command, CommandEmpty, CommandGroup, CommandInput, CommandItem, CommandList } from "@/components/ui/command";
 import { toast } from "sonner";
-import { Calendar } from "@/components/ui/calendar";
-import { Sparkles, Loader2, Check, ChevronsUpDown, CalendarIcon } from "lucide-react";
-import { format } from "date-fns";
+import { Sparkles, Loader2, Check, ChevronsUpDown } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { countries } from "@/data/countries";
 import { citiesByCountry } from "@/data/cities";
 
 const profileSchema = z.object({
   birth_name: z.string().min(2, "Birth name is required"),
-  birth_date: z.date({ required_error: "Birth date is required" }),
+  birth_day: z.string().min(1, "Day is required"),
+  birth_month: z.string().min(1, "Month is required"),
+  birth_year: z.string().min(1, "Year is required"),
   birth_city: z.string().min(1, "City is required"),
   birth_country: z.string().min(1, "Country is required"),
   birth_time: z.string().optional(),
@@ -28,6 +28,15 @@ const profileSchema = z.object({
 });
 
 type ProfileFormData = z.infer<typeof profileSchema>;
+
+const MONTHS = [
+  "January", "February", "March", "April", "May", "June",
+  "July", "August", "September", "October", "November", "December",
+];
+
+const currentYear = new Date().getFullYear();
+const YEARS = Array.from({ length: currentYear - 1899 }, (_, i) => String(currentYear - i));
+const DAYS = Array.from({ length: 31 }, (_, i) => String(i + 1));
 
 const OnboardingStep1 = () => {
   const navigate = useNavigate();
@@ -40,6 +49,9 @@ const OnboardingStep1 = () => {
     resolver: zodResolver(profileSchema),
     defaultValues: {
       birth_name: "",
+      birth_day: "",
+      birth_month: "",
+      birth_year: "",
       birth_city: "",
       birth_country: "",
       birth_time: "",
@@ -53,7 +65,8 @@ const OnboardingStep1 = () => {
       const { data: { user } } = await supabase.auth.getUser();
       if (!user) throw new Error("Not authenticated");
 
-      const birthDateFormatted = format(data.birth_date, "yyyy-MM-dd");
+      const monthIndex = MONTHS.indexOf(data.birth_month) + 1;
+      const birthDateFormatted = `${data.birth_year}-${String(monthIndex).padStart(2, "0")}-${String(data.birth_day).padStart(2, "0")}`;
       const birthLocation = `${data.birth_city}, ${data.birth_country}`;
 
       const { error: profileError } = await supabase
@@ -156,51 +169,71 @@ const OnboardingStep1 = () => {
                   )}
                 />
 
-                <FormField
-                  control={form.control}
-                  name="birth_date"
-                  render={({ field }) => (
-                    <FormItem className="flex flex-col">
-                      <FormLabel>Date of Birth</FormLabel>
-                      <Popover>
-                        <PopoverTrigger asChild>
+                <FormItem>
+                  <FormLabel>Date of Birth</FormLabel>
+                  <div className="grid grid-cols-3 gap-2">
+                    <FormField
+                      control={form.control}
+                      name="birth_day"
+                      render={({ field }) => (
+                        <FormItem>
                           <FormControl>
-                            <Button
-                              variant="outline"
-                              className={cn(
-                                "w-full pl-3 text-left font-normal",
-                                !field.value && "text-muted-foreground"
-                              )}
+                            <select
+                              {...field}
+                              className="w-full h-10 rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background focus:outline-none focus:ring-2 focus:ring-ring focus:ring-offset-2"
                             >
-                              {field.value ? (
-                                format(field.value, "PPP")
-                              ) : (
-                                <span>Pick your birth date</span>
-                              )}
-                              <CalendarIcon className="ml-auto h-4 w-4 opacity-50" />
-                            </Button>
+                              <option value="">Day</option>
+                              {DAYS.map(d => (
+                                <option key={d} value={d}>{d}</option>
+                              ))}
+                            </select>
                           </FormControl>
-                        </PopoverTrigger>
-                        <PopoverContent className="w-auto p-0 z-50" align="start">
-                          <Calendar
-                            mode="single"
-                            selected={field.value}
-                            onSelect={field.onChange}
-                            disabled={(date) =>
-                              date > new Date() || date < new Date("1900-01-01")
-                            }
-                            initialFocus
-                            captionLayout="dropdown-buttons"
-                            fromYear={1900}
-                            toYear={new Date().getFullYear()}
-                            className={cn("p-3 pointer-events-auto")}
-                          />
-                        </PopoverContent>
-                      </Popover>
-                      <FormMessage />
-                    </FormItem>
-                  )}
-                />
+                          <FormMessage />
+                        </FormItem>
+                      )}
+                    />
+                    <FormField
+                      control={form.control}
+                      name="birth_month"
+                      render={({ field }) => (
+                        <FormItem>
+                          <FormControl>
+                            <select
+                              {...field}
+                              className="w-full h-10 rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background focus:outline-none focus:ring-2 focus:ring-ring focus:ring-offset-2"
+                            >
+                              <option value="">Month</option>
+                              {MONTHS.map(m => (
+                                <option key={m} value={m}>{m}</option>
+                              ))}
+                            </select>
+                          </FormControl>
+                          <FormMessage />
+                        </FormItem>
+                      )}
+                    />
+                    <FormField
+                      control={form.control}
+                      name="birth_year"
+                      render={({ field }) => (
+                        <FormItem>
+                          <FormControl>
+                            <select
+                              {...field}
+                              className="w-full h-10 rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background focus:outline-none focus:ring-2 focus:ring-ring focus:ring-offset-2"
+                            >
+                              <option value="">Year</option>
+                              {YEARS.map(y => (
+                                <option key={y} value={y}>{y}</option>
+                              ))}
+                            </select>
+                          </FormControl>
+                          <FormMessage />
+                        </FormItem>
+                      )}
+                    />
+                  </div>
+                </FormItem>
 
                 <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                   <FormField

@@ -11,6 +11,7 @@ import { FutureSelfOmnipresenceModal } from "@/components/FutureSelfOmnipresence
 import { useFutureSelfOmnipresence } from "@/hooks/useFutureSelfOmnipresence";
 import { toast } from "@/hooks/use-toast";
 import { AppLayout } from "@/components/layout";
+import { ErrorBoundary } from "@/components/ErrorBoundary";
 import Index from "./pages/Index";
 import OnboardingRouter from "./components/OnboardingRouter";
 import OnboardingStep1 from "./pages/OnboardingStep1";
@@ -196,6 +197,7 @@ const App = () => {
         <Sonner />
         <ShadowEncounterWrapper />
         <FutureSelfOmnipresenceWrapper />
+        <ErrorBoundary>
         <BrowserRouter>
           <Routes>
             <Route path="/" element={session ? <OnboardingRouter /> : <Index />} />
@@ -445,6 +447,7 @@ const App = () => {
             <Route path="*" element={<NotFound />} />
           </Routes>
         </BrowserRouter>
+        </ErrorBoundary>
       </TooltipProvider>
     </QueryClientProvider>
   );

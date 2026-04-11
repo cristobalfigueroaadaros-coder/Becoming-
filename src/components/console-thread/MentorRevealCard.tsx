@@ -1,7 +1,6 @@
 import { useEffect } from "react";
-import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
-import { Users, Check } from "lucide-react";
+import { Users } from "lucide-react";
 import { motion } from "framer-motion";
 import { mentorDisplayNames, type ValidMentorId } from "@/lib/mentorTypes";
 import confetti from "canvas-confetti";
@@ -41,6 +40,9 @@ const MentorRevealCard = ({ mentors, entryState, onAccept, accepted }: MentorRev
   useEffect(() => {
     if (!accepted) {
       confetti({ particleCount: 60, spread: 50, origin: { y: 0.7 }, colors: ['#8B5CF6', '#D946EF', '#10B981'] });
+      // Auto-advance after mentors have been revealed — no button click needed
+      const timer = setTimeout(() => onAccept(), 2800);
+      return () => clearTimeout(timer);
     }
   }, []);
 
@@ -71,14 +73,9 @@ const MentorRevealCard = ({ mentors, entryState, onAccept, accepted }: MentorRev
           ))}
         </div>
 
-        {!accepted ? (
-          <Button onClick={onAccept} className="w-full gap-2 animate-pulse" size="sm">
-            <Check className="w-4 h-4" />
-            Accept Your Council
-          </Button>
-        ) : (
+        {accepted && (
           <div className="text-center text-sm text-primary font-medium py-1">
-            ✨ Council Accepted
+            ✨ Council ready
           </div>
         )}
       </CardContent>
