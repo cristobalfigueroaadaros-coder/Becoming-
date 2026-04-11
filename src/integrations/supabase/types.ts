@@ -2593,7 +2593,11 @@ export type Database = {
           learning_insights_count: number | null
           needs_problem_clarification: boolean | null
           problem_clarified_at: string | null
+          project_brief: string | null
+          project_constraints: Json | null
           project_description: string
+          project_maturity_stage: string | null
+          project_structure: Json | null
           project_title: string
           seed_breakthrough_id: string | null
           start_date: string
@@ -2602,6 +2606,7 @@ export type Database = {
           timeframe_days: number
           updated_at: string
           user_id: string
+          weekly_focus_intent: string | null
           why_this_matters: string | null
         }
         Insert: {
@@ -2613,7 +2618,11 @@ export type Database = {
           learning_insights_count?: number | null
           needs_problem_clarification?: boolean | null
           problem_clarified_at?: string | null
+          project_brief?: string | null
+          project_constraints?: Json | null
           project_description: string
+          project_maturity_stage?: string | null
+          project_structure?: Json | null
           project_title: string
           seed_breakthrough_id?: string | null
           start_date?: string
@@ -2622,6 +2631,7 @@ export type Database = {
           timeframe_days?: number
           updated_at?: string
           user_id: string
+          weekly_focus_intent?: string | null
           why_this_matters?: string | null
         }
         Update: {
@@ -2633,7 +2643,11 @@ export type Database = {
           learning_insights_count?: number | null
           needs_problem_clarification?: boolean | null
           problem_clarified_at?: string | null
+          project_brief?: string | null
+          project_constraints?: Json | null
           project_description?: string
+          project_maturity_stage?: string | null
+          project_structure?: Json | null
           project_title?: string
           seed_breakthrough_id?: string | null
           start_date?: string
@@ -2642,6 +2656,7 @@ export type Database = {
           timeframe_days?: number
           updated_at?: string
           user_id?: string
+          weekly_focus_intent?: string | null
           why_this_matters?: string | null
         }
         Relationships: [

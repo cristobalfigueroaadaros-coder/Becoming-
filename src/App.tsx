@@ -70,6 +70,7 @@ import LifeAssessment from "./pages/LifeAssessment";
 import AtlasPage from "./pages/AtlasPage";
 import AtlasQuestPage from "./pages/AtlasQuestPage";
 import PaymentSuccess from "./pages/PaymentSuccess";
+import ProjectEngine from "./pages/ProjectEngine";
 import PrivacyPolicy from "./pages/PrivacyPolicy";
 import TermsOfService from "./pages/TermsOfService";
 
@@ -441,6 +442,10 @@ const App = () => {
             <Route
               path="/payment-success"
               element={session ? <PaymentSuccess /> : <Navigate to="/" />}
+            />
+            <Route
+              path="/project/:id"
+              element={session ? <ProjectEngine /> : <Navigate to="/" />}
             />
             <Route path="/privacy" element={<PrivacyPolicy />} />
             <Route path="/terms" element={<TermsOfService />} />

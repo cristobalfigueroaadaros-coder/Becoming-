@@ -1,11 +1,12 @@
 import { useState } from "react";
 import { motion } from "framer-motion";
+import { useNavigate } from "react-router-dom";
 import { Card, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { Button } from "@/components/ui/button";
-import { Pencil, Check, X, Heart } from "lucide-react";
+import { Pencil, Check, X, Heart, ExternalLink } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
 import { DualProgressRing } from "./DualProgressRing";
@@ -24,6 +25,7 @@ export function ProjectHeaderEditor({
   steps,
   onProjectUpdate
 }: ProjectHeaderEditorProps) {
+  const navigate = useNavigate();
   const [isEditing, setIsEditing] = useState(false);
   const [editedTitle, setEditedTitle] = useState(project.project_title);
   const [editedDescription, setEditedDescription] = useState(project.project_description);
@@ -130,7 +132,9 @@ export function ProjectHeaderEditor({
               <>
                 <div className="flex items-start justify-between">
                   <div>
-                    <h2 className="text-xl font-bold">{project.project_title}</h2>
+                    <h2 className="text-xl font-bold cursor-pointer hover:text-primary transition-colors" onClick={() => navigate(`/project/${project.id}`)}>
+                      {project.project_title}
+                    </h2>
                     <p className="text-sm text-muted-foreground mt-1">{project.project_description}</p>
                   </div>
                   <Button 
