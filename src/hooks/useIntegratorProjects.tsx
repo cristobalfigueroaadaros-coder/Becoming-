@@ -126,33 +126,37 @@ export function useIntegratorProjects() {
       if (error) throw error;
       setProjects(data || []);
 
-      // Find active project - explicitly check user_id matches to prevent stale data
-      const active = data?.find(p => p.status === 'active' && p.user_id === user.id);
+      // Find active project. Fall back to the most recent non-archived project
+      // so a failed integrator-setup (which archives the old project before
+      // creating the new one) doesn't leave the user with no project at all.
+      const active = data?.find(p => p.status === 'active' && p.user_id === user.id)
+        ?? data?.find(p => p.status !== 'archived' && p.user_id === user.id);
       if (active) {
         setActiveProject(active);
         setCurrentUserId(user.id);
         await loadProjectDetails(active.id);
       }
 
-      // PDR v2.1: Load active spine and nodes
+      // PDR v2.1: Load active spine and nodes — use maybeSingle() to avoid
+      // throwing when no spine exists (legacy users / failed project creation)
       const { data: spineData } = await supabase
         .from('project_spines')
         .select('*')
         .eq('user_id', user.id)
         .eq('status', 'active')
-        .single();
+        .maybeSingle();
 
       if (spineData) {
         setActiveSpine(spineData);
-        
+
         // Load active node
         const { data: activeNodeData } = await supabase
           .from('evolution_nodes')
           .select('*')
           .eq('spine_id', spineData.id)
           .eq('status', 'active')
-          .single();
-        
+          .maybeSingle();
+
         if (activeNodeData) {
           setActiveNode(activeNodeData);
         }
@@ -163,7 +167,7 @@ export function useIntegratorProjects() {
           .select('*')
           .eq('spine_id', spineData.id)
           .order('node_number', { ascending: true });
-        
+
         if (nodeHistoryData) {
           setNodeHistory(nodeHistoryData);
         }

@@ -78,25 +78,25 @@ export const FocusMode = ({
       <Card className="border-dashed border-2">
         <CardContent className="py-16 text-center">
           <Rocket className="w-16 h-16 mx-auto text-muted-foreground/30 mb-4" />
-          <h3 className="text-xl font-semibold mb-2">No Active Journey</h3>
+          <h3 className="text-xl font-semibold mb-2">No Active Project</h3>
           <p className="text-muted-foreground mb-6 max-w-md mx-auto">
-            Start a journey from a breakthrough in your mentor conversations, or run a dot connection analysis to discover new ideas.
+            Start a new project by talking to your Console — they'll help you define your next focus and build a 7-day sprint.
           </p>
-          <div className="flex gap-3 justify-center">
-            <Button 
-              variant="outline" 
-              onClick={() => navigate("/chat")}
+          <div className="flex gap-3 justify-center flex-wrap">
+            <Button
+              onClick={() => navigate("/council", { state: { view: "intake" } })}
               className="gap-2"
             >
               <Sparkles className="w-4 h-4" />
-              Talk to Mentors
+              Start with Council
             </Button>
-            <Button 
-              onClick={() => navigate("/dot-connection-engine")}
+            <Button
+              variant="outline"
+              onClick={() => navigate("/council")}
               className="gap-2"
             >
               <TrendingUp className="w-4 h-4" />
-              Analyze Dots
+              Open Console
             </Button>
           </div>
         </CardContent>
