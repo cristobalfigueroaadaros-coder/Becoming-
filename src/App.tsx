@@ -441,6 +441,10 @@ const App = () => {
               path="/payment-success"
               element={session ? <PaymentSuccess /> : <Navigate to="/" />}
             />
+            <Route
+              path="/project/:id"
+              element={session ? <ProjectEngine /> : <Navigate to="/" />}
+            />
             <Route path="/privacy" element={<PrivacyPolicy />} />
             <Route path="/terms" element={<TermsOfService />} />
             <Route path="*" element={<NotFound />} />
