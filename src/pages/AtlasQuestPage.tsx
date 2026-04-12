@@ -35,7 +35,9 @@ const AtlasQuestPage = () => {
     setLockedQuestData(data ?? null);
   }, [isLoading, questsLoading, questsFetching, timedOut]);
 
-  if (isLoading || questsLoading || questsFetching || lockedQuestData === "none") {
+  // Only gate on lockedQuestData — the loading flags control when we lock,
+  // but must not block the render once the lock is set (or timed out).
+  if (lockedQuestData === "none") {
     return (
       <div className="min-h-screen flex items-center justify-center">
         <motion.div animate={{ rotate: 360 }} transition={{ duration: 2, repeat: Infinity, ease: "linear" }}>
