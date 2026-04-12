@@ -416,8 +416,12 @@ const ConsoleThread = ({ embedded = false, onProjectNameChange }: ConsoleThreadP
       }
     }
 
-    await showTyping("future_self", 2000 + Math.random() * 600);
-    addSystemMessage("Does that feel right to you?", "future_self", "atlas_reflection");
+    // Only add the confirmation question if the AI didn't already end with it
+    const lastReflection = (reflectionMsgs[reflectionMsgs.length - 1] || "").toLowerCase();
+    if (!lastReflection.includes("feel right") && !lastReflection.includes("resonate") && !lastReflection.includes("does that")) {
+      await showTyping("future_self", 2000 + Math.random() * 600);
+      addSystemMessage("Does that feel right to you?", "future_self", "atlas_reflection");
+    }
 
     setPhase("atlas_confirmation");
     persistPhase("atlas_confirmation");
