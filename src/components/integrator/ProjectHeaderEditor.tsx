@@ -132,19 +132,28 @@ export function ProjectHeaderEditor({
               <>
                 <div className="flex items-start justify-between">
                   <div>
-                    <h2 className="text-xl font-bold cursor-pointer hover:text-primary transition-colors" onClick={() => navigate(`/project/${project.id}`)}>
+                    <h2 className="text-xl font-bold">
                       {project.project_title}
                     </h2>
                     <p className="text-sm text-muted-foreground mt-1">{project.project_description}</p>
                   </div>
-                  <Button 
-                    variant="ghost" 
-                    size="icon"
-                    onClick={() => setIsEditing(true)}
-                    className="flex-shrink-0"
-                  >
-                    <Pencil className="w-4 h-4" />
-                  </Button>
+                  <div className="flex items-center gap-1 flex-shrink-0">
+                    <Button
+                      variant="ghost"
+                      size="icon"
+                      onClick={() => navigate(`/project/${project.id}`)}
+                      title="Open Project Engine"
+                    >
+                      <ExternalLink className="w-4 h-4" />
+                    </Button>
+                    <Button
+                      variant="ghost"
+                      size="icon"
+                      onClick={() => setIsEditing(true)}
+                    >
+                      <Pencil className="w-4 h-4" />
+                    </Button>
+                  </div>
                 </div>
                 
                 {(project as any).why_this_matters && (
