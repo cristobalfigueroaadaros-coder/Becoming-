@@ -19,13 +19,21 @@ const AtlasQuestPage = () => {
   // pick the just-completed quest again or the wrong next one.
   type QuestData = { quest: any; clusterId: string; onboardingIndex?: number } | null;
   const [lockedQuestData, setLockedQuestData] = useState<QuestData | "none">("none");
+  // Safety valve: after 4 s, force-proceed regardless of loading state so the
+  // spinner can never be permanently stuck (e.g. due to a background-refetch loop).
+  const [timedOut, setTimedOut] = useState(false);
+  useEffect(() => {
+    const t = setTimeout(() => setTimedOut(true), 4000);
+    return () => clearTimeout(t);
+  }, []);
 
   useEffect(() => {
-    if (isLoading || questsLoading || questsFetching) return;
+    const ready = timedOut || (!isLoading && !questsLoading && !questsFetching);
+    if (!ready) return;
     if (lockedQuestData !== "none") return; // already locked
     const data = clusterId ? getClusterQuest(clusterId) : getNextQuest();
     setLockedQuestData(data ?? null);
-  }, [isLoading, questsLoading, questsFetching]);
+  }, [isLoading, questsLoading, questsFetching, timedOut]);
 
   if (isLoading || questsLoading || questsFetching || lockedQuestData === "none") {
     return (

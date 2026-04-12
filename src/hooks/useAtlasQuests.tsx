@@ -195,7 +195,7 @@ export function useAtlasQuests() {
     aggregatedSignals,
     detectedPatternKeys,
     isLoading: completedQuery.isLoading,
-    isFetching: completedQuery.isFetching || profileQuery.isFetching,
+    isFetching: completedQuery.isFetching,
     isOnboarding,
     isOnboardingCompleted,
     getNextQuest,
