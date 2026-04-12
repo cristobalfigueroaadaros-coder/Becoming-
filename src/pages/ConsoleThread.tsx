@@ -1284,7 +1284,7 @@ const ConsoleThread = ({ embedded = false, onProjectNameChange }: ConsoleThreadP
       addSystemMessage("Perfect. Let's break this into parts so you can start building it.", "future_self", "project_detected");
 
       const conversationText = messages
-        .filter(m => m.role === "user" || (m.role !== "user" && m.content && !m.card))
+        .filter(m => m.content && !m.card)
         .slice(-20)
         .map(m => `${m.role === "user" ? "USER" : "MENTOR"}: ${m.content}`)
         .join("\n");
