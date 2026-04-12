@@ -1278,19 +1278,154 @@ const ConsoleThread = ({ embedded = false, onProjectNameChange }: ConsoleThreadP
       const { data: { user } } = await supabase.auth.getUser();
       if (!user) throw new Error("Not authenticated");
 
+      // --- Step 1: Extract structure from conversation via AI ---
+      await showTyping("future_self", 1500);
+      addSystemMessage("Perfect. Let's break this into parts so you can start building it.", "future_self", "project_detected");
+
+      const conversationText = messages
+        .filter(m => m.role === "user" || (m.role !== "user" && m.content && !m.card))
+        .slice(-20)
+        .map(m => `${m.role === "user" ? "USER" : "MENTOR"}: ${m.content}`)
+        .join("\n");
+
+      let projectStructure: any[] = [];
+      try {
+        const structurePrompt = `Analyze this conversation and extract a project structure for the project "${name}".
+
+CONVERSATION:
+${conversationText}
+
+RULES:
+1. Extract the main BLOCKS (chapters, phases, areas) that the user mentioned or that naturally emerge from the conversation
+2. For the FIRST block only, extract specific ACTIVITIES (sub-tasks, items, actions) mentioned
+3. Use the user's own words whenever possible
+4. If the user mentioned specific parts/phases/chapters, use those exactly
+5. Minimum 3 blocks, maximum 7
+6. Each block needs a clear, concise title (2-5 words)
+7. Activities should be specific and actionable (2-6 words each)
+
+RESPOND WITH JSON ONLY:
+{
+  "blocks": [
+    {
+      "title": "Block Title",
+      "activities": ["activity 1", "activity 2"]
+    },
+    {
+      "title": "Another Block",
+      "activities": []
+    }
+  ]
+}
+
+Only the FIRST block should have activities. Others should have empty arrays.`;
+
+        const structureResponse = await fetch("https://vfrocfbbcvpfqehzntbc.supabase.co/functions/v1/chat-mentor", {
+          method: "POST",
+          headers: {
+            "Authorization": `Bearer ${(await supabase.auth.getSession()).data.session?.access_token}`,
+            "Content-Type": "application/json",
+            "apikey": import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY,
+          },
+          body: JSON.stringify({
+            mentorType: "future_self",
+            message: structurePrompt,
+            structureExtractionOnly: true,
+          }),
+        });
+
+        // Use a direct AI call instead
+        const aiResponse = await supabase.functions.invoke("extract-concept-title", {
+          body: { prompt: structurePrompt },
+        });
+
+        if (aiResponse.data?.title) {
+          // The extract-concept-title function returns simple text, parse the JSON
+          try {
+            const parsed = JSON.parse(aiResponse.data.title);
+            if (parsed.blocks && Array.isArray(parsed.blocks)) {
+              projectStructure = parsed.blocks.map((b: any) => ({
+                id: Math.random().toString(36).slice(2, 10),
+                title: b.title || "Untitled",
+                status: "not_started",
+                importance: "medium",
+                children: (b.activities || []).map((a: string) => ({
+                  id: Math.random().toString(36).slice(2, 10),
+                  title: a,
+                  status: "not_started",
+                  importance: "medium",
+                  children: [],
+                })),
+              }));
+            }
+          } catch (e) {
+            console.error("Failed to parse structure JSON:", e);
+          }
+        }
+      } catch (structErr) {
+        console.error("Structure extraction failed (non-fatal):", structErr);
+      }
+
+      // Fallback: if no structure extracted, create minimal blocks
+      if (projectStructure.length === 0) {
+        projectStructure = [
+          { id: Math.random().toString(36).slice(2, 10), title: "Getting Started", status: "not_started", importance: "medium", children: [] },
+          { id: Math.random().toString(36).slice(2, 10), title: "Core Development", status: "not_started", importance: "medium", children: [] },
+          { id: Math.random().toString(36).slice(2, 10), title: "Launch & Growth", status: "not_started", importance: "medium", children: [] },
+        ];
+      }
+
+      // --- Step 2: Show structure in chat ---
+      let structureText = `**${name}**\n\nStructure:\n`;
+      projectStructure.forEach((block: any) => {
+        structureText += `\n● **${block.title}**`;
+        if (block.children && block.children.length > 0) {
+          block.children.forEach((child: any) => {
+            structureText += `\n  · ${child.title}`;
+          });
+        }
+      });
+
+      await showTyping("future_self", 2000);
+      addSystemMessage(structureText, "future_self", "project_detected");
+
+      // --- Step 3: Create project with structure ---
+      const { data: projectData, error: projectError } = await supabase.functions.invoke("integrator-setup", {
+        body: {
+          projectTitle: name,
+          projectDescription: description,
+          timeframeDays: 30,
+        },
+      });
+
+      let projectId = projectData?.project?.id || projectData?.projectId;
+
+      if (projectError || !projectId) {
+        console.error("Project creation failed:", projectError);
+        toast.error("Failed to create project");
+        setLoading(false);
+        return;
+      }
+
+      // Save structure to the project
+      await supabase
+        .from("integrator_projects")
+        .update({ project_structure: projectStructure, project_brief: description } as any)
+        .eq("id", projectId);
+
+      // Update profile
       await supabase
         .from("profiles")
         .update({
           first_project_created_at: new Date().toISOString(),
+          first_project_id: projectId,
           console_intake_completed: true,
         } as any)
         .eq("id", user.id);
 
-      // Create project cluster in Atlas immediately
+      // Create Atlas entries (non-blocking)
       try {
         const projectSlug = name.toLowerCase().replace(/[^a-z0-9]+/g, "-").replace(/(^-|-$)/g, "");
-        
-        // Create atlas_project_nodes entry
         const { data: projectNode } = await supabase
           .from("atlas_project_nodes")
           .insert({ user_id: user.id, title: name, description })
@@ -1298,7 +1433,6 @@ const ConsoleThread = ({ embedded = false, onProjectNameChange }: ConsoleThreadP
           .single();
 
         if (projectNode) {
-          // Create atlas_clusters entry for the project
           const { data: newCluster } = await supabase
             .from("atlas_clusters")
             .insert({
@@ -1313,7 +1447,6 @@ const ConsoleThread = ({ embedded = false, onProjectNameChange }: ConsoleThreadP
             .single();
 
           if (newCluster) {
-            // Link project node to cluster
             await supabase
               .from("atlas_cluster_project_connections")
               .insert({ cluster_id: newCluster.id, project_id: projectNode.id });
@@ -1321,24 +1454,37 @@ const ConsoleThread = ({ embedded = false, onProjectNameChange }: ConsoleThreadP
         }
       } catch (clusterErr) {
         console.error("Project cluster creation failed:", clusterErr);
-        // Non-blocking — project still gets created
       }
 
-      // Seed initial capabilities in background (non-blocking)
+      // Seed capabilities (non-blocking)
       supabase.functions.invoke("seed-initial-capabilities", {
-        body: {
-          intakeAnswers,
-          workContext: entryState,
-        },
-      }).then(({ error }) => {
-        if (error) console.error("Capability seeding failed:", error);
-      });
+        body: { intakeAnswers, workContext: entryState },
+      }).catch(e => console.error("Capability seeding failed:", e));
 
-      navigate("/creation-lab", {
-        state: { projectName: name, projectDescription: description },
-      });
+      // --- Step 4: Show Project Card with "Open Project" ---
+      const finalProjectId = projectId;
+      await showTyping("future_self", 800);
+      
+      setPhase("post_project");
+      persistPhase("post_project");
+      setProjectName(name);
+      onProjectNameChange?.(name);
+
+      confetti({ particleCount: 120, spread: 80, origin: { y: 0.6 } });
+
+      addCardMessage(
+        <ProjectCreationCard
+          projectName={name}
+          projectDescription={description}
+          onProjectCreated={() => {
+            navigate(`/project/${finalProjectId}`);
+          }}
+        />,
+        undefined,
+        "post_project"
+      );
     } catch (error: any) {
-      console.error("Error navigating to creation lab:", error);
+      console.error("Error in project structuring:", error);
       toast.error("Something went wrong");
     } finally {
       setLoading(false);
