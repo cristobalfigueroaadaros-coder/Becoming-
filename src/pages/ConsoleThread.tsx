@@ -11,6 +11,7 @@ import TypingIndicator from "@/components/console-thread/TypingIndicator";
 import MentorRevealCard from "@/components/console-thread/MentorRevealCard";
 import { FirstWinNamingCard } from "@/components/FirstWinNamingCard";
 import StarterQuestWinCard from "@/components/console-thread/StarterQuestWinCard";
+import ProjectCreationCard from "@/components/console-thread/ProjectCreationCard";
 import confetti from "canvas-confetti";
 
 // Mentor config (reused from Council.tsx)
