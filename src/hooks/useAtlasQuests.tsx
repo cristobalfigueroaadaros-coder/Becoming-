@@ -172,8 +172,16 @@ export function useAtlasQuests() {
 
   function getQuestForCluster(clusterId: string): { quest: AtlasQuestDefinition; clusterId: string } | null {
     const cluster = clusters.find(c => c.id === clusterId);
-    if (!cluster || cluster.computedState === "locked") return null;
-    const quest = DISCOVERY_QUESTS.find(q => q.clusterSlug === cluster.slug && !completedKeys.has(q.questKey));
+    if (!cluster) return null;
+    // During onboarding bypass the lock check — users can explore any cluster.
+    // Post-onboarding, locked clusters are off-limits.
+    if (!isOnboarding && cluster.computedState === "locked") return null;
+    // Search both pools: ATLAS_QUESTS for post-onboarding discovery, and the
+    // full ONBOARDING_QUESTS array which also contains who-i-serve and
+    // how-i-create-impact bonus quests that aren't in ATLAS_QUESTS.
+    const quest = [...DISCOVERY_QUESTS, ...ONBOARDING_QUESTS].find(
+      q => q.clusterSlug === cluster.slug && !completedKeys.has(q.questKey)
+    );
     if (!quest) return null;
     return { quest, clusterId };
   }
