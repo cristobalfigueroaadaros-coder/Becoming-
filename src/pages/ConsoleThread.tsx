@@ -1473,10 +1473,17 @@ Only the FIRST block should have activities. Others should have empty arrays.`;
 
       confetti({ particleCount: 120, spread: 80, origin: { y: 0.6 } });
 
+      const structureBlocks = projectStructure.map((b: any) => ({
+        title: b.title,
+        activities: (b.children || []).map((c: any) => c.title),
+      }));
+
       addCardMessage(
         <ProjectCreationCard
           projectName={name}
           projectDescription={description}
+          alreadyCreatedId={finalProjectId}
+          structureBlocks={structureBlocks}
           onProjectCreated={() => {
             navigate(`/project/${finalProjectId}`);
           }}
