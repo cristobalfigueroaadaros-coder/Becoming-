@@ -1291,77 +1291,28 @@ const ConsoleThread = ({ embedded = false, onProjectNameChange }: ConsoleThreadP
 
       let projectStructure: any[] = [];
       try {
-        const structurePrompt = `Analyze this conversation and extract a project structure for the project "${name}".
-
-CONVERSATION:
-${conversationText}
-
-RULES:
-1. Extract the main BLOCKS (chapters, phases, areas) that the user mentioned or that naturally emerge from the conversation
-2. For the FIRST block only, extract specific ACTIVITIES (sub-tasks, items, actions) mentioned
-3. Use the user's own words whenever possible
-4. If the user mentioned specific parts/phases/chapters, use those exactly
-5. Minimum 3 blocks, maximum 7
-6. Each block needs a clear, concise title (2-5 words)
-7. Activities should be specific and actionable (2-6 words each)
-
-RESPOND WITH JSON ONLY:
-{
-  "blocks": [
-    {
-      "title": "Block Title",
-      "activities": ["activity 1", "activity 2"]
-    },
-    {
-      "title": "Another Block",
-      "activities": []
-    }
-  ]
-}
-
-Only the FIRST block should have activities. Others should have empty arrays.`;
-
-        const structureResponse = await fetch("https://vfrocfbbcvpfqehzntbc.supabase.co/functions/v1/chat-mentor", {
-          method: "POST",
-          headers: {
-            "Authorization": `Bearer ${(await supabase.auth.getSession()).data.session?.access_token}`,
-            "Content-Type": "application/json",
-            "apikey": import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY,
+        const { data: structureData, error: structureError } = await supabase.functions.invoke("extract-project-structure", {
+          body: {
+            projectName: name,
+            conversationText,
+            entryState,
           },
-          body: JSON.stringify({
-            mentorType: "future_self",
-            message: structurePrompt,
-            structureExtractionOnly: true,
-          }),
         });
 
-        // Use a direct AI call instead
-        const aiResponse = await supabase.functions.invoke("extract-concept-title", {
-          body: { prompt: structurePrompt },
-        });
-
-        if (aiResponse.data?.title) {
-          // The extract-concept-title function returns simple text, parse the JSON
-          try {
-            const parsed = JSON.parse(aiResponse.data.title);
-            if (parsed.blocks && Array.isArray(parsed.blocks)) {
-              projectStructure = parsed.blocks.map((b: any) => ({
-                id: Math.random().toString(36).slice(2, 10),
-                title: b.title || "Untitled",
-                status: "not_started",
-                importance: "medium",
-                children: (b.activities || []).map((a: string) => ({
-                  id: Math.random().toString(36).slice(2, 10),
-                  title: a,
-                  status: "not_started",
-                  importance: "medium",
-                  children: [],
-                })),
-              }));
-            }
-          } catch (e) {
-            console.error("Failed to parse structure JSON:", e);
-          }
+        if (!structureError && structureData?.blocks && Array.isArray(structureData.blocks)) {
+          projectStructure = structureData.blocks.map((b: any) => ({
+            id: Math.random().toString(36).slice(2, 10),
+            title: b.title || "Untitled",
+            status: "not_started",
+            importance: "medium",
+            children: (b.activities || []).map((a: string) => ({
+              id: Math.random().toString(36).slice(2, 10),
+              title: a,
+              status: "not_started",
+              importance: "medium",
+              children: [],
+            })),
+          }));
         }
       } catch (structErr) {
         console.error("Structure extraction failed (non-fatal):", structErr);
