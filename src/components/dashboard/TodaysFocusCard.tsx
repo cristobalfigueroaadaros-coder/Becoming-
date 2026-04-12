@@ -4,7 +4,7 @@ import { motion } from "framer-motion";
 import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
-import { Target, ChevronRight, CheckCircle2, Sparkles, Users, FlaskConical, Compass } from "lucide-react";
+import { Target, ChevronRight, CheckCircle2, Sparkles, Map, FlaskConical, Compass } from "lucide-react";
 import { toast } from "sonner";
 import { supabase } from "@/integrations/supabase/client";
 import { useIntegratorProjects } from "@/hooks/useIntegratorProjects";
@@ -63,20 +63,10 @@ const TodaysFocusCard = ({ onOpenVoice }: TodaysFocusCardProps) => {
               </p>
             </div>
             <div className="flex flex-col sm:flex-row gap-3 justify-center">
-              <Button onClick={() => navigate("/council-meeting")} className="gap-2">
-                <Users className="w-4 h-4" />
-                Ask the Council
+              <Button onClick={() => navigate("/atlas")} className="gap-2">
+                <Map className="w-4 h-4" />
+                Start Your Journey
               </Button>
-              <Button variant="outline" onClick={() => navigate("/creation-lab")} className="gap-2">
-                <FlaskConical className="w-4 h-4" />
-                Enter Creation Lab
-              </Button>
-              {onOpenVoice && (
-                <Button variant="ghost" onClick={onOpenVoice} className="gap-2">
-                  <Compass className="w-4 h-4" />
-                  What's Next?
-                </Button>
-              )}
             </div>
           </div>
         </CardContent>
