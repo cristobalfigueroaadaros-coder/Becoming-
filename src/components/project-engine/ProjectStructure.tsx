@@ -2,7 +2,7 @@ import { useState, useEffect } from "react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { Plus, ChevronDown, ChevronRight, Trash2, GripVertical, Sparkles } from "lucide-react";
+import { Plus, Trash2, Sparkles } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { useNavigate } from "react-router-dom";
 import type { ProjectEngineData } from "@/pages/ProjectEngine";
@@ -15,12 +15,6 @@ interface StructureNode {
   importance: "low" | "medium" | "high";
   children: StructureNode[];
 }
-
-const STATUS_STYLES: Record<string, string> = {
-  not_started: "border-muted-foreground/30",
-  in_progress: "border-yellow-500/50",
-  strong: "border-green-500/50",
-};
 
 const STATUS_DOT: Record<string, string> = {
   not_started: "bg-muted-foreground/40",
@@ -37,23 +31,24 @@ function generateId() {
   return Math.random().toString(36).slice(2, 10);
 }
 
-function NodeItem({
+// Individual block card component (matches reference image)
+function BlockCard({
   node,
-  depth,
   onUpdate,
   onDelete,
   onAddChild,
+  onDeleteChild,
 }: {
   node: StructureNode;
-  depth: number;
   onUpdate: (id: string, updates: Partial<StructureNode>) => void;
   onDelete: (id: string) => void;
   onAddChild: (parentId: string) => void;
+  onDeleteChild: (id: string) => void;
 }) {
-  const [expanded, setExpanded] = useState(true);
-  const [editing, setEditing] = useState(false);
+  const [editingTitle, setEditingTitle] = useState(false);
   const [editTitle, setEditTitle] = useState(node.title);
-  const hasChildren = node.children.length > 0;
+  const [editingChildId, setEditingChildId] = useState<string | null>(null);
+  const [editChildTitle, setEditChildTitle] = useState("");
 
   const cycleStatus = () => {
     const order: StructureNode["status"][] = ["not_started", "in_progress", "strong"];
@@ -62,52 +57,92 @@ function NodeItem({
   };
 
   return (
-    <div className={cn("space-y-1", depth > 0 && "ml-6")}>
-      <div className={cn(
-        "flex items-center gap-2 p-2 rounded-lg border transition-all group",
-        STATUS_STYLES[node.status],
-        "hover:bg-muted/20"
-      )}>
-        <button onClick={() => setExpanded(!expanded)} className="flex-shrink-0 w-5 h-5 flex items-center justify-center">
-          {hasChildren ? (
-            expanded ? <ChevronDown className="w-4 h-4 text-muted-foreground" /> : <ChevronRight className="w-4 h-4 text-muted-foreground" />
-          ) : <GripVertical className="w-3 h-3 text-muted-foreground/30" />}
-        </button>
+    <div className="rounded-xl border border-border/50 bg-card/80 backdrop-blur-sm p-4 min-w-[200px] max-w-[260px] flex-shrink-0 space-y-3 group relative">
+      {/* Delete block button */}
+      <Button
+        size="icon"
+        variant="ghost"
+        className="absolute top-2 right-2 h-6 w-6 opacity-0 group-hover:opacity-100 transition-opacity text-destructive"
+        onClick={() => onDelete(node.id)}
+      >
+        <Trash2 className="w-3 h-3" />
+      </Button>
 
-        <button onClick={cycleStatus} className={cn("w-3 h-3 rounded-full flex-shrink-0 transition-colors", STATUS_DOT[node.status])} title="Toggle status" />
-
-        {editing ? (
+      {/* Block title */}
+      <div className="flex items-center gap-2">
+        <button
+          onClick={cycleStatus}
+          className={cn("w-3 h-3 rounded-full flex-shrink-0 transition-colors", STATUS_DOT[node.status])}
+          title="Toggle status"
+        />
+        {editingTitle ? (
           <Input
             value={editTitle}
             onChange={e => setEditTitle(e.target.value)}
-            onBlur={() => { onUpdate(node.id, { title: editTitle }); setEditing(false); }}
-            onKeyDown={e => { if (e.key === "Enter") { onUpdate(node.id, { title: editTitle }); setEditing(false); } }}
-            className="h-7 text-sm flex-1"
+            onBlur={() => { onUpdate(node.id, { title: editTitle }); setEditingTitle(false); }}
+            onKeyDown={e => { if (e.key === "Enter") { onUpdate(node.id, { title: editTitle }); setEditingTitle(false); } }}
+            className="h-7 text-sm font-semibold flex-1"
             autoFocus
           />
         ) : (
-          <span className="text-sm font-medium flex-1 cursor-pointer" onClick={() => setEditing(true)}>
+          <span
+            className="text-sm font-semibold text-foreground cursor-pointer hover:text-primary transition-colors flex-1"
+            onClick={() => setEditingTitle(true)}
+          >
             {node.title}
           </span>
         )}
-
-        <div className="flex items-center gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
-          <Button size="icon" variant="ghost" className="h-6 w-6" onClick={() => onAddChild(node.id)}>
-            <Plus className="w-3 h-3" />
-          </Button>
-          <Button size="icon" variant="ghost" className="h-6 w-6 text-destructive" onClick={() => onDelete(node.id)}>
-            <Trash2 className="w-3 h-3" />
-          </Button>
-        </div>
       </div>
 
-      {expanded && hasChildren && (
-        <div className="space-y-1">
-          {node.children.map(child => (
-            <NodeItem key={child.id} node={child} depth={depth + 1} onUpdate={onUpdate} onDelete={onDelete} onAddChild={onAddChild} />
-          ))}
-        </div>
-      )}
+      {/* Activities */}
+      <div className="space-y-1.5 ml-1">
+        {node.children.map(child => (
+          <div key={child.id} className="flex items-center gap-2 group/activity">
+            <button
+              onClick={() => {
+                const order: StructureNode["status"][] = ["not_started", "in_progress", "strong"];
+                const next = order[(order.indexOf(child.status) + 1) % order.length];
+                onUpdate(child.id, { status: next });
+              }}
+              className={cn("w-2 h-2 rounded-full flex-shrink-0 transition-colors", STATUS_DOT[child.status])}
+            />
+            {editingChildId === child.id ? (
+              <Input
+                value={editChildTitle}
+                onChange={e => setEditChildTitle(e.target.value)}
+                onBlur={() => { onUpdate(child.id, { title: editChildTitle }); setEditingChildId(null); }}
+                onKeyDown={e => { if (e.key === "Enter") { onUpdate(child.id, { title: editChildTitle }); setEditingChildId(null); } }}
+                className="h-6 text-xs flex-1"
+                autoFocus
+              />
+            ) : (
+              <span
+                className="text-xs text-muted-foreground cursor-pointer hover:text-foreground transition-colors flex-1"
+                onClick={() => { setEditingChildId(child.id); setEditChildTitle(child.title); }}
+              >
+                {child.title}
+              </span>
+            )}
+            <Button
+              size="icon"
+              variant="ghost"
+              className="h-5 w-5 opacity-0 group-hover/activity:opacity-100 transition-opacity text-destructive"
+              onClick={() => onDeleteChild(child.id)}
+            >
+              <Trash2 className="w-2.5 h-2.5" />
+            </Button>
+          </div>
+        ))}
+
+        {/* Add Activity placeholder */}
+        <button
+          onClick={() => onAddChild(node.id)}
+          className="flex items-center gap-2 text-xs text-muted-foreground/50 hover:text-muted-foreground transition-colors py-1 w-full"
+        >
+          <div className="w-2 h-2 rounded-full border border-dashed border-muted-foreground/30" />
+          Add Activity...
+        </button>
+      </div>
     </div>
   );
 }
@@ -132,7 +167,7 @@ export function ProjectStructure({ project, onUpdate }: Props) {
   const addRootNode = () => {
     const newNode: StructureNode = {
       id: generateId(),
-      title: "New Area",
+      title: "New Chapter",
       status: "not_started",
       importance: "medium",
       children: [],
@@ -159,7 +194,7 @@ export function ProjectStructure({ project, onUpdate }: Props) {
       if (n.id === parentId) {
         return {
           ...n,
-          children: [...n.children, { id: generateId(), title: "Sub-area", status: "not_started" as const, importance: "medium" as const, children: [] }],
+          children: [...n.children, { id: generateId(), title: "New Activity", status: "not_started" as const, importance: "medium" as const, children: [] }],
         };
       }
       return { ...n, children: addChildRecursive(n.children, parentId) };
@@ -191,7 +226,7 @@ export function ProjectStructure({ project, onUpdate }: Props) {
             </p>
             <div className="flex gap-2 justify-center flex-wrap">
               <Button size="sm" onClick={addRootNode} className="gap-1">
-                <Plus className="w-4 h-4" /> Add area
+                <Plus className="w-4 h-4" /> Add chapter
               </Button>
               <Button size="sm" variant="outline" onClick={() => navigate("/council")} className="gap-1">
                 <Sparkles className="w-4 h-4" /> Ask your council to structure this
@@ -199,29 +234,60 @@ export function ProjectStructure({ project, onUpdate }: Props) {
             </div>
           </div>
         ) : (
-          <div className="space-y-1">
-            {/* Root project label */}
-            <div className="text-center mb-3">
-              <span className="inline-block px-4 py-1.5 rounded-lg border border-border/60 text-sm font-semibold bg-muted/20">
+          <div className="space-y-4">
+            {/* Project root label */}
+            <div className="flex justify-center">
+              <span className="inline-block px-5 py-2 rounded-xl border border-primary/30 bg-primary/5 text-sm font-semibold text-foreground">
                 {project.project_title}
               </span>
-              <div className="w-px h-4 bg-border/40 mx-auto" />
             </div>
 
-            {structure.map(node => (
-              <NodeItem
-                key={node.id}
-                node={node}
-                depth={0}
-                onUpdate={handleUpdateNode}
-                onDelete={handleDeleteNode}
-                onAddChild={handleAddChild}
-              />
-            ))}
+            {/* Connector line */}
+            <div className="flex justify-center">
+              <div className="w-px h-6 bg-border/60" />
+            </div>
 
-            <Button size="sm" variant="ghost" onClick={addRootNode} className="gap-1 mt-2 text-muted-foreground">
-              <Plus className="w-3 h-3" /> Add area
-            </Button>
+            {/* Horizontal connector + blocks */}
+            <div className="relative">
+              {/* Horizontal line */}
+              {structure.length > 1 && (
+                <div className="absolute top-0 left-[calc(50%/(var(--count)))] right-[calc(50%/(var(--count)))] h-px bg-border/40" 
+                  style={{ left: '10%', right: '10%' }} 
+                />
+              )}
+
+              {/* Block cards - horizontal scroll on mobile */}
+              <div className="flex gap-4 overflow-x-auto pb-2 snap-x snap-mandatory">
+                {structure.map(node => (
+                  <div key={node.id} className="snap-start">
+                    {/* Vertical connector from horizontal line */}
+                    <div className="flex justify-center mb-2">
+                      <div className="w-px h-4 bg-border/40" />
+                    </div>
+                    <BlockCard
+                      node={node}
+                      onUpdate={handleUpdateNode}
+                      onDelete={handleDeleteNode}
+                      onAddChild={handleAddChild}
+                      onDeleteChild={handleDeleteNode}
+                    />
+                  </div>
+                ))}
+
+                {/* Add Chapter dashed card */}
+                <div className="snap-start">
+                  <div className="flex justify-center mb-2">
+                    <div className="w-px h-4 bg-transparent" />
+                  </div>
+                  <button
+                    onClick={addRootNode}
+                    className="rounded-xl border-2 border-dashed border-border/40 hover:border-primary/40 p-4 min-w-[160px] h-[120px] flex items-center justify-center gap-2 text-sm text-muted-foreground/50 hover:text-muted-foreground transition-all"
+                  >
+                    <Plus className="w-4 h-4" /> Add Chapter
+                  </button>
+                </div>
+              </div>
+            </div>
           </div>
         )}
       </CardContent>
