@@ -2,9 +2,10 @@ import { useState, useEffect } from "react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { Plus, Trash2, Sparkles } from "lucide-react";
+import { Plus, Trash2, Sparkles, MessageCircle, ArrowRight } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { useNavigate } from "react-router-dom";
+import { supabase } from "@/integrations/supabase/client";
 import type { ProjectEngineData } from "@/pages/ProjectEngine";
 
 interface StructureNode {
@@ -14,6 +15,7 @@ interface StructureNode {
   status: "not_started" | "in_progress" | "strong";
   importance: "low" | "medium" | "high";
   children: StructureNode[];
+  mentorType?: string;
 }
 
 const STATUS_DOT: Record<string, string> = {
@@ -21,6 +23,34 @@ const STATUS_DOT: Record<string, string> = {
   in_progress: "bg-yellow-500",
   strong: "bg-green-500",
 };
+
+// Subset of mentors relevant for project work
+const MENTOR_CONFIG: Record<string, { name: string; icon: string }> = {
+  strategist_mentor:      { name: "Strategist",      icon: "♟️" },
+  business_mentor:        { name: "Business",        icon: "📈" },
+  marketing_mentor:       { name: "Marketing",       icon: "📣" },
+  creative_visionary:     { name: "Creative",        icon: "🎨" },
+  design_thinking_mentor: { name: "Design Thinking", icon: "🧪" },
+  quantum_inventor:       { name: "Inventor",        icon: "⚡" },
+  heart_mentor:           { name: "Heart",           icon: "💗" },
+  scientific_mentor:      { name: "Scientific",      icon: "🔬" },
+  discipline_mentor:      { name: "Discipline",      icon: "🎯" },
+  alignment_mentor:       { name: "Alignment",       icon: "🧭" },
+};
+
+function suggestMentorForBlock(title: string): string {
+  const t = title.toLowerCase();
+  if (/market|audience|brand|reach|messaging|social|promot|content/.test(t)) return "marketing_mentor";
+  if (/business|revenue|sales|finance|pricing|model|money|monetiz/.test(t)) return "business_mentor";
+  if (/design|ux|user|interface|experience|prototype|product/.test(t)) return "design_thinking_mentor";
+  if (/creative|vision|story|idea|art|concept|narrative/.test(t)) return "creative_visionary";
+  if (/tech|build|develop|code|engineer|invent|technical/.test(t)) return "quantum_inventor";
+  if (/research|data|test|experiment|science|validate|analys/.test(t)) return "scientific_mentor";
+  if (/community|people|relation|team|connect|heart|emotion|impact/.test(t)) return "heart_mentor";
+  if (/discipline|habit|routine|focus|consistency|execut/.test(t)) return "discipline_mentor";
+  if (/align|value|purpose|mission|clarity|direction/.test(t)) return "alignment_mentor";
+  return "strategist_mentor";
+}
 
 interface Props {
   project: ProjectEngineData;
@@ -31,24 +61,39 @@ function generateId() {
   return Math.random().toString(36).slice(2, 10);
 }
 
-// Individual block card component (matches reference image)
+// Individual block card component
 function BlockCard({
   node,
+  projectTitle,
   onUpdate,
   onDelete,
   onAddChild,
   onDeleteChild,
+  availableMentors,
+  onMentorSelect,
 }: {
   node: StructureNode;
+  projectTitle: string;
   onUpdate: (id: string, updates: Partial<StructureNode>) => void;
   onDelete: (id: string) => void;
   onAddChild: (parentId: string) => void;
   onDeleteChild: (id: string) => void;
+  availableMentors: string[];
+  onMentorSelect: (nodeId: string, mentorType: string) => void;
 }) {
   const [editingTitle, setEditingTitle] = useState(false);
   const [editTitle, setEditTitle] = useState(node.title);
   const [editingChildId, setEditingChildId] = useState<string | null>(null);
   const [editChildTitle, setEditChildTitle] = useState("");
+  const [showMentorPicker, setShowMentorPicker] = useState(false);
+
+  const linkedMentor = node.mentorType || suggestMentorForBlock(node.title);
+  const mentorInfo = MENTOR_CONFIG[linkedMentor] || MENTOR_CONFIG.strategist_mentor;
+
+  // Only show mentors that exist in the user's council (or all if council is empty)
+  const mentorList = availableMentors.length > 0
+    ? availableMentors.filter(m => MENTOR_CONFIG[m])
+    : Object.keys(MENTOR_CONFIG);
 
   const cycleStatus = () => {
     const order: StructureNode["status"][] = ["not_started", "in_progress", "strong"];
@@ -143,6 +188,62 @@ function BlockCard({
           Add Activity...
         </button>
       </div>
+
+      {/* Mentor section */}
+      <div className="pt-2 border-t border-border/30">
+        {!showMentorPicker ? (
+          <div className="flex items-center justify-between gap-1">
+            <button
+              onClick={() => onMentorSelect(node.id, linkedMentor)}
+              className="flex items-center gap-1.5 text-xs text-muted-foreground hover:text-foreground transition-colors flex-1 min-w-0"
+            >
+              <MessageCircle className="w-3 h-3 flex-shrink-0" />
+              <span className="truncate">{mentorInfo.icon} {mentorInfo.name}</span>
+              <ArrowRight className="w-3 h-3 flex-shrink-0" />
+            </button>
+            <button
+              onClick={() => setShowMentorPicker(true)}
+              className="text-xs text-muted-foreground/40 hover:text-muted-foreground transition-colors flex-shrink-0"
+            >
+              change
+            </button>
+          </div>
+        ) : (
+          <div className="space-y-2">
+            <span className="text-xs text-muted-foreground">Pick a mentor:</span>
+            <div className="flex flex-wrap gap-1">
+              {mentorList.map(mt => {
+                const cfg = MENTOR_CONFIG[mt];
+                if (!cfg) return null;
+                return (
+                  <button
+                    key={mt}
+                    onClick={() => {
+                      onUpdate(node.id, { mentorType: mt });
+                      setShowMentorPicker(false);
+                    }}
+                    className={cn(
+                      "flex items-center gap-1 text-xs px-2 py-1 rounded-full border transition-colors",
+                      mt === linkedMentor
+                        ? "border-primary/50 bg-primary/10 text-foreground"
+                        : "border-border/40 text-muted-foreground hover:text-foreground hover:border-border"
+                    )}
+                  >
+                    <span>{cfg.icon}</span>
+                    <span>{cfg.name}</span>
+                  </button>
+                );
+              })}
+            </div>
+            <button
+              onClick={() => setShowMentorPicker(false)}
+              className="text-xs text-muted-foreground/40 hover:text-muted-foreground transition-colors"
+            >
+              cancel
+            </button>
+          </div>
+        )}
+      </div>
     </div>
   );
 }
@@ -153,11 +254,21 @@ export function ProjectStructure({ project, onUpdate }: Props) {
     const raw = project.project_structure;
     return Array.isArray(raw) && raw.length > 0 ? raw : [];
   });
+  const [userMentors, setUserMentors] = useState<string[]>([]);
 
   useEffect(() => {
     const raw = project.project_structure;
     setStructure(Array.isArray(raw) && raw.length > 0 ? raw : []);
   }, [project.id]);
+
+  useEffect(() => {
+    supabase.auth.getUser().then(({ data: { user } }) => {
+      if (!user) return;
+      supabase.from("user_mentors").select("mentor_type").eq("user_id", user.id).then(({ data }) => {
+        if (data) setUserMentors(data.map((m: any) => m.mentor_type));
+      });
+    });
+  }, []);
 
   const saveStructure = (updated: StructureNode[]) => {
     setStructure(updated);
@@ -213,6 +324,30 @@ export function ProjectStructure({ project, onUpdate }: Props) {
     saveStructure(addChildRecursive(structure, parentId));
   };
 
+  const handleMentorSelect = (nodeId: string, mentorType: string) => {
+    // Save the chosen mentor to the block
+    const updated = updateNodeRecursive(structure, nodeId, { mentorType });
+    saveStructure(updated);
+
+    // Find the block title for context
+    const findNode = (nodes: StructureNode[], id: string): StructureNode | undefined => {
+      for (const n of nodes) {
+        if (n.id === id) return n;
+        const found = findNode(n.children, id);
+        if (found) return found;
+      }
+    };
+    const node = findNode(updated, nodeId);
+    const blockTitle = node?.title || "this phase";
+
+    navigate(`/council?view=${mentorType}`, {
+      state: {
+        prefilledQuestion: `I need help with "${blockTitle}" — this is one phase of my project "${project.project_title}". Can you help me understand and plan this?`,
+        projectName: project.project_title,
+      },
+    });
+  };
+
   return (
     <Card className="border-border/40">
       <CardHeader className="pb-2">
@@ -251,8 +386,8 @@ export function ProjectStructure({ project, onUpdate }: Props) {
             <div className="relative">
               {/* Horizontal line */}
               {structure.length > 1 && (
-                <div className="absolute top-0 left-[calc(50%/(var(--count)))] right-[calc(50%/(var(--count)))] h-px bg-border/40" 
-                  style={{ left: '10%', right: '10%' }} 
+                <div className="absolute top-0 left-[calc(50%/(var(--count)))] right-[calc(50%/(var(--count)))] h-px bg-border/40"
+                  style={{ left: '10%', right: '10%' }}
                 />
               )}
 
@@ -266,10 +401,13 @@ export function ProjectStructure({ project, onUpdate }: Props) {
                     </div>
                     <BlockCard
                       node={node}
+                      projectTitle={project.project_title}
                       onUpdate={handleUpdateNode}
                       onDelete={handleDeleteNode}
                       onAddChild={handleAddChild}
                       onDeleteChild={handleDeleteNode}
+                      availableMentors={userMentors}
+                      onMentorSelect={handleMentorSelect}
                     />
                   </div>
                 ))}

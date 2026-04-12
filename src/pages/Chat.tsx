@@ -86,13 +86,14 @@ const mentorNames: Record<string, string> = {
 interface ChatProps {
   mentorTypeOverride?: string;
   embedded?: boolean;
-  locationState?: { 
-    handoffId?: string; 
-    voiceHandoffId?: string; 
+  locationState?: {
+    handoffId?: string;
+    voiceHandoffId?: string;
     voiceContext?: string;
     problemClarificationMode?: boolean;
     projectId?: string;
     projectName?: string;
+    prefilledQuestion?: string;
     transmutationContext?: {
       phase: 'white' | 'red' | 'gold';
       patternId: string;
@@ -203,15 +204,21 @@ const Chat = ({ mentorTypeOverride, embedded = false, locationState: propState }
 
   // Check for handoff state on mount - use prop state if provided (embedded mode)
   useEffect(() => {
-    const handoffState = (propState || location.state) as { 
-      handoffId?: string; 
-      voiceHandoffId?: string; 
+    const handoffState = (propState || location.state) as {
+      handoffId?: string;
+      voiceHandoffId?: string;
       voiceContext?: string;
       problemClarificationMode?: boolean;
       projectId?: string;
       projectName?: string;
+      prefilledQuestion?: string;
       transmutationContext?: any;
     } | null;
+
+    // Pre-fill input from block context (no handoff, just context)
+    if (handoffState?.prefilledQuestion && !handoffState.handoffId && !handoffState.voiceHandoffId) {
+      setInput(handoffState.prefilledQuestion);
+    }
     
     console.log('[Chat] Checking handoff state:', { 
       handoffState, 
