@@ -62,6 +62,7 @@ RULES:
 6. Each block title: 2-5 words, clear and specific
 7. Activities: 2-6 words each, specific and actionable
 8. ${blockTypeGuidance}
+${defaultBlocks ? `9. ${defaultBlocks}` : ""}
 
 RESPOND WITH JSON ONLY:
 {
