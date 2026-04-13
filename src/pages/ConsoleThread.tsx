@@ -659,7 +659,7 @@ const ConsoleThread = ({ embedded = false, onProjectNameChange }: ConsoleThreadP
       setPhase(nextPhase);
       persistPhase(nextPhase);
       await showTyping("future_self", 1500);
-      const reflection = generateReflection(text, 0);
+      const reflection = generateReflection(text, 0, entryState);
       if (reflection) {
         addSystemMessage(reflection, "future_self", nextPhase);
         await showTyping("future_self", 1200);
@@ -672,7 +672,7 @@ const ConsoleThread = ({ embedded = false, onProjectNameChange }: ConsoleThreadP
       setPhase(nextPhase);
       persistPhase(nextPhase);
       await showTyping("future_self", 1500);
-      const reflection = generateReflection(text, 1);
+      const reflection = generateReflection(text, 1, entryState);
       if (reflection) {
         addSystemMessage(reflection, "future_self", nextPhase);
         await showTyping("future_self", 1200);
