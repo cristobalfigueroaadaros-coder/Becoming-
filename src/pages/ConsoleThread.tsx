@@ -97,14 +97,14 @@ type Phase =
 // Phase-aware intake labels for context sent to AI
 const getIntakeLabels = (state: string): string[] => {
   if (state === "BUILD") return [
-    "What they're building or working on",
-    "Biggest challenge right now",
-    "90-day progress goal",
+    "Current offer or product",
+    "90-day measurable goal",
+    "Main blocker or constraint",
   ];
   if (state === "GROW") return [
-    "Their project idea",
-    "The problem they're solving",
-    "The impact they envision",
+    "What they've created or tried so far",
+    "Simplest testable version (MVP)",
+    "First users or buyers",
   ];
   return [
     "Background and experiences",
@@ -116,14 +116,14 @@ const getIntakeLabels = (state: string): string[] => {
 // Phase-aware intake questions
 const getPhaseQuestions = (entryState: string): string[] => {
   if (entryState === "BUILD") return [
-    "Let's get straight to it.\n\nWhat are you currently building or working on?",
-    "What's the biggest challenge you're facing right now?",
-    "If things went well in the next 90 days, what progress would you hope to see?",
+    "Let's get straight to it.\n\nWhat are you currently offering or trying to sell?",
+    "What is the ONE result you want to achieve in the next 90 days?",
+    "What is currently blocking you from reaching that?",
   ];
   if (entryState === "GROW") return [
-    "Tell me about the idea or project you've been thinking about building.",
-    "What problem are you hoping to solve or improve for people?",
-    "If this idea worked exactly the way you imagine, what kind of impact would it create?",
+    "What have you already created or tried so far?",
+    "What is the simplest version of this you could offer or test right now?",
+    "Who would be the first people to try or pay for this?",
   ];
   // DISCOVER (default)
   return [
@@ -136,10 +136,10 @@ const getPhaseQuestions = (entryState: string): string[] => {
 // Phase-aware intro messages for Future Self
 const getPhaseIntroMessages = (state: string): string[] => {
   if (state === "BUILD") return [
-    "It sounds like you're already building something. Before we dive in — three quick questions so I can assemble the right mentor council.",
+    "You're already in the game. Three quick questions so I know exactly where you are — then I'll bring in the right mentors.",
   ];
   if (state === "GROW") return [
-    "Sounds like you have a direction. Let me understand it better before I bring in the right mentors — three questions.",
+    "You've got something brewing. Let me understand where you are so I can bring in the right mentors — three questions.",
   ];
   // DISCOVER
   return [
@@ -147,14 +147,58 @@ const getPhaseIntroMessages = (state: string): string[] => {
   ];
 };
 
-const generateReflection = (answer: string, questionIndex: number = 0): string | null => {
+const generateReflection = (answer: string, questionIndex: number = 0, phase: string = "DISCOVER"): string | null => {
   const lower = answer.toLowerCase();
   const len = answer.length;
 
-  // Too short to reflect on meaningfully
   if (len < 15) return null;
 
-  // Q1 (background) — reflect on WHO they are and where they come from
+  if (phase === "BUILD") {
+    if (questionIndex === 0) {
+      if (/service|consult|coach|freelanc/i.test(lower)) return "You've got a service — that's already more than most.";
+      if (/product|app|platform|tool|course/i.test(lower)) return "Having something tangible is a strong starting point.";
+      if (/sell|offer|client|customer/i.test(lower)) return "You're already in the market. That matters.";
+      if (len > 80) return "There's real substance in what you're offering.";
+      return "Good — let's build on what you have.";
+    }
+    if (questionIndex === 1) {
+      if (/revenue|money|income|sale|€|\$/i.test(lower)) return "A clear financial target — that's actionable.";
+      if (/user|client|customer|subscriber/i.test(lower)) return "User growth is one of the best signals to track.";
+      if (/launch|release|ship|live/i.test(lower)) return "Getting it out there — that's the right priority.";
+      if (len > 80) return "That's specific enough to plan around.";
+      return "90 days is plenty to make real progress on that.";
+    }
+    if (/time|busy|overwhelm|too much/i.test(lower)) return "Time is usually the real bottleneck. Let's work with what you have.";
+    if (/money|fund|budget|cost/i.test(lower)) return "Financial constraints force creative solutions — that's not always bad.";
+    if (/skill|know.*how|learn|technical/i.test(lower)) return "Skill gaps are solvable. Let's find the fastest path.";
+    if (/focus|direction|clarity|confus/i.test(lower)) return "Clarity is the first thing we'll fix together.";
+    if (len > 80) return "Now I know what's in the way. Let's work around it.";
+    return "Understanding the blocker is half the solution.";
+  }
+
+  if (phase === "GROW") {
+    if (questionIndex === 0) {
+      if (/nothing|just.*idea|haven.*start|thinking/i.test(lower)) return "Starting from an idea is perfectly valid. Let's make it real.";
+      if (/prototype|test|tried|built|started/i.test(lower)) return "You've already taken action — that puts you ahead.";
+      if (/partial|some|bit|draft/i.test(lower)) return "Even a partial version gives us something to build on.";
+      if (len > 80) return "That's more progress than you might think.";
+      return "Good — now let's figure out the simplest next step.";
+    }
+    if (questionIndex === 1) {
+      if (/workshop|session|call|meeting/i.test(lower)) return "A live experience is one of the fastest ways to validate.";
+      if (/post|content|video|guide|pdf/i.test(lower)) return "Content is a smart low-risk test.";
+      if (/landing.*page|waitlist|sign.*up/i.test(lower)) return "That's a solid validation move.";
+      if (len > 80) return "That sounds testable — and that's what matters.";
+      return "Simplicity is your best friend right now.";
+    }
+    if (/friend|family|people.*know/i.test(lower)) return "Your close circle is the perfect first test group.";
+    if (/entrepreneur|creator|founder|business/i.test(lower)) return "You already know who needs this. That's powerful.";
+    if (/anyone|everyone|not.*sure|don.*know/i.test(lower)) return "Let's narrow that down — specificity makes everything easier.";
+    if (len > 80) return "That audience profile gives us something concrete to work with.";
+    return "Knowing your first users changes everything.";
+  }
+
+  // DISCOVER (default)
   if (questionIndex === 0) {
     if (/travel|explor|world|cultur|country|abroad/i.test(lower)) return "That kind of exposure shapes how you see problems differently from most people.";
     if (/build|creat|launch|start|mak/i.test(lower)) return "That drive to build things — it's in how you see the world.";
@@ -168,7 +212,6 @@ const generateReflection = (answer: string, questionIndex: number = 0): string |
     return "That background has shaped you in ways you probably don't fully see yet.";
   }
 
-  // Q2 (interests/problems) — reflect on WHAT they're drawn to
   if (questionIndex === 1) {
     if (/authentic|honest|real|genuine|truth/i.test(lower)) return "That pull toward truth — most people avoid it. You're drawn to it.";
     if (/connect|relationship|belong|community|together/i.test(lower)) return "Connection is one of the deepest human needs. You already know that.";
@@ -180,7 +223,6 @@ const generateReflection = (answer: string, questionIndex: number = 0): string |
     return "What pulls your attention usually points to what you're meant to work on.";
   }
 
-  // Q3 (5-year vision) — reflect on WHERE they're going
   if (/impact|change|difference|transform/i.test(lower)) return "Impact at that scale starts with one person whose life shifts because of you.";
   if (/help|people|others|serve|support/i.test(lower)) return "That clarity about wanting to help — hold onto that when things get hard.";
   if (/lead|build|creat|found|own/i.test(lower)) return "The version of you that built that is closer than you think.";
@@ -617,7 +659,7 @@ const ConsoleThread = ({ embedded = false, onProjectNameChange }: ConsoleThreadP
       setPhase(nextPhase);
       persistPhase(nextPhase);
       await showTyping("future_self", 1500);
-      const reflection = generateReflection(text, 0);
+      const reflection = generateReflection(text, 0, entryState);
       if (reflection) {
         addSystemMessage(reflection, "future_self", nextPhase);
         await showTyping("future_self", 1200);
@@ -630,7 +672,7 @@ const ConsoleThread = ({ embedded = false, onProjectNameChange }: ConsoleThreadP
       setPhase(nextPhase);
       persistPhase(nextPhase);
       await showTyping("future_self", 1500);
-      const reflection = generateReflection(text, 1);
+      const reflection = generateReflection(text, 1, entryState);
       if (reflection) {
         addSystemMessage(reflection, "future_self", nextPhase);
         await showTyping("future_self", 1200);
