@@ -23,12 +23,29 @@ serve(async (req) => {
 
     // Determine block type based on phase
     let blockTypeGuidance = "";
+    let defaultBlocks = "";
     if (entryState === "BUILD") {
-      blockTypeGuidance = "Use business/execution-oriented blocks: e.g. Product, Marketing, Sales, Operations, Growth.";
+      blockTypeGuidance = "Use execution/business-oriented blocks. The user is already selling or offering something and wants results in 90 days.";
+      defaultBlocks = `If the conversation doesn't clearly mention specific blocks, use these as a starting framework (adapt titles to the user's context):
+- 90-Day Goal (what they want to achieve)
+- Strategy (how they'll get there)
+- Offer & Value (what they're selling and why)
+- Pricing (how much and why)
+- Audience & Access (who and where)
+- Action Plan (key next steps)
+- Tracking & Adjustment (how to measure)`;
     } else if (entryState === "GROW") {
-      blockTypeGuidance = "Use product/iteration-oriented blocks: e.g. Core Concept, User Testing, Feature Development, Launch Strategy.";
+      blockTypeGuidance = "Use creation/validation-oriented blocks. The user has an idea or partial build and needs to test it with real people.";
+      defaultBlocks = `If the conversation doesn't clearly mention specific blocks, use these as a starting framework (adapt titles to the user's context):
+- MVP (simplest version to test)
+- Ideal Clients (who needs this most)
+- Testing Plan (how to validate)
+- Feedback Capture (what people said)
+- Iteration (what to improve)
+- First Money (how to monetize)`;
     } else {
       blockTypeGuidance = "Use narrative/journey-oriented blocks: e.g. chapters, phases, journey steps, exploration areas.";
+      defaultBlocks = "";
     }
 
     const prompt = `Analyze this conversation and extract a project structure for "${projectName}".
