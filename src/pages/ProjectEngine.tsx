@@ -11,6 +11,7 @@ import { ProjectStructure } from "@/components/project-engine/ProjectStructure";
 import { WeeklyFocus } from "@/components/project-engine/WeeklyFocus";
 import { SprintTasks } from "@/components/project-engine/SprintTasks";
 import { ConnectedInsights } from "@/components/project-engine/ConnectedInsights";
+import { DailyGoals } from "@/components/project-engine/DailyGoals";
 
 export interface ProjectEngineData {
   id: string;
@@ -73,6 +74,22 @@ export default function ProjectEngine() {
     }
   };
 
+  // Handler for daily goals updating activity status in structure
+  const handleActivityStatusChange = (activityId: string, status: string) => {
+    if (!project) return;
+    const structure = Array.isArray(project.project_structure) ? project.project_structure : [];
+    
+    const updateRecursive = (nodes: any[]): any[] => {
+      return nodes.map((n: any) => {
+        if (n.id === activityId) return { ...n, status };
+        return { ...n, children: updateRecursive(n.children || []) };
+      });
+    };
+
+    const updated = updateRecursive(structure);
+    updateProject({ project_structure: updated } as any);
+  };
+
   if (loading) {
     return (
       <div className="min-h-screen flex items-center justify-center">
@@ -83,10 +100,11 @@ export default function ProjectEngine() {
 
   if (!project) return null;
 
+  const structure = Array.isArray(project.project_structure) ? project.project_structure : [];
+
   return (
     <div className="min-h-screen bg-background pb-24">
       <div className="max-w-3xl mx-auto px-4 py-6 space-y-6">
-        {/* Back */}
         <Button variant="ghost" size="sm" onClick={() => navigate("/creation-lab")} className="gap-2 -ml-2">
           <ArrowLeft className="w-4 h-4" />
           Back
@@ -98,6 +116,14 @@ export default function ProjectEngine() {
         <ProjectDefinition project={project} onUpdate={updateProject} />
         <ProjectContext project={project} onUpdate={updateProject} />
         <ProjectStructure project={project} onUpdate={updateProject} />
+        
+        {/* Daily Goals derived from structure */}
+        <DailyGoals
+          structure={structure}
+          projectTitle={project.project_title}
+          onActivityStatusChange={handleActivityStatusChange}
+        />
+
         <WeeklyFocus project={project} onUpdate={updateProject} />
         <SprintTasks projectId={project.id} />
         <ConnectedInsights projectId={project.id} userId={project.user_id} />
