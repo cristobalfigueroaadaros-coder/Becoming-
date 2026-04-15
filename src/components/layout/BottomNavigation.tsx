@@ -95,24 +95,32 @@ export const BottomNavigation = () => {
           const showAtlasDot = item.path === "/atlas" && showAtlasBadge;
           const showBadge = showCreationBadge || showCouncilBadge || showAtlasDot;
 
+          const isOnboardingHighlighted = onboardingHighlight === item.unlockKey;
+
           return (
             <button
               key={item.path}
               onClick={() => handleNavClick(item)}
               className={cn(
                 "relative flex flex-col items-center justify-center gap-1 flex-1 h-full transition-all duration-200",
-                locked
+                locked && !isOnboardingHighlighted
                   ? "text-muted-foreground/30"
                   : active
                     ? "text-primary"
-                    : "text-muted-foreground hover:text-foreground"
+                    : isOnboardingHighlighted
+                      ? "text-primary"
+                      : "text-muted-foreground hover:text-foreground"
               )}
             >
               <div className="relative">
-                {locked ? (
+                {locked && !isOnboardingHighlighted ? (
                   <div className="relative">
                     <Icon className="w-5 h-5 opacity-30" />
                     <Lock className="w-2.5 h-2.5 absolute -bottom-0.5 -right-0.5 text-muted-foreground/50" />
+                  </div>
+                ) : isOnboardingHighlighted ? (
+                  <div className={cn("p-1.5 rounded-xl transition-all duration-300 bg-primary/15 shadow-[0_0_20px_hsl(265_90%_62%/0.3)]")}>
+                    <Icon className="w-5 h-5 text-primary drop-shadow-[0_0_8px_hsl(265_90%_62%/0.5)]" />
                   </div>
                 ) : (
                   <>
