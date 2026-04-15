@@ -30,9 +30,20 @@ export const BottomNavigation = () => {
   const [councilBadge, setCouncilBadge] = useState(false);
   const [creatorRequestCount, setCreatorRequestCount] = useState(0);
   const [showAtlasBadge, setShowAtlasBadge] = useState(false);
+  const [onboardingHighlight, setOnboardingHighlight] = useState<string | null>(null);
   const { isLocked, getLockMessage, refreshUnlocks } = useProgressiveUnlock();
 
   useEffect(() => { refreshUnlocks(); }, [location.pathname, refreshUnlocks]);
+
+  useEffect(() => {
+    const stepToKey = ["atlas", "chat", "projects", "creators"];
+    const handler = (e: Event) => {
+      const step = (e as CustomEvent).detail?.step;
+      setOnboardingHighlight(step >= 0 && step < stepToKey.length ? stepToKey[step] : null);
+    };
+    window.addEventListener('atlas-onboarding-step', handler);
+    return () => window.removeEventListener('atlas-onboarding-step', handler);
+  }, []);
 
   useEffect(() => {
     const checkBadges = async () => {
