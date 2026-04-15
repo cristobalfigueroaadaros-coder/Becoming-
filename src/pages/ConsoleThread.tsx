@@ -406,24 +406,41 @@ const ConsoleThread = ({ embedded = false, onProjectNameChange }: ConsoleThreadP
         }
 
         if (!hasAtlasSignals) {
-          // Check if starter quest already done (capabilities with onboarding_inferred exist)
-          const { data: existingCaps } = await supabase
-            .from("momentum_capabilities")
+          // Fallback: check if user has atlas dots directly (discovery quests completed)
+          // If they have dots, skip the starter quest entirely — atlas data IS their foundation
+          const { data: atlasDots } = await supabase
+            .from("atlas_dots")
             .select("id")
             .eq("user_id", user.id)
-            .eq("acquisition_channel", "onboarding_inferred")
-            .limit(1);
+            .limit(3);
 
-          const starterDone = existingCaps && existingCaps.length > 0;
+          const hasAtlasDots = atlasDots && atlasDots.length >= 2;
 
-          if (starterDone) {
-            // Skip starter quest, go straight to intake
+          if (hasAtlasDots) {
+            // User completed Atlas discovery — skip starter quest, go to intake
+            setTyping(null);
             setPhase("intake_q1");
             await startIntakeFlow(name, resolvedEntryState);
           } else {
-            // Start Starter Quest
-            setPhase("starter_q1");
-            await startStarterQuest(name);
+            // Check if starter quest already done (capabilities with onboarding_inferred exist)
+            const { data: existingCaps } = await supabase
+              .from("momentum_capabilities")
+              .select("id")
+              .eq("user_id", user.id)
+              .eq("acquisition_channel", "onboarding_inferred")
+              .limit(1);
+
+            const starterDone = existingCaps && existingCaps.length > 0;
+
+            if (starterDone) {
+              setTyping(null);
+              setPhase("intake_q1");
+              await startIntakeFlow(name, resolvedEntryState);
+            } else {
+              setTyping(null);
+              setPhase("starter_q1");
+              await startStarterQuest(name);
+            }
           }
         }
       }
@@ -930,15 +947,21 @@ const ConsoleThread = ({ embedded = false, onProjectNameChange }: ConsoleThreadP
     setPhase(nextPhase);
     persistPhase(nextPhase);
 
-    // Single handoff message
+    // Brief confirmation then auto-trigger council meeting
     await showTyping("future_self", 1200);
     addSystemMessage(
-      `Your council is ready. They'll help you define a project and guide your next steps.\n\nWrite "let's go" when you're ready.`,
+      `Your council is ready. Let me bring them in now...`,
       "future_self",
       nextPhase
     );
+
+    // Auto-trigger council meeting — no need to ask user to type "let's go"
+    setCouncilMeetingRan(true);
     setPhase("user_reply");
     persistPhase("user_reply");
+    setTimeout(() => {
+      runCouncilMeeting();
+    }, 1500);
   };
 
   const runCouncilMeeting = async () => {
