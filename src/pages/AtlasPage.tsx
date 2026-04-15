@@ -97,7 +97,10 @@ const AtlasPage = () => {
         .single();
       const p = profile as any;
       setIntakeCompleted(!!p?.console_intake_completed);
-      if (!p?.atlas_onboarding_completed) setShowOnboarding(true);
+      if (!p?.atlas_onboarding_completed) {
+        const timer = setTimeout(() => setShowOnboarding(true), 10000);
+        return () => clearTimeout(timer);
+      }
     };
     checkFlags();
   }, []);

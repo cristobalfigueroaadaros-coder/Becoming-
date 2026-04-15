@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import { Compass, Users, FlaskConical, Globe } from "lucide-react";
 import { Button } from "@/components/ui/button";
@@ -55,6 +55,13 @@ const SCREEN_CONTENT = [
 
 export const AtlasOnboardingOverlay = ({ onComplete }: AtlasOnboardingOverlayProps) => {
   const [currentStep, setCurrentStep] = useState(0);
+
+  useEffect(() => {
+    window.dispatchEvent(new CustomEvent('atlas-onboarding-step', { detail: { step: currentStep } }));
+    return () => {
+      window.dispatchEvent(new CustomEvent('atlas-onboarding-step', { detail: { step: -1 } }));
+    };
+  }, [currentStep]);
 
   const isMission = currentStep === 4;
   const screen = SCREEN_CONTENT[currentStep];
