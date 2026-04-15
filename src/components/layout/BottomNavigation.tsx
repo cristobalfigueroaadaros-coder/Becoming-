@@ -140,7 +140,11 @@ export const BottomNavigation = () => {
               </div>
               <span className={cn(
                 "text-[10px] font-medium transition-all duration-200",
-                locked ? "text-muted-foreground/30" : active && "text-primary font-semibold"
+                locked && !isOnboardingHighlighted
+                  ? "text-muted-foreground/30"
+                  : isOnboardingHighlighted
+                    ? "text-primary font-semibold"
+                    : active && "text-primary font-semibold"
               )}>
                 {item.label}
               </span>
