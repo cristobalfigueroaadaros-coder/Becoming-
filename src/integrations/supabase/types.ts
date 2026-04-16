@@ -2599,6 +2599,7 @@ export type Database = {
           project_maturity_stage: string | null
           project_structure: Json | null
           project_title: string
+          project_type: string | null
           seed_breakthrough_id: string | null
           start_date: string
           status: string
@@ -2624,6 +2625,7 @@ export type Database = {
           project_maturity_stage?: string | null
           project_structure?: Json | null
           project_title: string
+          project_type?: string | null
           seed_breakthrough_id?: string | null
           start_date?: string
           status?: string
@@ -2649,6 +2651,7 @@ export type Database = {
           project_maturity_stage?: string | null
           project_structure?: Json | null
           project_title?: string
+          project_type?: string | null
           seed_breakthrough_id?: string | null
           start_date?: string
           status?: string
