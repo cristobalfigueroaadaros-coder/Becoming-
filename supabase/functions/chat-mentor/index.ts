@@ -2596,7 +2596,7 @@ DO NOT mention "Value Map" or "blocks" - just ask questions that naturally uncov
         .select("entry_state")
         .eq("id", user.id)
         .maybeSingle();
-      entryState = (entryProfile as any)?.entry_state || null;
+      entryState = (entryProfile as any)?.entry_state || clientEntryState || null;
 
       // Fetch Life Domains as silent context
       try {
