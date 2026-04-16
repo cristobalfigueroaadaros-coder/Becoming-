@@ -84,7 +84,9 @@ export function useProgressiveUnlock() {
       }
 
       // Check projects unlock condition: has any console thread messages or chats
-      if (!projectsUnlocked && chatUnlocked) {
+      // Only check if chat was ALREADY unlocked before this run (prevChat) — prevents
+      // cascading both chat + projects unlocks in the same pass and showing two toasts at once.
+      if (!projectsUnlocked && prevChat) {
         const { count: threadCount } = await supabase
           .from("console_thread_messages")
           .select("*", { count: "exact", head: true })
@@ -107,7 +109,8 @@ export function useProgressiveUnlock() {
       }
 
       // Check creators unlock condition: has a project (any type)
-      if (!creatorsUnlocked && projectsUnlocked) {
+      // Only check if projects was ALREADY unlocked before this run (prevProjects).
+      if (!creatorsUnlocked && prevProjects) {
         const { count: projectCount } = await supabase
           .from("integrator_projects")
           .select("*", { count: "exact", head: true })
