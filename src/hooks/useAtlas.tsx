@@ -227,7 +227,7 @@ export function useAtlas() {
     queryKey: ["atlas-mini-dot-counts"],
     queryFn: async () => {
       const { data: { user } } = await supabase.auth.getUser();
-      if (!user) return [];
+      if (!user) return {} as Record<string, number>;
       const { data, error } = await supabase
         .from("atlas_mini_dots")
         .select("parent_dot_id")
