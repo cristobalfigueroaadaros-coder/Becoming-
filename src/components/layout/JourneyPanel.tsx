@@ -181,31 +181,38 @@ export const JourneyPanel = () => {
     return "atlas";
   })();
 
-  // Load profile
-  useEffect(() => {
-    (async () => {
-      const { data: { user } } = await supabase.auth.getUser();
-      if (!user) return;
-      const { data } = await supabase
-        .from("profiles")
-        .select("entry_state, console_intake_completed" as any)
-        .eq("id", user.id)
-        .single();
-      setProfile(data);
-    })();
-  }, []);
+  // Fetch profile (called on mount and every time the panel opens)
+  const fetchProfile = async () => {
+    const { data: { user } } = await supabase.auth.getUser();
+    if (!user) return;
+    const { data } = await supabase
+      .from("profiles")
+      .select("entry_state, console_intake_completed" as any)
+      .eq("id", user.id)
+      .single();
+    setProfile(data);
+  };
 
-  // Pulse when dots increased since panel was last opened
+  useEffect(() => { fetchProfile(); }, []);
+
+  // Pulse when dots increased or stage advanced since panel was last opened
   useEffect(() => {
     const lastSeen = parseInt(localStorage.getItem("journey_seen_dots") || "-1");
     if (totalDots > lastSeen) setPulse(true);
   }, [totalDots]);
 
+  useEffect(() => {
+    const lastStage = localStorage.getItem("journey_seen_stage");
+    if (lastStage && lastStage !== currentStageId) setPulse(true);
+  }, [currentStageId]);
+
   const handleOpen = (isOpen: boolean) => {
     setOpen(isOpen);
     if (isOpen) {
+      fetchProfile();
       setPulse(false);
       localStorage.setItem("journey_seen_dots", String(totalDots));
+      localStorage.setItem("journey_seen_stage", currentStageId);
       setAnswer(null);
       setQuestion("");
     }
@@ -222,7 +229,6 @@ export const JourneyPanel = () => {
     const order = STAGES.map(s => s.id);
     const currentIdx = order.indexOf(currentStageId);
     const thisIdx = order.indexOf(stageId);
-    if (stageId === "atlas") return "current"; // Atlas never "completes"
     if (thisIdx < currentIdx) return "completed";
     if (thisIdx === currentIdx) return "current";
     return "upcoming";
@@ -382,7 +388,7 @@ export const JourneyPanel = () => {
                                   {stage.name}
                                 </span>
 
-                                {/* Atlas dot count badge */}
+                                {/* Atlas dot count badge — always visible */}
                                 {stage.id === "atlas" && totalDots > 0 && (
                                   <span className="text-[10px] text-primary/80 bg-primary/10 px-1.5 py-0.5 rounded-full border border-primary/20">
                                     {totalDots} dot{totalDots !== 1 ? "s" : ""}
@@ -390,7 +396,7 @@ export const JourneyPanel = () => {
                                 )}
 
                                 {/* "Now" badge */}
-                                {isCurrent && stage.id !== "atlas" && (
+                                {isCurrent && (
                                   <span className="text-[10px] text-primary/80 bg-primary/10 px-1.5 py-0.5 rounded-full border border-primary/20">
                                     Now
                                   </span>
