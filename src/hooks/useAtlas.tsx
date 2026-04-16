@@ -210,9 +210,12 @@ export function useAtlas() {
   const dotsQuery = useQuery({
     queryKey: ["atlas-dots"],
     queryFn: async () => {
+      const { data: { user } } = await supabase.auth.getUser();
+      if (!user) return [];
       const { data, error } = await supabase
         .from("atlas_dots")
         .select("*")
+        .eq("user_id", user.id)
         .order("created_at", { ascending: false });
       if (error) throw error;
       return data as AtlasDot[];
@@ -223,9 +226,12 @@ export function useAtlas() {
   const miniDotCountsQuery = useQuery({
     queryKey: ["atlas-mini-dot-counts"],
     queryFn: async () => {
+      const { data: { user } } = await supabase.auth.getUser();
+      if (!user) return [];
       const { data, error } = await supabase
         .from("atlas_mini_dots")
-        .select("parent_dot_id");
+        .select("parent_dot_id")
+        .eq("user_id", user.id);
       if (error) throw error;
       const counts: Record<string, number> = {};
       (data || []).forEach((row: any) => {

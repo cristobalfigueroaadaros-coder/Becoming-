@@ -310,8 +310,9 @@ const ConsoleThread = ({ embedded = false, onProjectNameChange }: ConsoleThreadP
   // Load existing messages from DB on init
   useEffect(() => {
     const init = async () => {
+      try {
       const { data: { user } } = await supabase.auth.getUser();
-      if (!user) { if (!embedded) navigate("/"); return; }
+      if (!user) { if (!embedded) navigate("/"); setInitialLoading(false); return; }
 
       const { data: profile } = await supabase
         .from("profiles")
@@ -353,7 +354,7 @@ const ConsoleThread = ({ embedded = false, onProjectNameChange }: ConsoleThreadP
           mentorType: m.mentor_type || undefined,
           mentorIcon: m.mentor_icon || undefined,
           mentorColor: m.mentor_color || undefined,
-          card: m.card_type === "card" ? undefined : undefined,
+          card: undefined, // cards are ephemeral UI — they don't restore from DB
         }));
         setMessages(restored);
 
@@ -481,6 +482,10 @@ const ConsoleThread = ({ embedded = false, onProjectNameChange }: ConsoleThreadP
             }
           }
         }
+      }
+      } catch (err) {
+        console.error("ConsoleThread init failed:", err);
+        setInitialLoading(false);
       }
     };
     init();
@@ -1120,7 +1125,7 @@ const ConsoleThread = ({ embedded = false, onProjectNameChange }: ConsoleThreadP
             mentorTypes: [...userMentors, "future_self"],
             conversationHistory: [{
               role: "user",
-              content: intakeAnswers.join("\\\n"),
+              content: intakeAnswers.join("\n"),
             }],
             entryState,
             atlasSignals,

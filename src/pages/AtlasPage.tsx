@@ -4,7 +4,6 @@ import { useNavigate, useSearchParams } from "react-router-dom";
 import { Compass, Sparkles, Lock } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { useAtlas, ClusterWithState, DOMAIN_COLORS, getCurrentPhase, getNextPhaseThreshold } from "@/hooks/useAtlas";
-import { useAtlasQuests } from "@/hooks/useAtlasQuests";
 import { AtlasClusterNode, AtlasClusterDetail } from "@/components/atlas";
 import { AtlasOnboardingOverlay } from "@/components/atlas/AtlasOnboardingOverlay";
 import { AtlasUnlockProgress } from "@/components/atlas/AtlasUnlockProgress";
@@ -82,7 +81,6 @@ const AtlasPage = () => {
   const navigate = useNavigate();
   const [searchParams, setSearchParams] = useSearchParams();
   const { clusters, domains, totalDots, isLoading, miniDotCounts } = useAtlas();
-  const { completedOnboardingCount } = useAtlasQuests();
   const [selectedCluster, setSelectedCluster] = useState<ClusterWithState | null>(null);
   const prevUnlockedRef = useRef<Set<string>>(new Set());
   const highlightSlug = searchParams.get("highlight");
@@ -93,8 +91,19 @@ const AtlasPage = () => {
   const [opportunityDismissed, setOpportunityDismissed] = useState(false);
   const { data: opportunity } = useOpportunityDetection(totalDots);
 
+  // Count how many Phase 1 cluster slugs (always unlocked) have ≥1 dot.
+  // These are the exact clusters shown as nodes in AtlasUnlockProgress.
+  const PHASE1_SLUGS_BY_STATE: Record<string, string[]> = {
+    DISCOVER: ["skills", "passions", "personal-frustrations", "experiments"],
+    GROW:     ["skills", "passions", "personal-frustrations"],
+    BUILD:    ["skills", "passions"],
+  };
+  const phase1Slugs = PHASE1_SLUGS_BY_STATE[entryState] ?? PHASE1_SLUGS_BY_STATE.DISCOVER;
+  const phase1ExploredCount = phase1Slugs.filter(
+    slug => (clusters.find(c => c.slug === slug)?.dotCount ?? 0) > 0
+  ).length;
   const councilThreshold = COUNCIL_UNLOCK_THRESHOLDS[entryState] ?? 4;
-  const councilUnlocked = completedOnboardingCount >= councilThreshold;
+  const councilUnlocked = phase1ExploredCount >= councilThreshold;
 
   const connections = useMemo(() => generateConnections(clusters), [clusters]);
 
@@ -195,7 +204,7 @@ const AtlasPage = () => {
         <div className="relative z-20">
           <AtlasUnlockProgress
             phase={entryState as any}
-            completedCount={completedOnboardingCount}
+            completedCount={phase1ExploredCount}
             councilAlreadyStarted={!!intakeCompleted}
             onGoToCouncil={() => navigate("/council?view=intake")}
             onKeepExploring={() => navigate("/atlas/quest")}
@@ -204,7 +213,7 @@ const AtlasPage = () => {
       )}
 
       {/* Think Out of the Box Opportunity */}
-      {opportunity && !opportunityDismissed && !showUnlockCard && (
+      {opportunity && !opportunityDismissed && (
         <div className="relative z-20">
           <ThinkOutOfBoxCard opportunity={opportunity} onDismiss={() => setOpportunityDismissed(true)} />
         </div>
