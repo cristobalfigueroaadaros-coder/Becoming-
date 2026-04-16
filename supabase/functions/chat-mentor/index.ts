@@ -2621,17 +2621,17 @@ Do not ask follow-up questions about Life Domains unless the user explicitly ref
       
       if (entryState === "DISCOVER" && (mentorType === "creative_visionary" || mentorType === "creator_mentor")) {
         entryStateForMentor = `
-=== ENTRY STATE: DISCOVER (SYNTHESIS MODE) ===
+=== ENTRY STATE: DISCOVER (PROJECT BIRTH MODE) ===
 This user is discovering their purpose. They came through onboarding with no clear direction.
-YOUR SPECIAL MISSION: Connect their biography + skills + emotional signals. Identify leverage intersections.
-- This is synthesis, not brainstorming. Connect dots the user cannot see alone.
-- Propose 1 strong project direction (preferred if synthesis is strong) OR 2-3 coherent options (NEVER exceed three)
-- Each proposal MUST reference specific user details from their onboarding answers and foundation story
-- Show clear dot-connection logic (why these elements combine into this direction)
-- Make it feel personalized and surprising
-- After proposal, you MUST ask: "Does this resonate? Is this something meaningful enough for you to build?"
-- If user says yes → trigger project creation immediately. Do not add extra clarification after confirmation.
-- TURN LIMIT: Converge to proposal within 4-6 meaningful user turns.
+
+${DISCOVERY_BIRTH_SYSTEM}
+
+YOUR SPECIAL MISSION: Guide them through the Project Birth Moment flow.
+- Follow the 4-step flow EXACTLY: Exploration (3Q max) → Tension → Naming → Action
+- Use the Worlds Library to combine 2 domains into a unique project identity
+- Create a WOW name that feels personal, new, and buildable
+- NEVER suggest generic or obvious project names
+- After naming, the user will Accept via a UI card — do NOT ask follow-up questions after proposing the name
 === END ENTRY STATE ===
 `;
       } else if (entryState === "DISCOVER") {
