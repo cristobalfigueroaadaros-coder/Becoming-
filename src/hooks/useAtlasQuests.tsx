@@ -8,6 +8,13 @@ const STRENGTH_CLUSTERS = new Set(["passions", "skills", "natural-talents", "exp
 const LIFE_IMPRINT_CLUSTERS = new Set(["life-events", "childhood-signals", "aha-moments"]);
 const SHADOW_CLUSTERS = new Set(["personal-frustrations", "external-reflections"]);
 const SERVICE_CLUSTERS = new Set(["who-i-serve", "how-i-create-impact"]);
+// Phase-specific pre-council cluster slugs (must match AtlasPage PHASE1_SLUGS_BY_STATE)
+const PHASE_PRE_COUNCIL_SLUGS: Record<string, string[]> = {
+  BUILD:    ["skills", "passions"],
+  GROW:     ["skills", "passions", "personal-frustrations"],
+  DISCOVER: ["skills", "passions", "personal-frustrations", "experiments"],
+};
+
 // Order is driven by ONBOARDING_QUEST_SEQUENCE — DO NOT sort by array position
 const CORE_ONBOARDING_QUESTS = ONBOARDING_QUEST_SEQUENCE
   .map(slug => ONBOARDING_QUESTS.find(q => q.clusterSlug === slug && q.questKey.startsWith("onboarding_")))
@@ -40,7 +47,7 @@ export function useAtlasQuests() {
       if (!user) return null;
       const { data } = await supabase
         .from("profiles")
-        .select("onboarding_quest_completed" as any)
+        .select("onboarding_quest_completed, entry_state" as any)
         .eq("id", user.id)
         .single();
       return data;
@@ -114,7 +121,30 @@ export function useAtlasQuests() {
   }
 
   function getNextOnboardingQuest(): { quest: AtlasQuestDefinition; clusterId: string; onboardingIndex: number } | null {
-    // Find the next onboarding quest in sequence that hasn't been completed
+    const entryState = (profileQuery.data as any)?.entry_state || "DISCOVER";
+    const preCouncilSlugs = PHASE_PRE_COUNCIL_SLUGS[entryState] || PHASE_PRE_COUNCIL_SLUGS.DISCOVER;
+
+    // Check whether all pre-council clusters already have at least one dot
+    const preCouncilComplete = preCouncilSlugs.every(slug => {
+      const cluster = clusters.find(c => c.slug === slug);
+      return cluster && cluster.dotCount > 0;
+    });
+
+    if (!preCouncilComplete) {
+      // Guide the user through the phase-specific pre-council sequence first
+      for (const slug of preCouncilSlugs) {
+        const cluster = clusters.find(c => c.slug === slug);
+        if (!cluster) continue;
+        // Only offer the quest if the cluster has no dots yet (hasn't been explored)
+        if (cluster.dotCount > 0) continue;
+        const questIndex = CORE_ONBOARDING_QUESTS.findIndex(q => q.clusterSlug === slug && !completedKeys.has(q.questKey));
+        if (questIndex !== -1) {
+          return { quest: CORE_ONBOARDING_QUESTS[questIndex], clusterId: cluster.id, onboardingIndex: questIndex };
+        }
+      }
+    }
+
+    // Pre-council done (or all pre-council clusters explored): continue full sequence
     for (let i = 0; i < CORE_ONBOARDING_QUESTS.length; i++) {
       const quest = CORE_ONBOARDING_QUESTS[i];
       if (!completedKeys.has(quest.questKey)) {
