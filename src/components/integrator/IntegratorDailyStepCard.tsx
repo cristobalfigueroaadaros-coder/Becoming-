@@ -120,9 +120,23 @@ export function IntegratorDailyStepCard({
         
         <CardHeader className="pb-2">
           <div className="flex items-center justify-between">
-            <span className="text-sm text-muted-foreground">
-              Day {step.day_number} of {totalDays}
-            </span>
+            <div className="flex items-center gap-2">
+              <span className="text-sm text-muted-foreground">
+                Day {step.day_number} of {totalDays}
+              </span>
+              {phase?.phase_name && (
+                <span
+                  className="text-xs font-medium px-2 py-0.5 rounded-full capitalize"
+                  style={{
+                    backgroundColor: phase.phase_color ? `${phase.phase_color}25` : undefined,
+                    color: phase.phase_color || undefined,
+                    border: `1px solid ${phase.phase_color ? `${phase.phase_color}50` : 'transparent'}`,
+                  }}
+                >
+                  {phase.phase_name}
+                </span>
+              )}
+            </div>
             <StepActionsMenu
               stepId={step.id}
               stepTitle={displayTitle}

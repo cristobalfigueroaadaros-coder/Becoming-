@@ -2,7 +2,7 @@ import { useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
-import { Rocket, Sparkles, TrendingUp, Calendar, Target } from "lucide-react";
+import { Rocket, Sparkles, TrendingUp, Calendar, Target, ChevronRight } from "lucide-react";
 import { MicroGuide } from "@/components/MicroGuide";
 import { IntegratorCalendar } from "@/components/integrator/IntegratorCalendar";
 import { IntegratorDailyStepCard } from "@/components/integrator/IntegratorDailyStepCard";
@@ -172,6 +172,22 @@ export const FocusMode = ({
       {/* Today's Task - Clean naming without phase reference */}
       {todaysStep && currentPhase && (
         <div className="space-y-2">
+          {/* Breadcrumb: Project → Phase → Today's Task */}
+          <div className="flex items-center gap-1.5 text-xs text-muted-foreground mb-1 flex-wrap">
+            <span className="truncate max-w-[140px]">{activeProject.project_title}</span>
+            <ChevronRight className="w-3 h-3 flex-shrink-0" />
+            <span
+              className="font-medium capitalize px-1.5 py-0.5 rounded-full"
+              style={{
+                backgroundColor: currentPhase.phase_color ? `${currentPhase.phase_color}25` : undefined,
+                color: currentPhase.phase_color || undefined,
+              }}
+            >
+              {currentPhase.phase_name}
+            </span>
+            <ChevronRight className="w-3 h-3 flex-shrink-0" />
+            <span>Today's Task</span>
+          </div>
           <h3 className="font-semibold text-lg flex items-center gap-2">
             <Sparkles className="w-5 h-5 text-primary" />
             Today's Task

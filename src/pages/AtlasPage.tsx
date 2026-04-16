@@ -1,11 +1,13 @@
 import { useState, useRef, useEffect, useMemo } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import { useNavigate, useSearchParams } from "react-router-dom";
-import { Compass, Sparkles, Lock, ArrowRight } from "lucide-react";
+import { Compass, Sparkles, Lock } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { useAtlas, ClusterWithState, DOMAIN_COLORS, getCurrentPhase, getNextPhaseThreshold } from "@/hooks/useAtlas";
+import { useAtlasQuests } from "@/hooks/useAtlasQuests";
 import { AtlasClusterNode, AtlasClusterDetail } from "@/components/atlas";
 import { AtlasOnboardingOverlay } from "@/components/atlas/AtlasOnboardingOverlay";
+import { AtlasUnlockProgress } from "@/components/atlas/AtlasUnlockProgress";
 import { ThinkOutOfBoxCard } from "@/components/atlas/ThinkOutOfBoxCard";
 import { useOpportunityDetection } from "@/hooks/useOpportunityDetection";
 import { toast } from "@/hooks/use-toast";
@@ -70,19 +72,29 @@ function generateConnections(clusters: ClusterWithState[]) {
   return connections;
 }
 
+const COUNCIL_UNLOCK_THRESHOLDS: Record<string, number> = {
+  DISCOVER: 4,
+  GROW: 3,
+  BUILD: 2,
+};
+
 const AtlasPage = () => {
   const navigate = useNavigate();
   const [searchParams, setSearchParams] = useSearchParams();
-  const { clusters, domains, totalDots, isLoading, threadUnlockReady, miniDotCounts } = useAtlas();
+  const { clusters, domains, totalDots, isLoading, miniDotCounts } = useAtlas();
+  const { completedOnboardingCount } = useAtlasQuests();
   const [selectedCluster, setSelectedCluster] = useState<ClusterWithState | null>(null);
   const prevUnlockedRef = useRef<Set<string>>(new Set());
   const highlightSlug = searchParams.get("highlight");
   const [highlightedSlug, setHighlightedSlug] = useState<string | null>(null);
-  const [showUnlockCard, setShowUnlockCard] = useState(false);
   const [intakeCompleted, setIntakeCompleted] = useState<boolean | null>(null);
+  const [entryState, setEntryState] = useState<string>("DISCOVER");
   const [showOnboarding, setShowOnboarding] = useState(false);
   const [opportunityDismissed, setOpportunityDismissed] = useState(false);
   const { data: opportunity } = useOpportunityDetection(totalDots);
+
+  const councilThreshold = COUNCIL_UNLOCK_THRESHOLDS[entryState] ?? 4;
+  const councilUnlocked = completedOnboardingCount >= councilThreshold;
 
   const connections = useMemo(() => generateConnections(clusters), [clusters]);
 
@@ -92,11 +104,12 @@ const AtlasPage = () => {
       if (!user) return;
       const { data: profile } = await supabase
         .from("profiles")
-        .select("console_intake_completed, atlas_onboarding_completed" as any)
+        .select("console_intake_completed, atlas_onboarding_completed, entry_state" as any)
         .eq("id", user.id)
         .single();
       const p = profile as any;
       setIntakeCompleted(!!p?.console_intake_completed);
+      if (p?.entry_state) setEntryState(p.entry_state);
       if (!p?.atlas_onboarding_completed) {
         const timer = setTimeout(() => setShowOnboarding(true), 10000);
         return () => clearTimeout(timer);
@@ -104,10 +117,6 @@ const AtlasPage = () => {
     };
     checkFlags();
   }, []);
-
-  useEffect(() => {
-    if (threadUnlockReady && intakeCompleted === false) setShowUnlockCard(true);
-  }, [threadUnlockReady, intakeCompleted]);
 
   useEffect(() => {
     if (highlightSlug) {
@@ -181,25 +190,17 @@ const AtlasPage = () => {
         ))}
       </div>
 
-      {/* Unlock notification card */}
-      {showUnlockCard && (
-        <motion.div
-          initial={{ opacity: 0, y: -20 }}
-          animate={{ opacity: 1, y: 0 }}
-          className="relative z-20 mx-4 mt-4 mb-2 p-4 rounded-2xl border border-primary/20 glass"
-        >
-          <p className="text-sm font-medium text-foreground">Hey, I've been looking at what you've been sharing...</p>
-          <p className="text-xs text-muted-foreground mt-1">I'm starting to see something interesting.</p>
-          <p className="text-[10px] text-muted-foreground mt-2">The more you explore, the clearer this becomes.</p>
-          <div className="flex gap-2 mt-3">
-            <Button size="sm" className="gap-1.5" onClick={() => navigate("/council?view=intake")}>
-              Start Your Journey <ArrowRight className="w-3 h-3" />
-            </Button>
-            <Button size="sm" variant="outline" onClick={() => { setShowUnlockCard(false); navigate("/atlas/quest"); }}>
-              New Quest
-            </Button>
-          </div>
-        </motion.div>
+      {/* Phase-based Council unlock progress */}
+      {intakeCompleted === false && (
+        <div className="relative z-20">
+          <AtlasUnlockProgress
+            phase={entryState as any}
+            completedCount={completedOnboardingCount}
+            councilAlreadyStarted={!!intakeCompleted}
+            onGoToCouncil={() => navigate("/council?view=intake")}
+            onKeepExploring={() => navigate("/atlas/quest")}
+          />
+        </div>
       )}
 
       {/* Think Out of the Box Opportunity */}
