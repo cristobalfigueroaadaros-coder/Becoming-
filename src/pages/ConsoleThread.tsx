@@ -97,14 +97,14 @@ type Phase =
 // Phase-aware intake labels for context sent to AI
 const getIntakeLabels = (state: string): string[] => {
   if (state === "BUILD") return [
-    "Current offer or product",
-    "90-day measurable goal",
-    "Main blocker or constraint",
+    "What they're building or offering and what's working",
+    "Main growth constraint or blocker",
+    "30-day win definition",
   ];
   if (state === "GROW") return [
-    "What they've created or tried so far",
-    "Simplest testable version (MVP)",
-    "First users or buyers",
+    "What they're building and current progress level",
+    "Main blocker or unclear area",
+    "7-day progress goal",
   ];
   return [
     "Background and experiences",
@@ -116,14 +116,14 @@ const getIntakeLabels = (state: string): string[] => {
 // Phase-aware intake questions
 const getPhaseQuestions = (entryState: string): string[] => {
   if (entryState === "BUILD") return [
-    "Let's get straight to it.\n\nWhat are you currently offering or trying to sell?",
-    "What is the ONE result you want to achieve in the next 90 days?",
-    "What is currently blocking you from reaching that?",
+    "What are you currently building or offering, and what's working so far?",
+    "What is the one thing limiting your growth the most right now?",
+    "What would a meaningful win look like in the next 30 days?",
   ];
   if (entryState === "GROW") return [
-    "What have you already created or tried so far?",
-    "What is the simplest version of this you could offer or test right now?",
-    "Who would be the first people to try or pay for this?",
+    "Tell me what you're building or working on, and where you are with it right now.",
+    "What part of this feels most stuck or unclear?",
+    "What would feel like real progress for you in the next 7 days?",
   ];
   // DISCOVER (default)
   return [
@@ -162,18 +162,19 @@ const generateReflection = (answer: string, questionIndex: number = 0, phase: st
       return "Good — let's build on what you have.";
     }
     if (questionIndex === 1) {
-      if (/revenue|money|income|sale|€|\$/i.test(lower)) return "A clear financial target — that's actionable.";
-      if (/user|client|customer|subscriber/i.test(lower)) return "User growth is one of the best signals to track.";
-      if (/launch|release|ship|live/i.test(lower)) return "Getting it out there — that's the right priority.";
-      if (len > 80) return "That's specific enough to plan around.";
-      return "90 days is plenty to make real progress on that.";
+      if (/time|busy|overwhelm|too much/i.test(lower)) return "Time is usually the real bottleneck. Let's work with what you have.";
+      if (/money|fund|budget|cost/i.test(lower)) return "Financial constraints force creative solutions — that's not always bad.";
+      if (/skill|know.*how|learn|technical/i.test(lower)) return "Skill gaps are solvable. Let's find the fastest path.";
+      if (/focus|direction|clarity|confus/i.test(lower)) return "Clarity is the first thing we'll fix together.";
+      if (/audience|market|customer|who/i.test(lower)) return "Knowing exactly who you're building for unlocks everything else.";
+      if (len > 80) return "Now I know what's in the way. Let's work around it.";
+      return "Understanding the constraint is where the strategy starts.";
     }
-    if (/time|busy|overwhelm|too much/i.test(lower)) return "Time is usually the real bottleneck. Let's work with what you have.";
-    if (/money|fund|budget|cost/i.test(lower)) return "Financial constraints force creative solutions — that's not always bad.";
-    if (/skill|know.*how|learn|technical/i.test(lower)) return "Skill gaps are solvable. Let's find the fastest path.";
-    if (/focus|direction|clarity|confus/i.test(lower)) return "Clarity is the first thing we'll fix together.";
-    if (len > 80) return "Now I know what's in the way. Let's work around it.";
-    return "Understanding the blocker is half the solution.";
+    if (/revenue|money|income|sale|€|\$/i.test(lower)) return "A clear financial outcome — that's what moves the needle.";
+    if (/user|client|customer|subscriber/i.test(lower)) return "User growth is one of the best signals to aim for.";
+    if (/launch|release|ship|live/i.test(lower)) return "Getting it out there — that's the right priority.";
+    if (len > 80) return "That's specific enough to build a plan around.";
+    return "30 days is enough time to make something real happen.";
   }
 
   if (phase === "GROW") {
@@ -181,21 +182,24 @@ const generateReflection = (answer: string, questionIndex: number = 0, phase: st
       if (/nothing|just.*idea|haven.*start|thinking/i.test(lower)) return "Starting from an idea is perfectly valid. Let's make it real.";
       if (/prototype|test|tried|built|started/i.test(lower)) return "You've already taken action — that puts you ahead.";
       if (/partial|some|bit|draft/i.test(lower)) return "Even a partial version gives us something to build on.";
+      if (/service|consult|coach|freelanc/i.test(lower)) return "You've got a service — now it's about getting it in front of the right people.";
+      if (/product|app|platform|course/i.test(lower)) return "Having something built gives us a real foundation to work from.";
       if (len > 80) return "That's more progress than you might think.";
-      return "Good — now let's figure out the simplest next step.";
+      return "Good — now let's figure out what's in the way.";
     }
     if (questionIndex === 1) {
-      if (/workshop|session|call|meeting/i.test(lower)) return "A live experience is one of the fastest ways to validate.";
-      if (/post|content|video|guide|pdf/i.test(lower)) return "Content is a smart low-risk test.";
-      if (/landing.*page|waitlist|sign.*up/i.test(lower)) return "That's a solid validation move.";
-      if (len > 80) return "That sounds testable — and that's what matters.";
-      return "Simplicity is your best friend right now.";
+      if (/confus|unclear|don.*know|not.*sure/i.test(lower)) return "That fog usually lifts once we name the real question underneath it.";
+      if (/time|busy|overwhelm/i.test(lower)) return "Constraint shapes creativity — let's find what's actually movable.";
+      if (/audience|who|customer|market/i.test(lower)) return "Clarity on who you're for changes everything else.";
+      if (/money|fund|cost|resource/i.test(lower)) return "Resource constraints force smart choices. That's not a bad place to be.";
+      if (len > 80) return "That friction is telling you something useful.";
+      return "Naming what's stuck is the first step to getting unstuck.";
     }
-    if (/friend|family|people.*know/i.test(lower)) return "Your close circle is the perfect first test group.";
-    if (/entrepreneur|creator|founder|business/i.test(lower)) return "You already know who needs this. That's powerful.";
-    if (/anyone|everyone|not.*sure|don.*know/i.test(lower)) return "Let's narrow that down — specificity makes everything easier.";
-    if (len > 80) return "That audience profile gives us something concrete to work with.";
-    return "Knowing your first users changes everything.";
+    if (/week|days|soon|next/i.test(lower)) return "That's a concrete target — let's build toward it.";
+    if (/launch|test|publish|share|send/i.test(lower)) return "Action-oriented thinking. That's exactly the right instinct.";
+    if (/learn|understand|figure out|know/i.test(lower)) return "Clarity first, then movement. That's the right sequence.";
+    if (len > 80) return "That gives us a clear direction to work from.";
+    return "Progress defined is progress possible.";
   }
 
   // DISCOVER (default)

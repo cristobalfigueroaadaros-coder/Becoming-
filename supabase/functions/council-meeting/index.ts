@@ -1507,7 +1507,7 @@ ANALYZE:
 
 RULES:
 ${resolvedEntryState === 'DISCOVER' ? `- User selected DISCOVER phase. You MUST suggest creative_visionary.` :
-  resolvedEntryState === 'BUILD' ? `- User selected BUILD phase. You MUST suggest strategist_mentor.` :
+  resolvedEntryState === 'BUILD' ? `- User selected BUILD phase. You MUST suggest business_mentor.` :
   resolvedEntryState === 'GROW' ? `- User selected GROW phase. Suggest strategist_mentor or creative_visionary based on conversation.` :
   `- If CLARITY → Suggest strategist_mentor or creative_visionary
 - If NEEDS GUIDANCE → Suggest creative_visionary
@@ -1522,7 +1522,7 @@ YOU MUST RESPOND WITH VALID JSON ONLY:
   "suggestionMessage": "This feels like something worth shaping. Want to explore it with [Mentor Name]?"
 }
 
-Use these EXACT mentor keys: strategist_mentor, creative_visionary`;
+Use these EXACT mentor keys: strategist_mentor, creative_visionary, business_mentor`;
 
       try {
         const routingResponse = await fetch("https://ai.gateway.lovable.dev/v1/chat/completions", {
