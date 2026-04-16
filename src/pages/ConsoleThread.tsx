@@ -258,6 +258,15 @@ const ConsoleThread = ({ embedded = false, onProjectNameChange }: ConsoleThreadP
   const [atlasSignals, setAtlasSignals] = useState<any>(null);
   const scrollRef = useRef<HTMLDivElement>(null);
   const inputRef = useRef<HTMLInputElement>(null);
+  const returnFlowStartedRef = useRef(false); // guard against double startReturnFlow call
+
+  // Persist handoffMentor to localStorage so it survives page reloads
+  const persistHandoffMentor = (mentor: string | null, userId?: string) => {
+    setHandoffMentor(mentor);
+    const key = `becoming_handoff_mentor_${userId || "local"}`;
+    if (mentor) localStorage.setItem(key, mentor);
+    else localStorage.removeItem(key);
+  };
 
   // Auto-scroll
   useEffect(() => {
@@ -345,26 +354,51 @@ const ConsoleThread = ({ embedded = false, onProjectNameChange }: ConsoleThreadP
         setMessages(restored);
 
         const savedPhase = (profile as any)?.console_thread_phase as Phase | null;
+
+        // Restore handoffMentor from localStorage
+        const storedMentor = localStorage.getItem(`becoming_handoff_mentor_${user.id}`);
+        if (storedMentor) setHandoffMentor(storedMentor);
+
         if (savedPhase) {
           if (savedPhase === "starter_return" || savedPhase === "starter_win") {
             setPhase("starter_return");
             setTimeout(() => {
               transitionToIntake();
             }, 1500);
+          } else if (savedPhase === "handoff_offer") {
+            // User was mid-handoff — re-surface the offer with the right mentor
+            setPhase("handoff_offer");
+            const profileName = (profile as any)?.display_name || "there";
+            const restoredMentor = storedMentor;
+            const mentorCfg = restoredMentor ? mentorConfig[restoredMentor] : null;
+            const mentorLabel = mentorCfg?.name || "your mentor";
+            if (!returnFlowStartedRef.current) {
+              returnFlowStartedRef.current = true;
+              setTimeout(async () => {
+                await showTyping("future_self", 1200);
+                addSystemMessage(
+                  `Welcome back. You were about to connect with ${mentorLabel}. Just say "let's go" when you're ready.`,
+                  "future_self",
+                  "handoff_offer"
+                );
+              }, 1500);
+            }
           } else if (
             savedPhase === "post_project" ||
             savedPhase === "complete" ||
             savedPhase === "mentor_1to1" ||
-            savedPhase === "handoff_offer" ||
             savedPhase === "user_reply" ||
             savedPhase === "return_greeting"
           ) {
             // User has an active project — greet them on return
             setPhase(savedPhase);
             const profileName = (profile as any)?.display_name || "there";
-            setTimeout(() => {
-              startReturnFlow(profileName);
-            }, 1500);
+            if (!returnFlowStartedRef.current) {
+              returnFlowStartedRef.current = true;
+              setTimeout(() => {
+                startReturnFlow(profileName);
+              }, 1500);
+            }
           } else {
             setPhase(savedPhase);
             // Restore answers by phase prefix to avoid mixing starter/intake
@@ -720,11 +754,13 @@ const ConsoleThread = ({ embedded = false, onProjectNameChange }: ConsoleThreadP
         const wantsHelp = /stuck|lost|help|struggling|don.t know|unclear|confused/i.test(lower);
 
         if (wantsProject) {
-          // Route to strategist 1-to-1
-          setHandoffMentor("strategist_mentor");
+          // Use the mentor assigned by the council — fall back to strategist only if none saved
+          const targetMentor = handoffMentor || "strategist_mentor";
+          if (!handoffMentor) persistHandoffMentor("strategist_mentor");
+          const mentorLabel = mentorConfig[targetMentor]?.name || "the Strategist";
           await showTyping("future_self", 1200);
           addSystemMessage(
-            `Let's pick up where you left off. Tell the Strategist what you've done so far — or just say "let's go" and they'll jump in.`,
+            `Let's pick up where you left off. ${mentorLabel} will continue from here — just say "let's go" and they'll jump in.`,
             "future_self", "return_greeting"
           );
           setPhase("mentor_1to1");
@@ -745,11 +781,13 @@ const ConsoleThread = ({ embedded = false, onProjectNameChange }: ConsoleThreadP
           );
           // Stay in return_greeting — next reply routes them
         } else {
-          // Generic — treat as project context, route to strategist
-          setHandoffMentor("strategist_mentor");
+          // Generic — use saved mentor if available, fall back to strategist
+          const targetMentor = handoffMentor || "strategist_mentor";
+          if (!handoffMentor) persistHandoffMentor("strategist_mentor");
+          const mentorLabel = mentorConfig[targetMentor]?.name || "the Strategist";
           await showTyping("future_self", 1200);
           addSystemMessage(
-            `Got it. The Strategist will help you move that forward — just continue the conversation.`,
+            `Got it. ${mentorLabel} will help you move that forward — just continue the conversation.`,
             "future_self", "return_greeting"
           );
           setPhase("mentor_1to1");
@@ -1110,9 +1148,10 @@ const ConsoleThread = ({ embedded = false, onProjectNameChange }: ConsoleThreadP
           }
         }
 
-        // 2nd round: NOW set handoff mentor (entry-state-aware from edge function)
+        // 2nd round: NOW set handoff mentor (entry-state-aware from edge function) — persist so it survives reload
         if (data.suggestedMentorFor1to1) {
-          setHandoffMentor(data.suggestedMentorFor1to1.mentorType);
+          const { data: { user: u } } = await supabase.auth.getUser();
+          persistHandoffMentor(data.suggestedMentorFor1to1.mentorType, u?.id);
         }
 
         // Council-meeting doesn't return projectCoherence — run a lightweight
