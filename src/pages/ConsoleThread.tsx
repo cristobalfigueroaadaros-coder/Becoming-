@@ -1010,10 +1010,15 @@ const ConsoleThread = ({ embedded = false, onProjectNameChange }: ConsoleThreadP
       setPhase(perspPhase);
       persistPhase(perspPhase);
 
-      // Messages arrive fast now — user already waited during the API call
-      for (const [mentorType, perspective] of Object.entries(perspectives)) {
+      // Staggered reveal — one mentor at a time, reading gap between each
+      const perspEntries1 = Object.entries(perspectives);
+      for (let i = 0; i < perspEntries1.length; i++) {
+        const [mentorType, perspective] = perspEntries1[i];
         await showTyping(mentorType, 900 + Math.random() * 700);
         addSystemMessage(perspective as string, mentorType, perspPhase, "perspective");
+        if (i < perspEntries1.length - 1) {
+          await new Promise(r => setTimeout(r, 4000 + Math.random() * 1000));
+        }
       }
 
       // Save bold keywords from perspectives to user_keywords (non-blocking)
@@ -1083,9 +1088,14 @@ const ConsoleThread = ({ embedded = false, onProjectNameChange }: ConsoleThreadP
         if (error) throw error;
 
         const perspectives = data.mentorPerspectives || {};
-        for (const [mentorType, perspective] of Object.entries(perspectives)) {
+        const perspEntries2 = Object.entries(perspectives);
+        for (let i = 0; i < perspEntries2.length; i++) {
+          const [mentorType, perspective] = perspEntries2[i];
           await showTyping(mentorType, 900 + Math.random() * 700);
           addSystemMessage(perspective as string, mentorType, "user_reply", "perspective");
+          if (i < perspEntries2.length - 1) {
+            await new Promise(r => setTimeout(r, 4000 + Math.random() * 1000));
+          }
         }
 
         // Save bold keywords from 2nd round perspectives (non-blocking)
@@ -1538,15 +1548,21 @@ const ConsoleThread = ({ embedded = false, onProjectNameChange }: ConsoleThreadP
       if (error) throw error;
 
       const perspectives = data.mentorPerspectives || {};
-      for (const [mentorType, perspective] of Object.entries(perspectives)) {
-        await showTyping(mentorType, 5000 + Math.random() * 12000);
+      const perspEntries3 = Object.entries(perspectives);
+      for (let i = 0; i < perspEntries3.length; i++) {
+        const [mentorType, perspective] = perspEntries3[i];
+        await showTyping(mentorType, 900 + Math.random() * 700);
         addSystemMessage(perspective as string, mentorType, "post_project", "perspective");
+        if (i < perspEntries3.length - 1) {
+          await new Promise(r => setTimeout(r, 4000 + Math.random() * 1000));
+        }
       }
 
       if (data.banterLines?.length > 0) {
         for (const line of data.banterLines) {
-          await showTyping(line.mentor, 4000 + Math.random() * 10000);
+          await showTyping(line.mentor, 800 + Math.random() * 600);
           addSystemMessage(line.text, line.mentor, "post_project", "banter");
+          await new Promise(r => setTimeout(r, 2500));
         }
       }
 
