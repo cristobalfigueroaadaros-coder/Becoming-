@@ -1500,10 +1500,14 @@ const ConsoleThread = ({ embedded = false, onProjectNameChange }: ConsoleThreadP
         return;
       }
 
-      // Save structure to the project
+      // Save structure and project type to the project
       await supabase
         .from("integrator_projects")
-        .update({ project_structure: projectStructure, project_brief: description } as any)
+        .update({ 
+          project_structure: projectStructure, 
+          project_brief: description,
+          ...(detectedProjectType ? { project_type: detectedProjectType } : {}),
+        } as any)
         .eq("id", projectId);
 
       // Update profile
