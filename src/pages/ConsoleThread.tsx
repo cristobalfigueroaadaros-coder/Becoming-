@@ -1417,6 +1417,7 @@ const ConsoleThread = ({ embedded = false, onProjectNameChange }: ConsoleThreadP
         .join("\n");
 
       let projectStructure: any[] = [];
+      let detectedProjectType: string | null = null;
       try {
         const { data: structureData, error: structureError } = await supabase.functions.invoke("extract-project-structure", {
           body: {
@@ -1440,6 +1441,7 @@ const ConsoleThread = ({ embedded = false, onProjectNameChange }: ConsoleThreadP
               children: [],
             })),
           }));
+          detectedProjectType = structureData.projectType || null;
         }
       } catch (structErr) {
         console.error("Structure extraction failed (non-fatal):", structErr);
@@ -1447,11 +1449,23 @@ const ConsoleThread = ({ embedded = false, onProjectNameChange }: ConsoleThreadP
 
       // Fallback: if no structure extracted, create minimal blocks
       if (projectStructure.length === 0) {
-        projectStructure = [
-          { id: Math.random().toString(36).slice(2, 10), title: "Getting Started", status: "not_started", importance: "medium", children: [] },
-          { id: Math.random().toString(36).slice(2, 10), title: "Core Development", status: "not_started", importance: "medium", children: [] },
-          { id: Math.random().toString(36).slice(2, 10), title: "Launch & Growth", status: "not_started", importance: "medium", children: [] },
-        ];
+        if (entryState === "DISCOVER" || !entryState) {
+          projectStructure = [
+            { id: Math.random().toString(36).slice(2, 10), title: "Project Vision", status: "not_started", importance: "medium", children: [] },
+            { id: Math.random().toString(36).slice(2, 10), title: "Transformation", status: "not_started", importance: "medium", children: [] },
+            { id: Math.random().toString(36).slice(2, 10), title: "Interaction Design", status: "not_started", importance: "medium", children: [] },
+            { id: Math.random().toString(36).slice(2, 10), title: "Expansion Layer", status: "not_started", importance: "medium", children: [] },
+            { id: Math.random().toString(36).slice(2, 10), title: "Ideal Customer", status: "not_started", importance: "medium", children: [] },
+            { id: Math.random().toString(36).slice(2, 10), title: "System Design", status: "not_started", importance: "medium", children: [] },
+            { id: Math.random().toString(36).slice(2, 10), title: "Evolved Project Output", status: "not_started", importance: "medium", children: [] },
+          ];
+        } else {
+          projectStructure = [
+            { id: Math.random().toString(36).slice(2, 10), title: "Getting Started", status: "not_started", importance: "medium", children: [] },
+            { id: Math.random().toString(36).slice(2, 10), title: "Core Development", status: "not_started", importance: "medium", children: [] },
+            { id: Math.random().toString(36).slice(2, 10), title: "Launch & Growth", status: "not_started", importance: "medium", children: [] },
+          ];
+        }
       }
 
       // --- Step 2: Show structure in chat ---
