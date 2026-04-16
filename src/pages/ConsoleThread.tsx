@@ -1356,7 +1356,7 @@ const ConsoleThread = ({ embedded = false, onProjectNameChange }: ConsoleThreadP
       });
 
       const { data, error } = await supabase.functions.invoke("chat-mentor", {
-        body: { mentorType: handoffMentor, message: text },
+        body: { mentorType: handoffMentor, message: text, entryState },
       });
 
       mentor1to1TypingCancelled = true;
