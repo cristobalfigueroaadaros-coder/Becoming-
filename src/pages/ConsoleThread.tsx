@@ -3,7 +3,7 @@ import { useNavigate } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
-import { Send, ArrowLeft, Plus } from "lucide-react";
+import { Send, ArrowLeft, Plus, ArrowRight } from "lucide-react";
 import { toast } from "sonner";
 import { cn } from "@/lib/utils";
 import ChatBubble, { type ChatMessage } from "@/components/console-thread/ChatBubble";
@@ -382,7 +382,7 @@ const ConsoleThread = ({ embedded = false, onProjectNameChange }: ConsoleThreadP
               setTimeout(async () => {
                 await showTyping("future_self", 1200);
                 addSystemMessage(
-                  `Welcome back. You were about to connect with ${mentorLabel}. Just say "let's go" when you're ready.`,
+                  `Welcome back. You were about to connect with ${mentorLabel}.`,
                   "future_self",
                   "handoff_offer"
                 );
@@ -769,7 +769,7 @@ const ConsoleThread = ({ embedded = false, onProjectNameChange }: ConsoleThreadP
           const mentorLabel = mentorConfig[targetMentor]?.name || "the Strategist";
           await showTyping("future_self", 1200);
           addSystemMessage(
-            `Let's pick up where you left off. ${mentorLabel} will continue from here — just say "let's go" and they'll jump in.`,
+            `Let's pick up where you left off. ${mentorLabel} will continue from here.`,
             "future_self", "return_greeting"
           );
           setPhase("mentor_1to1");
@@ -1230,7 +1230,7 @@ const ConsoleThread = ({ embedded = false, onProjectNameChange }: ConsoleThreadP
             const config = mentorConfig[data.suggestedMentorFor1to1.mentorType];
             await showTyping("future_self", 800);
             addSystemMessage(
-              `I think you're ready to work 1-to-1 with ${config?.name || data.suggestedMentorFor1to1.mentorName}.\n\nIf you're ready, type "let's go".`,
+              `I think you're ready to work 1-to-1 with ${config?.name || data.suggestedMentorFor1to1.mentorName}.`,
               "future_self",
               "handoff_offer"
             );
@@ -1718,6 +1718,45 @@ const ConsoleThread = ({ embedded = false, onProjectNameChange }: ConsoleThreadP
         </div>
       )}
 
+      {/* Onboarding step indicator */}
+      {(() => {
+        const stepMap: Record<string, { label: string; step: number }> = {
+          starter_q1: { label: "Getting started", step: 1 },
+          starter_q2: { label: "Getting started", step: 2 },
+          starter_q3: { label: "Getting started", step: 3 },
+          intake_q1:  { label: "Your context", step: 1 },
+          intake_q2:  { label: "Your context", step: 2 },
+          intake_q3:  { label: "Your context", step: 3 },
+        };
+        const info = stepMap[phase];
+        if (!info) return null;
+        return (
+          <div className="px-4 py-2 border-b border-border/40 bg-background/60">
+            <div className="flex items-center justify-between max-w-3xl mx-auto">
+              <span className="text-[11px] text-muted-foreground font-medium tracking-wide uppercase">
+                {info.label}
+              </span>
+              <div className="flex items-center gap-2">
+                <div className="flex gap-1.5">
+                  {[1, 2, 3].map(i => (
+                    <div
+                      key={i}
+                      className={cn(
+                        "rounded-full transition-all duration-300",
+                        i < info.step  ? "w-4 h-1.5 bg-primary" :
+                        i === info.step ? "w-4 h-1.5 bg-primary" :
+                                         "w-1.5 h-1.5 bg-muted-foreground/30"
+                      )}
+                    />
+                  ))}
+                </div>
+                <span className="text-[11px] text-muted-foreground">{info.step} / 3</span>
+              </div>
+            </div>
+          </div>
+        );
+      })()}
+
       {/* Messages */}
       <div className="flex-1 overflow-y-auto py-4 space-y-1">
         {messages.map((msg, i) => {
@@ -1739,6 +1778,28 @@ const ConsoleThread = ({ embedded = false, onProjectNameChange }: ConsoleThreadP
         <div ref={scrollRef} />
       </div>
 
+      {/* Handoff connect button */}
+      {phase === "handoff_offer" && handoffMentor && mentorConfig[handoffMentor] && (
+        <div className="px-3 pt-2 pb-0 max-w-3xl mx-auto w-full">
+          <button
+            onClick={() => handleHandoffResponse("let's go")}
+            disabled={loading}
+            className={cn(
+              "w-full flex items-center justify-between gap-3 px-4 py-3 rounded-xl",
+              "border border-primary/30 bg-primary/10 hover:bg-primary/20",
+              "text-sm font-medium text-foreground transition-all duration-200",
+              "disabled:opacity-50 disabled:cursor-not-allowed"
+            )}
+          >
+            <div className="flex items-center gap-2">
+              <span className="text-lg">{mentorConfig[handoffMentor].icon}</span>
+              <span>Connect with {mentorConfig[handoffMentor].name}</span>
+            </div>
+            <ArrowRight className="w-4 h-4 text-primary shrink-0" />
+          </button>
+        </div>
+      )}
+
       {/* Input */}
       <div className="p-3 border-t border-border bg-background/95 backdrop-blur-sm">
         <div className="flex gap-2 max-w-3xl mx-auto">
@@ -1749,7 +1810,7 @@ const ConsoleThread = ({ embedded = false, onProjectNameChange }: ConsoleThreadP
             onKeyDown={handleKeyDown}
             placeholder={
               phase === "council_reveal" ? "Accept your Council above..."
-              : phase === "handoff_offer" ? "Type 'let's go' or reply..."
+              : phase === "handoff_offer" ? "Or type a reply..."
               : "Type your message..."
             }
             disabled={isInputDisabled}
