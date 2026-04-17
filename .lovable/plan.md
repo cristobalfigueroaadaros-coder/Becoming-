@@ -1,33 +1,75 @@
 
 
-## Plan: Atlas Onboarding Overlay — Delayed Start + Bottom Nav Sync
+## Pre-Launch Readiness Audit — Bcoming
 
-### What changes
+I researched your codebase, security scan results, edge functions, configuration, and SEO setup. Here's what I found.
 
-**1. Add 10-second delay before overlay appears**
-- In `AtlasPage.tsx`, when `atlas_onboarding_completed` is false, instead of immediately showing the overlay, start a 10-second timer so the user can explore the Atlas map first.
+---
 
-**2. Sync overlay steps with bottom navigation icons**
-- The overlay steps map to bottom nav items: Step 0 = Atlas, Step 1 = Chats, Step 2 = Projects, Step 3 = Creators.
-- Share the current onboarding step with `BottomNavigation` so it can illuminate the matching icon (still locked/non-clickable, but visually highlighted with the primary color glow instead of the dim locked style).
-- Use a lightweight shared state mechanism — a custom event or a React context. A simple approach: the `AtlasOnboardingOverlay` component dispatches a custom DOM event (`atlas-onboarding-step`) with the current step index, and `BottomNavigation` listens for it.
+### 🔴 BLOCKERS (must fix before launch)
 
-### Files to modify
+**1. Realtime data leak — CRITICAL security issue**
+The security scan flagged: *Any authenticated user can subscribe to any Realtime channel and receive row-change events for other users' private data.* Tables published to Realtime include `chats`, `shadow_encounters`, `mentor_daily_outreach`, and `creator_chat_messages` — all sensitive. Fix: add RLS policies on `realtime.messages` to scope subscriptions by `auth.uid()`.
 
-| File | Change |
-|------|--------|
-| `src/pages/AtlasPage.tsx` | Add 10s `setTimeout` before setting `showOnboarding(true)` |
-| `src/components/atlas/AtlasOnboardingOverlay.tsx` | Dispatch a custom event on each step change with the current step index; dispatch a "done" event on complete |
-| `src/components/layout/BottomNavigation.tsx` | Listen for the custom event; when active, illuminate the corresponding nav icon (show it with primary color/glow) even if locked — but keep it non-clickable |
+**2. Build error — TypeScript failure in edge function**
+`supabase/functions/suggest-block-activity/index.ts` line 66: `error.message` on an `unknown` type. Currently breaking builds. One-line fix: `error instanceof Error ? error.message : String(error)`.
 
-### How the bottom nav highlight works
+**3. Creator-images storage bucket — unprotected uploads**
+Any authenticated user can upload to any path in the `creator-images` bucket, including paths owned by other users. Need to add path-ownership check in the INSERT policy: `(storage.foldername(name))[1] = auth.uid()::text`.
 
-- Map overlay steps to nav `unlockKey`: `[0: "atlas", 1: "chat", 2: "projects", 3: "creators"]`
-- When a step is active, that nav icon renders with the primary color styling (like an active tab) instead of the dimmed locked style — but clicking still shows the lock toast
-- Step 4 (mission screen) dispatches a clear/reset event so no nav icon is highlighted
+**4. Premium waitlist table — missing UPDATE/DELETE policies**
+Users can never manage their own waitlist entries. Add policies scoped by `email = auth.email()`.
 
-### Technical approach
+---
 
-- `AtlasOnboardingOverlay`: In a `useEffect` watching `currentStep`, dispatch `window.dispatchEvent(new CustomEvent('atlas-onboarding-step', { detail: { step: currentStep } }))`. On unmount/complete, dispatch with `step: -1`.
-- `BottomNavigation`: Add state `onboardingHighlight` (string | null). Listen for the custom event and map step index to the unlock key. When a nav item's `unlockKey` matches `onboardingHighlight`, render it with primary color (not dimmed) but keep the lock icon and keep it non-clickable.
+### 🟡 SHOULD FIX (recommended before public launch)
+
+**5. Leaked Password Protection disabled**
+Supabase Auth setting. Enable in auth settings — protects against users picking compromised passwords.
+
+**6. Public bucket allows file listing**
+`creator-images` bucket lets anyone list all files. Restrict the SELECT policy to specific paths or add user-scoping.
+
+**7. SEO / social sharing incomplete**
+- No `og:image` tag → ugly link previews on social media
+- No `twitter:image` tag
+- No canonical URL
+- No structured data
+- `robots.txt` allows all crawling but there's no `sitemap.xml`
+
+**8. Project not yet published**
+`is_published: false`. You need to click **Publish** (top right on desktop, ⋯ menu on mobile) to deploy. Frontend changes require manual Update; backend deploys automatically.
+
+**9. Custom domain**
+Currently only `*.lovable.app`. After publishing, connect a custom domain via Project Settings → Domains for brand credibility.
+
+---
+
+### 🟢 NICE TO HAVE (post-launch is fine)
+
+**10. Console logging cleanup** — ~300 console.log/error calls across `src/`. Not breaking, but noisy in production.
+
+**11. Error handling pattern** — ~48 edge functions use the unsafe `error.message` pattern (same as the build error). Wrap them all in `error instanceof Error` checks for safer error responses.
+
+**12. Analytics & monitoring** — No analytics tool detected. Consider adding Plausible, PostHog, or similar.
+
+**13. Legal pages** — `PrivacyPolicy.tsx` and `TermsOfService.tsx` exist; verify content is current and accurate for your jurisdiction (especially given user data, AI processing, and payments).
+
+**14. Payment flow** — Stripe is wired (`STRIPE_SECRET_KEY` set, `create-checkout` and `check-subscription` functions exist). Verify with a real test transaction end-to-end before launch.
+
+---
+
+### What I propose to do (in implementation mode)
+
+If you approve, I'll execute a **Pre-Launch Hardening Pass** in this order:
+
+1. Fix the build error in `suggest-block-activity` (1 line)
+2. Migration: add RLS policies on `realtime.messages` for safe per-user channel subscriptions
+3. Migration: tighten `creator-images` storage INSERT/SELECT policies with folder ownership
+4. Migration: add UPDATE/DELETE policies on `premium_waitlist`
+5. Enable Leaked Password Protection in auth config
+6. Add `og:image`, `twitter:image`, canonical link, and a basic `sitemap.xml`
+7. (Optional) Sweep all edge functions to safely narrow `error.message` usage
+
+Items 8–14 are user-driven (publish click, domain purchase, legal review, payment test) — I'll guide you through them after the hardening pass lands.
 
