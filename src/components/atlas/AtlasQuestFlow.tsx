@@ -72,6 +72,9 @@ export const AtlasQuestFlow = ({ quest, clusterId, onboardingIndex }: Props) => 
   // Council unlock celebration
   const [showCouncilUnlocked, setShowCouncilUnlocked] = useState(false);
 
+  // AI generation failure state
+  const [aiGenerationFailed, setAiGenerationFailed] = useState(false);
+
   // Fuzzy duplicate check: compare first 3 words of title
   const findFuzzyDuplicate = (title: string, clusterDotsInSame: any[]) => {
     const titleWords = title.toLowerCase().split(/\s+/).slice(0, 3).join(" ");
@@ -131,6 +134,31 @@ export const AtlasQuestFlow = ({ quest, clusterId, onboardingIndex }: Props) => 
     }
   };
 
+  const handleRetryGeneration = async () => {
+    setAiGenerationFailed(false);
+    setIsGenerating(true);
+    setStep(5);
+    const aiResult = await generateAIDot(responses);
+    if (aiResult && aiResult.variations.length > 0) {
+      setVariations(aiResult.variations);
+      setDotResult(aiResult.variations[0]);
+      setMirrorFeedback(aiResult.mirrorFeedback);
+      setValidationMode("picking");
+      const firstVar = aiResult.variations[0] as any;
+      if (firstVar?.signalType || firstVar?.actionType) {
+        setAiSignalTags({
+          signalType: firstVar.signalType,
+          actionType: firstVar.actionType,
+          emotionalTone: (aiResult as any).emotionalTone,
+          dotSubType: (aiResult as any).dotSubType,
+        });
+      }
+    } else {
+      setAiGenerationFailed(true);
+    }
+    setIsGenerating(false);
+  };
+
   // Growth reflection (non-onboarding only) — moved to useEffect to prevent render loops
   const [growthReflectionDismissed, setGrowthReflectionDismissed] = useState(false);
 
@@ -164,6 +192,7 @@ export const AtlasQuestFlow = ({ quest, clusterId, onboardingIndex }: Props) => 
       setVariations(aiResult.variations);
       setDotResult(aiResult.variations[0]); // first as fallback
       setMirrorFeedback(aiResult.mirrorFeedback);
+      setAiGenerationFailed(false);
       // Store signal tags from the first variation for saving
       const firstVar = aiResult.variations[0] as any;
       if (firstVar?.signalType || firstVar?.actionType) {
@@ -175,6 +204,7 @@ export const AtlasQuestFlow = ({ quest, clusterId, onboardingIndex }: Props) => 
         });
       }
     } else {
+      setAiGenerationFailed(true);
       setDotResult(result.dot);
       setVariations([]);
     }
@@ -594,6 +624,36 @@ export const AtlasQuestFlow = ({ quest, clusterId, onboardingIndex }: Props) => 
             <motion.div key="generating" initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} className="flex flex-col items-center gap-4">
               <Loader2 className="w-8 h-8 animate-spin text-primary" />
               <p className="text-sm text-muted-foreground">{isCheckingDepth ? "Reading your answer…" : "Discovering…"}</p>
+            </motion.div>
+          ) : aiGenerationFailed ? (
+            <motion.div
+              key="ai-failed"
+              initial={{ opacity: 0, y: 20 }}
+              animate={{ opacity: 1, y: 0 }}
+              className="flex flex-col items-center gap-5 text-center px-6 max-w-sm"
+            >
+              <div className="text-4xl">🔄</div>
+              <div className="space-y-2">
+                <h3 className="text-base font-semibold text-foreground">Something went wrong</h3>
+                <p className="text-sm text-muted-foreground leading-relaxed">
+                  Couldn't generate your discovery options. This is usually temporary.
+                </p>
+              </div>
+              <div className="flex flex-col gap-2 w-full">
+                <button
+                  onClick={handleRetryGeneration}
+                  className="w-full py-3 rounded-xl font-semibold text-sm text-white"
+                  style={{ background: "hsl(var(--primary))" }}
+                >
+                  Try again
+                </button>
+                <button
+                  onClick={() => setAiGenerationFailed(false)}
+                  className="text-sm text-muted-foreground underline"
+                >
+                  Use a simpler result instead
+                </button>
+              </div>
             </motion.div>
           ) : dotResult ? (
             <AtlasWinningCard

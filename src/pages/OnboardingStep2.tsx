@@ -144,7 +144,7 @@ const OnboardingStep2 = () => {
     try {
       const { data: { user } } = await supabase.auth.getUser();
       if (!user) return;
-      await supabase.from("profiles").update({ entry_state: phase }).eq("id", user.id);
+      await supabase.from("profiles").update({ entry_state: phase, onboarding_quest_completed: false } as any).eq("id", user.id);
       const mentors = STAGE_MENTORS[phase];
       await supabase.from("user_mentors").delete().eq("user_id", user.id);
       await supabase.from("user_mentors").insert(
