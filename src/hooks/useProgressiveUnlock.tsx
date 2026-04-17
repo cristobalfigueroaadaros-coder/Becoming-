@@ -63,18 +63,41 @@ export function useProgressiveUnlock() {
       let projectsUnlocked = prevProjects;
       let creatorsUnlocked = prevCreators;
 
-      // Build phase gets faster unlocks
-      const isBuild = p.entry_state === "BUILD";
+      const entryState: string = p.entry_state || "DISCOVER";
 
-      // Check chat unlock condition: 3+ atlas dots (or 2 for Build)
+      // Phase-specific pre-council cluster slugs (must match AtlasPage / JourneyPanel)
+      const PHASE1_SLUGS: Record<string, string[]> = {
+        DISCOVER: ["skills", "passions", "personal-frustrations", "experiments"],
+        GROW:     ["skills", "passions", "personal-frustrations"],
+        BUILD:    ["skills", "passions"],
+      };
+      const COUNCIL_THRESHOLDS: Record<string, number> = { DISCOVER: 4, GROW: 3, BUILD: 2 };
+
+      // Check chat unlock: user must have explored each required pre-council cluster
       if (!chatUnlocked) {
-        const { count } = await supabase
-          .from("atlas_dots")
-          .select("*", { count: "exact", head: true })
-          .eq("user_id", user.id);
+        const phase1Slugs = PHASE1_SLUGS[entryState] ?? PHASE1_SLUGS.DISCOVER;
+        const threshold = COUNCIL_THRESHOLDS[entryState] ?? 4;
 
-        const threshold = isBuild ? 2 : 3;
-        if ((count || 0) >= threshold) {
+        // Step 1: get cluster IDs for the required slugs
+        const { data: clusterRows } = await supabase
+          .from("atlas_clusters")
+          .select("id, slug")
+          .in("slug", phase1Slugs);
+
+        // Step 2: for each cluster, check if the user has at least 1 dot
+        const clusterChecks = await Promise.all(
+          (clusterRows || []).map(async (cluster) => {
+            const { count } = await supabase
+              .from("atlas_dots")
+              .select("*", { count: "exact", head: true })
+              .eq("user_id", user.id)
+              .eq("cluster_id", cluster.id);
+            return (count || 0) > 0;
+          })
+        );
+        const exploredCount = clusterChecks.filter(Boolean).length;
+
+        if (exploredCount >= threshold) {
           chatUnlocked = true;
           await supabase
             .from("profiles")
