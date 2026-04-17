@@ -205,7 +205,7 @@ Then say: "If this feels right, press Accept. Next, we'll build this into someth
 
 HARD CONSTRAINTS:
 - ONE name only. Never suggest alternatives.
-- No extra questions after naming.
+- No extra questions after naming. "If this feels right, press Accept." IS your closing CTA — it satisfies the mandatory closing rule. Do NOT add another question after it.
 - No long explanations.
 - The name must feel: personal, new, buildable.
 - A name is INVALID if it is: generic, descriptive, or obvious (e.g., "Workshop", "Retreat", "Online Course").
@@ -2699,10 +2699,11 @@ NEVER in Project Mode:
 `;
 
       // === PROJECT CONVERGENCE RULE (dynamic threshold) ===
-      const convergenceThreshold = (entryState === "BUILD" && mentorType === "strategist_mentor") ? 1 : 
-                                   (entryState === "GROW" && mentorType === "strategist_mentor") ? 2 : 3;
+      const convergenceThreshold = (entryState === "BUILD" && mentorType === "strategist_mentor") ? 1 :
+                                   (entryState === "GROW" && mentorType === "strategist_mentor") ? 2 :
+                                   (entryState === "DISCOVER" && mentorType === "creative_visionary") ? 4 : 3;
       const maxTurns = convergenceThreshold + 2;
-      
+
       // Always inject turn status for BUILD/GROW strategist
       if ((entryState === "BUILD" || entryState === "GROW") && mentorType === "strategist_mentor") {
         systemPrompt += `
@@ -2711,6 +2712,21 @@ NEVER in Project Mode:
 This is exchange ${conversationDepth} of ${maxTurns} maximum.
 ${conversationDepth >= convergenceThreshold + 1 ? 'YOU MUST propose a project name and milestone NOW. No more questions.' : ''}
 === END TURN STATUS ===
+`;
+      }
+
+      // Inject DISCOVERY turn status for DISCOVER phase creative mentor
+      if (entryState === "DISCOVER" && (mentorType === "creative_visionary" || mentorType === "creator_mentor")) {
+        const discoveryStep = conversationDepth <= 3 ? `EXPLORATION (exchange ${conversationDepth} of 3 max — ask 1 question)` :
+                              conversationDepth === 4 ? "TENSION (ask the 1 tension question now)" :
+                              "NAMING — synthesize and propose the project name with the 👉 format. No more questions after this.";
+        systemPrompt += `
+
+=== DISCOVERY TURN STATUS ===
+Exchange: ${conversationDepth}
+Current step: ${discoveryStep}
+${conversationDepth >= 5 ? "MANDATORY: You MUST propose the project name NOW using the 👉 format. Say 'If this feels right, press Accept.' Do NOT ask any more questions." : ""}
+=== END DISCOVERY TURN STATUS ===
 `;
       }
       
@@ -3935,8 +3951,9 @@ The user has explicitly asked to create a project. You MUST:
     
     // === SIMPLIFIED MENTOR-INITIATED PROJECT FAST PATH ===
     // If mentor proposed a name AND user agrees -> trigger commitment card immediately
-    // Lower threshold: only need conversationDepth >= 4 (not the strict engagement scoring)
-    if (mentorProposedProject && extractedMentorProjectName && conversationDepth >= 4 && !hasActiveSpine && userAgreesWithProject) {
+    // DISCOVER phase has a lower depth threshold since the flow is intentionally short (3+1+naming).
+    const fastPathDepthThreshold = (entryState === "DISCOVER" && (mentorType === "creative_visionary" || mentorType === "creator_mentor")) ? 3 : 4;
+    if (mentorProposedProject && extractedMentorProjectName && conversationDepth >= fastPathDepthThreshold && !hasActiveSpine && userAgreesWithProject) {
       console.log("FAST PATH TRIGGERED: Mentor proposed name + User agrees");
       {
         // Check if name passes our stricter validation

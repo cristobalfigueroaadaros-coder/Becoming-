@@ -1176,7 +1176,12 @@ Generate 4-5 lines. No two lines make the same kind of point.`;
           const text = match[2].replace(/"+$/g, '').trim(); // Remove trailing quotes and trim
           
           // VALIDATE: Only allow known mentor names to prevent hallucinations like "MVP"
-          const mentorKey = Object.keys(mentorNames).find(k => mentorNames[k] === mentorName);
+          // Use case-insensitive full match OR first-word match so abbreviated names still map correctly.
+          const mentorKey = Object.keys(mentorNames).find(k => {
+            const full = mentorNames[k].toLowerCase();
+            const incoming = mentorName.toLowerCase();
+            return full === incoming || full.startsWith(incoming + " ") || full.split(" ")[0] === incoming;
+          });
           if (mentorKey) {
             const color = mentorColors[mentorKey] || '#6B7280';
             banterLines.push({ mentor: mentorKey, text, color });

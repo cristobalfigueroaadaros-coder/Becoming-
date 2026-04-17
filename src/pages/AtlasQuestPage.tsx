@@ -9,8 +9,8 @@ import { motion } from "framer-motion";
 const AtlasQuestPage = () => {
   const [searchParams] = useSearchParams();
   const clusterId = searchParams.get("cluster");
-  const { isLoading } = useAtlas();
-  const { getNextQuest, getQuestForCluster: getClusterQuest, isLoading: questsLoading, isFetching: questsFetching } = useAtlasQuests();
+  const { isLoading, clusters } = useAtlas();
+  const { getNextQuest, getQuestForCluster: getClusterQuest, isLoading: questsLoading, isFetching: questsFetching, isOnboarding } = useAtlasQuests();
 
   // Lock in the quest once after all data is fresh — prevents stale cache from picking
   // a wrong quest, and prevents Math.random() from drifting on re-renders.
@@ -50,13 +50,28 @@ const AtlasQuestPage = () => {
   const questData = lockedQuestData;
 
   if (!questData) {
+    // Detect if this is a locked pre-council cluster (user tapped a cluster they already explored)
+    const tappedCluster = clusterId ? clusters.find(c => c.id === clusterId) : null;
+    const isLockedPreCouncil = isOnboarding && tappedCluster && tappedCluster.dotCount > 0;
+
     return (
       <div className="min-h-screen flex flex-col items-center justify-center gap-4 p-6 text-center">
         <Compass className="w-10 h-10 text-primary" />
-        <h2 className="text-lg font-semibold text-foreground">All quests completed</h2>
-        <p className="text-sm text-muted-foreground max-w-xs">
-          You've explored every available quest. Keep adding dots and mini-dots to deepen your Atlas.
-        </p>
+        {isLockedPreCouncil ? (
+          <>
+            <h2 className="text-lg font-semibold text-foreground">You've already explored this</h2>
+            <p className="text-sm text-muted-foreground max-w-xs">
+              This step is done. Complete the remaining steps on your path to Council, then you can go deeper here.
+            </p>
+          </>
+        ) : (
+          <>
+            <h2 className="text-lg font-semibold text-foreground">All quests completed</h2>
+            <p className="text-sm text-muted-foreground max-w-xs">
+              You've explored every available quest. Keep adding dots and mini-dots to deepen your Atlas.
+            </p>
+          </>
+        )}
         <button
           onClick={() => window.history.back()}
           className="mt-2 text-sm text-primary underline"

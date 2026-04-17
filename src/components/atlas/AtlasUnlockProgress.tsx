@@ -26,24 +26,24 @@ const PHASE_CONFIG: Record<EntryState, {
   DISCOVER: {
     label: "Discovery",
     required: 4,
-    // skills → passions → personal-frustrations → experiments (all Phase 1, matches onboarding sequence order)
-    nodeLabels: ["What you're good at", "What lights you up", "What drives you", "What you've tried"],
+    // skills → passions → personal-frustrations → experiments
+    nodeLabels: ["What you're good at", "What lights you up", "What you'd change", "What you've tried"],
     color: "hsl(265, 90%, 62%)",
     glow: "hsl(265, 90%, 62%, 0.4)",
   },
   GROW: {
     label: "Growth",
     required: 3,
-    // skills → passions → personal-frustrations (all Phase 1)
-    nodeLabels: ["Your strengths", "What excites you", "What frustrates you"],
+    // skills → passions → personal-frustrations
+    nodeLabels: ["What you're good at", "What lights you up", "What you'd change"],
     color: "hsl(168, 74%, 45%)",
     glow: "hsl(168, 74%, 45%, 0.4)",
   },
   BUILD: {
     label: "Builder",
     required: 2,
-    // skills → passions (all Phase 1)
-    nodeLabels: ["Your strengths", "What you love"],
+    // skills → passions
+    nodeLabels: ["What you're good at", "What lights you up"],
     color: "hsl(38, 92%, 55%)",
     glow: "hsl(38, 92%, 55%, 0.4)",
   },

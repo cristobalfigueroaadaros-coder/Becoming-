@@ -1355,24 +1355,32 @@ const ConsoleThread = ({ embedded = false, onProjectNameChange }: ConsoleThreadP
         content: text,
       });
 
+      // Build conversation history from the 1-to-1 session so chat-mentor can
+      // detect project coherence and avoid looping questions forever.
+      const chatHistory = messages
+        .slice(-20)
+        .filter(m => !m.card && m.content && (m.role === "user" || m.mentorType === handoffMentor))
+        .map(m => ({
+          role: (m.role === "user" ? "user" : "assistant") as "user" | "assistant",
+          content: m.content,
+        }));
+
       const { data, error } = await supabase.functions.invoke("chat-mentor", {
-        body: { mentorType: handoffMentor, message: text, entryState },
+        body: { mentorType: handoffMentor, message: text, entryState, conversationHistory: chatHistory },
       });
 
       mentor1to1TypingCancelled = true;
       if (error) throw error;
 
-      await supabase.from("chats").insert({
-        user_id: user.id,
-        mentor_type: handoffMentor as any,
-        role: "assistant",
-        content: data.response,
-      });
-
-      await showTyping(handoffMentor, 500);
-      addSystemMessage(data.response, handoffMentor, "mentor_1to1");
-
       if (data.projectCoherence?.isCoherent) {
+        // Project detected — skip the mentor's follow-up question and go straight to the card
+        await supabase.from("chats").insert({
+          user_id: user.id,
+          mentor_type: handoffMentor as any,
+          role: "assistant",
+          content: data.response,
+        });
+
         setPhase("project_detected");
         persistPhase("project_detected");
         await showTyping("future_self", 1000);
@@ -1390,6 +1398,16 @@ const ConsoleThread = ({ embedded = false, onProjectNameChange }: ConsoleThreadP
           undefined,
           "project_detected"
         );
+      } else {
+        await supabase.from("chats").insert({
+          user_id: user.id,
+          mentor_type: handoffMentor as any,
+          role: "assistant",
+          content: data.response,
+        });
+
+        await showTyping(handoffMentor, 500);
+        addSystemMessage(data.response, handoffMentor, "mentor_1to1");
       }
     } catch (error: any) {
       mentor1to1TypingCancelled = true;
@@ -1459,11 +1477,74 @@ const ConsoleThread = ({ embedded = false, onProjectNameChange }: ConsoleThreadP
             { id: Math.random().toString(36).slice(2, 10), title: "System Design", status: "not_started", importance: "medium", children: [] },
             { id: Math.random().toString(36).slice(2, 10), title: "Evolved Project Output", status: "not_started", importance: "medium", children: [] },
           ];
-        } else {
+        } else if (entryState === "GROW") {
+          const mk = () => Math.random().toString(36).slice(2, 10);
           projectStructure = [
-            { id: Math.random().toString(36).slice(2, 10), title: "Getting Started", status: "not_started", importance: "medium", children: [] },
-            { id: Math.random().toString(36).slice(2, 10), title: "Core Development", status: "not_started", importance: "medium", children: [] },
-            { id: Math.random().toString(36).slice(2, 10), title: "Launch & Growth", status: "not_started", importance: "medium", children: [] },
+            { id: mk(), title: "MVP Design", status: "not_started", importance: "high", children: [
+              { id: mk(), title: "Define the core experience", status: "not_started", importance: "high", children: [] },
+              { id: mk(), title: "Strip it to the minimum", status: "not_started", importance: "medium", children: [] },
+              { id: mk(), title: "Decide what to build first", status: "not_started", importance: "medium", children: [] },
+            ]},
+            { id: mk(), title: "Ideal User", status: "not_started", importance: "high", children: [
+              { id: mk(), title: "Write one real person's profile", status: "not_started", importance: "high", children: [] },
+              { id: mk(), title: "Name their exact pain point", status: "not_started", importance: "medium", children: [] },
+              { id: mk(), title: "Describe what they want to become", status: "not_started", importance: "medium", children: [] },
+            ]},
+            { id: mk(), title: "Validation Experiments", status: "not_started", importance: "medium", children: [
+              { id: mk(), title: "Design one small test", status: "not_started", importance: "high", children: [] },
+              { id: mk(), title: "Find 3 people to try it", status: "not_started", importance: "medium", children: [] },
+              { id: mk(), title: "Define what a pass looks like", status: "not_started", importance: "medium", children: [] },
+            ]},
+            { id: mk(), title: "Real Feedback", status: "not_started", importance: "medium", children: [
+              { id: mk(), title: "Run the test and listen", status: "not_started", importance: "high", children: [] },
+              { id: mk(), title: "Write down the honest reactions", status: "not_started", importance: "medium", children: [] },
+              { id: mk(), title: "Find the one thing that surprised you", status: "not_started", importance: "medium", children: [] },
+            ]},
+            { id: mk(), title: "Iteration", status: "not_started", importance: "medium", children: [
+              { id: mk(), title: "Decide what to keep", status: "not_started", importance: "high", children: [] },
+              { id: mk(), title: "Decide what to cut", status: "not_started", importance: "medium", children: [] },
+              { id: mk(), title: "Make one clear improvement", status: "not_started", importance: "medium", children: [] },
+            ]},
+            { id: mk(), title: "Path to First Revenue", status: "not_started", importance: "medium", children: [
+              { id: mk(), title: "Name your first offer and price", status: "not_started", importance: "high", children: [] },
+              { id: mk(), title: "Identify who would pay first", status: "not_started", importance: "medium", children: [] },
+              { id: mk(), title: "Make your first ask", status: "not_started", importance: "medium", children: [] },
+            ]},
+          ];
+        } else {
+          // BUILD
+          const mk = () => Math.random().toString(36).slice(2, 10);
+          projectStructure = [
+            { id: mk(), title: "Business Vision", status: "not_started", importance: "high", children: [
+              { id: mk(), title: "Write your 12-month picture", status: "not_started", importance: "high", children: [] },
+              { id: mk(), title: "Define the gap you close", status: "not_started", importance: "medium", children: [] },
+              { id: mk(), title: "Clarify what success looks like", status: "not_started", importance: "medium", children: [] },
+            ]},
+            { id: mk(), title: "Core Offer", status: "not_started", importance: "high", children: [
+              { id: mk(), title: "Define exactly what you deliver", status: "not_started", importance: "high", children: [] },
+              { id: mk(), title: "Describe who it is for", status: "not_started", importance: "medium", children: [] },
+              { id: mk(), title: "Write why they choose you", status: "not_started", importance: "medium", children: [] },
+            ]},
+            { id: mk(), title: "Revenue & Pricing", status: "not_started", importance: "medium", children: [
+              { id: mk(), title: "Set your price and justify it", status: "not_started", importance: "high", children: [] },
+              { id: mk(), title: "Map how money flows in", status: "not_started", importance: "medium", children: [] },
+              { id: mk(), title: "Identify your most profitable path", status: "not_started", importance: "medium", children: [] },
+            ]},
+            { id: mk(), title: "Visibility & Marketing", status: "not_started", importance: "medium", children: [
+              { id: mk(), title: "Choose your primary channel", status: "not_started", importance: "high", children: [] },
+              { id: mk(), title: "Define how trust is built", status: "not_started", importance: "medium", children: [] },
+              { id: mk(), title: "Write your core message", status: "not_started", importance: "medium", children: [] },
+            ]},
+            { id: mk(), title: "Operations & Delivery", status: "not_started", importance: "medium", children: [
+              { id: mk(), title: "Map how you deliver consistently", status: "not_started", importance: "high", children: [] },
+              { id: mk(), title: "Identify what needs a system", status: "not_started", importance: "medium", children: [] },
+              { id: mk(), title: "Find what slows you down", status: "not_started", importance: "medium", children: [] },
+            ]},
+            { id: mk(), title: "Next 90-Day Goals", status: "not_started", importance: "medium", children: [
+              { id: mk(), title: "Name your 3 most important moves", status: "not_started", importance: "high", children: [] },
+              { id: mk(), title: "Set a clear 30-day milestone", status: "not_started", importance: "medium", children: [] },
+              { id: mk(), title: "Decide what you are NOT doing", status: "not_started", importance: "medium", children: [] },
+            ]},
           ];
         }
       }

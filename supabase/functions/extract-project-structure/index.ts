@@ -27,24 +27,27 @@ serve(async (req) => {
     let projectTypeInstruction = "";
 
     if (entryState === "BUILD") {
-      blockTypeGuidance = "Use execution/business-oriented blocks. The user is already selling or offering something and wants results in 90 days.";
-      defaultBlocks = `If the conversation doesn't clearly mention specific blocks, use these as a starting framework (adapt titles to the user's context):
-- 90-Day Goal (what they want to achieve)
-- Strategy (how they'll get there)
-- Offer & Value (what they're selling and why)
-- Pricing (how much and why)
-- Audience & Access (who and where)
-- Action Plan (key next steps)
-- Tracking & Adjustment (how to measure)`;
+      blockTypeGuidance = `Use business-structure blocks. The user is already building something real and needs to structure, strengthen, and grow their business. Blocks should reflect the key areas of a functioning business — adapted to THEIR specific project. Do not use generic templates. Make every block title specific to what they are actually building.`;
+      defaultBlocks = `If the conversation doesn't clearly mention specific areas, use these as a starting framework (adapt every title to the user's actual project and context):
+- Business Vision (where this is going in the next 12 months — tied to their specific project)
+- Core Offer (exactly what they deliver, to whom, and why people choose them over alternatives)
+- Revenue & Pricing (how money flows in, pricing logic, business model clarity)
+- Visibility & Marketing (how the right people find them, trust them, and decide to buy)
+- Operations & Delivery (how they deliver consistently — systems, tools, team, capacity)
+- Next 90-Day Goals (the 3-5 most important moves to grow the business right now)
+
+IMPORTANT: Every block title must feel specific to this person's project, not generic. Replace "Core Offer" with something like "The [ProjectName] Offer" if their project name makes it clearer.`;
     } else if (entryState === "GROW") {
-      blockTypeGuidance = "Use creation/validation-oriented blocks. The user has an idea or partial build and needs to test it with real people.";
-      defaultBlocks = `If the conversation doesn't clearly mention specific blocks, use these as a starting framework (adapt titles to the user's context):
-- MVP (simplest version to test)
-- Ideal Clients (who needs this most)
-- Testing Plan (how to validate)
-- Feedback Capture (what people said)
-- Iteration (what to improve)
-- First Money (how to monetize)`;
+      blockTypeGuidance = `Use MVP and validation-cycle blocks. The user has an idea or early version and needs to test it, learn from real users, and iterate toward something people actually want. Blocks should guide the full cycle: build → test → learn → improve → monetize.`;
+      defaultBlocks = `If the conversation doesn't clearly mention specific areas, use these as a starting framework (adapt every title to the user's actual project and context):
+- MVP Design (the simplest version worth testing — what is the core of this, stripped to its minimum)
+- Ideal User (who specifically is this for, what is their exact pain, what are they trying to become)
+- Validation Experiments (what specific, small tests will prove or disprove this works in the real world)
+- Real Feedback (what early users actually experienced and said — the honest truth)
+- Iteration (what to keep, what to cut, what to change based on what you learned)
+- Path to First Revenue (what would make someone pay for this right now — and what that tells you)
+
+IMPORTANT: Adapt every title to the specific project. Make the blocks feel like they were written for this person's actual thing, not a startup checklist.`;
     } else {
       // DISCOVER — 7-block Project Birth system
       blockTypeGuidance = `Use the DISCOVERY 7-BLOCK system. These blocks guide the user from concept to structured project.`;
@@ -79,7 +82,7 @@ BLOCK 4: "Expansion Layer" (ADAPTIVE BY TYPE)
 
 BLOCK 5: "Ideal Customer" — Who is this for, what are they struggling with, why would they care, why would they pay?
 
-BLOCK 6: "System Design" — The A→B journey: starting point, desired outcome, steps between, features that enable the journey.
+BLOCK 6: "System Design" — This is a SYSTEM, not a task list. Define: where the user starts (A), where they end up (B), what moves them through the journey, what each part of the system does, and how the pieces connect. Think of it as the architecture of the transformation — not a to-do list, a living structure.
 
 BLOCK 7: "Evolved Project Output" — The refined, clearer, stronger version of the project after going through blocks 1-6.
 
@@ -94,17 +97,18 @@ ${conversationText.slice(0, 4000)}
 
 RULES:
 ${entryState === "DISCOVER" || !entryState ? projectTypeInstruction : `
-1. Extract the main BLOCKS (chapters, phases, areas) the user mentioned or that naturally emerge
-2. For the FIRST block only, extract specific ACTIVITIES (sub-items, actions) mentioned by the user
-3. Use the user's OWN WORDS whenever possible — do not invent new terminology
-4. If the user mentioned specific parts/phases/chapters, use those EXACTLY
-5. Minimum 3 blocks, maximum 7
-6. Each block title: 2-5 words, clear and specific
-7. Activities: 2-6 words each, specific and actionable
+1. Extract the main BLOCKS that reflect the key areas of this specific project
+2. For EVERY block, generate 2-3 suggested activities based on the conversation — use the user's own words and context wherever possible
+3. Activities should feel like the obvious first moves for that block, not generic tasks
+4. If the user mentioned specific things, use those EXACTLY — otherwise infer what makes sense for their project
+5. Minimum 5 blocks, maximum 7
+6. Each block title: 2-6 words, clear and specific to THIS project (not generic)
+7. Activities: 3-7 words each, specific and immediately actionable
 8. ${blockTypeGuidance}
 ${defaultBlocks ? `9. ${defaultBlocks}` : ""}
+10. CRITICAL: Every block title AND every activity must feel like it was written for this specific project. Never use generic placeholder text.
 
-Only the FIRST block should have activities. Others must have empty arrays.`}
+Every block should have 2-3 activities. No empty arrays.`}
 
 RESPOND WITH JSON ONLY:
 {

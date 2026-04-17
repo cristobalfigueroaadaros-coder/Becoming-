@@ -102,6 +102,7 @@ export function useAtlasQuests() {
 
   const isOnboardingCompleted = (profileQuery.data as any)?.onboarding_quest_completed === true;
   const isOnboarding = !isOnboardingCompleted;
+  const entryState: string = (profileQuery.data as any)?.entry_state || "DISCOVER";
 
   // Count completed onboarding quests specifically
   const completedOnboardingCount = CORE_ONBOARDING_QUESTS.filter(q => completedKeys.has(q.questKey)).length;
@@ -121,7 +122,6 @@ export function useAtlasQuests() {
   }
 
   function getNextOnboardingQuest(): { quest: AtlasQuestDefinition; clusterId: string; onboardingIndex: number } | null {
-    const entryState = (profileQuery.data as any)?.entry_state || "DISCOVER";
     const preCouncilSlugs = PHASE_PRE_COUNCIL_SLUGS[entryState] || PHASE_PRE_COUNCIL_SLUGS.DISCOVER;
 
     // Check whether all pre-council clusters already have at least one dot
@@ -206,6 +206,15 @@ export function useAtlasQuests() {
     // During onboarding bypass the lock check — users can explore any cluster.
     // Post-onboarding, locked clusters are off-limits.
     if (!isOnboarding && cluster.computedState === "locked") return null;
+
+    // During onboarding: if this cluster is one of the pre-council steps AND it already
+    // has a dot, lock it — the user must complete the other pre-council clusters first.
+    // This prevents doing 2+ quests for the same step (e.g. 2 skills quests).
+    if (isOnboarding) {
+      const preCouncilSlugs = PHASE_PRE_COUNCIL_SLUGS[entryState] || PHASE_PRE_COUNCIL_SLUGS.DISCOVER;
+      if (preCouncilSlugs.includes(cluster.slug) && cluster.dotCount > 0) return null;
+    }
+
     // Search both pools: ATLAS_QUESTS for post-onboarding discovery, and the
     // full ONBOARDING_QUESTS array which also contains who-i-serve and
     // how-i-create-impact bonus quests that aren't in ATLAS_QUESTS.
