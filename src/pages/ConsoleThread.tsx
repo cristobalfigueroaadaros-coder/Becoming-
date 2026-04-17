@@ -336,11 +336,30 @@ const ConsoleThread = ({ embedded = false, onProjectNameChange }: ConsoleThreadP
       if (mentors) setUserMentors(mentors.map(m => m.mentor_type));
 
       // Try to restore existing thread messages
-      const { data: savedMessages } = await supabase
+      const { data: rawSavedMessages } = await supabase
         .from("console_thread_messages")
         .select("*")
         .eq("user_id", user.id)
         .order("created_at", { ascending: true });
+
+      // If intake not yet completed AND user already has atlas discoveries,
+      // clear any stale pre-atlas messages so the atlas-linked intake flow
+      // always starts fresh instead of restoring an old starter-quest session.
+      const intakeAlreadyDone = !!(profile as any)?.console_intake_completed;
+      let savedMessages = rawSavedMessages;
+      if (!intakeAlreadyDone && rawSavedMessages && rawSavedMessages.length > 0) {
+        const { data: atlasDots } = await supabase
+          .from("atlas_dots")
+          .select("id")
+          .eq("user_id", user.id)
+          .limit(2);
+        if (atlasDots && atlasDots.length >= 2) {
+          // Clear stale messages so the atlas-aware intake starts clean
+          await supabase.from("console_thread_messages").delete().eq("user_id", user.id);
+          await supabase.from("profiles").update({ console_thread_phase: null } as any).eq("id", user.id);
+          savedMessages = null;
+        }
+      }
 
       // DB fetches complete — show the chat UI now so typing indicators are visible
       setInitialLoading(false);
