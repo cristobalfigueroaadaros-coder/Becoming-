@@ -27,16 +27,15 @@ serve(async (req) => {
     let projectTypeInstruction = "";
 
     if (entryState === "BUILD") {
-      blockTypeGuidance = `Use business-structure blocks. The user is already building something real and needs to structure, strengthen, and grow their business. Blocks should reflect the key areas of a functioning business — adapted to THEIR specific project. Do not use generic templates. Make every block title specific to what they are actually building.`;
-      defaultBlocks = `If the conversation doesn't clearly mention specific areas, use these as a starting framework (adapt every title to the user's actual project and context):
-- Business Vision (where this is going in the next 12 months — tied to their specific project)
-- Core Offer (exactly what they deliver, to whom, and why people choose them over alternatives)
-- Revenue & Pricing (how money flows in, pricing logic, business model clarity)
-- Visibility & Marketing (how the right people find them, trust them, and decide to buy)
-- Operations & Delivery (how they deliver consistently — systems, tools, team, capacity)
-- Next 90-Day Goals (the 3-5 most important moves to grow the business right now)
+      blockTypeGuidance = `Use 30-day execution blocks. The user is already building something real and needs to execute on a specific 30-day goal. Blocks should reflect the concrete work areas needed to hit their stated 30-day win — adapted to THEIR specific project and situation. Do not use generic templates. Make every block title specific to what they are actually building and what they said they want to achieve.`;
+      defaultBlocks = `If the conversation doesn't clearly mention specific areas, use these as a starting framework (adapt EVERY title to the user's actual project — replace generic names with project-specific ones):
+- Direct Sales (how to convert interested people into paying customers in the next 30 days)
+- Content & Social (the content strategy to attract the right audience and build trust)
+- Outreach & Partnerships (reaching influencers, institutions, or communities that already have the right audience)
+- Customer Experience (making sure early customers are delighted and become advocates)
+- Growth Levers (the 2-3 highest-impact moves specific to their product/market in the next 30 days)
 
-IMPORTANT: Every block title must feel specific to this person's project, not generic. Replace "Core Offer" with something like "The [ProjectName] Offer" if their project name makes it clearer.`;
+IMPORTANT: Every block title must feel like it was written for this exact person and project. If they're selling a game to families, blocks should reference that. Replace "Direct Sales" with "Family Squad Sales" if more specific. Replace "Outreach & Partnerships" with "Parent Influencer Outreach" if that's what the conversation shows.`;
     } else if (entryState === "GROW") {
       blockTypeGuidance = `Use MVP and validation-cycle blocks. The user has an idea or early version and needs to test it, learn from real users, and iterate toward something people actually want. Blocks should guide the full cycle: build → test → learn → improve → monetize.`;
       defaultBlocks = `If the conversation doesn't clearly mention specific areas, use these as a starting framework (adapt every title to the user's actual project and context):
