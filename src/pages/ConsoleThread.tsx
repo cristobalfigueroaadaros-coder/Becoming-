@@ -97,7 +97,7 @@ type Phase =
 // Phase-aware intake labels for context sent to AI
 const getIntakeLabels = (state: string): string[] => {
   if (state === "BUILD") return [
-    "What they're building or offering and what's working",
+    "Project or business name, what they're building or offering, and what's working",
     "Main growth constraint or blocker",
     "30-day win definition",
   ];
@@ -116,7 +116,7 @@ const getIntakeLabels = (state: string): string[] => {
 // Phase-aware intake questions
 const getPhaseQuestions = (entryState: string): string[] => {
   if (entryState === "BUILD") return [
-    "What are you currently building or offering, and what's working so far?",
+    "What's the name of your project or business — and what are you currently building or offering, and what's working so far?",
     "What is the one thing limiting your growth the most right now?",
     "What would a meaningful win look like in the next 30 days?",
   ];
