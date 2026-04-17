@@ -40,7 +40,7 @@ interface Props {
 export const AtlasQuestFlow = ({ quest, clusterId, onboardingIndex }: Props) => {
   const navigate = useNavigate();
   const queryClient = useQueryClient();
-  const { aggregatedSignals, detectedPatternKeys, completedCount, isOnboarding, shouldShowConnectionMoment, isIdentityMoment } = useAtlasQuests();
+  const { aggregatedSignals, detectedPatternKeys, completedCount, isOnboarding, entryState, shouldShowConnectionMoment, isIdentityMoment } = useAtlasQuests();
   const { clusters, dots: allExistingDots } = useAtlas();
   const [step, setStep] = useState(0);
   const [responses, setResponses] = useState<any[]>([]);
@@ -68,6 +68,9 @@ export const AtlasQuestFlow = ({ quest, clusterId, onboardingIndex }: Props) => 
   // Connection moment state
   const [showConnectionMoment, setShowConnectionMoment] = useState(false);
   const [dotSaved, setDotSaved] = useState(false);
+
+  // Council unlock celebration
+  const [showCouncilUnlocked, setShowCouncilUnlocked] = useState(false);
 
   // Fuzzy duplicate check: compare first 3 words of title
   const findFuzzyDuplicate = (title: string, clusterDotsInSame: any[]) => {
@@ -440,6 +443,34 @@ export const AtlasQuestFlow = ({ quest, clusterId, onboardingIndex }: Props) => 
         return;
       }
 
+      // Check if this dot just completed the pre-council sequence
+      if (isOnboarding) {
+        const PHASE1_SLUGS: Record<string, string[]> = {
+          DISCOVER: ["skills", "passions", "personal-frustrations", "experiments"],
+          GROW:     ["skills", "passions", "personal-frustrations"],
+          BUILD:    ["skills", "passions"],
+        };
+        const COUNCIL_THRESHOLDS: Record<string, number> = { DISCOVER: 4, GROW: 3, BUILD: 2 };
+        const phase1Slugs = PHASE1_SLUGS[entryState] ?? PHASE1_SLUGS.DISCOVER;
+        const councilThreshold = COUNCIL_THRESHOLDS[entryState] ?? 4;
+
+        // Count explored phase1 clusters BEFORE this dot (using stale clusters data)
+        const exploredBefore = phase1Slugs.filter(slug => {
+          const c = clusters.find(cl => cl.slug === slug);
+          return c && c.dotCount > 0;
+        }).length;
+
+        // After this dot: the just-saved cluster counts as explored
+        const justSavedCluster = clusters.find(c => c.id === dotClusterId);
+        const justSavedSlug = justSavedCluster?.slug ?? "";
+        const exploredAfter = exploredBefore + (phase1Slugs.includes(justSavedSlug) && (justSavedCluster?.dotCount ?? 0) === 0 ? 1 : 0);
+
+        if (exploredAfter >= councilThreshold && exploredBefore < councilThreshold) {
+          setShowCouncilUnlocked(true);
+          return;
+        }
+      }
+
       // For onboarding, go to next quest; otherwise go to atlas with highlight
       if (isOnboarding) {
         navigate("/atlas/quest");
@@ -497,6 +528,42 @@ export const AtlasQuestFlow = ({ quest, clusterId, onboardingIndex }: Props) => 
               <p className="text-xs uppercase tracking-wider text-muted-foreground">Growth Reflection</p>
               <p className="text-sm text-foreground leading-relaxed max-w-sm">{growthReflection}</p>
               <button onClick={() => { setShowGrowthReflection(false); setGrowthReflection(null); setGrowthReflectionDismissed(true); }} className="text-xs text-primary underline">Continue to quest →</button>
+            </motion.div>
+          ) : showCouncilUnlocked ? (
+            <motion.div
+              key="council-unlocked"
+              initial={{ opacity: 0, scale: 0.92 }}
+              animate={{ opacity: 1, scale: 1 }}
+              className="flex flex-col items-center gap-6 text-center px-6 max-w-sm"
+            >
+              <motion.div
+                animate={{ rotate: [0, -8, 8, -8, 8, 0], scale: [1, 1.2, 1] }}
+                transition={{ duration: 1, delay: 0.2 }}
+                className="text-5xl"
+              >
+                🎉
+              </motion.div>
+              <div className="space-y-2">
+                <h2 className="text-xl font-bold text-foreground">Your Council is ready</h2>
+                <p className="text-sm text-muted-foreground leading-relaxed">
+                  You've mapped the foundations of who you are. Seven mentors are now ready to help you turn that into something real.
+                </p>
+              </div>
+              <div className="flex flex-col gap-3 w-full">
+                <button
+                  onClick={() => navigate("/council?view=intake")}
+                  className="w-full py-3 rounded-xl font-semibold text-sm text-white"
+                  style={{ background: "hsl(265, 90%, 62%)" }}
+                >
+                  Meet my Council →
+                </button>
+                <button
+                  onClick={() => navigate("/atlas/quest")}
+                  className="text-sm text-muted-foreground underline"
+                >
+                  Keep exploring Atlas first
+                </button>
+              </div>
             </motion.div>
           ) : showConnectionMoment ? (
             <ConnectionMomentCard

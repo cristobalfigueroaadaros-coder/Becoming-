@@ -59,7 +59,6 @@ export function useProgressiveUnlock() {
       const prevChat = !!p.chat_unlocked;
       const prevProjects = !!p.projects_unlocked;
       const prevCreators = !!p.creators_unlocked;
-      let chatUnlocked = prevChat;
       let projectsUnlocked = prevProjects;
       let creatorsUnlocked = prevCreators;
 
@@ -73,37 +72,36 @@ export function useProgressiveUnlock() {
       };
       const COUNCIL_THRESHOLDS: Record<string, number> = { DISCOVER: 4, GROW: 3, BUILD: 2 };
 
-      // Check chat unlock: user must have explored each required pre-council cluster
-      if (!chatUnlocked) {
-        const phase1Slugs = PHASE1_SLUGS[entryState] ?? PHASE1_SLUGS.DISCOVER;
-        const threshold = COUNCIL_THRESHOLDS[entryState] ?? 4;
+      // Always recompute from live cluster data — never trust the cached DB flag.
+      // The old logic set chat_unlocked=true after 3 total dots, so existing users
+      // may have a stale true value that needs to be corrected.
+      const phase1Slugs = PHASE1_SLUGS[entryState] ?? PHASE1_SLUGS.DISCOVER;
+      const threshold = COUNCIL_THRESHOLDS[entryState] ?? 4;
 
-        // Step 1: get cluster IDs for the required slugs
-        const { data: clusterRows } = await supabase
-          .from("atlas_clusters")
-          .select("id, slug")
-          .in("slug", phase1Slugs);
+      const { data: clusterRows } = await supabase
+        .from("atlas_clusters")
+        .select("id, slug")
+        .in("slug", phase1Slugs);
 
-        // Step 2: for each cluster, check if the user has at least 1 dot
-        const clusterChecks = await Promise.all(
-          (clusterRows || []).map(async (cluster) => {
-            const { count } = await supabase
-              .from("atlas_dots")
-              .select("*", { count: "exact", head: true })
-              .eq("user_id", user.id)
-              .eq("cluster_id", cluster.id);
-            return (count || 0) > 0;
-          })
-        );
-        const exploredCount = clusterChecks.filter(Boolean).length;
+      const clusterChecks = await Promise.all(
+        (clusterRows || []).map(async (cluster) => {
+          const { count } = await supabase
+            .from("atlas_dots")
+            .select("*", { count: "exact", head: true })
+            .eq("user_id", user.id)
+            .eq("cluster_id", cluster.id);
+          return (count || 0) > 0;
+        })
+      );
+      const exploredCount = clusterChecks.filter(Boolean).length;
+      const chatUnlocked = exploredCount >= threshold;
 
-        if (exploredCount >= threshold) {
-          chatUnlocked = true;
-          await supabase
-            .from("profiles")
-            .update({ chat_unlocked: true } as any)
-            .eq("id", user.id);
-        }
+      // Sync the DB flag to match the live computation
+      if (chatUnlocked !== prevChat) {
+        await supabase
+          .from("profiles")
+          .update({ chat_unlocked: chatUnlocked } as any)
+          .eq("id", user.id);
       }
 
       // Check projects unlock condition: has any console thread messages or chats

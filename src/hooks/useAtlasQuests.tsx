@@ -254,6 +254,7 @@ export function useAtlasQuests() {
     isFetching: completedQuery.isFetching || profileQuery.isFetching,
     isOnboarding,
     isOnboardingCompleted,
+    entryState,
     getNextQuest,
     getNextOnboardingQuest,
     getQuestForCluster,
