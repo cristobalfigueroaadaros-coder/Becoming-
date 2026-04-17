@@ -215,9 +215,18 @@ export function useAtlasQuests() {
       if (preCouncilSlugs.includes(cluster.slug) && cluster.dotCount > 0) return null;
     }
 
-    // Search both pools: ATLAS_QUESTS for post-onboarding discovery, and the
-    // full ONBOARDING_QUESTS array which also contains who-i-serve and
-    // how-i-create-impact bonus quests that aren't in ATLAS_QUESTS.
+    // During onboarding, prefer the onboarding quest for this cluster so the
+    // pre-council sequence uses the right quest definitions. ATLAS_QUESTS also
+    // contain quests for these clusters and would be picked first otherwise.
+    if (isOnboarding) {
+      const onboardingQuest = ONBOARDING_QUESTS.find(
+        q => q.clusterSlug === cluster.slug && !completedKeys.has(q.questKey)
+      );
+      if (onboardingQuest) return { quest: onboardingQuest, clusterId };
+    }
+
+    // Post-onboarding: search ATLAS_QUESTS first, then ONBOARDING_QUESTS for
+    // clusters like who-i-serve / how-i-create-impact that only exist there.
     const quest = [...DISCOVERY_QUESTS, ...ONBOARDING_QUESTS].find(
       q => q.clusterSlug === cluster.slug && !completedKeys.has(q.questKey)
     );

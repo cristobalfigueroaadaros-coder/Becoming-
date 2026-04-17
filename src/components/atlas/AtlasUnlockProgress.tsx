@@ -226,15 +226,25 @@ export function AtlasUnlockProgress({
             </div>
           </motion.div>
         ) : (
-          <motion.p
+          <motion.div
             key="hint"
             initial={{ opacity: 0 }}
             animate={{ opacity: 1 }}
             exit={{ opacity: 0 }}
-            className="text-[11px] text-muted-foreground text-center"
+            className="flex items-center justify-between gap-3"
           >
-            Complete {required - filled} more {required - filled === 1 ? "quest" : "quests"} to unlock your Council
-          </motion.p>
+            <p className="text-[11px] text-muted-foreground">
+              {required - filled} more {required - filled === 1 ? "quest" : "quests"} to unlock your Council
+            </p>
+            <Button
+              size="sm"
+              className="gap-1.5 flex-shrink-0 text-xs h-7 px-3"
+              style={{ backgroundColor: color, borderColor: color }}
+              onClick={onKeepExploring}
+            >
+              Continue <ArrowRight className="w-3 h-3" />
+            </Button>
+          </motion.div>
         )}
       </AnimatePresence>
     </motion.div>
