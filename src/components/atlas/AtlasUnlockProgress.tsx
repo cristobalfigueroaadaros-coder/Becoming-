@@ -127,33 +127,22 @@ export function AtlasUnlockProgress({
                 </span>
               </div>
 
-              {/* Connector line (skip after last node) */}
-              {i < nodeLabels.length - 1 && (
-                <div className="flex-1 h-[2px] mx-1 mb-4 rounded-full overflow-hidden bg-white/10">
-                  <motion.div
-                    className="h-full rounded-full"
-                    style={{ backgroundColor: color }}
-                    initial={{ width: "0%" }}
-                    animate={{ width: done ? "100%" : "0%" }}
-                    transition={{ duration: 0.5, delay: i * 0.1 }}
-                  />
-                </div>
-              )}
+              {/* Connector line — between nodes, and last one connects to Council */}
+              <div className="flex-1 h-[2px] mx-1 mb-4 rounded-full overflow-hidden bg-white/10">
+                <motion.div
+                  className="h-full rounded-full"
+                  style={{ backgroundColor: color }}
+                  initial={{ width: "0%" }}
+                  animate={{ width: (i < nodeLabels.length - 1 ? done : isUnlocked) ? "100%" : "0%" }}
+                  transition={{ duration: 0.5, delay: i * 0.1 }}
+                />
+              </div>
             </div>
           );
         })}
 
         {/* Council unlock node */}
         <div className="flex items-center flex-shrink-0">
-          <div className="flex-shrink-0 w-6 h-[2px] mx-1 mb-4 rounded-full overflow-hidden bg-white/10">
-            <motion.div
-              className="h-full rounded-full"
-              style={{ backgroundColor: color }}
-              initial={{ width: "0%" }}
-              animate={{ width: isUnlocked ? "100%" : "0%" }}
-              transition={{ duration: 0.5 }}
-            />
-          </div>
           <div className="flex flex-col items-center gap-1 flex-shrink-0">
             <motion.div
               animate={isUnlocked ? { scale: [1, 1.2, 1], rotate: [0, 5, -5, 0] } : {}}
