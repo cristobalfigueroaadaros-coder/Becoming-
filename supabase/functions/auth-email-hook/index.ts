@@ -36,7 +36,7 @@ const EMAIL_TEMPLATES: Record<string, React.ComponentType<any>> = {
 }
 
 // Configuration
-const SITE_NAME = "my-ai-council"
+const SITE_NAME = "Bcoming"
 const SENDER_DOMAIN = "notify.bcoming.app"
 const ROOT_DOMAIN = "bcoming.app"
 const FROM_DOMAIN = "bcoming.app" // Domain shown in From address (may be root or sender subdomain)
