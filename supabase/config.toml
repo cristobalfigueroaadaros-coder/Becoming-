@@ -1,157 +1,111 @@
 project_id = "vfrocfbbcvpfqehzntbc"
 
-[functions.chat-mentor]
-verify_jwt = true
-
-[functions.complete-task]
-verify_jwt = true
-
-[functions.extract-task]
-verify_jwt = true
-
-[functions.council-meeting]
-verify_jwt = true
-
-[functions.generate-council-tasks]
-verify_jwt = true
-
-[functions.trigger-shadow]
-verify_jwt = true
-
-[functions.force-shadow]
-verify_jwt = true
-
-[functions.analyze-constellation]
-verify_jwt = true
-
-[functions.generate-learning-module]
-verify_jwt = true
-
-[functions.analyze-dot-connections]
-verify_jwt = true
-
-[functions.create-insight-dot]
-verify_jwt = true
-
-[functions.purpose-discovery]
-verify_jwt = true
-
-[functions.analyze-purpose-alignment]
-verify_jwt = true
-
-[functions.analyze-constellation-insights]
-verify_jwt = true
-
-[functions.suggest-dot-improvements]
-verify_jwt = true
-
-[functions.refine-purpose]
-verify_jwt = true
-
-[functions.refine-purpose-from-constellation]
-verify_jwt = true
-
-[functions.analyze-purpose-evolution]
-verify_jwt = true
-
-[functions.generate-daily-challenge]
-verify_jwt = true
-
-[functions.generate-challenge-insights]
-verify_jwt = true
-
-[functions.task-reflection]
-verify_jwt = true
-
-[functions.transcribe-audio]
-verify_jwt = true
-
-[functions.capture-energetic-moment]
-verify_jwt = true
-
-[functions.future-self-guidance]
-verify_jwt = true
-
-[functions.analyze-vibrational-patterns]
-verify_jwt = true
-
-[functions.analyze-optimal-timing]
-verify_jwt = true
-
-[functions.evolve-purpose]
-verify_jwt = true
-
-[functions.connect-all-dots]
-verify_jwt = true
-
-[functions.generate-daily-whisper]
-verify_jwt = true
-
-[functions.trigger-future-self-post-council]
-verify_jwt = true
-
-[functions.process-user-foundation]
-verify_jwt = true
-
-[functions.generate-daily-mentor-outreach]
-verify_jwt = true
-
-[functions.detect-breakthrough]
-verify_jwt = true
-
-[functions.integrator-setup]
-verify_jwt = true
-
-[functions.analyze-value-map]
-verify_jwt = true
-
-[functions.detect-value-map-insights]
-verify_jwt = true
-
-[functions.analyze-numerology]
-verify_jwt = true
-
-[functions.trigger-council-unlock]
-verify_jwt = true
-
-[functions.generate-life-snapshot-image]
-verify_jwt = true
-
-[functions.detect-quest-progress]
-verify_jwt = true
-
-[functions.analyze-journal-entry]
-verify_jwt = true
-
-[functions.check-user-inactivity]
-verify_jwt = false
-
-[functions.generate-narrative-bridge]
-verify_jwt = true
-
-[functions.voice-of-system]
-verify_jwt = true
-
-[functions.generate-momentum-narrative]
-verify_jwt = true
-
-[functions.generate-sprint-insight]
-verify_jwt = true
-
-[functions.generate-onboarding-summary]
-verify_jwt = false
-
-[functions.generate-compound-narrative]
-verify_jwt = true
-
-[functions.seed-initial-capabilities]
-verify_jwt = true
-
-[functions.generate-atlas-dot]
-verify_jwt = false
-
-[functions.evolve-atlas-dot]
-verify_jwt = false
-
-[functions.extract-atlas-signals]
-verify_jwt = true
+[functions]
+  [functions.analyze-constellation]
+    verify_jwt = true
+  [functions.analyze-constellation-insights]
+    verify_jwt = true
+  [functions.analyze-dot-connections]
+    verify_jwt = true
+  [functions.analyze-journal-entry]
+    verify_jwt = true
+  [functions.analyze-numerology]
+    verify_jwt = true
+  [functions.analyze-optimal-timing]
+    verify_jwt = true
+  [functions.analyze-purpose-alignment]
+    verify_jwt = true
+  [functions.analyze-purpose-evolution]
+    verify_jwt = true
+  [functions.analyze-value-map]
+    verify_jwt = true
+  [functions.analyze-vibrational-patterns]
+    verify_jwt = true
+  [functions.auth-email-hook]
+    verify_jwt = false
+  [functions.capture-energetic-moment]
+    verify_jwt = true
+  [functions.chat-mentor]
+    verify_jwt = true
+  [functions.check-user-inactivity]
+    verify_jwt = false
+  [functions.complete-task]
+    verify_jwt = true
+  [functions.connect-all-dots]
+    verify_jwt = true
+  [functions.council-meeting]
+    verify_jwt = true
+  [functions.create-insight-dot]
+    verify_jwt = true
+  [functions.detect-breakthrough]
+    verify_jwt = true
+  [functions.detect-quest-progress]
+    verify_jwt = true
+  [functions.detect-value-map-insights]
+    verify_jwt = true
+  [functions.evolve-atlas-dot]
+    verify_jwt = false
+  [functions.evolve-purpose]
+    verify_jwt = true
+  [functions.extract-atlas-signals]
+    verify_jwt = true
+  [functions.extract-task]
+    verify_jwt = true
+  [functions.force-shadow]
+    verify_jwt = true
+  [functions.future-self-guidance]
+    verify_jwt = true
+  [functions.generate-atlas-dot]
+    verify_jwt = false
+  [functions.generate-challenge-insights]
+    verify_jwt = true
+  [functions.generate-compound-narrative]
+    verify_jwt = true
+  [functions.generate-council-tasks]
+    verify_jwt = true
+  [functions.generate-daily-challenge]
+    verify_jwt = true
+  [functions.generate-daily-mentor-outreach]
+    verify_jwt = true
+  [functions.generate-daily-whisper]
+    verify_jwt = true
+  [functions.generate-learning-module]
+    verify_jwt = true
+  [functions.generate-life-snapshot-image]
+    verify_jwt = true
+  [functions.generate-momentum-narrative]
+    verify_jwt = true
+  [functions.generate-narrative-bridge]
+    verify_jwt = true
+  [functions.generate-onboarding-summary]
+    verify_jwt = false
+  [functions.generate-sprint-insight]
+    verify_jwt = true
+  [functions.integrator-setup]
+    verify_jwt = true
+  [functions.process-email-queue]
+    verify_jwt = true
+  [functions.process-user-foundation]
+    verify_jwt = true
+  [functions.purpose-discovery]
+    verify_jwt = true
+  [functions.refine-purpose]
+    verify_jwt = true
+  [functions.refine-purpose-from-constellation]
+    verify_jwt = true
+  [functions.seed-initial-capabilities]
+    verify_jwt = true
+  [functions.suggest-dot-improvements]
+    verify_jwt = true
+  [functions.task-reflection]
+    verify_jwt = true
+  [functions.transcribe-audio]
+    verify_jwt = true
+  [functions.trigger-council-unlock]
+    verify_jwt = true
+  [functions.trigger-future-self-post-council]
+    verify_jwt = true
+  [functions.trigger-shadow]
+    verify_jwt = true
+  [functions.voice-of-system]
+    verify_jwt = true
