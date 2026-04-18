@@ -1,5 +1,6 @@
 import { useState, useEffect, useMemo } from "react";
 import { motion } from "framer-motion";
+import DOMPurify from "dompurify";
 import { Sparkles, Loader2 } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import type { IntegratorDailyStep } from "@/hooks/useIntegratorProjects";
@@ -122,7 +123,10 @@ export function ProgressNarrativeBlock({
           <p 
             className="text-sm text-muted-foreground italic leading-relaxed"
             dangerouslySetInnerHTML={{ 
-              __html: displayNarrative.replace(/\*\*(.*?)\*\*/g, '<strong class="text-primary font-medium not-italic">$1</strong>') 
+              __html: DOMPurify.sanitize(
+                displayNarrative.replace(/\*\*(.*?)\*\*/g, '<strong class="text-primary font-medium not-italic">$1</strong>'),
+                { ALLOWED_TAGS: ['strong'], ALLOWED_ATTR: ['class'] }
+              )
             }}
           />
           <p className="text-xs text-muted-foreground/60 mt-2">

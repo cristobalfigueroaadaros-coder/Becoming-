@@ -1,6 +1,7 @@
 import { useEffect, useState } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import confetti from "canvas-confetti";
+import DOMPurify from "dompurify";
 import { Sparkles, Star, Zap, Heart, Loader2 } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 
@@ -140,7 +141,10 @@ export function CelebrationMoment({ xpEarned, onDismiss, taskContext }: Celebrat
               <p 
                 className="text-lg font-medium leading-relaxed"
                 dangerouslySetInnerHTML={{ 
-                  __html: message.replace(/\*\*(.*?)\*\*/g, '<strong class="text-primary">$1</strong>') 
+                  __html: DOMPurify.sanitize(
+                    message.replace(/\*\*(.*?)\*\*/g, '<strong class="text-primary">$1</strong>'),
+                    { ALLOWED_TAGS: ['strong'], ALLOWED_ATTR: ['class'] }
+                  )
                 }}
               />
             )}
