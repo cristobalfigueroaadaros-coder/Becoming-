@@ -121,32 +121,33 @@ export function useAtlasQuests() {
     return STRENGTH_CLUSTERS;
   }
 
+  // Returns true if a pre-council cluster counts as "explored".
+  // Uses dual check: dotCount (may be briefly stale after quest save) OR the cluster's
+  // core onboarding quest is in completedKeys (always fresh after query refetch).
+  function isPreCouncilSlugExplored(slug: string): boolean {
+    const cluster = clusters.find(c => c.slug === slug);
+    const hasDot = cluster ? cluster.dotCount > 0 : false;
+    const coreQuestDone = CORE_ONBOARDING_QUESTS.some(q => q.clusterSlug === slug && completedKeys.has(q.questKey));
+    return hasDot || coreQuestDone;
+  }
+
   function getNextOnboardingQuest(): { quest: AtlasQuestDefinition; clusterId: string; onboardingIndex: number } | null {
     const preCouncilSlugs = PHASE_PRE_COUNCIL_SLUGS[entryState] || PHASE_PRE_COUNCIL_SLUGS.DISCOVER;
 
-    // Check whether all pre-council clusters already have at least one dot
-    const preCouncilComplete = preCouncilSlugs.every(slug => {
-      const cluster = clusters.find(c => c.slug === slug);
-      return cluster && cluster.dotCount > 0;
-    });
+    // Dual check: a slot counts as done if it has a dot OR its onboarding quest is completed.
+    // This prevents stale atlas-dots cache from triggering a re-offer of an already-done cluster.
+    const preCouncilComplete = preCouncilSlugs.every(slug => isPreCouncilSlugExplored(slug));
 
     if (!preCouncilComplete) {
       // Guide the user through the phase-specific pre-council sequence first
       for (const slug of preCouncilSlugs) {
         const cluster = clusters.find(c => c.slug === slug);
         if (!cluster) continue;
-        // Only offer the quest if the cluster has no dots yet (hasn't been explored)
-        if (cluster.dotCount > 0) continue;
+        // Skip if already explored (dot exists OR onboarding quest completed)
+        if (isPreCouncilSlugExplored(slug)) continue;
         const questIndex = CORE_ONBOARDING_QUESTS.findIndex(q => q.clusterSlug === slug && !completedKeys.has(q.questKey));
         if (questIndex !== -1) {
           return { quest: CORE_ONBOARDING_QUESTS[questIndex], clusterId: cluster.id, onboardingIndex: questIndex };
-        }
-        // Fallback: if the core onboarding quest was already completed via another path,
-        // pick any available ATLAS_QUEST for this cluster so the pre-council slot can still
-        // be filled and the progress bar advances.
-        const fallback = DISCOVERY_QUESTS.find(q => q.clusterSlug === slug && !completedKeys.has(q.questKey));
-        if (fallback) {
-          return { quest: fallback, clusterId: cluster.id, onboardingIndex: questIndex };
         }
       }
     }

@@ -4,6 +4,7 @@ import { useNavigate, useSearchParams } from "react-router-dom";
 import { Compass, Sparkles, Lock } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { useAtlas, ClusterWithState, DOMAIN_COLORS, getCurrentPhase, getNextPhaseThreshold } from "@/hooks/useAtlas";
+import { useAtlasQuests } from "@/hooks/useAtlasQuests";
 import { AtlasClusterNode, AtlasClusterDetail } from "@/components/atlas";
 import { AtlasOnboardingOverlay } from "@/components/atlas/AtlasOnboardingOverlay";
 import { AtlasUnlockProgress } from "@/components/atlas/AtlasUnlockProgress";
@@ -81,6 +82,7 @@ const AtlasPage = () => {
   const navigate = useNavigate();
   const [searchParams, setSearchParams] = useSearchParams();
   const { clusters, domains, totalDots, isLoading, miniDotCounts } = useAtlas();
+  const { completedKeys } = useAtlasQuests();
   const [selectedCluster, setSelectedCluster] = useState<ClusterWithState | null>(null);
   const [isMobile, setIsMobile] = useState(false);
   useEffect(() => {
@@ -98,17 +100,27 @@ const AtlasPage = () => {
   const [opportunityDismissed, setOpportunityDismissed] = useState(false);
   const { data: opportunity } = useOpportunityDetection(totalDots);
 
-  // Count how many Phase 1 cluster slugs (always unlocked) have ≥1 dot.
-  // These are the exact clusters shown as nodes in AtlasUnlockProgress.
+  // Count how many pre-council cluster slugs are explored.
+  // Dual check: dotCount (from atlas-dots) OR onboarding quest completed (from atlas-quests-completed).
+  // Both queries are invalidated after each quest, but completedKeys refreshes first
+  // and prevents stale dotCount from showing wrong progress.
   const PHASE1_SLUGS_BY_STATE: Record<string, string[]> = {
     DISCOVER: ["skills", "passions", "life-events", "experiments"],
     GROW:     ["skills", "passions", "life-events"],
     BUILD:    ["skills", "passions"],
   };
+  const PHASE1_QUEST_KEYS: Record<string, string> = {
+    "skills": "onboarding_skills",
+    "passions": "onboarding_passions",
+    "life-events": "onboarding_life_events",
+    "experiments": "onboarding_experiments",
+  };
   const phase1Slugs = PHASE1_SLUGS_BY_STATE[entryState] ?? PHASE1_SLUGS_BY_STATE.DISCOVER;
-  const phase1ExploredCount = phase1Slugs.filter(
-    slug => (clusters.find(c => c.slug === slug)?.dotCount ?? 0) > 0
-  ).length;
+  const phase1ExploredCount = phase1Slugs.filter(slug => {
+    const hasDot = (clusters.find(c => c.slug === slug)?.dotCount ?? 0) > 0;
+    const hasCompletedQuest = completedKeys.has(PHASE1_QUEST_KEYS[slug] ?? "");
+    return hasDot || hasCompletedQuest;
+  }).length;
   const councilThreshold = COUNCIL_UNLOCK_THRESHOLDS[entryState] ?? 4;
   const councilUnlocked = phase1ExploredCount >= councilThreshold;
 
