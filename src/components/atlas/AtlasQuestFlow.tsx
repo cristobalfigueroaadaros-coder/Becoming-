@@ -473,29 +473,13 @@ export const AtlasQuestFlow = ({ quest, clusterId, onboardingIndex }: Props) => 
         return;
       }
 
-      // Check if this dot just completed the pre-council sequence
+      // Check if this quest just hit the council unlock threshold.
+      // completedCount is stale (before this quest's DB insert is reflected in cache),
+      // so +1 accounts for the quest we just saved.
       if (isOnboarding) {
-        const PHASE1_SLUGS: Record<string, string[]> = {
-          DISCOVER: ["skills", "passions", "life-events", "experiments"],
-          GROW:     ["skills", "passions", "life-events"],
-          BUILD:    ["skills", "passions"],
-        };
         const COUNCIL_THRESHOLDS: Record<string, number> = { DISCOVER: 4, GROW: 3, BUILD: 2 };
-        const phase1Slugs = PHASE1_SLUGS[entryState] ?? PHASE1_SLUGS.DISCOVER;
         const councilThreshold = COUNCIL_THRESHOLDS[entryState] ?? 4;
-
-        // Count explored phase1 clusters BEFORE this dot (using stale clusters data)
-        const exploredBefore = phase1Slugs.filter(slug => {
-          const c = clusters.find(cl => cl.slug === slug);
-          return c && c.dotCount > 0;
-        }).length;
-
-        // After this dot: the just-saved cluster counts as explored
-        const justSavedCluster = clusters.find(c => c.id === dotClusterId);
-        const justSavedSlug = justSavedCluster?.slug ?? "";
-        const exploredAfter = exploredBefore + (phase1Slugs.includes(justSavedSlug) && (justSavedCluster?.dotCount ?? 0) === 0 ? 1 : 0);
-
-        if (exploredAfter >= councilThreshold && exploredBefore < councilThreshold) {
+        if (completedCount + 1 >= councilThreshold && completedCount < councilThreshold) {
           setShowCouncilUnlocked(true);
           return;
         }

@@ -12,38 +12,31 @@ interface AtlasUnlockProgressProps {
   onKeepExploring: () => void;
 }
 
-// Only Phase 1 clusters are always unlocked from the start:
-// passions, skills, personal-frustrations, experiments, golden-moments
-// All other clusters unlock progressively (Phase 2 needs 3+ dots, Phase 3 needs 6+, etc.)
-// Node labels below map exclusively to Phase 1 clusters.
 const PHASE_CONFIG: Record<EntryState, {
   label: string;
   required: number;
-  nodeLabels: string[];  // maps to: skills, passions, life-events, experiments (all Phase 1)
+  nodeLabels: string[];
   color: string;
   glow: string;
 }> = {
   DISCOVER: {
     label: "Discovery",
     required: 4,
-    // skills → passions → life-events → experiments
-    nodeLabels: ["What you're good at", "What lights you up", "A life moment", "What you've tried"],
+    nodeLabels: ["1", "2", "3", "4"],
     color: "hsl(265, 90%, 62%)",
     glow: "hsl(265, 90%, 62%, 0.4)",
   },
   GROW: {
     label: "Growth",
     required: 3,
-    // skills → passions → life-events
-    nodeLabels: ["What you're good at", "What lights you up", "A life moment"],
+    nodeLabels: ["1", "2", "3"],
     color: "hsl(168, 74%, 45%)",
     glow: "hsl(168, 74%, 45%, 0.4)",
   },
   BUILD: {
     label: "Builder",
     required: 2,
-    // skills → passions
-    nodeLabels: ["What you're good at", "What lights you up"],
+    nodeLabels: ["1", "2"],
     color: "hsl(38, 92%, 55%)",
     glow: "hsl(38, 92%, 55%, 0.4)",
   },
