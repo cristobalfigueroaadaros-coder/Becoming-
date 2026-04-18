@@ -476,8 +476,8 @@ export const AtlasQuestFlow = ({ quest, clusterId, onboardingIndex }: Props) => 
       // Check if this dot just completed the pre-council sequence
       if (isOnboarding) {
         const PHASE1_SLUGS: Record<string, string[]> = {
-          DISCOVER: ["skills", "passions", "personal-frustrations", "experiments"],
-          GROW:     ["skills", "passions", "personal-frustrations"],
+          DISCOVER: ["skills", "passions", "life-events", "experiments"],
+          GROW:     ["skills", "passions", "life-events"],
           BUILD:    ["skills", "passions"],
         };
         const COUNCIL_THRESHOLDS: Record<string, number> = { DISCOVER: 4, GROW: 3, BUILD: 2 };

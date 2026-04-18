@@ -19,23 +19,23 @@ interface AtlasUnlockProgressProps {
 const PHASE_CONFIG: Record<EntryState, {
   label: string;
   required: number;
-  nodeLabels: string[];  // maps to: skills, passions, personal-frustrations, experiments (all Phase 1)
+  nodeLabels: string[];  // maps to: skills, passions, life-events, experiments (all Phase 1)
   color: string;
   glow: string;
 }> = {
   DISCOVER: {
     label: "Discovery",
     required: 4,
-    // skills → passions → personal-frustrations → experiments
-    nodeLabels: ["What you're good at", "What lights you up", "What you'd change", "What you've tried"],
+    // skills → passions → life-events → experiments
+    nodeLabels: ["What you're good at", "What lights you up", "A life moment", "What you've tried"],
     color: "hsl(265, 90%, 62%)",
     glow: "hsl(265, 90%, 62%, 0.4)",
   },
   GROW: {
     label: "Growth",
     required: 3,
-    // skills → passions → personal-frustrations
-    nodeLabels: ["What you're good at", "What lights you up", "What you'd change"],
+    // skills → passions → life-events
+    nodeLabels: ["What you're good at", "What lights you up", "A life moment"],
     color: "hsl(168, 74%, 45%)",
     glow: "hsl(168, 74%, 45%, 0.4)",
   },

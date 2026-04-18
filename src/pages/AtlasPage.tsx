@@ -101,8 +101,8 @@ const AtlasPage = () => {
   // Count how many Phase 1 cluster slugs (always unlocked) have ≥1 dot.
   // These are the exact clusters shown as nodes in AtlasUnlockProgress.
   const PHASE1_SLUGS_BY_STATE: Record<string, string[]> = {
-    DISCOVER: ["skills", "passions", "personal-frustrations", "experiments"],
-    GROW:     ["skills", "passions", "personal-frustrations"],
+    DISCOVER: ["skills", "passions", "life-events", "experiments"],
+    GROW:     ["skills", "passions", "life-events"],
     BUILD:    ["skills", "passions"],
   };
   const phase1Slugs = PHASE1_SLUGS_BY_STATE[entryState] ?? PHASE1_SLUGS_BY_STATE.DISCOVER;

@@ -11,8 +11,8 @@ const SERVICE_CLUSTERS = new Set(["who-i-serve", "how-i-create-impact"]);
 // Phase-specific pre-council cluster slugs (must match AtlasPage PHASE1_SLUGS_BY_STATE)
 const PHASE_PRE_COUNCIL_SLUGS: Record<string, string[]> = {
   BUILD:    ["skills", "passions"],
-  GROW:     ["skills", "passions", "personal-frustrations"],
-  DISCOVER: ["skills", "passions", "personal-frustrations", "experiments"],
+  GROW:     ["skills", "passions", "life-events"],
+  DISCOVER: ["skills", "passions", "life-events", "experiments"],
 };
 
 // Order is driven by ONBOARDING_QUEST_SEQUENCE — DO NOT sort by array position
