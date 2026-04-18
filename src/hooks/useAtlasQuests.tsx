@@ -141,6 +141,13 @@ export function useAtlasQuests() {
         if (questIndex !== -1) {
           return { quest: CORE_ONBOARDING_QUESTS[questIndex], clusterId: cluster.id, onboardingIndex: questIndex };
         }
+        // Fallback: if the core onboarding quest was already completed via another path,
+        // pick any available ATLAS_QUEST for this cluster so the pre-council slot can still
+        // be filled and the progress bar advances.
+        const fallback = DISCOVERY_QUESTS.find(q => q.clusterSlug === slug && !completedKeys.has(q.questKey));
+        if (fallback) {
+          return { quest: fallback, clusterId: cluster.id, onboardingIndex: questIndex };
+        }
       }
     }
 

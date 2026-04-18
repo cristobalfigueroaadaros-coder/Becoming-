@@ -127,7 +127,7 @@ const AtlasPage = () => {
       setIntakeCompleted(!!p?.console_intake_completed);
       if (p?.entry_state) setEntryState(p.entry_state);
       if (!p?.atlas_onboarding_completed) {
-        const timer = setTimeout(() => setShowOnboarding(true), 10000);
+        const timer = setTimeout(() => setShowOnboarding(true), 5000);
         return () => clearTimeout(timer);
       }
     };
