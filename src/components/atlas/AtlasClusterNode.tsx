@@ -11,13 +11,14 @@ interface AtlasClusterNodeProps {
   miniDotCounts?: Record<string, number>;
   isFocused?: boolean;
   isFaded?: boolean;
+  scale?: number;
 }
 
-function getOrbitPositions(dotCount: number, baseRadius: number): { x: number; y: number }[] {
+function getOrbitPositions(dotCount: number, baseRadius: number, scale = 1): { x: number; y: number }[] {
   const orbits = [
-    { radius: baseRadius + 14, maxDots: 6 },
-    { radius: baseRadius + 28, maxDots: 8 },
-    { radius: baseRadius + 40, maxDots: 12 },
+    { radius: baseRadius + Math.round(14 * scale), maxDots: 6 },
+    { radius: baseRadius + Math.round(28 * scale), maxDots: 8 },
+    { radius: baseRadius + Math.round(40 * scale), maxDots: 12 },
   ];
   const positions: { x: number; y: number }[] = [];
   let remaining = dotCount;
@@ -45,7 +46,7 @@ const GROWTH_STYLES: Record<string, { size: number; opacity: string; glowSize: n
   mature:    { size: 108, opacity: "opacity-100", glowSize: 30, pulse: true },
 };
 
-export const AtlasClusterNode = ({ cluster, index, onTap, isHighlighted, miniDotCounts = {}, isFocused, isFaded }: AtlasClusterNodeProps) => {
+export const AtlasClusterNode = ({ cluster, index, onTap, isHighlighted, miniDotCounts = {}, isFocused, isFaded, scale = 1 }: AtlasClusterNodeProps) => {
   const domainName = cluster.meta_domain?.name || "Person";
   const isGolden = cluster.slug === "golden-moments";
   const isProject = cluster.cluster_category === "project";
@@ -53,16 +54,22 @@ export const AtlasClusterNode = ({ cluster, index, onTap, isHighlighted, miniDot
     ? { bg: "hsl(0, 75%, 55%)", glow: "hsl(0, 75%, 55%, 0.35)", border: "hsl(0, 75%, 45%)", gradient: "linear-gradient(135deg, hsl(0, 75%, 55%), hsl(350, 80%, 45%))" }
     : isGolden
     ? { bg: "hsl(40, 85%, 55%)", glow: "hsl(40, 85%, 55%, 0.35)", border: "hsl(40, 85%, 55%, 0.6)", gradient: "linear-gradient(135deg, hsl(40, 85%, 55%), hsl(30, 90%, 50%))" }
-    : { 
+    : {
         bg: DOMAIN_COLORS[domainName]?.bg || DOMAIN_COLORS.Person.bg,
         glow: DOMAIN_COLORS[domainName]?.glow || DOMAIN_COLORS.Person.glow,
         border: DOMAIN_COLORS[domainName]?.border || DOMAIN_COLORS.Person.border,
         gradient: `linear-gradient(135deg, ${DOMAIN_COLORS[domainName]?.bg || "hsl(265, 90%, 62%)"}, ${DOMAIN_COLORS[domainName]?.border || "hsl(265, 80%, 50%)"})`,
       };
   const state = cluster.computedState;
-  const style = GROWTH_STYLES[state] || GROWTH_STYLES.dormant;
+  const rawStyle = GROWTH_STYLES[state] || GROWTH_STYLES.dormant;
+  // Apply scale for mobile — all pixel values shrink proportionally
+  const style = {
+    ...rawStyle,
+    size: Math.round(rawStyle.size * scale),
+    glowSize: Math.round(rawStyle.glowSize * scale),
+  };
   const baseRadius = style.size / 2;
-  const orbitPositions = getOrbitPositions(cluster.dots.length, baseRadius);
+  const orbitPositions = getOrbitPositions(cluster.dots.length, baseRadius, scale);
 
   const clusterMiniDotTotal = cluster.dots.reduce((sum, d) => sum + (miniDotCounts[d.id] || 0), 0);
   const hasDepth = clusterMiniDotTotal > 0;
@@ -148,11 +155,11 @@ export const AtlasClusterNode = ({ cluster, index, onTap, isHighlighted, miniDot
                 className="absolute rounded-full"
                 style={{
                   backgroundColor: getDotColor(dot),
-                  left: `calc(50% + ${pos.x}px - 5px)`,
-                  top: `calc(50% + ${pos.y}px - 5px)`,
-                  boxShadow: `0 0 ${hasMinis ? 8 + dotMiniCount * 2 : 6}px ${getDotColor(dot)}80`,
-                  width: hasMinis ? 12 : 10,
-                  height: hasMinis ? 12 : 10,
+                  left: `calc(50% + ${pos.x}px - ${Math.round(5 * scale)}px)`,
+                  top: `calc(50% + ${pos.y}px - ${Math.round(5 * scale)}px)`,
+                  boxShadow: `0 0 ${Math.round((hasMinis ? 8 + dotMiniCount * 2 : 6) * scale)}px ${getDotColor(dot)}80`,
+                  width: Math.round((hasMinis ? 12 : 10) * scale),
+                  height: Math.round((hasMinis ? 12 : 10) * scale),
                 }}
                 initial={{ opacity: 0, scale: 0 }}
                 animate={{ opacity: 1, scale: 1 }}

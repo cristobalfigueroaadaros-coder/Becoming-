@@ -82,6 +82,13 @@ const AtlasPage = () => {
   const [searchParams, setSearchParams] = useSearchParams();
   const { clusters, domains, totalDots, isLoading, miniDotCounts } = useAtlas();
   const [selectedCluster, setSelectedCluster] = useState<ClusterWithState | null>(null);
+  const [isMobile, setIsMobile] = useState(false);
+  useEffect(() => {
+    const check = () => setIsMobile(window.innerWidth < 768);
+    check();
+    window.addEventListener("resize", check);
+    return () => window.removeEventListener("resize", check);
+  }, []);
   const prevUnlockedRef = useRef<Set<string>>(new Set());
   const highlightSlug = searchParams.get("highlight");
   const [highlightedSlug, setHighlightedSlug] = useState<string | null>(null);
@@ -168,7 +175,7 @@ const AtlasPage = () => {
   const unlockedCount = clusters.filter(c => c.computedState !== "locked").length;
 
   return (
-    <div className="min-h-screen bg-cosmic relative overflow-hidden">
+    <div className={`min-h-screen bg-cosmic relative ${isMobile ? "overflow-x-hidden overflow-y-auto" : "overflow-hidden"}`}>
       {/* Living cosmic background layers */}
       <div className="absolute inset-0 pointer-events-none">
         <div
@@ -255,8 +262,8 @@ const AtlasPage = () => {
         </div>
       </div>
 
-      {/* Cluster map */}
-      <div className="relative z-10 w-full" style={{ height: "calc(100vh - 220px)" }}>
+      {/* Cluster map — taller on mobile so clusters breathe instead of piling up */}
+      <div className="relative z-10 w-full" style={{ height: isMobile ? "960px" : "calc(100vh - 220px)" }}>
         {/* Connection lines — multi-directional network */}
         <svg className="absolute inset-0 w-full h-full pointer-events-none" style={{ zIndex: 0 }}>
           <defs>
@@ -309,6 +316,7 @@ const AtlasPage = () => {
                 miniDotCounts={miniDotCounts}
                 isFocused={!!selectedCluster && selectedCluster.id === cluster.id}
                 isFaded={!!selectedCluster && selectedCluster.id !== cluster.id}
+                scale={isMobile ? 0.78 : 1}
               />
             </div>
           );
