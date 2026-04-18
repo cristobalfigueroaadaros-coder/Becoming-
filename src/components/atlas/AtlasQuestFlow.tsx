@@ -503,7 +503,7 @@ export const AtlasQuestFlow = ({ quest, clusterId, onboardingIndex }: Props) => 
 
       // For onboarding, go to next quest; otherwise go to atlas with highlight
       if (isOnboarding) {
-        navigate("/atlas/quest");
+        navigate("/atlas/quest", { state: { ts: Date.now() } });
       } else {
         const targetSlug = clusters.find(c => c.id === dotClusterId)?.slug;
         navigate(targetSlug ? `/atlas?highlight=${targetSlug}` : "/atlas");
@@ -520,7 +520,7 @@ export const AtlasQuestFlow = ({ quest, clusterId, onboardingIndex }: Props) => 
     if (isOnboarding && onboardingIndex === 12) {
       navigate("/atlas");
     } else if (isOnboarding) {
-      navigate("/atlas/quest");
+      navigate("/atlas/quest", { state: { ts: Date.now() } });
     } else {
       navigate("/atlas");
     }
@@ -588,7 +588,7 @@ export const AtlasQuestFlow = ({ quest, clusterId, onboardingIndex }: Props) => 
                   Meet my Council →
                 </button>
                 <button
-                  onClick={() => navigate("/atlas/quest")}
+                  onClick={() => navigate("/atlas/quest", { state: { ts: Date.now() } })}
                   className="text-sm text-muted-foreground underline"
                 >
                   Keep exploring Atlas first

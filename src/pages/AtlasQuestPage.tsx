@@ -1,5 +1,5 @@
 import { useState, useEffect } from "react";
-import { useSearchParams } from "react-router-dom";
+import { useSearchParams, useLocation } from "react-router-dom";
 import { useAtlasQuests } from "@/hooks/useAtlasQuests";
 import { AtlasQuestFlow } from "@/components/atlas/AtlasQuestFlow";
 import { useAtlas } from "@/hooks/useAtlas";
@@ -18,14 +18,18 @@ const AtlasQuestPage = () => {
   // and the cache is stale until the refetch finishes. Locking with stale data would
   // pick the just-completed quest again or the wrong next one.
   type QuestData = { quest: any; clusterId: string; onboardingIndex?: number } | null;
+  const location = useLocation();
   const [lockedQuestData, setLockedQuestData] = useState<QuestData | "none">("none");
-  // Safety valve: after 4 s, force-proceed regardless of loading state so the
-  // spinner can never be permanently stuck (e.g. due to a background-refetch loop).
+  // Reset locked quest and safety-valve timer every time we navigate to this page
+  // (location.key changes on each navigation, even same-URL navigations with state).
+  // This fixes the stuck-on-3-options bug when navigating /atlas/quest → /atlas/quest.
   const [timedOut, setTimedOut] = useState(false);
   useEffect(() => {
+    setLockedQuestData("none");
+    setTimedOut(false);
     const t = setTimeout(() => setTimedOut(true), 4000);
     return () => clearTimeout(t);
-  }, []);
+  }, [location.key]);
 
   useEffect(() => {
     const ready = timedOut || (!isLoading && !questsLoading && !questsFetching);
