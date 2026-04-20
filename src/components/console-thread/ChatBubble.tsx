@@ -70,7 +70,9 @@ const ChatBubble = ({ message, index, perspectiveIndex }: ChatBubbleProps) => {
   const isBanter = message.messageType === "banter";
   const isNotification = message.messageType === "notification";
   const hexColor = getHexColor(message.mentorColor);
-  const showTutorialArrow = message.messageType === "perspective" && perspectiveIndex === 3 && localStorage.getItem('save_tutorial_shown') !== '1';
+  const isPerspective = message.messageType === "perspective";
+  const tutorialNotShown = localStorage.getItem('save_tutorial_shown') !== '1';
+  const showTutorialArrow = isPerspective && tutorialNotShown;
 
   // Notification: WhatsApp-style CTA card
   if (isNotification && !isUser) {
@@ -184,9 +186,9 @@ const ChatBubble = ({ message, index, perspectiveIndex }: ChatBubbleProps) => {
                 {cleanMarkdown(message.content)}
                 <InsightActionButton
                   insightText={message.content}
-                  sourceType={message.messageType === "perspective" ? "mentor_perspective" : "council_guidance"}
+                  sourceType={isPerspective ? "mentor_perspective" : "council_guidance"}
                   sourceMentor={message.mentorType}
-                  className="opacity-0 group-hover/msg:opacity-100 mt-1.5 -mb-0.5"
+                  className={isPerspective ? "opacity-40 hover:opacity-100 mt-1.5 -mb-0.5" : "opacity-0 group-hover/msg:opacity-100 mt-1.5 -mb-0.5"}
                   showTutorialArrow={showTutorialArrow}
                 />
               </div>

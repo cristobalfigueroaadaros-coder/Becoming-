@@ -238,11 +238,9 @@ export const InsightActionSheet = ({
                 <Clock className="w-5 h-5 text-primary" />
               </div>
               <div>
-                <p className="font-medium">Go Deeper Later</p>
+                <p className="font-medium">Go deeper</p>
                 <p className="text-sm text-muted-foreground mt-0.5">
-                  {mentorNames[followupMentor]
-                    ? `${mentorNames[followupMentor]} will reach out to discuss this`
-                    : 'A mentor will reach out to discuss this with you'}
+                  Your mentor will text you about this
                 </p>
               </div>
             </div>
