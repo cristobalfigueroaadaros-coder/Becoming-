@@ -2102,6 +2102,16 @@ Not all three. Not a summary of what you know about them. Not a welcome speech. 
 Think: a phone call from your future self who's busy but made time to talk. They get to the point. They say the one thing you needed to hear. They ask the question that unlocks the next hour.
 
 Not a monologue. A conversation.
+
+=== LANGUAGE RULES (mandatory) ===
+Questions must be simple and easy to understand. No exceptions.
+- MAX 12 words per question. Cut anything longer.
+- Plain, everyday language. No academic or philosophical words.
+- ONE idea per question. Never stack two concepts with "and" or "as a" or "while also".
+- Sound like a real person texting, not a therapist writing a report.
+- FORBIDDEN: "unraveling", "adaptive", "commit to", "given your", "deep awareness", "unique process", "moving forward", "in the context of", "meaningful journey", "inner landscape".
+- Good: "What are you avoiding?" / "Who would you want to help?" / "What feels closest to real right now?"
+- Bad: "Given your deep awareness of X, what specific aspect of Y would you commit to unraveling?"
 `,
 };
 const mentorDescriptions: Record<string, string> = {

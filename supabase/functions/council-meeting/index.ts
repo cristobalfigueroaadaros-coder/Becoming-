@@ -1392,71 +1392,62 @@ ${Object.entries(mentorPerspectives).map(([m, p]) => `${mentorNames[m]}: ${p}`).
 `;
       let nextQuestionPrompt = "";
 
+      const QUESTION_STYLE_RULES = `
+QUESTION RULES (non-negotiable):
+- Max 12 words. If you go over, cut it.
+- Plain, everyday language. No academic or philosophical words.
+- ONE idea only. No "and", no compound clauses, no stacking.
+- Sound like a real person texting a friend, not a therapist.
+- FORBIDDEN words/phrases: "unraveling", "adaptive", "unique process", "commit to", "given your", "deep awareness", "meaningful journey", "moving forward", "inner work".
+- Good: "What's the one thing you keep avoiding?" / "Who would you build this for first?"
+- Bad: "Given your background, what specific aspect would you now commit to exploring?"`;
+
       if (journeyStage === "DISCOVERY") {
-        // DISCOVERY: Guide toward self-understanding and exploration
-        nextQuestionPrompt = `You are the Council. The user is in DISCOVERY stage - exploring, seeking understanding.
+        nextQuestionPrompt = `You are the user's future self asking ONE follow-up question.
 ${userContextForFollowUp}
-User's question: "${question}"
-Domain: ${domainFocus}
+User's message: "${question}"
+${QUESTION_STYLE_RULES}
+${domainFocus === "PERSONAL" ?
+  'Good examples: "What keeps pulling you back to this?" / "What part of this scares you most?"' :
+  'Good examples: "Who would you build this for first?" / "What problem do you actually want to fix?"'}
 
-Generate ONE short question (max 15 words) that helps them reflect on what they shared and move toward clarity. The question MUST connect to their background, story, and goals — not be generic.
-${domainFocus === "PERSONAL" ? 
-  'Examples:\n- "What part of this feels most alive when you imagine it?"\n- "What pattern do you notice keeps showing up here?"' :
-  'Examples:\n- "What kind of problem do you most want to solve?"\n- "Who would you want to help with this?"'}
-
-Just the question, nothing else.`;
+Output ONLY the question. Nothing else.`;
       } else if (journeyStage === "CLARITY") {
-        // CLARITY: Guide toward commitment and sharpening focus
         if (domainFocus === "PERSONAL") {
-          nextQuestionPrompt = `You are the Council. The user is in CLARITY stage on a PERSONAL journey - gaining insight, needs commitment.
+          nextQuestionPrompt = `You are the user's future self asking ONE follow-up question.
 ${userContextForFollowUp}
-User's question: "${question}"
+User's message: "${question}"
+${QUESTION_STYLE_RULES}
+Good examples: "What would make this feel real to you?" / "What's the one thing holding you back?"
 
-Generate ONE short question (max 15 words) that guides toward commitment. MUST connect to their specific background and story.
-Examples:
-- "What would need to be true for you to fully commit to this?"
-- "What's one thing you could try this week to test this?"
-
-Just the question, nothing else.`;
+Output ONLY the question. Nothing else.`;
         } else {
-          // CLARITY + CREATION: Guide toward simplifying and defining
-          nextQuestionPrompt = `You are the Council. The user is in CLARITY stage about CREATION - has direction but needs focus.
+          nextQuestionPrompt = `You are the user's future self asking ONE follow-up question.
 ${userContextForFollowUp}
-User's question: "${question}"
+User's message: "${question}"
+${QUESTION_STYLE_RULES}
+Good examples: "Who specifically needs this most?" / "What's the simplest version of this?"
 
-Generate ONE short question (max 15 words) that helps them narrow down and define their creation idea. MUST reference their specific context.
-Examples:
-- "Who specifically is suffering from this problem right now?"
-- "What would this look like if it was 10x simpler?"
-
-Just the question, nothing else.`;
+Output ONLY the question. Nothing else.`;
         }
       } else if (journeyStage === "ACTION") {
-        // ACTION: Ready for concrete steps
         if (domainFocus === "PERSONAL") {
-          nextQuestionPrompt = `You are the Council. The user is in ACTION stage on a PERSONAL journey - ready for concrete first steps.
+          nextQuestionPrompt = `You are the user's future self asking ONE follow-up question.
 ${userContextForFollowUp}
-User's question: "${question}"
+User's message: "${question}"
+${QUESTION_STYLE_RULES}
+Good examples: "What could you try this week?" / "Who could you talk to about this tomorrow?"
 
-Generate ONE short question (max 15 words) that guides toward a meaningful first step. MUST connect to their background and goals.
-Examples:
-- "What's one conversation you could have this week to test this?"
-- "What could you do tomorrow to start living this?"
-
-Just the question, nothing else.`;
+Output ONLY the question. Nothing else.`;
         } else {
-          // ACTION + CREATION: NOW trigger creation/testing/iteration questions!
-          nextQuestionPrompt = `You are the Council. The user is in ACTION stage about CREATION - ready to build and test!
+          nextQuestionPrompt = `You are the user's future self asking ONE follow-up question.
 ${userContextForFollowUp}
-User's question: "${question}"
+User's message: "${question}"
 Keywords from mentors: ${banterKeywords || "build, test, iterate, measure"}
+${QUESTION_STYLE_RULES}
+Good examples: "What's the simplest version you could launch this week?" / "What would a real test of this look like?"
 
-Generate ONE short question (max 18 words) that guides toward creating something testable. MUST reference their specific idea/context.
-Examples:
-- "What kind of tool could you build this week with measurable outcomes you can test fast?"
-- "What's the simplest version of this you could launch in 7 days?"
-
-Just the question, nothing else.`;
+Output ONLY the question. Nothing else.`;
         }
       }
 
