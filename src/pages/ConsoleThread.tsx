@@ -277,6 +277,39 @@ const ConsoleThread = ({ embedded = false, onProjectNameChange }: ConsoleThreadP
     scrollRef.current?.scrollIntoView({ behavior: "smooth" });
   }, [messages, typing]);
 
+  // Listen for "Go deeper" saves — inject the mentor's follow-up message immediately
+  useEffect(() => {
+    const handleGoDeeper = async (e: Event) => {
+      const { mentorType, followupMessage } = (e as CustomEvent).detail as { mentorType: string; followupMessage: string };
+      const cfg = mentorConfig[mentorType];
+      // Switch to this mentor for 1:1
+      setHandoffMentor(mentorType);
+      const { data: { user } } = await supabase.auth.getUser();
+      if (user) localStorage.setItem(`becoming_handoff_mentor_${user.id}`, mentorType);
+      // Show typing then inject the message
+      setTyping({ name: cfg?.name, icon: cfg?.icon, color: cfg?.color });
+      await new Promise<void>(r => setTimeout(r, 1200));
+      setTyping(null);
+      const msg: ChatMessage = {
+        id: crypto.randomUUID(),
+        role: "mentor",
+        content: followupMessage,
+        mentorName: cfg?.name,
+        mentorType,
+        mentorIcon: cfg?.icon,
+        mentorColor: cfg?.color,
+      };
+      setMessages(prev => [...prev, msg]);
+      setPhase("mentor_1to1");
+      // Persist phase
+      if (user) {
+        supabase.from("profiles").update({ console_thread_phase: "mentor_1to1" } as any).eq("id", user.id).then(() => {});
+      }
+    };
+    window.addEventListener('insight-go-deeper', handleGoDeeper);
+    return () => window.removeEventListener('insight-go-deeper', handleGoDeeper);
+  }, []);
+
   const persistMessage = async (msg: ChatMessage, currentPhase: Phase) => {
     try {
       const { data: { user } } = await supabase.auth.getUser();

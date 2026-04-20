@@ -219,7 +219,7 @@ export const InsightActionSheet = ({
               <div>
                 <p className="font-medium">Add to Creative Space</p>
                 <p className="text-sm text-muted-foreground mt-0.5">
-                  Save as an idea tile to explore freely
+                  Save this to your notebook and connect it with other ideas
                 </p>
               </div>
             </div>

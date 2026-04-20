@@ -105,6 +105,11 @@ export const useSavedInsights = () => {
             if (error) console.error('[GoDeeper] Outreach insert error:', error);
             else console.log('[GoDeeper] Outreach inserted successfully for:', followupMentor);
           });
+
+        // Signal ConsoleThread to inject the mentor's follow-up immediately
+        window.dispatchEvent(new CustomEvent('insight-go-deeper', {
+          detail: { mentorType: followupMentor, followupMessage },
+        }));
       } else {
         console.log('[GoDeeper] skipped — requestFollowup:', requestFollowup, 'followupMentor:', followupMentor);
       }

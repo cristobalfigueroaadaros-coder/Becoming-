@@ -4,6 +4,7 @@ import { Button } from '@/components/ui/button';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from '@/components/ui/dialog';
 import { InsightActionSheet } from './InsightActionSheet';
 import { cn } from '@/lib/utils';
+import { motion } from 'framer-motion';
 
 interface InsightActionButtonProps {
   insightText: string;
@@ -44,9 +45,15 @@ export const InsightActionButton = ({
     <>
       <div className="relative inline-flex items-center">
         {showTutorialArrow && (
-          <span className="absolute -top-5 -right-1 text-primary animate-bounce text-sm pointer-events-none">
-            ↓
-          </span>
+          <motion.div
+            className="absolute -top-10 left-0 flex flex-col items-start pointer-events-none z-10"
+            animate={{ y: [0, -2, 0] }}
+            transition={{ duration: 1.4, repeat: Infinity, ease: "easeInOut" }}
+          >
+            <span className="text-[10px] font-semibold text-primary bg-primary/15 border border-primary/40 rounded-full px-2.5 py-0.5 whitespace-nowrap shadow-sm">
+              Tap to save ↓
+            </span>
+          </motion.div>
         )}
         <Button
           variant="ghost"
@@ -54,6 +61,7 @@ export const InsightActionButton = ({
           onClick={handleClick}
           className={cn(
             "h-7 px-2 text-xs gap-1.5 text-muted-foreground hover:text-foreground hover:bg-accent/50 transition-all opacity-60 hover:opacity-100",
+            showTutorialArrow && "ring-2 ring-primary/60 ring-offset-1 opacity-100 text-primary bg-primary/10 animate-pulse",
             className
           )}
         >
