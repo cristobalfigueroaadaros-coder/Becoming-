@@ -695,7 +695,7 @@ YOUR COUNCIL MISSION: Refine and elevate their emerging direction. Sharpen scope
 - Help them see what's strong about their direction
 - Identify what's unclear or underdeveloped
 - After 4-6 interactions, propose a refined or enhanced version
-- Handoff target: Creative Visionary (if needs creative expansion) or Strategist (if needs structure/positioning)
+- Mandatory handoff target: Strategist Mentor (for structure, positioning, and execution planning)
 === END ENTRY STATE ===
 `;
     } else if (resolvedEntryState === "BUILD") {
@@ -1504,7 +1504,7 @@ ANALYZE:
 RULES:
 ${resolvedEntryState === 'DISCOVER' ? `- User selected DISCOVER phase. You MUST suggest creative_visionary.` :
   resolvedEntryState === 'BUILD' ? `- User selected BUILD phase. You MUST suggest business_mentor.` :
-  resolvedEntryState === 'GROW' ? `- User selected GROW phase. Suggest strategist_mentor or creative_visionary based on conversation.` :
+  resolvedEntryState === 'GROW' ? `- User selected GROW phase. You MUST suggest strategist_mentor.` :
   `- If CLARITY → Suggest strategist_mentor or creative_visionary
 - If NEEDS GUIDANCE → Suggest creative_visionary
 - If STRONG CREATIVE ENERGY → Suggest creative_visionary
