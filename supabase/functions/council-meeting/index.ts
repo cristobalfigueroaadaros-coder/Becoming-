@@ -706,7 +706,7 @@ YOUR COUNCIL MISSION: Identify their current stage and define the next milestone
 - Detect stage: idea, MVP, live, revenue
 - Define the next clear milestone
 - Propose a short time-bound sprint
-- Mandatory handoff target: Strategist Mentor (for execution planning)
+- Mandatory handoff target: Business Mentor (business_mentor) — they define the next 30-day execution project
 - No philosophical exploration. Action only.
 === END ENTRY STATE ===
 `;

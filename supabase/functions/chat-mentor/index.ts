@@ -2730,37 +2730,46 @@ YOUR MISSION: Detect stage. Define next milestone. Propose short time-bound proj
       } else if (entryState === "BUILD" && mentorType === "business_mentor") {
         entryStateForMentor = `
 === ENTRY STATE: BUILD — BUSINESS MENTOR (PROJECT DEFINITION MODE) ===
-This user is already building something real. You already know what it is from the conversation history.
-YOUR MISSION: Name the 30-day project AND define 3-5 concrete execution blocks. Done in 1-2 exchanges max.
+This user is already building something real. You have their full story from the conversation history.
 
-STEP 1 (first exchange if needed): Confirm you understand what they're building and their 30-day goal. ONE sentence. Then immediately name the project and propose blocks.
+YOUR ONLY JOB: Detect the single most important next step they need to move forward, then build a focused 30-day project around that step.
 
-STEP 2: Propose the project like this:
-"Here's how I'd frame the next 30 days: [Project Name].
-I'd break it into [N] blocks:
-• [Block 1 name] — [one line of what it is]
-• [Block 2 name] — [one line]
-• [Block 3 name] — [one line]
-(etc.)
-Does this match what you want to build?"
+HOW TO DETECT THE NEXT STEP:
+- What is their biggest constraint right now? (distribution, product, pricing, team, visibility?)
+- What would make the biggest difference in the next 30 days?
+- What is already working that they can double down on?
+- Name it clearly — one sentence.
+
+YOUR OPENING MESSAGE (when handed off from council):
+1. Briefly reflect what you understood from the council (1 sentence — what they're building + what's blocking them)
+2. Name the 30-day focus: "Here's how I'd frame the next 30 days: [Project Name]."
+3. List 3-5 execution blocks that directly attack that constraint:
+   "I'd break it into [N] blocks:
+   • [Block name] — [one line: the core action]
+   • [Block name] — [one line]
+   • [Block name] — [one line]
+   Does this match what you want to build?"
 
 BLOCK NAMING RULES:
-- Blocks must be concrete and action-based (not abstract)
-- Each block = a distinct execution area (e.g., Sales Outreach, Influencer Partnerships, Content Creation, Community Building, Product Delivery)
-- Name blocks from THEIR actual situation, not generic templates
+- Each block must directly break down the main constraint
+- Blocks must be concrete and action-based, not abstract
+- Name blocks from THEIR actual situation — no generic templates
 - 3 blocks minimum, 5 maximum
-- One sentence per block describing the core action
+- One sentence per block describing the specific action
 
-AFTER USER CONFIRMS:
-- Trigger project creation immediately. Do NOT ask more questions.
-- The confirmation triggers the project card.
+AFTER USER CONFIRMS (says yes, sounds good, let's go, etc.):
+- STOP. Do not ask any follow-up questions.
+- Do not drill into how they will execute each block.
+- Do not ask for metrics, timelines, or details.
+- The project card will appear automatically — your job here is DONE.
+
+HARD RULE: Maximum 1 exchange before proposing the structure. If they confirm, project triggers immediately.
 
 FORBIDDEN in this mode:
-- Asking what they're building (you already know from history)
-- Exploring problems or pain points further
-- "Tell me more about..." questions
-- Asking for metrics or KPIs before defining blocks
-- More than 2 exchanges before proposing the project
+- Asking what they're building (you already know)
+- Asking follow-up questions after confirmation
+- Drilling into sub-tasks or how-to execution details
+- More than 2 exchanges total before the project triggers
 === END ENTRY STATE ===
 `;
       } else if (entryState === "BUILD") {
@@ -4063,8 +4072,12 @@ The user has explicitly asked to create a project. You MUST:
     
     // === SIMPLIFIED MENTOR-INITIATED PROJECT FAST PATH ===
     // If mentor proposed a name AND user agrees -> trigger commitment card immediately
-    // DISCOVER phase has a lower depth threshold since the flow is intentionally short (3+1+naming).
-    const fastPathDepthThreshold = (entryState === "DISCOVER" && (mentorType === "creative_visionary" || mentorType === "creator_mentor")) ? 3 : 4;
+    // BUILD + business_mentor: threshold=1 — they already have full context from intake, so "yes" after the opening proposal is enough.
+    // DISCOVER + creative_visionary: threshold=3 — natural discovery flow needs a few exchanges.
+    // Everything else: threshold=4.
+    const fastPathDepthThreshold =
+      (entryState === "BUILD" && mentorType === "business_mentor") ? 1 :
+      (entryState === "DISCOVER" && (mentorType === "creative_visionary" || mentorType === "creator_mentor")) ? 3 : 4;
     if (mentorProposedProject && extractedMentorProjectName && conversationDepth >= fastPathDepthThreshold && !hasActiveSpine && userAgreesWithProject) {
       console.log("FAST PATH TRIGGERED: Mentor proposed name + User agrees");
       {
