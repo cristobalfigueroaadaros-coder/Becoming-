@@ -1483,8 +1483,35 @@ Output ONLY the question. Nothing else.`;
           hasClarity: true
         };
         console.log("Transmutation council: suggesting storybreaker_mentor for pattern discovery");
+      } else if (resolvedEntryState === 'BUILD') {
+        // BUILD phase: always business_mentor — no LLM, no override
+        suggestedMentorFor1to1 = {
+          mentorType: 'business_mentor',
+          mentorName: 'Business Mentor',
+          suggestionMessage: "I think you're ready to work 1-to-1 with Business Mentor.",
+          hasClarity: true
+        };
+        console.log("BUILD phase: hardcoded business_mentor for 1-to-1");
+      } else if (resolvedEntryState === 'DISCOVER') {
+        // DISCOVER phase: always creative_visionary — no LLM, no override
+        suggestedMentorFor1to1 = {
+          mentorType: 'creative_visionary',
+          mentorName: 'Creative Visionary',
+          suggestionMessage: "I think you're ready to work 1-to-1 with Creative Visionary.",
+          hasClarity: true
+        };
+        console.log("DISCOVER phase: hardcoded creative_visionary for 1-to-1");
+      } else if (resolvedEntryState === 'GROW') {
+        // GROW phase: always strategist_mentor — no LLM, no override
+        suggestedMentorFor1to1 = {
+          mentorType: 'strategist_mentor',
+          mentorName: 'Strategist Mentor',
+          suggestionMessage: "I think you're ready to work 1-to-1 with Strategist Mentor.",
+          hasClarity: true
+        };
+        console.log("GROW phase: hardcoded strategist_mentor for 1-to-1");
       } else {
-        // Standard council routing
+        // Unknown phase: fall back to LLM routing
         const mentorRoutingPrompt = `Analyze this conversation to determine the best 1-to-1 mentor for shaping.
 
 CONVERSATION:
@@ -1502,13 +1529,10 @@ ANALYZE:
 2. Or do they NEED GUIDANCE (scattered, uncertain, exploring)?
 
 RULES:
-${resolvedEntryState === 'DISCOVER' ? `- User selected DISCOVER phase. You MUST suggest creative_visionary.` :
-  resolvedEntryState === 'BUILD' ? `- User selected BUILD phase. You MUST suggest business_mentor.` :
-  resolvedEntryState === 'GROW' ? `- User selected GROW phase. You MUST suggest strategist_mentor.` :
-  `- If CLARITY → Suggest strategist_mentor or creative_visionary
+- If CLARITY → Suggest strategist_mentor or creative_visionary
 - If NEEDS GUIDANCE → Suggest creative_visionary
 - If STRONG CREATIVE ENERGY → Suggest creative_visionary
-- If NEEDS STRUCTURE → Suggest strategist_mentor`}
+- If NEEDS STRUCTURE → Suggest strategist_mentor
 
 YOU MUST RESPOND WITH VALID JSON ONLY:
 {
@@ -1537,7 +1561,7 @@ Use these EXACT mentor keys: strategist_mentor, creative_visionary, business_men
           const routingData = await routingResponse.json();
           let routingText = routingData.choices[0].message.content;
           routingText = routingText.replace(/```json\n?/g, '').replace(/```\n?/g, '').trim();
-          
+
           try {
             const routing = JSON.parse(routingText);
             suggestedMentorFor1to1 = {
@@ -1554,7 +1578,7 @@ Use these EXACT mentor keys: strategist_mentor, creative_visionary, business_men
       } catch (error) {
         console.error("Mentor routing failed:", error);
       }
-      } // Close the else block for non-transmutation routing
+      } // Close the else block for unknown phase routing
     }
 
     // === Q3 ONLY: COUNCIL GUIDANCE (Mentor Recommendation) ===
