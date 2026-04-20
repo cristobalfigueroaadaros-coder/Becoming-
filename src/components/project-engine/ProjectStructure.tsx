@@ -235,6 +235,54 @@ export function ProjectStructure({ project, onUpdate }: Props) {
           </div>
         ) : (
           <div className="space-y-4">
+            {/* Builder Team pending suggestions banner */}
+            {totalPending > 0 && (
+              <div className="rounded-lg border border-primary/30 bg-primary/5 p-3 space-y-2">
+                <div className="flex items-center justify-between gap-2 flex-wrap">
+                  <div className="flex items-center gap-2">
+                    <Sparkles className="w-4 h-4 text-primary" />
+                    <span className="text-sm font-medium text-foreground">
+                      Builder Team suggested {pendingActivities.length > 0 ? `${pendingActivities.length} activit${pendingActivities.length === 1 ? "y" : "ies"}` : ""}
+                      {pendingActivities.length > 0 && pendingBlocks.length > 0 ? " and " : ""}
+                      {pendingBlocks.length > 0 ? `${pendingBlocks.length} new block${pendingBlocks.length === 1 ? "" : "s"}` : ""}
+                    </span>
+                  </div>
+                  <Button size="sm" variant="ghost" onClick={acceptAllPending} className="h-7 text-xs">
+                    Accept all
+                  </Button>
+                </div>
+                <div className="space-y-1.5">
+                  {pendingActivities.map(({ block, activity }) => (
+                    <div key={activity.id} className="flex items-center gap-2 text-xs">
+                      <span className="text-muted-foreground truncate flex-1">
+                        <span className="text-foreground">{activity.title}</span>
+                        <span className="text-muted-foreground/60"> → in "{block.title}"</span>
+                      </span>
+                      <Button size="icon" variant="ghost" onClick={() => acceptNode(activity.id)} className="h-6 w-6">
+                        <Check className="w-3 h-3" />
+                      </Button>
+                      <Button size="icon" variant="ghost" onClick={() => rejectNode(activity.id)} className="h-6 w-6">
+                        <X className="w-3 h-3" />
+                      </Button>
+                    </div>
+                  ))}
+                  {pendingBlocks.map(block => (
+                    <div key={block.id} className="flex items-center gap-2 text-xs">
+                      <span className="text-muted-foreground truncate flex-1">
+                        <span className="text-foreground">New block: {block.title}</span>
+                      </span>
+                      <Button size="icon" variant="ghost" onClick={() => acceptNode(block.id)} className="h-6 w-6">
+                        <Check className="w-3 h-3" />
+                      </Button>
+                      <Button size="icon" variant="ghost" onClick={() => rejectNode(block.id)} className="h-6 w-6">
+                        <X className="w-3 h-3" />
+                      </Button>
+                    </div>
+                  ))}
+                </div>
+              </div>
+            )}
+
             {/* Project root */}
             <div className="flex justify-center">
               <span className="inline-block px-5 py-2 rounded-xl border border-primary/30 bg-primary/5 text-sm font-semibold text-foreground">
@@ -273,7 +321,13 @@ export function ProjectStructure({ project, onUpdate }: Props) {
                         {/* Title + status */}
                         <div className="flex items-center gap-2">
                           <div className={cn("w-3 h-3 rounded-full flex-shrink-0", STATUS_DOT[node.status])} />
-                          <span className="text-sm font-semibold text-foreground truncate">{node.title}</span>
+                          <span className="text-sm font-semibold text-foreground truncate flex-1">{node.title}</span>
+                          {node.source === "builder_team" && (
+                            <span
+                              title="From Builder Team"
+                              className="w-1.5 h-1.5 rounded-full bg-lime-400 flex-shrink-0"
+                            />
+                          )}
                           {isCompleted && <CheckCircle2 className="w-4 h-4 text-green-500 flex-shrink-0" />}
                         </div>
 
@@ -283,7 +337,10 @@ export function ProjectStructure({ project, onUpdate }: Props) {
                             {node.children.slice(0, 3).map(child => (
                               <div key={child.id} className="flex items-center gap-2">
                                 <div className={cn("w-1.5 h-1.5 rounded-full flex-shrink-0", STATUS_DOT[child.status])} />
-                                <span className="text-xs text-muted-foreground truncate">{child.title}</span>
+                                <span className="text-xs text-muted-foreground truncate flex-1">{child.title}</span>
+                                {child.source === "builder_team" && (
+                                  <span title="From Builder Team" className="w-1.5 h-1.5 rounded-full bg-lime-400 flex-shrink-0" />
+                                )}
                               </div>
                             ))}
                             {totalChildren > 3 && (
