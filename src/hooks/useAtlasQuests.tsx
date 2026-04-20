@@ -211,26 +211,15 @@ export function useAtlasQuests() {
   function getQuestForCluster(clusterId: string): { quest: AtlasQuestDefinition; clusterId: string } | null {
     const cluster = clusters.find(c => c.id === clusterId);
     if (!cluster) return null;
-    // During onboarding bypass the lock check — users can explore any cluster.
+
     // Post-onboarding, locked clusters are off-limits.
     if (!isOnboarding && cluster.computedState === "locked") return null;
 
-    // During onboarding: if this cluster is one of the pre-council steps AND it already
-    // has a dot, lock it — the user must complete the other pre-council clusters first.
-    // This prevents doing 2+ quests for the same step (e.g. 2 skills quests).
+    // During onboarding, always enforce the fixed sequence regardless of which cluster
+    // was tapped. This prevents users from doing quests out of order by clicking
+    // clusters directly on the atlas map.
     if (isOnboarding) {
-      const preCouncilSlugs = PHASE_PRE_COUNCIL_SLUGS[entryState] || PHASE_PRE_COUNCIL_SLUGS.DISCOVER;
-      if (preCouncilSlugs.includes(cluster.slug) && cluster.dotCount > 0) return null;
-    }
-
-    // During onboarding, prefer the onboarding quest for this cluster so the
-    // pre-council sequence uses the right quest definitions. ATLAS_QUESTS also
-    // contain quests for these clusters and would be picked first otherwise.
-    if (isOnboarding) {
-      const onboardingQuest = ONBOARDING_QUESTS.find(
-        q => q.clusterSlug === cluster.slug && !completedKeys.has(q.questKey)
-      );
-      if (onboardingQuest) return { quest: onboardingQuest, clusterId };
+      return getNextOnboardingQuest();
     }
 
     // Post-onboarding: search ATLAS_QUESTS first, then ONBOARDING_QUESTS for
