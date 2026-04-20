@@ -1892,6 +1892,7 @@ const ConsoleThread = ({ embedded = false, onProjectNameChange }: ConsoleThreadP
   }
 
   return (
+    <>
     <div className={cn("flex flex-col bg-background", embedded ? "h-full" : "h-screen")}>
       {/* Header - only show when NOT embedded */}
       {!embedded && (
@@ -2024,6 +2025,7 @@ const ConsoleThread = ({ embedded = false, onProjectNameChange }: ConsoleThreadP
     </div>
 
     <PaymentModal open={showPayment} onClose={() => setShowPayment(false)} />
+    </>
   );
 };
 
