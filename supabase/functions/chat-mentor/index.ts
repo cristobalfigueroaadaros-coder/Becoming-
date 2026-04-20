@@ -891,8 +891,8 @@ RULES:
 - You already know the product/project from conversation history. Reference it directly.
 - First exchange: Name the 30-day project. Break it into 3-5 concrete execution blocks.
 - Each block = a real work area (Sales Outreach, Influencer Partnerships, Content Creation, etc.)
-- Propose using this format:
-  "Here's the play for the next 30 days: [Project Name].
+- Propose using EXACTLY this format (project name MUST be in single quotes — the system uses this to detect and create the project):
+  "Here's the play for the next 30 days: '[Project Name]'.
   [N] blocks:
   • [Block 1] — [what it means in one line]
   • [Block 2] — [what it means in one line]
@@ -2755,7 +2755,8 @@ HOW TO DETECT THE NEXT STEP:
 
 YOUR OPENING MESSAGE (when handed off from council):
 1. Briefly reflect what you understood from the council (1 sentence — what they're building + what's blocking them)
-2. Name the 30-day focus: "Here's how I'd frame the next 30 days: [Project Name]."
+2. Name the 30-day focus using EXACTLY this format — the project name MUST be in single quotes (the system needs this to detect and create the project):
+   "Here's the play for the next 30 days: '[Project Name]'."
 3. List 3-5 execution blocks that directly attack that constraint:
    "I'd break it into [N] blocks:
    • [Block name] — [one line: the core action]
@@ -3799,6 +3800,10 @@ The user has explicitly asked to create a project. You MUST:
     // === CONTEXT-AWARE PROJECT NAME EXTRACTION ===
     // Only capture quoted phrases that appear AFTER naming phrases
     const contextAwarePatterns = [
+      // "Here's the play for the next 30 days: 'Project Name'" — business mentor BUILD format
+      /(?:play|focus|plan)\s+for\s+the\s+next\s+\d+\s+days[:\s]+['"]([^'"]{3,60})['"]/i,
+      // "Here's the play for the next 30 days: 'Project Name'." — with period
+      /next\s+30\s+days[:\s]+['"""]([A-Z][^'"""]{2,58})['"."""]/i,
       // "your 'Strategic Mentorship Network' tool"
       /your\s+["']([^"']{3,50})["']\s+(?:project|tool|initiative|platform|app)/i,
       // "'Strategic Mentorship Network' tool/project"
