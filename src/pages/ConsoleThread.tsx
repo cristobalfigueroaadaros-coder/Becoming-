@@ -1443,48 +1443,15 @@ const ConsoleThread = ({ embedded = false, onProjectNameChange }: ConsoleThreadP
       const { data: { user } } = await supabase.auth.getUser();
       if (!user) throw new Error("Not authenticated");
 
-      // --- Step 1: Extract structure from conversation via AI ---
-      await showTyping("future_self", 1500);
+      // --- Step 1: Show intro message, then build structure from template (no AI call) ---
+      await showTyping("future_self", 1000);
       addSystemMessage("Perfect. Let's break this into parts so you can start building it.", "future_self", "project_detected");
 
-      const conversationText = messages
-        .filter(m => m.content && !m.card)
-        .slice(-20)
-        .map(m => `${m.role === "user" ? "USER" : "MENTOR"}: ${m.content}`)
-        .join("\n");
-
       let projectStructure: any[] = [];
-      let detectedProjectType: string | null = null;
-      try {
-        const { data: structureData, error: structureError } = await supabase.functions.invoke("extract-project-structure", {
-          body: {
-            projectName: name,
-            conversationText,
-            entryState,
-          },
-        });
+      const detectedProjectType: string | null = null;
 
-        if (!structureError && structureData?.blocks && Array.isArray(structureData.blocks)) {
-          projectStructure = structureData.blocks.map((b: any) => ({
-            id: Math.random().toString(36).slice(2, 10),
-            title: b.title || "Untitled",
-            status: "not_started",
-            importance: "medium",
-            children: (b.activities || []).map((a: string) => ({
-              id: Math.random().toString(36).slice(2, 10),
-              title: a,
-              status: "not_started",
-              importance: "medium",
-              children: [],
-            })),
-          }));
-          detectedProjectType = structureData.projectType || null;
-        }
-      } catch (structErr) {
-        console.error("Structure extraction failed (non-fatal):", structErr);
-      }
-
-      // Fallback: if no structure extracted, create minimal blocks
+      // Use pre-built structure templates immediately — no AI extraction needed.
+      // The AI call added 5-15s of latency with no meaningful improvement over these templates.
       if (projectStructure.length === 0) {
         if (entryState === "DISCOVER" || !entryState) {
           projectStructure = [
@@ -1568,7 +1535,7 @@ const ConsoleThread = ({ embedded = false, onProjectNameChange }: ConsoleThreadP
         }
       }
 
-      // --- Step 2: Show structure in chat ---
+      // --- Step 2: Show structure in chat and fire project creation in parallel ---
       let structureText = `**${name}**\n\nStructure:\n`;
       projectStructure.forEach((block: any) => {
         structureText += `\n● **${block.title}**`;
@@ -1579,17 +1546,16 @@ const ConsoleThread = ({ embedded = false, onProjectNameChange }: ConsoleThreadP
         }
       });
 
-      await showTyping("future_self", 2000);
+      // Fire project creation while showing the typing indicator — saves 1-3s
+      const projectCreationPromise = supabase.functions.invoke("integrator-setup", {
+        body: { projectTitle: name, projectDescription: description, timeframeDays: 30 },
+      });
+
+      await showTyping("future_self", 1200);
       addSystemMessage(structureText, "future_self", "project_detected");
 
-      // --- Step 3: Create project with structure ---
-      const { data: projectData, error: projectError } = await supabase.functions.invoke("integrator-setup", {
-        body: {
-          projectTitle: name,
-          projectDescription: description,
-          timeframeDays: 30,
-        },
-      });
+      // --- Step 3: Await project creation result ---
+      const { data: projectData, error: projectError } = await projectCreationPromise;
 
       let projectId = projectData?.project?.id || projectData?.projectId;
 
@@ -1600,25 +1566,24 @@ const ConsoleThread = ({ embedded = false, onProjectNameChange }: ConsoleThreadP
         return;
       }
 
-      // Save structure and project type to the project
-      await supabase
-        .from("integrator_projects")
-        .update({ 
-          project_structure: projectStructure, 
-          project_brief: description,
-          ...(detectedProjectType ? { project_type: detectedProjectType } : {}),
-        } as any)
-        .eq("id", projectId);
-
-      // Update profile
-      await supabase
-        .from("profiles")
-        .update({
-          first_project_created_at: new Date().toISOString(),
-          first_project_id: projectId,
-          console_intake_completed: true,
-        } as any)
-        .eq("id", user.id);
+      // Save structure and profile update in parallel
+      await Promise.all([
+        supabase
+          .from("integrator_projects")
+          .update({
+            project_structure: projectStructure,
+            project_brief: description,
+          } as any)
+          .eq("id", projectId),
+        supabase
+          .from("profiles")
+          .update({
+            first_project_created_at: new Date().toISOString(),
+            first_project_id: projectId,
+            console_intake_completed: true,
+          } as any)
+          .eq("id", user.id),
+      ]);
 
       // Create Atlas entries (non-blocking)
       try {
@@ -1660,7 +1625,7 @@ const ConsoleThread = ({ embedded = false, onProjectNameChange }: ConsoleThreadP
 
       // --- Step 4: Show Project Card with "Open Project" ---
       const finalProjectId = projectId;
-      await showTyping("future_self", 800);
+      await showTyping("future_self", 400);
       
       setPhase("post_project");
       persistPhase("post_project");
