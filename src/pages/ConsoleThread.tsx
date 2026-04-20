@@ -1478,99 +1478,183 @@ const ConsoleThread = ({ embedded = false, onProjectNameChange }: ConsoleThreadP
       const { data: { user } } = await supabase.auth.getUser();
       if (!user) throw new Error("Not authenticated");
 
-      // --- Step 1: Show intro message, then build structure from template (no AI call) ---
+      // --- Step 1: Show intro message ---
       await showTyping("future_self", 1000);
       addSystemMessage("Perfect. Let's break this into parts so you can start building it.", "future_self", "project_detected");
 
-      let projectStructure: any[] = [];
-      const detectedProjectType: string | null = null;
+      const mk = () => Math.random().toString(36).slice(2, 10);
 
-      // Use pre-built structure templates immediately — no AI extraction needed.
-      // The AI call added 5-15s of latency with no meaningful improvement over these templates.
-      if (projectStructure.length === 0) {
-        if (entryState === "DISCOVER" || !entryState) {
-          projectStructure = [
-            { id: Math.random().toString(36).slice(2, 10), title: "Project Vision", status: "not_started", importance: "medium", children: [] },
-            { id: Math.random().toString(36).slice(2, 10), title: "Transformation", status: "not_started", importance: "medium", children: [] },
-            { id: Math.random().toString(36).slice(2, 10), title: "Interaction Design", status: "not_started", importance: "medium", children: [] },
-            { id: Math.random().toString(36).slice(2, 10), title: "Expansion Layer", status: "not_started", importance: "medium", children: [] },
-            { id: Math.random().toString(36).slice(2, 10), title: "Ideal Customer", status: "not_started", importance: "medium", children: [] },
-            { id: Math.random().toString(36).slice(2, 10), title: "System Design", status: "not_started", importance: "medium", children: [] },
-            { id: Math.random().toString(36).slice(2, 10), title: "Evolved Project Output", status: "not_started", importance: "medium", children: [] },
-          ];
-        } else if (entryState === "GROW") {
-          const mk = () => Math.random().toString(36).slice(2, 10);
-          projectStructure = [
-            { id: mk(), title: "MVP Design", status: "not_started", importance: "high", children: [
-              { id: mk(), title: "Define the core experience", status: "not_started", importance: "high", children: [] },
-              { id: mk(), title: "Strip it to the minimum", status: "not_started", importance: "medium", children: [] },
-              { id: mk(), title: "Decide what to build first", status: "not_started", importance: "medium", children: [] },
-            ]},
-            { id: mk(), title: "Ideal User", status: "not_started", importance: "high", children: [
-              { id: mk(), title: "Write one real person's profile", status: "not_started", importance: "high", children: [] },
-              { id: mk(), title: "Name their exact pain point", status: "not_started", importance: "medium", children: [] },
-              { id: mk(), title: "Describe what they want to become", status: "not_started", importance: "medium", children: [] },
-            ]},
-            { id: mk(), title: "Validation Experiments", status: "not_started", importance: "medium", children: [
-              { id: mk(), title: "Design one small test", status: "not_started", importance: "high", children: [] },
-              { id: mk(), title: "Find 3 people to try it", status: "not_started", importance: "medium", children: [] },
-              { id: mk(), title: "Define what a pass looks like", status: "not_started", importance: "medium", children: [] },
-            ]},
-            { id: mk(), title: "Real Feedback", status: "not_started", importance: "medium", children: [
-              { id: mk(), title: "Run the test and listen", status: "not_started", importance: "high", children: [] },
-              { id: mk(), title: "Write down the honest reactions", status: "not_started", importance: "medium", children: [] },
-              { id: mk(), title: "Find the one thing that surprised you", status: "not_started", importance: "medium", children: [] },
-            ]},
-            { id: mk(), title: "Iteration", status: "not_started", importance: "medium", children: [
-              { id: mk(), title: "Decide what to keep", status: "not_started", importance: "high", children: [] },
-              { id: mk(), title: "Decide what to cut", status: "not_started", importance: "medium", children: [] },
-              { id: mk(), title: "Make one clear improvement", status: "not_started", importance: "medium", children: [] },
-            ]},
-            { id: mk(), title: "Path to First Revenue", status: "not_started", importance: "medium", children: [
-              { id: mk(), title: "Name your first offer and price", status: "not_started", importance: "high", children: [] },
-              { id: mk(), title: "Identify who would pay first", status: "not_started", importance: "medium", children: [] },
-              { id: mk(), title: "Make your first ask", status: "not_started", importance: "medium", children: [] },
-            ]},
-          ];
+      // For BUILD: start API immediately, show tailored blocks after it resolves.
+      // For DISCOVER/GROW: show template immediately (fast), API runs in parallel.
+      const projectCreationPromise = supabase.functions.invoke("integrator-setup", {
+        body: { projectTitle: name, projectDescription: description, timeframeDays: 30, entryState, intakeAnswers },
+      });
+
+      let projectStructure: any[] = [];
+
+      if (entryState === "BUILD") {
+        // Keep typing indicator alive while we fetch tailored blocks from API
+        const fsConfig = mentorConfig["future_self"];
+        setTyping({ name: fsConfig?.name, icon: fsConfig?.icon, color: fsConfig?.color });
+
+        const { data: projectData, error: projectError } = await projectCreationPromise;
+        setTyping(null);
+
+        if (projectError || !projectData) {
+          toast.error("Failed to create project");
+          setLoading(false);
+          return;
+        }
+
+        // Use AI-tailored blocks or fall back to a lean BUILD template
+        if (projectData.proposedBlocks?.length > 0) {
+          projectStructure = projectData.proposedBlocks;
         } else {
-          // BUILD
-          const mk = () => Math.random().toString(36).slice(2, 10);
           projectStructure = [
-            { id: mk(), title: "Business Vision", status: "not_started", importance: "high", children: [
-              { id: mk(), title: "Write your 12-month picture", status: "not_started", importance: "high", children: [] },
-              { id: mk(), title: "Define the gap you close", status: "not_started", importance: "medium", children: [] },
-              { id: mk(), title: "Clarify what success looks like", status: "not_started", importance: "medium", children: [] },
+            { id: mk(), title: "Marketing & Outreach", status: "not_started", importance: "high", children: [
+              { id: mk(), title: "Identify your top 3 distribution channels", status: "not_started", importance: "high", children: [] },
+              { id: mk(), title: "Draft your core outreach message", status: "not_started", importance: "medium", children: [] },
+              { id: mk(), title: "Reach out to 5 potential partners or communities", status: "not_started", importance: "medium", children: [] },
             ]},
-            { id: mk(), title: "Core Offer", status: "not_started", importance: "high", children: [
-              { id: mk(), title: "Define exactly what you deliver", status: "not_started", importance: "high", children: [] },
-              { id: mk(), title: "Describe who it is for", status: "not_started", importance: "medium", children: [] },
-              { id: mk(), title: "Write why they choose you", status: "not_started", importance: "medium", children: [] },
+            { id: mk(), title: "Content Creation", status: "not_started", importance: "high", children: [
+              { id: mk(), title: "Create one piece of content that shows real results", status: "not_started", importance: "high", children: [] },
+              { id: mk(), title: "Write your core message in one sentence", status: "not_started", importance: "medium", children: [] },
+              { id: mk(), title: "Post once to your primary channel this week", status: "not_started", importance: "medium", children: [] },
             ]},
-            { id: mk(), title: "Revenue & Pricing", status: "not_started", importance: "medium", children: [
-              { id: mk(), title: "Set your price and justify it", status: "not_started", importance: "high", children: [] },
-              { id: mk(), title: "Map how money flows in", status: "not_started", importance: "medium", children: [] },
-              { id: mk(), title: "Identify your most profitable path", status: "not_started", importance: "medium", children: [] },
+            { id: mk(), title: "Sales & Conversion", status: "not_started", importance: "high", children: [
+              { id: mk(), title: "Define exactly what you're offering and at what price", status: "not_started", importance: "high", children: [] },
+              { id: mk(), title: "Make 3 direct asks this week", status: "not_started", importance: "medium", children: [] },
+              { id: mk(), title: "Add one testimonial or social proof to your offer", status: "not_started", importance: "medium", children: [] },
             ]},
-            { id: mk(), title: "Visibility & Marketing", status: "not_started", importance: "medium", children: [
-              { id: mk(), title: "Choose your primary channel", status: "not_started", importance: "high", children: [] },
-              { id: mk(), title: "Define how trust is built", status: "not_started", importance: "medium", children: [] },
-              { id: mk(), title: "Write your core message", status: "not_started", importance: "medium", children: [] },
-            ]},
-            { id: mk(), title: "Operations & Delivery", status: "not_started", importance: "medium", children: [
-              { id: mk(), title: "Map how you deliver consistently", status: "not_started", importance: "high", children: [] },
-              { id: mk(), title: "Identify what needs a system", status: "not_started", importance: "medium", children: [] },
-              { id: mk(), title: "Find what slows you down", status: "not_started", importance: "medium", children: [] },
-            ]},
-            { id: mk(), title: "Next 90-Day Goals", status: "not_started", importance: "medium", children: [
-              { id: mk(), title: "Name your 3 most important moves", status: "not_started", importance: "high", children: [] },
-              { id: mk(), title: "Set a clear 30-day milestone", status: "not_started", importance: "medium", children: [] },
-              { id: mk(), title: "Decide what you are NOT doing", status: "not_started", importance: "medium", children: [] },
+            { id: mk(), title: "30-Day Milestone", status: "not_started", importance: "medium", children: [
+              { id: mk(), title: "Name the one metric that defines success", status: "not_started", importance: "high", children: [] },
+              { id: mk(), title: "Identify what you will NOT do this month", status: "not_started", importance: "medium", children: [] },
+              { id: mk(), title: "Set a weekly check-in to measure progress", status: "not_started", importance: "medium", children: [] },
             ]},
           ];
         }
+
+        // Build and show structure text
+        let structureText = `**${name}**\n\nStructure:\n`;
+        projectStructure.forEach((block: any) => {
+          structureText += `\n● **${block.title}**`;
+          if (block.children?.length > 0) {
+            block.children.forEach((child: any) => { structureText += `\n  · ${child.title}`; });
+          }
+        });
+
+        await showTyping("future_self", 800);
+        addSystemMessage(structureText, "future_self", "project_detected");
+
+        if (localStorage.getItem("payment_popup_shown") !== "true") {
+          setTimeout(() => setShowPayment(true), 6000);
+        }
+
+        const fsConfig2 = mentorConfig["future_self"];
+        setTyping({ name: fsConfig2?.name, icon: fsConfig2?.icon, color: fsConfig2?.color });
+
+        let projectId = projectData?.project?.id || projectData?.projectId;
+        if (!projectId) {
+          setTyping(null);
+          toast.error("Failed to create project");
+          setLoading(false);
+          return;
+        }
+
+        Promise.all([
+          supabase.from("integrator_projects").update({ project_structure: projectStructure, project_brief: description } as any).eq("id", projectId),
+          supabase.from("profiles").update({ first_project_created_at: new Date().toISOString(), first_project_id: projectId, console_intake_completed: true } as any).eq("id", user.id),
+        ]).catch(e => console.error("Project DB writes failed:", e));
+
+        (async () => {
+          try {
+            const projectSlug = name.toLowerCase().replace(/[^a-z0-9]+/g, "-").replace(/(^-|-$)/g, "");
+            const { data: projectNode } = await supabase.from("atlas_project_nodes").insert({ user_id: user.id, title: name, description }).select("id").single();
+            if (projectNode) {
+              const { data: newCluster } = await supabase.from("atlas_clusters").insert({ name, slug: `project-${projectSlug}`, cluster_category: "project", state: "active", sort_order: 100, description: description || `Project: ${name}` }).select("id").single();
+              if (newCluster) await supabase.from("atlas_cluster_project_connections").insert({ cluster_id: newCluster.id, project_id: projectNode.id });
+            }
+          } catch (clusterErr) { console.error("Project cluster creation failed:", clusterErr); }
+        })();
+
+        supabase.functions.invoke("seed-initial-capabilities", { body: { intakeAnswers, workContext: entryState } }).catch(e => console.error("Capability seeding failed:", e));
+
+        setTyping(null);
+        setPhase("post_project");
+        persistPhase("post_project");
+        setProjectName(name);
+        onProjectNameChange?.(name);
+        confetti({ particleCount: 120, spread: 80, origin: { y: 0.6 } });
+
+        const buildStructureBlocks = projectStructure.map((b: any) => ({
+          title: b.title,
+          activities: (b.children || []).map((c: any) => c.title),
+        }));
+
+        addCardMessage(
+          <ProjectCreationCard
+            projectName={name}
+            projectDescription={description}
+            alreadyCreatedId={projectId}
+            structureBlocks={buildStructureBlocks}
+            onProjectCreated={() => { navigate(`/project/${projectId}`); }}
+          />,
+          undefined,
+          "post_project"
+        );
+
+        setLoading(false);
+        return;
       }
 
-      // --- Step 2: Show structure in chat and fire project creation in parallel ---
+      // DISCOVER / GROW: show template immediately, fire API in parallel
+      if (entryState === "GROW") {
+        projectStructure = [
+          { id: mk(), title: "MVP Design", status: "not_started", importance: "high", children: [
+            { id: mk(), title: "Define the core experience", status: "not_started", importance: "high", children: [] },
+            { id: mk(), title: "Strip it to the minimum", status: "not_started", importance: "medium", children: [] },
+            { id: mk(), title: "Decide what to build first", status: "not_started", importance: "medium", children: [] },
+          ]},
+          { id: mk(), title: "Ideal User", status: "not_started", importance: "high", children: [
+            { id: mk(), title: "Write one real person's profile", status: "not_started", importance: "high", children: [] },
+            { id: mk(), title: "Name their exact pain point", status: "not_started", importance: "medium", children: [] },
+            { id: mk(), title: "Describe what they want to become", status: "not_started", importance: "medium", children: [] },
+          ]},
+          { id: mk(), title: "Validation Experiments", status: "not_started", importance: "medium", children: [
+            { id: mk(), title: "Design one small test", status: "not_started", importance: "high", children: [] },
+            { id: mk(), title: "Find 3 people to try it", status: "not_started", importance: "medium", children: [] },
+            { id: mk(), title: "Define what a pass looks like", status: "not_started", importance: "medium", children: [] },
+          ]},
+          { id: mk(), title: "Real Feedback", status: "not_started", importance: "medium", children: [
+            { id: mk(), title: "Run the test and listen", status: "not_started", importance: "high", children: [] },
+            { id: mk(), title: "Write down the honest reactions", status: "not_started", importance: "medium", children: [] },
+            { id: mk(), title: "Find the one thing that surprised you", status: "not_started", importance: "medium", children: [] },
+          ]},
+          { id: mk(), title: "Iteration", status: "not_started", importance: "medium", children: [
+            { id: mk(), title: "Decide what to keep", status: "not_started", importance: "high", children: [] },
+            { id: mk(), title: "Decide what to cut", status: "not_started", importance: "medium", children: [] },
+            { id: mk(), title: "Make one clear improvement", status: "not_started", importance: "medium", children: [] },
+          ]},
+          { id: mk(), title: "Path to First Revenue", status: "not_started", importance: "medium", children: [
+            { id: mk(), title: "Name your first offer and price", status: "not_started", importance: "high", children: [] },
+            { id: mk(), title: "Identify who would pay first", status: "not_started", importance: "medium", children: [] },
+            { id: mk(), title: "Make your first ask", status: "not_started", importance: "medium", children: [] },
+          ]},
+        ];
+      } else {
+        // DISCOVER
+        projectStructure = [
+          { id: mk(), title: "Project Vision", status: "not_started", importance: "medium", children: [] },
+          { id: mk(), title: "Transformation", status: "not_started", importance: "medium", children: [] },
+          { id: mk(), title: "Interaction Design", status: "not_started", importance: "medium", children: [] },
+          { id: mk(), title: "Expansion Layer", status: "not_started", importance: "medium", children: [] },
+          { id: mk(), title: "Ideal Customer", status: "not_started", importance: "medium", children: [] },
+          { id: mk(), title: "System Design", status: "not_started", importance: "medium", children: [] },
+          { id: mk(), title: "Evolved Project Output", status: "not_started", importance: "medium", children: [] },
+        ];
+      }
+
+      // --- Step 2: Show structure in chat ---
       let structureText = `**${name}**\n\nStructure:\n`;
       projectStructure.forEach((block: any) => {
         structureText += `\n● **${block.title}**`;
@@ -1579,11 +1663,6 @@ const ConsoleThread = ({ embedded = false, onProjectNameChange }: ConsoleThreadP
             structureText += `\n  · ${child.title}`;
           });
         }
-      });
-
-      // Fire project creation while showing the typing indicator — saves 1-3s
-      const projectCreationPromise = supabase.functions.invoke("integrator-setup", {
-        body: { projectTitle: name, projectDescription: description, timeframeDays: 30 },
       });
 
       await showTyping("future_self", 1200);

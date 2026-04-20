@@ -2758,16 +2758,20 @@ BLOCK NAMING RULES:
 - One sentence per block describing the specific action
 
 AFTER USER CONFIRMS (says yes, sounds good, let's go, etc.):
-- STOP. Do not ask any follow-up questions.
-- Do not drill into how they will execute each block.
-- Do not ask for metrics, timelines, or details.
-- The project card will appear automatically — your job here is DONE.
+- Respond with ONE short sentence only. Example: "Perfect. Let's build this." or "Great. Your project is locked in."
+- Do NOT say "speak your first block" or ask them to do anything.
+- Do NOT ask what their first step is.
+- Do NOT drill into how they will execute each block.
+- Do NOT ask follow-up questions of any kind.
+- The project card will appear automatically in the UI — your single sentence is all that's needed.
 
 HARD RULE: Maximum 1 exchange before proposing the structure. If they confirm, project triggers immediately.
 
 FORBIDDEN in this mode:
 - Asking what they're building (you already know)
 - Asking follow-up questions after confirmation
+- Saying "speak your first block" or any variant
+- Asking the user to define, describe, or name anything
 - Drilling into sub-tasks or how-to execution details
 - More than 2 exchanges total before the project triggers
 === END ENTRY STATE ===

@@ -20,7 +20,7 @@ serve(async (req) => {
   }
 
   try {
-    const { breakthroughId, projectTitle, projectDescription, timeframeDays, isEvolution, evolutionInsight, regenerate } = await req.json();
+    const { breakthroughId, projectTitle, projectDescription, timeframeDays, isEvolution, evolutionInsight, regenerate, entryState, intakeAnswers } = await req.json();
     
     const supabaseUrl = Deno.env.get('SUPABASE_URL')!;
     const supabaseKey = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!;
@@ -587,6 +587,73 @@ CRITICAL REQUIREMENTS:
     const isEvolutionResult = !!previousActiveNode;
     console.log(`Created Integrator project: ${project.id} with ${phases.length} phases and ${steps.length} PDR-compliant steps. Is evolution: ${isEvolutionResult}`);
 
+    // For BUILD phase: generate tailored blocks using intake answers
+    let proposedBlocks: Array<{ id: string; title: string; status: string; importance: string; children: any[] }> | null = null;
+    if (entryState === "BUILD" && intakeAnswers && intakeAnswers.length >= 2) {
+      try {
+        const mk = () => Math.random().toString(36).slice(2, 10);
+        const blocksPrompt = `You are generating a focused 30-day project structure for someone growing their existing business.
+
+PROJECT: ${projectTitle}
+WHAT THEY'RE BUILDING: ${intakeAnswers[0] || ""}
+MAIN CONSTRAINT RIGHT NOW: ${intakeAnswers[1] || ""}
+30-DAY WIN THEY WANT: ${intakeAnswers[2] || ""}
+
+Generate exactly 4 execution blocks. Each block must directly attack their constraint and help them reach their 30-day win.
+
+RULES:
+- Block names must reflect the CATEGORY of work (e.g. Marketing, Content, Sales, Platform, Community) — name them for what the work IS, not abstract concepts
+- Activities must be concrete and SPECIFIC to their actual business/product — not generic advice
+- Activities use action verbs (Identify, Write, Test, Send, Post, Reach out to, Create, Draft, etc.)
+- Everything connects to reaching their 30-day win
+- Be specific (e.g. "Identify 5 family-focused Instagram accounts to partner with" not "Do influencer marketing")
+
+Return JSON only — no markdown, no extra text:
+{
+  "blocks": [
+    { "title": "Block Name", "activities": ["Activity 1", "Activity 2", "Activity 3"] },
+    { "title": "Block Name", "activities": ["Activity 1", "Activity 2", "Activity 3"] },
+    { "title": "Block Name", "activities": ["Activity 1", "Activity 2", "Activity 3"] },
+    { "title": "Block Name", "activities": ["Activity 1", "Activity 2", "Activity 3"] }
+  ]
+}`;
+
+        const blocksResponse = await fetch('https://ai.gateway.lovable.dev/v1/chat/completions', {
+          method: 'POST',
+          headers: { 'Authorization': `Bearer ${LOVABLE_API_KEY}`, 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            model: 'google/gemini-2.5-flash-lite',
+            messages: [{ role: 'user', content: blocksPrompt }],
+          }),
+        });
+
+        if (blocksResponse.ok) {
+          const blocksData = await blocksResponse.json();
+          let blocksText = blocksData.choices?.[0]?.message?.content || '';
+          blocksText = blocksText.replace(/```json\n?/g, '').replace(/```\n?/g, '').trim();
+          const parsed = JSON.parse(blocksText);
+          if (parsed.blocks && Array.isArray(parsed.blocks)) {
+            proposedBlocks = parsed.blocks.map((b: any) => ({
+              id: mk(),
+              title: b.title,
+              status: "not_started",
+              importance: "high",
+              children: (b.activities || []).map((a: string) => ({
+                id: mk(),
+                title: a,
+                status: "not_started",
+                importance: "medium",
+                children: [],
+              })),
+            }));
+            console.log("Generated tailored BUILD blocks:", parsed.blocks.map((b: any) => b.title).join(", "));
+          }
+        }
+      } catch (blockErr) {
+        console.error("BUILD block generation failed (non-fatal):", blockErr);
+      }
+    }
+
     return new Response(JSON.stringify({
       success: true,
       project,
@@ -599,7 +666,8 @@ CRITICAL REQUIREMENTS:
       previousNode: previousActiveNode ? {
         id: previousActiveNode.id,
         title: previousActiveNode.node_title
-      } : null
+      } : null,
+      proposedBlocks,
     }), {
       headers: { ...corsHeaders, 'Content-Type': 'application/json' },
     });

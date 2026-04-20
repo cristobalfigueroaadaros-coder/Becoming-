@@ -12,6 +12,7 @@ import { WeeklyFocus } from "@/components/project-engine/WeeklyFocus";
 import { SprintTasks } from "@/components/project-engine/SprintTasks";
 import { ConnectedInsights } from "@/components/project-engine/ConnectedInsights";
 import { DailyGoals } from "@/components/project-engine/DailyGoals";
+import { PaymentModal } from "@/components/PaymentModal";
 
 export interface ProjectEngineData {
   id: string;
@@ -35,6 +36,13 @@ export default function ProjectEngine() {
   const navigate = useNavigate();
   const [project, setProject] = useState<ProjectEngineData | null>(null);
   const [loading, setLoading] = useState(true);
+  const [showPayment, setShowPayment] = useState(false);
+
+  useEffect(() => {
+    if (localStorage.getItem("payment_popup_shown")) return;
+    const timer = setTimeout(() => setShowPayment(true), 12000);
+    return () => clearTimeout(timer);
+  }, []);
 
   useEffect(() => {
     if (id) loadProject(id);
@@ -128,6 +136,8 @@ export default function ProjectEngine() {
         <SprintTasks projectId={project.id} />
         <ConnectedInsights projectId={project.id} userId={project.user_id} />
       </div>
+
+      <PaymentModal open={showPayment} onClose={() => setShowPayment(false)} />
     </div>
   );
 }
