@@ -113,6 +113,28 @@ export function ProjectStructure({ project, onUpdate }: Props) {
     });
   };
 
+  // Builder Team pending suggestions
+  const pendingActivities = structure.flatMap(b =>
+    b.children.filter(c => c.pending_review && c.source === "builder_team").map(c => ({ block: b, activity: c }))
+  );
+  const pendingBlocks = structure.filter(b => b.pending_review && b.source === "builder_team");
+  const totalPending = pendingActivities.length + pendingBlocks.length;
+
+  const acceptNode = (id: string) => {
+    saveStructure(updateNodeRecursive(structure, id, { pending_review: false }));
+  };
+  const rejectNode = (id: string) => {
+    saveStructure(deleteNodeRecursive(structure, id));
+  };
+  const acceptAllPending = () => {
+    const clear = (nodes: StructureNode[]): StructureNode[] => nodes.map(n => ({
+      ...n,
+      pending_review: n.pending_review ? false : n.pending_review,
+      children: clear(n.children),
+    }));
+    saveStructure(clear(structure));
+  };
+
   // Generate a single suggested activity for an empty block
   const generateSuggestionForBlock = async (block: StructureNode) => {
     if (block.suggestedActivity || block.children.length > 0) return;
