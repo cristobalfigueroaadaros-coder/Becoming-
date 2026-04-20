@@ -12,6 +12,7 @@ import MentorRevealCard from "@/components/console-thread/MentorRevealCard";
 import { FirstWinNamingCard } from "@/components/FirstWinNamingCard";
 import StarterQuestWinCard from "@/components/console-thread/StarterQuestWinCard";
 import ProjectCreationCard from "@/components/console-thread/ProjectCreationCard";
+import { PaymentModal } from "@/components/PaymentModal";
 import confetti from "canvas-confetti";
 
 // Mentor config (reused from Council.tsx)
@@ -260,6 +261,7 @@ const ConsoleThread = ({ embedded = false, onProjectNameChange }: ConsoleThreadP
   const [initialLoading, setInitialLoading] = useState(true);
   const [displayName, setDisplayName] = useState("friend");
   const [atlasSignals, setAtlasSignals] = useState<any>(null);
+  const [showPayment, setShowPayment] = useState(false);
   const scrollRef = useRef<HTMLDivElement>(null);
   const inputRef = useRef<HTMLInputElement>(null);
   const returnFlowStartedRef = useRef(false); // guard against double startReturnFlow call
@@ -1587,6 +1589,11 @@ const ConsoleThread = ({ embedded = false, onProjectNameChange }: ConsoleThreadP
       await showTyping("future_self", 1200);
       addSystemMessage(structureText, "future_self", "project_detected");
 
+      // Show payment modal 6s after project structure appears (only once per device)
+      if (localStorage.getItem("payment_popup_shown") !== "true") {
+        setTimeout(() => setShowPayment(true), 6000);
+      }
+
       // --- Step 3: Await project creation result ---
       const { data: projectData, error: projectError } = await projectCreationPromise;
 
@@ -1929,6 +1936,8 @@ const ConsoleThread = ({ embedded = false, onProjectNameChange }: ConsoleThreadP
         </div>
       </div>
     </div>
+
+    <PaymentModal open={showPayment} onClose={() => setShowPayment(false)} />
   );
 };
 
