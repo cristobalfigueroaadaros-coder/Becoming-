@@ -2,7 +2,7 @@ import { useState, useEffect } from "react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { Plus, Trash2, Sparkles, CheckCircle2, Lightbulb } from "lucide-react";
+import { Plus, Trash2, Sparkles, CheckCircle2, Lightbulb, Check, X } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { useNavigate } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
@@ -18,6 +18,9 @@ export interface StructureNode {
   children: StructureNode[];
   mentorType?: string;
   suggestedActivity?: string;
+  notes?: string;
+  source?: string;
+  pending_review?: boolean;
 }
 
 const STATUS_DOT: Record<string, string> = {
