@@ -1594,20 +1594,25 @@ const ConsoleThread = ({ embedded = false, onProjectNameChange }: ConsoleThreadP
         setTimeout(() => setShowPayment(true), 6000);
       }
 
+      // Keep typing indicator alive while we wait — user sees Future Self is "working"
+      const fsConfig = mentorConfig["future_self"];
+      setTyping({ name: fsConfig?.name, icon: fsConfig?.icon, color: fsConfig?.color });
+
       // --- Step 3: Await project creation result ---
       const { data: projectData, error: projectError } = await projectCreationPromise;
 
       let projectId = projectData?.project?.id || projectData?.projectId;
 
       if (projectError || !projectId) {
+        setTyping(null);
         console.error("Project creation failed:", projectError);
         toast.error("Failed to create project");
         setLoading(false);
         return;
       }
 
-      // Save structure and profile update in parallel
-      await Promise.all([
+      // Fire all DB writes in parallel — none of these need to block the card
+      Promise.all([
         supabase
           .from("integrator_projects")
           .update({
@@ -1623,40 +1628,42 @@ const ConsoleThread = ({ embedded = false, onProjectNameChange }: ConsoleThreadP
             console_intake_completed: true,
           } as any)
           .eq("id", user.id),
-      ]);
+      ]).catch(e => console.error("Project DB writes failed:", e));
 
-      // Create Atlas entries (non-blocking)
-      try {
-        const projectSlug = name.toLowerCase().replace(/[^a-z0-9]+/g, "-").replace(/(^-|-$)/g, "");
-        const { data: projectNode } = await supabase
-          .from("atlas_project_nodes")
-          .insert({ user_id: user.id, title: name, description })
-          .select("id")
-          .single();
-
-        if (projectNode) {
-          const { data: newCluster } = await supabase
-            .from("atlas_clusters")
-            .insert({
-              name,
-              slug: `project-${projectSlug}`,
-              cluster_category: "project",
-              state: "active",
-              sort_order: 100,
-              description: description || `Project: ${name}`,
-            })
+      // Atlas cluster creation — fully fire-and-forget
+      (async () => {
+        try {
+          const projectSlug = name.toLowerCase().replace(/[^a-z0-9]+/g, "-").replace(/(^-|-$)/g, "");
+          const { data: projectNode } = await supabase
+            .from("atlas_project_nodes")
+            .insert({ user_id: user.id, title: name, description })
             .select("id")
             .single();
 
-          if (newCluster) {
-            await supabase
-              .from("atlas_cluster_project_connections")
-              .insert({ cluster_id: newCluster.id, project_id: projectNode.id });
+          if (projectNode) {
+            const { data: newCluster } = await supabase
+              .from("atlas_clusters")
+              .insert({
+                name,
+                slug: `project-${projectSlug}`,
+                cluster_category: "project",
+                state: "active",
+                sort_order: 100,
+                description: description || `Project: ${name}`,
+              })
+              .select("id")
+              .single();
+
+            if (newCluster) {
+              await supabase
+                .from("atlas_cluster_project_connections")
+                .insert({ cluster_id: newCluster.id, project_id: projectNode.id });
+            }
           }
+        } catch (clusterErr) {
+          console.error("Project cluster creation failed:", clusterErr);
         }
-      } catch (clusterErr) {
-        console.error("Project cluster creation failed:", clusterErr);
-      }
+      })();
 
       // Seed capabilities (non-blocking)
       supabase.functions.invoke("seed-initial-capabilities", {
@@ -1665,7 +1672,7 @@ const ConsoleThread = ({ embedded = false, onProjectNameChange }: ConsoleThreadP
 
       // --- Step 4: Show Project Card with "Open Project" ---
       const finalProjectId = projectId;
-      await showTyping("future_self", 400);
+      setTyping(null);
       
       setPhase("post_project");
       persistPhase("post_project");
