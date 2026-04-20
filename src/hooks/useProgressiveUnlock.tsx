@@ -64,37 +64,18 @@ export function useProgressiveUnlock() {
 
       const entryState: string = p.entry_state || "DISCOVER";
 
-      // Phase-specific pre-council cluster slugs (must match AtlasPage / JourneyPanel)
-      const PHASE1_SLUGS: Record<string, string[]> = {
-        DISCOVER: ["skills", "passions", "personal-frustrations", "experiments"],
-        GROW:     ["skills", "passions", "personal-frustrations"],
-        BUILD:    ["skills", "passions"],
-      };
       const COUNCIL_THRESHOLDS: Record<string, number> = { DISCOVER: 4, GROW: 3, BUILD: 2 };
-
-      // Always recompute from live cluster data — never trust the cached DB flag.
-      // The old logic set chat_unlocked=true after 3 total dots, so existing users
-      // may have a stale true value that needs to be corrected.
-      const phase1Slugs = PHASE1_SLUGS[entryState] ?? PHASE1_SLUGS.DISCOVER;
       const threshold = COUNCIL_THRESHOLDS[entryState] ?? 4;
 
-      const { data: clusterRows } = await supabase
-        .from("atlas_clusters")
-        .select("id, slug")
-        .in("slug", phase1Slugs);
+      // Use completed quest count — matches AtlasPage / AtlasQuestFlow logic exactly.
+      // Any completed quest counts; no dependency on specific cluster slugs having dots.
+      const { count: completedQuestCount } = await supabase
+        .from("atlas_quests")
+        .select("*", { count: "exact", head: true })
+        .eq("user_id", user.id)
+        .eq("status", "completed");
 
-      const clusterChecks = await Promise.all(
-        (clusterRows || []).map(async (cluster) => {
-          const { count } = await supabase
-            .from("atlas_dots")
-            .select("*", { count: "exact", head: true })
-            .eq("user_id", user.id)
-            .eq("cluster_id", cluster.id);
-          return (count || 0) > 0;
-        })
-      );
-      const exploredCount = clusterChecks.filter(Boolean).length;
-      const chatUnlocked = exploredCount >= threshold;
+      const chatUnlocked = (completedQuestCount || 0) >= threshold;
 
       // Sync the DB flag to match the live computation
       if (chatUnlocked !== prevChat) {
@@ -104,10 +85,9 @@ export function useProgressiveUnlock() {
           .eq("id", user.id);
       }
 
-      // Check projects unlock condition: has any console thread messages or chats
-      // Only check if chat was ALREADY unlocked before this run (prevChat) — prevents
-      // cascading both chat + projects unlocks in the same pass and showing two toasts at once.
-      if (!projectsUnlocked && prevChat) {
+      // Check projects unlock: user has sent at least one message to a mentor or console.
+      // Use current chatUnlocked (not prevChat) so projects can unlock in the same pass.
+      if (!projectsUnlocked && chatUnlocked) {
         const { count: threadCount } = await supabase
           .from("console_thread_messages")
           .select("*", { count: "exact", head: true })
@@ -130,8 +110,8 @@ export function useProgressiveUnlock() {
       }
 
       // Check creators unlock condition: has a project (any type)
-      // Only check if projects was ALREADY unlocked before this run (prevProjects).
-      if (!creatorsUnlocked && prevProjects) {
+      // Use current projectsUnlocked so creators can unlock in the same pass.
+      if (!creatorsUnlocked && projectsUnlocked) {
         const { count: projectCount } = await supabase
           .from("integrator_projects")
           .select("*", { count: "exact", head: true })
