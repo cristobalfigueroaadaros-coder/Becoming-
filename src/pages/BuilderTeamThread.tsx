@@ -494,6 +494,27 @@ const BuilderTeamThread = ({ embedded = false }: BuilderTeamThreadProps) => {
         context: answers[0] || "",
       }));
 
+      // Sync insights into project_structure (best-effort, non-blocking UX)
+      try {
+        const { data: syncData, error: syncErr } = await supabase.functions.invoke(
+          "sync-builder-insights-to-structure",
+          {
+            body: {
+              projectId,
+              insights: insightEntries,
+              intakeContext: answers.join("\n"),
+            },
+          }
+        );
+        if (syncErr) {
+          console.warn("Builder Team sync skipped:", syncErr.message);
+        } else if (syncData?.count > 0) {
+          toast.success(`Builder Team added ${syncData.count} suggestion${syncData.count > 1 ? "s" : ""} to your project structure`);
+        }
+      } catch (syncCatch) {
+        console.warn("Builder Team sync failed:", syncCatch);
+      }
+
       // Save to design_thinking_content as empathize/ideate phase entries
       const phases = ["empathize", "ideate"];
       for (const phase of phases) {
