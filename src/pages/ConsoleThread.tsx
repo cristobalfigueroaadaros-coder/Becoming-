@@ -1590,6 +1590,9 @@ const ConsoleThread = ({ embedded = false, onProjectNameChange }: ConsoleThreadP
           "post_project"
         );
 
+        // Auto-open the project so the user sees the structure → payment flow
+        setTimeout(() => navigate(`/project/${projectId}`), 3500);
+
         setLoading(false);
         return;
       }
