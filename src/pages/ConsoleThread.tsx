@@ -279,8 +279,8 @@ const ConsoleThread = ({ embedded = false, onProjectNameChange }: ConsoleThreadP
     scrollRef.current?.scrollIntoView({ behavior: "smooth" });
   }, [messages, typing]);
 
-  // "Go deeper later" saves outreach to mentor_daily_outreach (handled in useSavedInsights).
-  // The individual mentor chat reads that outreach — ConsoleThread must not inject it here.
+  // "Go deeper later" saves to mentor_daily_outreach and shows a toast confirmation.
+  // Follow-up is delivered in the individual mentor chat, not injected here.
 
   const persistMessage = async (msg: ChatMessage, currentPhase: Phase) => {
     try {

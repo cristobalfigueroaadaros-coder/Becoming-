@@ -91,7 +91,7 @@ export const useSavedInsights = () => {
 
         const followupMessage = `I've been sitting with what you saved: **"${preview}"** — and I want to go deeper on this with you. What feels most alive or unresolved about it right now?`;
 
-        supabase
+        const { error: outreachError } = await supabase
           .from('mentor_daily_outreach')
           .insert({
             user_id: user.id,
@@ -100,16 +100,13 @@ export const useSavedInsights = () => {
             message_type: 'insight_followup',
             context_source: 'saved_insight',
             context_data: { insight_text: insightText },
-          })
-          .then(({ error }) => {
-            if (error) console.error('[GoDeeper] Outreach insert error:', error);
-            else console.log('[GoDeeper] Outreach inserted successfully for:', followupMentor);
           });
 
-        // Signal ConsoleThread to inject the mentor's follow-up immediately
-        window.dispatchEvent(new CustomEvent('insight-go-deeper', {
-          detail: { mentorType: followupMentor, followupMessage },
-        }));
+        if (outreachError) {
+          console.error('[GoDeeper] Outreach insert error:', outreachError);
+        } else {
+          toast.success('Saved! Your mentor will follow up in your private chat.');
+        }
       } else {
         console.log('[GoDeeper] skipped — requestFollowup:', requestFollowup, 'followupMentor:', followupMentor);
       }

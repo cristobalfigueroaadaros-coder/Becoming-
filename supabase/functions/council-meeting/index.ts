@@ -1207,22 +1207,25 @@ Example: "We sense this matters to you in a real and honest way."
 
 Keep it under 25 words. Just the reflection, no labels.`;
 
-    const emotionalReflectionResponse = await fetch("https://ai.gateway.lovable.dev/v1/chat/completions", {
-      method: "POST",
-      headers: {
-        "Authorization": `Bearer ${Deno.env.get("LOVABLE_API_KEY")}`,
-        "Content-Type": "application/json",
-      },
-      body: JSON.stringify({
-        model: "google/gemini-2.5-flash",
-        messages: [{ role: "user", content: emotionalReflectionPrompt }],
-      }),
-    });
-
     let emotionalReflection = "";
-    if (emotionalReflectionResponse.ok) {
-      const data = await emotionalReflectionResponse.json();
-      emotionalReflection = data.choices[0].message.content;
+    try {
+      const emotionalReflectionResponse = await fetch("https://ai.gateway.lovable.dev/v1/chat/completions", {
+        method: "POST",
+        headers: {
+          "Authorization": `Bearer ${Deno.env.get("LOVABLE_API_KEY")}`,
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({
+          model: "google/gemini-2.5-flash",
+          messages: [{ role: "user", content: emotionalReflectionPrompt }],
+        }),
+      });
+      if (emotionalReflectionResponse.ok) {
+        const data = await emotionalReflectionResponse.json();
+        emotionalReflection = data?.choices?.[0]?.message?.content?.trim() || "";
+      }
+    } catch (reflErr) {
+      console.error("Emotional reflection failed (non-fatal):", reflErr);
     }
 
     // === SUGGESTED NEXT QUESTION (Q1 ONLY — max 2 questions rule) ===
