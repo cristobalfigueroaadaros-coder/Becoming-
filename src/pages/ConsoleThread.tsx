@@ -1130,9 +1130,25 @@ const ConsoleThread = ({ embedded = false, onProjectNameChange }: ConsoleThreadP
 
   const handleUserReply = async (text: string) => {
     setLoading(true);
+    // Show typing immediately while we wait for the API — keeps the user oriented
+    let userReplyTypingCancelled = false;
+    const cycleUserReplyTyping = async () => {
+      const pool = handoffMentor ? [handoffMentor] : [...userMentors, "future_self"];
+      let i = 0;
+      while (!userReplyTypingCancelled) {
+        const mt = pool[i % pool.length];
+        const cfg = mentorConfig[mt];
+        setTyping({ name: cfg?.name, icon: cfg?.icon, color: cfg?.color });
+        await new Promise<void>(r => setTimeout(r, 1100));
+        i++;
+      }
+      setTyping(null);
+    };
+    cycleUserReplyTyping();
     try {
       if (handoffMentor) {
         const config = mentorConfig[handoffMentor];
+        userReplyTypingCancelled = true;
         await showTyping("future_self", 800);
         addSystemMessage(
           `I think you're ready to work 1-to-1 with ${config?.name || handoffMentor}.\n\nIf you're ready, type "let's go".`,
