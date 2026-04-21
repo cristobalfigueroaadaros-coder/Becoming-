@@ -39,9 +39,11 @@ export default function ProjectEngine() {
   const [showPayment, setShowPayment] = useState(false);
 
   useEffect(() => {
-    if (localStorage.getItem("payment_popup_shown")) return;
-    // Show payment shortly after the project structure becomes visible
-    const timer = setTimeout(() => setShowPayment(true), 8000);
+    const shown = localStorage.getItem("payment_popup_shown");
+    const shownAt = shown ? parseInt(shown, 10) : 0;
+    const oneDayMs = 24 * 60 * 60 * 1000;
+    if (shownAt && Date.now() - shownAt < oneDayMs) return;
+    const timer = setTimeout(() => setShowPayment(true), 7000);
     return () => clearTimeout(timer);
   }, []);
 

@@ -70,7 +70,7 @@ export const PaymentModal = ({ open, onClose }: PaymentModalProps) => {
   };
 
   const handleContinueFree = () => {
-    localStorage.setItem("payment_popup_shown", "true");
+    localStorage.setItem("payment_popup_shown", Date.now().toString());
     onClose();
   };
 
