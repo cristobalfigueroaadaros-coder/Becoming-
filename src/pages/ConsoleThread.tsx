@@ -262,6 +262,7 @@ const ConsoleThread = ({ embedded = false, onProjectNameChange }: ConsoleThreadP
   const [displayName, setDisplayName] = useState("friend");
   const [atlasSignals, setAtlasSignals] = useState<any>(null);
   const [showPayment, setShowPayment] = useState(false);
+  const paymentTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const scrollRef = useRef<HTMLDivElement>(null);
   const inputRef = useRef<HTMLInputElement>(null);
   const returnFlowStartedRef = useRef(false); // guard against double startReturnFlow call
@@ -278,6 +279,12 @@ const ConsoleThread = ({ embedded = false, onProjectNameChange }: ConsoleThreadP
   useEffect(() => {
     scrollRef.current?.scrollIntoView({ behavior: "smooth" });
   }, [messages, typing]);
+
+  useEffect(() => {
+    return () => {
+      if (paymentTimerRef.current) clearTimeout(paymentTimerRef.current);
+    };
+  }, []);
 
   // "Go deeper later" saves to mentor_daily_outreach and shows a toast confirmation.
   // Follow-up is delivered in the individual mentor chat, not injected here.
@@ -1517,7 +1524,7 @@ const ConsoleThread = ({ embedded = false, onProjectNameChange }: ConsoleThreadP
         addSystemMessage(structureText, "future_self", "project_detected");
 
         if (localStorage.getItem("payment_popup_shown") !== "true") {
-          setTimeout(() => setShowPayment(true), 6000);
+          paymentTimerRef.current = setTimeout(() => setShowPayment(true), 8000);
         }
 
         const fsConfig2 = mentorConfig["future_self"];
@@ -1638,9 +1645,8 @@ const ConsoleThread = ({ embedded = false, onProjectNameChange }: ConsoleThreadP
       await showTyping("future_self", 1200);
       addSystemMessage(structureText, "future_self", "project_detected");
 
-      // Show payment modal 6s after project structure appears (only once per device)
       if (localStorage.getItem("payment_popup_shown") !== "true") {
-        setTimeout(() => setShowPayment(true), 6000);
+        paymentTimerRef.current = setTimeout(() => setShowPayment(true), 8000);
       }
 
       // Keep typing indicator alive while we wait — user sees Future Self is "working"
