@@ -245,6 +245,7 @@ interface ConsoleThreadProps {
 const ConsoleThread = ({ embedded = false, onProjectNameChange }: ConsoleThreadProps) => {
   const navigate = useNavigate();
   const [phase, setPhase] = useState<Phase>("starter_q1");
+  const phaseRef = useRef<Phase>("starter_q1");
   const [messages, setMessages] = useState<ChatMessage[]>([]);
   const [input, setInput] = useState("");
   const [loading, setLoading] = useState(false);
@@ -274,6 +275,9 @@ const ConsoleThread = ({ embedded = false, onProjectNameChange }: ConsoleThreadP
     else localStorage.removeItem(key);
   };
 
+  // Keep phaseRef in sync so the go-deeper handler can read current phase without stale closure
+  useEffect(() => { phaseRef.current = phase; }, [phase]);
+
   // Auto-scroll
   useEffect(() => {
     scrollRef.current?.scrollIntoView({ behavior: "smooth" });
@@ -283,6 +287,10 @@ const ConsoleThread = ({ embedded = false, onProjectNameChange }: ConsoleThreadP
   useEffect(() => {
     const handleGoDeeper = async (e: Event) => {
       const { mentorType, followupMessage } = (e as CustomEvent).detail as { mentorType: string; followupMessage: string };
+      // Only inject into the thread when already in 1-to-1 or post-project mode.
+      // If still in the council flow, the outreach is saved in mentor_daily_outreach and
+      // will appear when the user opens that mentor's individual chat — don't hijack the thread.
+      if (phaseRef.current !== "mentor_1to1" && phaseRef.current !== "post_project") return;
       const cfg = mentorConfig[mentorType];
       // Switch to this mentor for 1:1
       setHandoffMentor(mentorType);
