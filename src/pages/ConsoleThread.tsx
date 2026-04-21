@@ -245,7 +245,6 @@ interface ConsoleThreadProps {
 const ConsoleThread = ({ embedded = false, onProjectNameChange }: ConsoleThreadProps) => {
   const navigate = useNavigate();
   const [phase, setPhase] = useState<Phase>("starter_q1");
-  const phaseRef = useRef<Phase>("starter_q1");
   const [messages, setMessages] = useState<ChatMessage[]>([]);
   const [input, setInput] = useState("");
   const [loading, setLoading] = useState(false);
@@ -275,50 +274,13 @@ const ConsoleThread = ({ embedded = false, onProjectNameChange }: ConsoleThreadP
     else localStorage.removeItem(key);
   };
 
-  // Keep phaseRef in sync so the go-deeper handler can read current phase without stale closure
-  useEffect(() => { phaseRef.current = phase; }, [phase]);
-
   // Auto-scroll
   useEffect(() => {
     scrollRef.current?.scrollIntoView({ behavior: "smooth" });
   }, [messages, typing]);
 
-  // Listen for "Go deeper" saves — inject the mentor's follow-up message immediately
-  useEffect(() => {
-    const handleGoDeeper = async (e: Event) => {
-      const { mentorType, followupMessage } = (e as CustomEvent).detail as { mentorType: string; followupMessage: string };
-      // Only inject into the thread when already in 1-to-1 or post-project mode.
-      // If still in the council flow, the outreach is saved in mentor_daily_outreach and
-      // will appear when the user opens that mentor's individual chat — don't hijack the thread.
-      if (phaseRef.current !== "mentor_1to1" && phaseRef.current !== "post_project") return;
-      const cfg = mentorConfig[mentorType];
-      // Switch to this mentor for 1:1
-      setHandoffMentor(mentorType);
-      const { data: { user } } = await supabase.auth.getUser();
-      if (user) localStorage.setItem(`becoming_handoff_mentor_${user.id}`, mentorType);
-      // Show typing then inject the message
-      setTyping({ name: cfg?.name, icon: cfg?.icon, color: cfg?.color });
-      await new Promise<void>(r => setTimeout(r, 1200));
-      setTyping(null);
-      const msg: ChatMessage = {
-        id: crypto.randomUUID(),
-        role: "mentor",
-        content: followupMessage,
-        mentorName: cfg?.name,
-        mentorType,
-        mentorIcon: cfg?.icon,
-        mentorColor: cfg?.color,
-      };
-      setMessages(prev => [...prev, msg]);
-      setPhase("mentor_1to1");
-      // Persist phase
-      if (user) {
-        supabase.from("profiles").update({ console_thread_phase: "mentor_1to1" } as any).eq("id", user.id).then(() => {});
-      }
-    };
-    window.addEventListener('insight-go-deeper', handleGoDeeper);
-    return () => window.removeEventListener('insight-go-deeper', handleGoDeeper);
-  }, []);
+  // "Go deeper later" saves outreach to mentor_daily_outreach (handled in useSavedInsights).
+  // The individual mentor chat reads that outreach — ConsoleThread must not inject it here.
 
   const persistMessage = async (msg: ChatMessage, currentPhase: Phase) => {
     try {
