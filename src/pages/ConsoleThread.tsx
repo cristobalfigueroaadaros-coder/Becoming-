@@ -265,6 +265,7 @@ const ConsoleThread = ({ embedded = false, onProjectNameChange }: ConsoleThreadP
   const scrollRef = useRef<HTMLDivElement>(null);
   const inputRef = useRef<HTMLInputElement>(null);
   const returnFlowStartedRef = useRef(false); // guard against double startReturnFlow call
+  const discoveredProjectTypeRef = useRef<string>("experience"); // set when DISCOVER project is detected
 
   // Persist handoffMentor to localStorage so it survives page reloads
   const persistHandoffMentor = (mentor: string | null, userId?: string) => {
@@ -1418,6 +1419,10 @@ const ConsoleThread = ({ embedded = false, onProjectNameChange }: ConsoleThreadP
 
       if (data.projectCoherence?.isCoherent) {
         // Project detected — skip the mentor's follow-up question and go straight to the card
+        if (data.projectCoherence.projectType) {
+          discoveredProjectTypeRef.current = data.projectCoherence.projectType;
+        }
+
         await supabase.from("chats").insert({
           user_id: user.id,
           mentor_type: handoffMentor as any,
@@ -1477,7 +1482,7 @@ const ConsoleThread = ({ embedded = false, onProjectNameChange }: ConsoleThreadP
       // For BUILD: start API immediately, show tailored blocks after it resolves.
       // For DISCOVER/GROW: show template immediately (fast), API runs in parallel.
       const projectCreationPromise = supabase.functions.invoke("integrator-setup", {
-        body: { projectTitle: name, projectDescription: description, timeframeDays: 30, entryState, intakeAnswers },
+        body: { projectTitle: name, projectDescription: description, timeframeDays: 30, entryState, intakeAnswers, projectType: discoveredProjectTypeRef.current },
       });
 
       let projectStructure: any[] = [];
@@ -1600,7 +1605,120 @@ const ConsoleThread = ({ embedded = false, onProjectNameChange }: ConsoleThreadP
         return;
       }
 
-      // DISCOVER / GROW: show template immediately, fire API in parallel
+      // DISCOVER: wait for API (AI-tailored blocks). GROW: show template immediately.
+      if (entryState === "DISCOVER") {
+        // Set rich fallback immediately — AI blocks from integrator-setup will override if available
+        projectStructure = [
+          { id: mk(), title: "Project Identity", status: "not_started", importance: "high", children: [
+            { id: mk(), title: "Write the name and one clear sentence that explains what this is", status: "not_started", importance: "high", children: [] },
+            { id: mk(), title: "Define the core purpose — what this changes or creates", status: "not_started", importance: "high", children: [] },
+            { id: mk(), title: "Describe the format — what form does this take?", status: "not_started", importance: "medium", children: [] },
+          ]},
+          { id: mk(), title: "Transformation", status: "not_started", importance: "high", children: [
+            { id: mk(), title: "Before — how does someone feel before they experience this?", status: "not_started", importance: "high", children: [] },
+            { id: mk(), title: "During — what shifts while they are inside this experience?", status: "not_started", importance: "high", children: [] },
+            { id: mk(), title: "After — what can they do or feel that they could not before?", status: "not_started", importance: "high", children: [] },
+          ]},
+          { id: mk(), title: "Ideal User", status: "not_started", importance: "high", children: [
+            { id: mk(), title: "Who is this person? Write a real profile", status: "not_started", importance: "high", children: [] },
+            { id: mk(), title: "What are they struggling with right now?", status: "not_started", importance: "high", children: [] },
+            { id: mk(), title: "What do they want more than anything?", status: "not_started", importance: "medium", children: [] },
+            { id: mk(), title: "Why would they pay for this?", status: "not_started", importance: "medium", children: [] },
+          ]},
+          { id: mk(), title: "Core Journey", status: "not_started", importance: "high", children: [
+            { id: mk(), title: "What is the first moment? How does it begin?", status: "not_started", importance: "high", children: [] },
+            { id: mk(), title: "What is the turning point — when something shifts?", status: "not_started", importance: "high", children: [] },
+            { id: mk(), title: "What is the peak moment — the most powerful point?", status: "not_started", importance: "medium", children: [] },
+            { id: mk(), title: "How does it end? What do they carry away?", status: "not_started", importance: "medium", children: [] },
+          ]},
+          { id: mk(), title: "System Mechanics", status: "not_started", importance: "high", children: [
+            { id: mk(), title: "What are the core components or elements?", status: "not_started", importance: "high", children: [] },
+            { id: mk(), title: "How do the components connect and flow?", status: "not_started", importance: "high", children: [] },
+            { id: mk(), title: "What rules or structure make it work?", status: "not_started", importance: "medium", children: [] },
+          ]},
+          { id: mk(), title: "Interaction Design", status: "not_started", importance: "medium", children: [
+            { id: mk(), title: "What is the tone? (playful, serious, gentle, bold...)", status: "not_started", importance: "medium", children: [] },
+            { id: mk(), title: "What energy should someone feel while using this?", status: "not_started", importance: "medium", children: [] },
+            { id: mk(), title: "What makes this feel different from anything else?", status: "not_started", importance: "medium", children: [] },
+          ]},
+          { id: mk(), title: "Project System Design", status: "not_started", importance: "medium", children: [
+            { id: mk(), title: "Map the full path from A to B", status: "not_started", importance: "high", children: [] },
+            { id: mk(), title: "What enables each step of the journey?", status: "not_started", importance: "medium", children: [] },
+            { id: mk(), title: "How does everything connect into one system?", status: "not_started", importance: "medium", children: [] },
+          ]},
+        ];
+
+        const fsConfig = mentorConfig["future_self"];
+        setTyping({ name: fsConfig?.name, icon: fsConfig?.icon, color: fsConfig?.color });
+
+        const { data: projectData, error: projectError } = await projectCreationPromise;
+        setTyping(null);
+
+        if (projectError || !projectData) {
+          toast.error("Failed to create project");
+          setLoading(false);
+          return;
+        }
+
+        // Override fallback with AI-tailored blocks if available
+        if (projectData.proposedBlocks?.length > 0) {
+          projectStructure = projectData.proposedBlocks;
+        }
+
+        const projectId = projectData?.project?.id || projectData?.projectId;
+        if (!projectId) {
+          toast.error("Failed to create project");
+          setLoading(false);
+          return;
+        }
+
+        // Show structure in chat
+        let structureText = `**${name}**\n\nStructure:\n`;
+        projectStructure.forEach((block: any) => {
+          structureText += `\n● **${block.title}**`;
+          if (block.children?.length > 0) {
+            block.children.forEach((child: any) => { structureText += `\n  · ${child.title}`; });
+          }
+        });
+        await showTyping("future_self", 1200);
+        addSystemMessage(structureText, "future_self", "project_detected");
+
+        await Promise.all([
+          supabase.from("integrator_projects").update({ project_structure: projectStructure, project_brief: description } as any).eq("id", projectId),
+          supabase.from("profiles").update({ first_project_created_at: new Date().toISOString(), first_project_id: projectId, console_intake_completed: true } as any).eq("id", user.id),
+        ]).catch(e => console.error("Project DB writes failed:", e));
+
+        supabase.functions.invoke("seed-initial-capabilities", { body: { intakeAnswers, workContext: entryState } }).catch(e => console.error("Capability seeding failed:", e));
+
+        setTyping(null);
+        setPhase("post_project");
+        persistPhase("post_project");
+        setProjectName(name);
+        onProjectNameChange?.(name);
+
+        const discoverProjectId = projectId;
+        const discoverStructureBlocks = projectStructure.map((b: any) => ({
+          title: b.title,
+          activities: (b.children || []).map((c: any) => c.title),
+        }));
+        confetti({ particleCount: 120, spread: 80, origin: { y: 0.6 } });
+        addCardMessage(
+          <ProjectCreationCard
+            projectName={name}
+            projectDescription={description}
+            alreadyCreatedId={discoverProjectId}
+            structureBlocks={discoverStructureBlocks}
+            onProjectCreated={() => { navigate(`/project/${discoverProjectId}`); }}
+          />,
+          undefined,
+          "post_project"
+        );
+
+        setTimeout(() => navigate(`/project/${discoverProjectId}`), 3500);
+        setLoading(false);
+        return;
+      }
+
       if (entryState === "GROW") {
         projectStructure = [
           { id: mk(), title: "MVP Design", status: "not_started", importance: "high", children: [
@@ -1634,20 +1752,9 @@ const ConsoleThread = ({ embedded = false, onProjectNameChange }: ConsoleThreadP
             { id: mk(), title: "Make your first ask", status: "not_started", importance: "medium", children: [] },
           ]},
         ];
-      } else {
-        // DISCOVER
-        projectStructure = [
-          { id: mk(), title: "Project Vision", status: "not_started", importance: "medium", children: [] },
-          { id: mk(), title: "Transformation", status: "not_started", importance: "medium", children: [] },
-          { id: mk(), title: "Interaction Design", status: "not_started", importance: "medium", children: [] },
-          { id: mk(), title: "Expansion Layer", status: "not_started", importance: "medium", children: [] },
-          { id: mk(), title: "Ideal Customer", status: "not_started", importance: "medium", children: [] },
-          { id: mk(), title: "System Design", status: "not_started", importance: "medium", children: [] },
-          { id: mk(), title: "Evolved Project Output", status: "not_started", importance: "medium", children: [] },
-        ];
       }
 
-      // --- Step 2: Show structure in chat ---
+      // --- Step 2: Show structure in chat --- (GROW only — DISCOVER returns early above)
       let structureText = `**${name}**\n\nStructure:\n`;
       projectStructure.forEach((block: any) => {
         structureText += `\n● **${block.title}**`;

@@ -187,21 +187,43 @@ Choose based on what emerged:
 
 STEP 3: NAMING (The WOW Moment — ONE name only)
 Goal: Create a project identity that feels personal, new, and actionable.
-Rules:
-- Combine 2 worlds from the library based on user input
-- Reflect the user's emotional core
-- Introduce contrast/surprise
-- Use format: [Emotional Core] + [Unexpected World]
-- Examples: "Inner Sanctuary Kit", "Alignment Ritual Box", "7-Day Reset Journey", "Feeling Reset System"
 
-Format your naming EXACTLY like this:
-"What you're describing… doesn't feel like [obvious thing].
+BEFORE proposing the name, show your creative thinking out loud. Reveal 2-3 world combinations you're seeing, then pick the one that fits best. This is the thinking-out-of-the-box moment.
+
+Format EXACTLY like this:
+
+"I'm seeing a few directions in what you've shared:
+→ [World 1] + [World 2] — [one-line description]
+→ [World 1] + [World 3] — [one-line description]
+→ [World 2] + [World 4] — [one-line description]  ← optional 3rd if it adds real uniqueness
+
+The one that fits everything you've described is [chosen combination]…
+
+What you're describing doesn't feel like [obvious thing].
 It feels more like [deeper truth]…
 
 What if this became…
-👉 "[Project Name]""
+👉 "[Project Name]"
 
-Then say: "If this feels right, press Accept. Next, we'll build this into something real."
+This lives at the intersection of [World A] and [World B][, and [World C] if 3 worlds used].
+
+If this feels right, press Accept. Next, we'll build this into something real."
+
+WORLD COMBINATION RULES:
+- Always show 2-3 directions — never just one. This is the creative reveal.
+- Pick the ONE that best combines the user's emotional core + an unexpected world.
+- Optional 3rd world ONLY if it creates a genuinely more unique combination (not just complexity).
+- Use format: [Emotional Core] + [Unexpected World]
+
+PROJECT TYPE — after showing world combinations, classify internally and include this marker ONCE at the very end of your message (it will be hidden from the user):
+- If the project is primarily an in-person or facilitated experience: [PROJECT_TYPE: experience]
+- If it's a physical product or kit: [PROJECT_TYPE: product]
+- If it's an app, platform, or digital tool: [PROJECT_TYPE: digital]
+- If it mixes types: [PROJECT_TYPE: hybrid]
+
+NAMING EXAMPLES:
+❌ AVOID: "Healing Workshop", "Coaching Business", "Online Platform", "Creative Service"
+✅ CREATE: "The Alignment Lab", "Roots & Routes Kit", "The Inner Architect Program", "Soul Currency System", "The Family Reset Game", "Inner Compass Kit"
 
 HARD CONSTRAINTS:
 - ONE name only. Never suggest alternatives.
@@ -218,9 +240,6 @@ A name is valid ONLY if:
 ✅ It feels personal (connected to user's story)
 ✅ It feels new (user wouldn't have thought of it alone)
 ✅ It feels buildable (implies action, not just concept)
-
-❌ AVOID: "Healing Workshop", "Coaching Business", "Online Platform", "Creative Service"
-✅ CREATE: "The Alignment Lab", "Roots & Routes Kit", "The Inner Architect Program", "Soul Currency System"
 
 === END PROJECT BIRTH SYSTEM ===
 `;
@@ -4218,14 +4237,19 @@ RESPOND WITH JSON ONLY:
           projectDescription = `A focused project to bring "${finalProjectName}" to life through intentional action.`;
         }
         
+        // Parse project type marker emitted by DISCOVER creative mentor
+        const projectTypeMatch = response.match(/\[PROJECT_TYPE:\s*(experience|product|digital|hybrid)\]/i);
+        const projectType = projectTypeMatch ? projectTypeMatch[1].toLowerCase() : 'experience';
+
         projectCoherence = {
           isCoherent: true,
           projectName: finalProjectName,
           projectDescription: projectDescription,
           confidence: 0.92,
-          coherenceType: 'NEW_CORE_PROJECT'
+          coherenceType: 'NEW_CORE_PROJECT',
+          projectType,
         };
-        console.log("MENTOR-INITIATED PROJECT DETECTED:", finalProjectName, "| Intention:", projectDescription);
+        console.log("MENTOR-INITIATED PROJECT DETECTED:", finalProjectName, "| Intention:", projectDescription, "| Type:", projectType);
       }
     }
     
@@ -4545,9 +4569,12 @@ If no meaningful keywords found, return: {"keywords": []}`;
       console.error("Keyword extraction failed (non-fatal):", error);
     }
 
+    // Strip hidden [PROJECT_TYPE: ...] marker before sending response to client
+    const cleanResponse = response.replace(/\[PROJECT_TYPE:\s*(experience|product|digital|hybrid)\]/gi, '').trim();
+
     return new Response(
-      JSON.stringify({ 
-        response, 
+      JSON.stringify({
+        response: cleanResponse,
         valueMapDetection,
         suggestedHandoff,
         conversationDepth,

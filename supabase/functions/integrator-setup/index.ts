@@ -20,7 +20,7 @@ serve(async (req) => {
   }
 
   try {
-    const { breakthroughId, projectTitle, projectDescription, timeframeDays, isEvolution, evolutionInsight, regenerate, entryState, intakeAnswers } = await req.json();
+    const { breakthroughId, projectTitle, projectDescription, timeframeDays, isEvolution, evolutionInsight, regenerate, entryState, intakeAnswers, projectType } = await req.json();
     
     const supabaseUrl = Deno.env.get('SUPABASE_URL')!;
     const supabaseKey = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!;
@@ -651,6 +651,118 @@ Return JSON only — no markdown, no extra text:
         }
       } catch (blockErr) {
         console.error("BUILD block generation failed (non-fatal):", blockErr);
+      }
+    }
+
+    // For DISCOVER phase: generate AI-tailored blocks using project context + project type
+    if (entryState === "DISCOVER") {
+      try {
+        const mk = () => Math.random().toString(36).slice(2, 10);
+        const resolvedType = projectType || "experience";
+
+        const mechanicsGuidance = resolvedType === "product"
+          ? "Block 5 (System Mechanics) — for a physical product: components/materials, how they interact, usage steps, what makes it tactile and real."
+          : resolvedType === "digital"
+          ? "Block 5 (System Mechanics) — for a digital product/app: core features, user flows, screens, what each feature enables."
+          : resolvedType === "hybrid"
+          ? "Block 5 (System Mechanics) — for a hybrid project: list the physical + digital components and how they connect."
+          : "Block 5 (System Mechanics) — for an experience/service: the steps, exercises, facilitation flow, timing, and what makes each moment work.";
+
+        const discoverBlocksPrompt = `You are generating a 7-block project structure for a DISCOVERY PHASE project. This user just had a breakthrough conversation and named their project. Your job is to create blocks that feel personal, specific, and actionable — NOT generic.
+
+PROJECT NAME: ${projectTitle}
+PROJECT DESCRIPTION: ${projectDescription}
+PROJECT TYPE: ${resolvedType}
+
+Generate ONLY these 4 blocks (blocks 2, 3, 6 are fixed — you generate 1, 4, 5, 7):
+
+BLOCK 1 — Project Identity: 3 activities that anchor the project's name, purpose, and format. Make them specific to this project.
+BLOCK 4 — Core Journey: 4 activities mapping the human journey from first moment to what they carry away. This is the emotional progression — NOT the mechanics.
+BLOCK 5 — System Mechanics: 3 activities defining how the project actually works. ${mechanicsGuidance}
+BLOCK 7 — Project System Design: 3 activities connecting everything into one coherent system (the architecture).
+
+RULES:
+- All activities must be specific to THIS project, not generic
+- Activities use action verbs (Define, Map, Design, Write, Identify, Build, Test, etc.)
+- Block 4 is human/emotional — phases, moments, shifts. Not tasks.
+- Block 5 is structural/mechanical — components, rules, flows. Not feelings.
+- Keep activities concrete and actionable
+
+Return JSON only — no markdown, no extra text:
+{
+  "block1": { "title": "Project Identity", "activities": ["Activity 1", "Activity 2", "Activity 3"] },
+  "block4": { "title": "Core Journey", "activities": ["Activity 1", "Activity 2", "Activity 3", "Activity 4"] },
+  "block5": { "title": "System Mechanics", "activities": ["Activity 1", "Activity 2", "Activity 3"] },
+  "block7": { "title": "Project System Design", "activities": ["Activity 1", "Activity 2", "Activity 3"] }
+}`;
+
+        const discoverBlocksResponse = await fetch('https://ai.gateway.lovable.dev/v1/chat/completions', {
+          method: 'POST',
+          headers: { 'Authorization': `Bearer ${LOVABLE_API_KEY}`, 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            model: 'google/gemini-2.5-flash-lite',
+            messages: [{ role: 'user', content: discoverBlocksPrompt }],
+          }),
+        });
+
+        if (discoverBlocksResponse.ok) {
+          const discoverData = await discoverBlocksResponse.json();
+          let discoverText = discoverData.choices?.[0]?.message?.content || '';
+          discoverText = discoverText.replace(/```json\n?/g, '').replace(/```\n?/g, '').trim();
+          const parsed = JSON.parse(discoverText);
+
+          if (parsed.block1 && parsed.block4 && parsed.block5 && parsed.block7) {
+            const toChildren = (activities: string[]) =>
+              (activities || []).map((a: string) => ({ id: mk(), title: a, status: "not_started", importance: "medium", children: [] }));
+
+            proposedBlocks = [
+              {
+                id: mk(), title: parsed.block1.title || "Project Identity", status: "not_started", importance: "high",
+                children: toChildren(parsed.block1.activities),
+              },
+              {
+                id: mk(), title: "Transformation", status: "not_started", importance: "high",
+                children: [
+                  { id: mk(), title: "Before — how does someone feel before they experience this?", status: "not_started", importance: "high", children: [] },
+                  { id: mk(), title: "During — what shifts while they are inside this experience?", status: "not_started", importance: "high", children: [] },
+                  { id: mk(), title: "After — what can they do or feel that they could not before?", status: "not_started", importance: "high", children: [] },
+                ],
+              },
+              {
+                id: mk(), title: "Ideal User", status: "not_started", importance: "high",
+                children: [
+                  { id: mk(), title: "Who is this person? Write a real profile", status: "not_started", importance: "high", children: [] },
+                  { id: mk(), title: "What are they struggling with right now?", status: "not_started", importance: "high", children: [] },
+                  { id: mk(), title: "What do they want more than anything?", status: "not_started", importance: "medium", children: [] },
+                  { id: mk(), title: "Why would they pay for this?", status: "not_started", importance: "medium", children: [] },
+                ],
+              },
+              {
+                id: mk(), title: parsed.block4.title || "Core Journey", status: "not_started", importance: "high",
+                children: toChildren(parsed.block4.activities),
+              },
+              {
+                id: mk(), title: parsed.block5.title || "System Mechanics", status: "not_started", importance: "high",
+                children: toChildren(parsed.block5.activities),
+              },
+              {
+                id: mk(), title: "Interaction Design", status: "not_started", importance: "medium",
+                children: [
+                  { id: mk(), title: "What is the tone? (playful, serious, gentle, bold...)", status: "not_started", importance: "medium", children: [] },
+                  { id: mk(), title: "What energy should someone feel while using this?", status: "not_started", importance: "medium", children: [] },
+                  { id: mk(), title: "What makes this feel different from anything else?", status: "not_started", importance: "medium", children: [] },
+                ],
+              },
+              {
+                id: mk(), title: parsed.block7.title || "Project System Design", status: "not_started", importance: "medium",
+                children: toChildren(parsed.block7.activities),
+              },
+            ];
+            console.log("Generated tailored DISCOVER blocks for type:", resolvedType);
+          }
+        }
+      } catch (discoverBlockErr) {
+        console.error("DISCOVER block generation failed (non-fatal):", discoverBlockErr);
       }
     }
 
