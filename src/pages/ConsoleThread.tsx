@@ -1130,9 +1130,25 @@ const ConsoleThread = ({ embedded = false, onProjectNameChange }: ConsoleThreadP
 
   const handleUserReply = async (text: string) => {
     setLoading(true);
+    // Show typing immediately while we wait for the API — keeps the user oriented
+    let userReplyTypingCancelled = false;
+    const cycleUserReplyTyping = async () => {
+      const pool = handoffMentor ? [handoffMentor] : [...userMentors, "future_self"];
+      let i = 0;
+      while (!userReplyTypingCancelled) {
+        const mt = pool[i % pool.length];
+        const cfg = mentorConfig[mt];
+        setTyping({ name: cfg?.name, icon: cfg?.icon, color: cfg?.color });
+        await new Promise<void>(r => setTimeout(r, 1100));
+        i++;
+      }
+      setTyping(null);
+    };
+    cycleUserReplyTyping();
     try {
       if (handoffMentor) {
         const config = mentorConfig[handoffMentor];
+        userReplyTypingCancelled = true;
         await showTyping("future_self", 800);
         addSystemMessage(
           `I think you're ready to work 1-to-1 with ${config?.name || handoffMentor}.\n\nIf you're ready, type "let's go".`,
@@ -1159,6 +1175,7 @@ const ConsoleThread = ({ embedded = false, onProjectNameChange }: ConsoleThreadP
         if (error) throw error;
 
         const perspectives = data.mentorPerspectives || {};
+        userReplyTypingCancelled = true;
         const perspEntries2 = Object.entries(perspectives);
         for (let i = 0; i < perspEntries2.length; i++) {
           const [mentorType, perspective] = perspEntries2[i];
@@ -1267,9 +1284,11 @@ const ConsoleThread = ({ embedded = false, onProjectNameChange }: ConsoleThreadP
         }
       }
     } catch (error: any) {
+      userReplyTypingCancelled = true;
       console.error("Error in user reply:", error);
       toast.error("Something went wrong");
     } finally {
+      userReplyTypingCancelled = true;
       setLoading(false);
     }
   };
@@ -1516,9 +1535,7 @@ const ConsoleThread = ({ embedded = false, onProjectNameChange }: ConsoleThreadP
         await showTyping("future_self", 800);
         addSystemMessage(structureText, "future_self", "project_detected");
 
-        if (localStorage.getItem("payment_popup_shown") !== "true") {
-          setTimeout(() => setShowPayment(true), 6000);
-        }
+        // Payment will be shown by ProjectEngine right after the user opens the project
 
         const fsConfig2 = mentorConfig["future_self"];
         setTyping({ name: fsConfig2?.name, icon: fsConfig2?.icon, color: fsConfig2?.color });
@@ -1572,6 +1589,9 @@ const ConsoleThread = ({ embedded = false, onProjectNameChange }: ConsoleThreadP
           undefined,
           "post_project"
         );
+
+        // Auto-open the project so the user sees the structure → payment flow
+        setTimeout(() => navigate(`/project/${projectId}`), 3500);
 
         setLoading(false);
         return;
@@ -1638,10 +1658,7 @@ const ConsoleThread = ({ embedded = false, onProjectNameChange }: ConsoleThreadP
       await showTyping("future_self", 1200);
       addSystemMessage(structureText, "future_self", "project_detected");
 
-      // Show payment modal 6s after project structure appears (only once per device)
-      if (localStorage.getItem("payment_popup_shown") !== "true") {
-        setTimeout(() => setShowPayment(true), 6000);
-      }
+      // Payment is shown by ProjectEngine once the user opens the project
 
       // Keep typing indicator alive while we wait — user sees Future Self is "working"
       const fsConfig = mentorConfig["future_self"];
@@ -1748,6 +1765,9 @@ const ConsoleThread = ({ embedded = false, onProjectNameChange }: ConsoleThreadP
         undefined,
         "post_project"
       );
+
+      // Auto-open the project so the user sees the structure → payment flow
+      setTimeout(() => navigate(`/project/${finalProjectId}`), 3500);
     } catch (error: any) {
       console.error("Error in project structuring:", error);
       toast.error("Something went wrong");
