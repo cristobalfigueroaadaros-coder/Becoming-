@@ -1275,11 +1275,13 @@ Rules:
       // === STEP 1: Synthesize dominant theme across ALL mentor perspectives ===
       // This prevents the LLM from cherry-picking one mentor's thread.
       // It finds what the majority of mentors agreed on, which is the real signal.
-      const allPerspectivesText = Object.entries(mentorPerspectives)
-        .map(([m, p]) => `${mentorNames[m]}: ${p}`)
-        .join('\n');
+      let dominantTheme = "";
+      try {
+        const allPerspectivesText = Object.entries(mentorPerspectives)
+          .map(([m, p]) => `${mentorNames[m]}: ${p}`)
+          .join('\n');
 
-      const synthesisPrompt = `You are analyzing mentor perspectives to find their dominant consensus.
+        const synthesisPrompt = `You are analyzing mentor perspectives to find their dominant consensus.
 
 USER'S SITUATION (their own words):
 "${question}"
@@ -1294,24 +1296,26 @@ Use concrete language from their actual situation. No generic words like "growth
 
 Return ONLY the dominant theme phrase. Nothing else.`;
 
-      const synthesisResponse = await fetch("https://ai.gateway.lovable.dev/v1/chat/completions", {
-        method: "POST",
-        headers: {
-          "Authorization": `Bearer ${Deno.env.get("LOVABLE_API_KEY")}`,
-          "Content-Type": "application/json",
-        },
-        body: JSON.stringify({
-          model: "google/gemini-2.5-flash",
-          messages: [{ role: "user", content: synthesisPrompt }],
-        }),
-      });
+        const synthesisResponse = await fetch("https://ai.gateway.lovable.dev/v1/chat/completions", {
+          method: "POST",
+          headers: {
+            "Authorization": `Bearer ${Deno.env.get("LOVABLE_API_KEY")}`,
+            "Content-Type": "application/json",
+          },
+          body: JSON.stringify({
+            model: "google/gemini-2.5-flash",
+            messages: [{ role: "user", content: synthesisPrompt }],
+          }),
+        });
 
-      let dominantTheme = "";
-      if (synthesisResponse.ok) {
-        const data = await synthesisResponse.json();
-        dominantTheme = data.choices[0].message.content.trim();
+        if (synthesisResponse.ok) {
+          const data = await synthesisResponse.json();
+          dominantTheme = data?.choices?.[0]?.message?.content?.trim() || "";
+        }
+        console.log("Synthesized dominant theme:", dominantTheme);
+      } catch (synthErr) {
+        console.error("Synthesis step failed (non-fatal):", synthErr);
       }
-      console.log("Synthesized dominant theme:", dominantTheme);
 
       // === STEP 2: Generate phase-aware question using resolvedEntryState ===
       // Purpose: move the user from A to B — surface the specific blocker, signal, or
@@ -1417,22 +1421,26 @@ Good examples for DISCOVER:
 Output ONLY the question. Nothing else.`;
       }
 
-      const nextQuestionResponse = await fetch("https://ai.gateway.lovable.dev/v1/chat/completions", {
-        method: "POST",
-        headers: {
-          "Authorization": `Bearer ${Deno.env.get("LOVABLE_API_KEY")}`,
-          "Content-Type": "application/json",
-        },
-        body: JSON.stringify({
-          model: "google/gemini-2.5-flash",
-          messages: [{ role: "user", content: nextQuestionPrompt }],
-        }),
-      });
+      try {
+        const nextQuestionResponse = await fetch("https://ai.gateway.lovable.dev/v1/chat/completions", {
+          method: "POST",
+          headers: {
+            "Authorization": `Bearer ${Deno.env.get("LOVABLE_API_KEY")}`,
+            "Content-Type": "application/json",
+          },
+          body: JSON.stringify({
+            model: "google/gemini-2.5-flash",
+            messages: [{ role: "user", content: nextQuestionPrompt }],
+          }),
+        });
 
-      if (nextQuestionResponse.ok) {
-        const data = await nextQuestionResponse.json();
-        suggestedNextQuestion = data.choices[0].message.content.trim();
-        console.log("Generated phase-aware question:", suggestedNextQuestion, "| Phase:", resolvedEntryState, "| Dominant theme:", dominantTheme);
+        if (nextQuestionResponse.ok) {
+          const data = await nextQuestionResponse.json();
+          suggestedNextQuestion = data?.choices?.[0]?.message?.content?.trim() || null;
+          console.log("Generated phase-aware question:", suggestedNextQuestion, "| Phase:", resolvedEntryState, "| Dominant theme:", dominantTheme);
+        }
+      } catch (qErr) {
+        console.error("Question generation failed (non-fatal):", qErr);
       }
     }
 
