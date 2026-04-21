@@ -588,8 +588,8 @@ Just the message, no labels or quotes.`;
     // (safeConversationHistory is sanitized above)
     const questionNumber = safeConversationHistory.filter((msg: any) => msg.role === 'user').length + 1;
     const isQ1 = questionNumber === 1;
-    const isQ2 = questionNumber >= 2; // Q2 is now the FINAL round (max 2 questions)
-    const isQ3 = questionNumber >= 2; // Alias: Q2 acts as Q3 for guidance/mentor/DM
+    const isQ2 = questionNumber === 2; // Q2 = depth round (perspectives + banter + FS question)
+    const isQ3 = questionNumber >= 3; // Q3 = final round → triggers handoff to 1-to-1 mentor
     
     console.log(`Council Meeting - Q${questionNumber}: ${question.substring(0, 50)}...`);
 
