@@ -1,64 +1,124 @@
 
 
-## What's happening today vs. what you're asking for
+## What's broken
 
-**Where Builder Team conversations go right now:**
-- Each meeting saves mentor perspectives into `design_thinking_content` (under `empathize` + `ideate` phases, as a `builderTeamInsights` array)
-- Visible only inside the Design Thinking Lab phase view
-- **Zero connection to `project_structure`** — your blocks/activities never see this content
-
-**What you're feeling is correct:** valuable insights are being captured but they're not flowing into the actual execution structure (blocks + activities) of your project. The Builder Team is a parallel silo.
-
----
-
-## Proposed: Builder Team → Project Structure Sync
-
-A new edge function `sync-builder-insights-to-structure` runs after each Builder Team round. It reads the latest mentor perspectives + the current `project_structure` and decides one of three actions per insight:
+The Business Mentor BUILD flow currently does this:
 
 ```text
-   Builder Team round ends
-            │
-            ▼
-   ┌────────────────────┐
-   │ AI classifies each │
-   │ insight vs blocks  │
-   └────────┬───────────┘
-            │
-   ┌────────┼────────────────┐
-   ▼        ▼                ▼
-ENRICH   ADD_ACTIVITY    NEW_BLOCK
-existing  to existing    (only if truly
-block     block          new territory)
+Turn 1: Strong opener → proposes project name + 3-5 blocks (mentor-invented)
+Turn 2: User says yes
+Turn 3: Project triggers (or mentor over-asks and loses focus)
 ```
 
-### Classification rules
-- **ENRICH** — insight refines/clarifies an existing block's intent → appended to block's notes
-- **ADD_ACTIVITY** — insight is a concrete action that fits an existing block → added as a new activity (with `source: "builder_team"` tag)
-- **NEW_BLOCK** — insight opens a clearly different work area not covered by any current block → suggested as a new block (max 1 per round, requires user confirm)
+Two problems:
+1. **Blocks are mentor-invented**, not co-created from the user's own strategic thinking
+2. After confirmation, the mentor sometimes drills into execution instead of stopping → loss of focus, user drops off
 
-### UX surface
-1. **Subtle "Builder Team contributed" badge** appears on blocks/activities that came from a meeting (small lime dot — Builder Team's color)
-2. **Pending suggestions panel** in Project Structure: "Builder Team suggested 2 activities and 1 new block — Review" → user accepts/rejects each
-3. Activities auto-added are marked `pending_review: true` so they're visible but distinguishable until you confirm
+## What you want (the corrected pattern)
 
-### Where the change lives
-- **New:** `supabase/functions/sync-builder-insights-to-structure/index.ts`
-- **Modified:** `src/pages/BuilderTeamThread.tsx` — invoke the sync function after `saveDesignThinkingInsights` in both `runBuilderTeamMeeting` and `handleFollowupReply`
-- **Modified:** `src/components/project-engine/ProjectStructure.tsx` — render pending suggestions banner + source badges
-- **Migration:** add `pending_review` and `source` fields to structure node JSON shape (no schema change needed, it's already JSON)
+```text
+Turn 1: STRONG OPENER (keep exactly as-is)
+        "Here's how I'd frame the next 30 days: '[Project Name]'.
+         I'd break it into 3 blocks: [block 1] · [block 2] · [block 3].
+         Does this match what you want to build?"
 
-### Guardrails
-- Max 3 activity suggestions per round (respects Surface Simplification rule)
-- Max 1 new block suggestion per round, only when insight clearly doesn't map
-- Never auto-deletes or modifies user-created blocks
-- All AI-suggested items require explicit user confirmation before becoming "active"
+Turn 2: User confirms direction
+        Mentor: "Fantastic. One question before we lock this in —
+                 imagine the app is working perfectly and feedback is great.
+                 What's the next move you'd want to focus on?"
+        (ONE strategic forward-looking question — adapts to project)
 
-### Out of scope (deferred)
-- Retroactive sync of past Builder Team conversations (we can do this separately if you want)
-- Auto-syncing other chats (Project Chat, individual mentors) — same pattern can extend later
+Turn 3: User names next-step areas
+        (e.g. "marketing, influencer outreach, content for social")
 
-<lov-actions>
-<lov-suggestion message="Approved — build the Builder Team to Project Structure sync as planned.">Approve and build it</lov-suggestion>
-<lov-suggestion message="Also retroactively sync my existing Builder Team conversations into the project structure.">Include retroactive sync</lov-suggestion>
-<lov-suggestion message="Extend the same sync pattern to Project Chat and individual mentor conversations too.">Extend to all chats</lov-suggestion>
-</lov-actions>
+Turn 4: Mentor merges those into the block list and triggers project
+        "Perfect. Locking this in: '[Project Name]' with [merged blocks].
+         The structure is set."
+        → project card appears → blocks include user's named areas
+```
+
+Hard cap: **4-5 turns max** before project trigger. After trigger: total stop, no execution coaching.
+
+## Implementation
+
+### 1. Rewrite the BUILD + business_mentor entry-state prompt (`supabase/functions/chat-mentor/index.ts`, lines 2743-2790)
+
+Replace the current "propose name + blocks → confirm → done" flow with a 3-step structured arc:
+
+```text
+STEP 1 (opening message — UNCHANGED, the strong opener works):
+   - Reflect what you heard (1 sentence)
+   - Name the 30-day project in single quotes
+   - Propose 3 starter blocks
+   - Ask: "Does this match what you want to build?"
+
+STEP 2 (after user confirms direction — NEW):
+   - Acknowledge briefly: "Fantastic. Let's make this real."
+   - Ask EXACTLY ONE forward-looking strategic question, adapted to their project. Examples:
+     • App project → "Imagine the app is working perfectly and feedback is great. What's the next move?"
+     • Service project → "Imagine your first 10 clients love it. What's the next move?"
+     • Content project → "Imagine your first piece lands well. What's the next move?"
+   - This question MUST surface the user's own strategic priorities (marketing, content, partnerships, hiring, etc.)
+   - DO NOT ask anything else. ONE question only.
+
+STEP 3 (after user lists their next-step areas):
+   - Merge user's areas into 3-5 final blocks (combine with original starter blocks if helpful)
+   - Re-state in EXACTLY this format:
+     "Perfect. Here's the full play: '[Project Name]'.
+      • [Block 1] — [one line]
+      • [Block 2] — [one line]
+      • [Block 3] — [one line]
+      Locking this in."
+   - The project name in single quotes triggers project creation
+   - STOP. No more questions. The project card appears automatically.
+
+ABSOLUTE BANS:
+- More than 1 question per response
+- Drilling into HOW to execute any block
+- Continuing after the final structure is locked
+```
+
+### 2. Update convergence threshold
+
+Currently `convergenceThreshold = 1` for BUILD + business_mentor (forces project trigger after 1 exchange). Change to `3` so the strategic forward-looking question fits naturally.
+
+```ts
+const convergenceThreshold = 
+  (entryState === "BUILD" && mentorType === "business_mentor") ? 3 :
+  // ...existing other conditions
+```
+
+`maxTurns` becomes `5` (3 + 2 buffer). Matches your requested "4-5 questions max."
+
+### 3. Update the fast-path threshold (line 4099-4101)
+
+Change BUILD + business_mentor fast-path from `1` to `3` so the project only triggers after the strategic question + user's blocks-input arrives:
+
+```ts
+const fastPathDepthThreshold =
+  (entryState === "BUILD" && mentorType === "business_mentor") ? 3 :
+  // ...
+```
+
+### 4. Inject user's named areas into the project blocks
+
+When the project triggers, the user's "next-step areas" from Step 3 should become real blocks in `project_structure`, not just the mentor's original 3.
+
+In the project-creation extraction logic, parse the final mentor message for the bullet list of blocks (after "Here's the full play"). Pass these as `initialBlocks` to the project-structure scaffolding so they appear in the Project Engine immediately.
+
+This already partially works via `extract-project-structure` — we ensure it's invoked with the final mentor confirmation message (not the opener), so it captures the merged block list, not the starter list.
+
+### 5. Reinforce the STOP rule (`business_mentor` system prompt, line 875-885)
+
+Add one line: *"After Step 3 (locking the play), output ZERO questions. The project card auto-appears."*
+
+## Files modified
+
+- `supabase/functions/chat-mentor/index.ts` — entry-state prompt rewrite (lines 2743-2790), convergence threshold (line 2828), fast-path threshold (line 4099), business_mentor base prompt (line 875-885)
+
+## Out of scope
+
+- Not changing the opening message format (it's working — your direct quote confirms this)
+- Not changing other mentors' BUILD flows (strategist_mentor stays at threshold 1)
+- Not touching the project-card UI
+
