@@ -1087,8 +1087,8 @@ Mission: ${profile.main_mission}`;
     }
 
     // === GENERATE COUNCIL BANTER (WhatsApp-style group chat) ===
-    // BANTER REDUCTION: Only show banter on Q1 (once per intake)
-    const shouldGenerateBanter = isQ1;
+    // BANTER: Show on Q1 and Q2 (both depth rounds). Skip on Q3 (handoff round).
+    const shouldGenerateBanter = isQ1 || isQ2;
     let banterLength = 'SHORT';
 
     const conversationContextBanter = formatConversationHistory(safeConversationHistory);
