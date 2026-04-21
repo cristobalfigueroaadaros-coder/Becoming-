@@ -1175,6 +1175,7 @@ const ConsoleThread = ({ embedded = false, onProjectNameChange }: ConsoleThreadP
         if (error) throw error;
 
         const perspectives = data.mentorPerspectives || {};
+        userReplyTypingCancelled = true;
         const perspEntries2 = Object.entries(perspectives);
         for (let i = 0; i < perspEntries2.length; i++) {
           const [mentorType, perspective] = perspEntries2[i];
@@ -1283,9 +1284,11 @@ const ConsoleThread = ({ embedded = false, onProjectNameChange }: ConsoleThreadP
         }
       }
     } catch (error: any) {
+      userReplyTypingCancelled = true;
       console.error("Error in user reply:", error);
       toast.error("Something went wrong");
     } finally {
+      userReplyTypingCancelled = true;
       setLoading(false);
     }
   };
