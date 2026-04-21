@@ -597,7 +597,7 @@ const ConsoleThread = ({ embedded = false, onProjectNameChange }: ConsoleThreadP
       if (!user) return;
       const { data: project } = await supabase
         .from("integrator_projects")
-        .select("name")
+        .select("project_title")
         .eq("user_id", user.id)
         .eq("status", "active")
         .order("created_at", { ascending: false })
@@ -1218,7 +1218,7 @@ const ConsoleThread = ({ embedded = false, onProjectNameChange }: ConsoleThreadP
         if (coherenceResult?.isCoherent) {
           // Validate project name — reject generic placeholders
           const genericNames = ["project name", "untitled", "new project", "my project", "unnamed"];
-          let finalProjectName = data.projectCoherence.projectName || "";
+          let finalProjectName = coherenceResult.projectName || "";
           if (!finalProjectName.trim() || genericNames.some(g => finalProjectName.toLowerCase().trim() === g)) {
             // Derive from intake Q3 (project idea)
             const idea = intakeAnswers[2] || "";
@@ -1232,8 +1232,8 @@ const ConsoleThread = ({ embedded = false, onProjectNameChange }: ConsoleThreadP
           addCardMessage(
             <FirstWinNamingCard
               proposedName={finalProjectName}
-              description={data.projectCoherence.projectDescription}
-              onAccept={(name) => handleFirstWinAccept(name, data.projectCoherence.projectDescription)}
+              description={coherenceResult.projectDescription}
+              onAccept={(name) => handleFirstWinAccept(name, coherenceResult.projectDescription)}
               onKeepExploring={() => {
                 setPhase("user_reply");
                 persistPhase("user_reply");
