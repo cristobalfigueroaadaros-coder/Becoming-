@@ -1535,9 +1535,7 @@ const ConsoleThread = ({ embedded = false, onProjectNameChange }: ConsoleThreadP
         await showTyping("future_self", 800);
         addSystemMessage(structureText, "future_self", "project_detected");
 
-        if (localStorage.getItem("payment_popup_shown") !== "true") {
-          setTimeout(() => setShowPayment(true), 6000);
-        }
+        // Payment will be shown by ProjectEngine right after the user opens the project
 
         const fsConfig2 = mentorConfig["future_self"];
         setTyping({ name: fsConfig2?.name, icon: fsConfig2?.icon, color: fsConfig2?.color });
@@ -1657,10 +1655,7 @@ const ConsoleThread = ({ embedded = false, onProjectNameChange }: ConsoleThreadP
       await showTyping("future_self", 1200);
       addSystemMessage(structureText, "future_self", "project_detected");
 
-      // Show payment modal 6s after project structure appears (only once per device)
-      if (localStorage.getItem("payment_popup_shown") !== "true") {
-        setTimeout(() => setShowPayment(true), 6000);
-      }
+      // Payment is shown by ProjectEngine once the user opens the project
 
       // Keep typing indicator alive while we wait — user sees Future Self is "working"
       const fsConfig = mentorConfig["future_self"];

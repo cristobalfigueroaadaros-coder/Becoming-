@@ -40,7 +40,8 @@ export default function ProjectEngine() {
 
   useEffect(() => {
     if (localStorage.getItem("payment_popup_shown")) return;
-    const timer = setTimeout(() => setShowPayment(true), 12000);
+    // Show payment shortly after the project structure becomes visible
+    const timer = setTimeout(() => setShowPayment(true), 3500);
     return () => clearTimeout(timer);
   }, []);
 
