@@ -1271,29 +1271,30 @@ Rules:
         console.log("Generated transmutation follow-up question:", suggestedNextQuestion);
       }
     } else if (isQ1 && !lowerQuestion.includes("i'm ready")) {
-      // === STEP 1: Detect user's JOURNEY STAGE ===
-      const journeyStagePrompt = `Analyze this conversation to detect the user's current JOURNEY STAGE.
 
-User's current question: "${question}"
-Conversation history: ${formatConversationHistory(safeConversationHistory)}
-Hidden tags from question: ${extractedTags.join(', ')}
+      // === STEP 1: Synthesize dominant theme across ALL mentor perspectives ===
+      // This prevents the LLM from cherry-picking one mentor's thread.
+      // It finds what the majority of mentors agreed on, which is the real signal.
+      const allPerspectivesText = Object.entries(mentorPerspectives)
+        .map(([m, p]) => `${mentorNames[m]}: ${p}`)
+        .join('\n');
 
-STAGES:
-1. DISCOVERY - User is exploring, unclear about direction, asking "what" questions
-   Signs: vague ideas, exploring possibilities, seeking understanding, purpose-seeking
-   Examples: "I want to find my purpose", "I'm not sure what I should do", "What should I focus on?"
+      const synthesisPrompt = `You are analyzing mentor perspectives to find their dominant consensus.
 
-2. CLARITY - User has some direction, needs to sharpen focus, asking "how" or "who" questions
-   Signs: has an idea but needs validation, choosing between options, gaining insights
-   Examples: "I think I want to help people with anxiety", "Should I focus on X or Y?", "Who would benefit from this?"
+USER'S SITUATION (their own words):
+"${question}"
 
-3. ACTION - User has clarity AND commitment, ready to build/test/execute, asking "what's next" questions
-   Signs: specific idea, commitment language, wants concrete steps, ready to create something tangible
-   Examples: "I want to build an app that...", "How do I start testing this?", "What's my first step to launch?"
+MENTOR PERSPECTIVES:
+${allPerspectivesText}
 
-Return ONLY ONE word: DISCOVERY, CLARITY, or ACTION`;
+TASK: Identify the ONE theme that the MAJORITY of mentors pointed to — not the most interesting one, the most repeated one.
+Look for: what gap, blocker, or opportunity did 3+ mentors circle around?
+Express it as a short phrase (5-10 words max) that describes the user's situation specifically.
+Use concrete language from their actual situation. No generic words like "growth" or "clarity".
 
-      const journeyStageResponse = await fetch("https://ai.gateway.lovable.dev/v1/chat/completions", {
+Return ONLY the dominant theme phrase. Nothing else.`;
+
+      const synthesisResponse = await fetch("https://ai.gateway.lovable.dev/v1/chat/completions", {
         method: "POST",
         headers: {
           "Authorization": `Bearer ${Deno.env.get("LOVABLE_API_KEY")}`,
@@ -1301,154 +1302,119 @@ Return ONLY ONE word: DISCOVERY, CLARITY, or ACTION`;
         },
         body: JSON.stringify({
           model: "google/gemini-2.5-flash",
-          messages: [{ role: "user", content: journeyStagePrompt }],
+          messages: [{ role: "user", content: synthesisPrompt }],
         }),
       });
 
-      let journeyStage = "DISCOVERY";
-      if (journeyStageResponse.ok) {
-        const data = await journeyStageResponse.json();
-        const stageText = data.choices[0].message.content.trim().toUpperCase();
-        if (["DISCOVERY", "CLARITY", "ACTION"].includes(stageText)) {
-          journeyStage = stageText;
-        }
+      let dominantTheme = "";
+      if (synthesisResponse.ok) {
+        const data = await synthesisResponse.json();
+        dominantTheme = data.choices[0].message.content.trim();
       }
-      console.log("Detected journey stage:", journeyStage);
+      console.log("Synthesized dominant theme:", dominantTheme);
 
-      // === STEP 2: Detect PRIMARY DOMAIN FOCUS ===
-      const domainFocusPrompt = `Classify this user's PRIMARY focus domain:
-
-Question: "${question}"
-Hidden tags: ${extractedTags.join(', ')}
-
-CREATION: Building something external - product, business, app, course, content, system, framework, tool, service
-PERSONAL: Inner journey - relationships, emotions, healing, purpose discovery, career direction, life meaning, self-understanding
-
-Return ONLY: CREATION or PERSONAL`;
-
-      const domainFocusResponse = await fetch("https://ai.gateway.lovable.dev/v1/chat/completions", {
-        method: "POST",
-        headers: {
-          "Authorization": `Bearer ${Deno.env.get("LOVABLE_API_KEY")}`,
-          "Content-Type": "application/json",
-        },
-        body: JSON.stringify({
-          model: "google/gemini-2.5-flash",
-          messages: [{ role: "user", content: domainFocusPrompt }],
-        }),
-      });
-
-      let domainFocus = "PERSONAL";
-      if (domainFocusResponse.ok) {
-        const data = await domainFocusResponse.json();
-        const domainText = data.choices[0].message.content.trim().toUpperCase();
-        if (["CREATION", "PERSONAL"].includes(domainText)) {
-          domainFocus = domainText;
-        }
-      }
-      console.log("Detected domain focus:", domainFocus);
-
-      // === STEP 3: Extract ACTIONABLE keywords from banter (only for CLARITY/ACTION + CREATION) ===
-      let banterKeywords = "";
-      if (journeyStage !== "DISCOVERY" && domainFocus === "CREATION" && banter) {
-        const keywordPrompt = `Extract 3-5 ACTIONABLE keywords from this mentor banter:
-
-Banter: ${banter}
-
-Focus on words that represent:
-- Concepts the mentors emphasized (blueprint, framework, system, structure)
-- Action words (test, build, iterate, measure, prototype)
-- Meaningful outcomes (impact, transformation, results, measurable)
-
-Return ONLY a comma-separated list of 3-5 keywords, nothing else.`;
-
-        const keywordResponse = await fetch("https://ai.gateway.lovable.dev/v1/chat/completions", {
-          method: "POST",
-          headers: {
-            "Authorization": `Bearer ${Deno.env.get("LOVABLE_API_KEY")}`,
-            "Content-Type": "application/json",
-          },
-          body: JSON.stringify({
-            model: "google/gemini-2.5-flash",
-            messages: [{ role: "user", content: keywordPrompt }],
-          }),
-        });
-
-        if (keywordResponse.ok) {
-          const data = await keywordResponse.json();
-          banterKeywords = data.choices[0].message.content.trim();
-        }
-        console.log("Extracted banter keywords:", banterKeywords);
-      }
-
-      // === STEP 4: Generate STAGE-AWARE suggested question ===
-      // Include the user's full context so the follow-up question connects to their story
-      const userContextForFollowUp = `
-USER'S FULL CONTEXT (use this to make the question deeply personal and connected):
-${question}
-
-MENTOR PERSPECTIVES GIVEN:
-${Object.entries(mentorPerspectives).map(([m, p]) => `${mentorNames[m]}: ${p}`).join('\n')}
-`;
-      let nextQuestionPrompt = "";
-
+      // === STEP 2: Generate phase-aware question using resolvedEntryState ===
+      // Purpose: move the user from A to B — surface the specific blocker, signal, or
+      // constraint that the handoff mentor needs to work with.
       const QUESTION_STYLE_RULES = `
 QUESTION RULES (non-negotiable):
 - Max 12 words. If you go over, cut it.
 - Plain, everyday language. No academic or philosophical words.
-- ONE idea only. No "and", no compound clauses, no stacking.
-- Sound like a real person texting a friend, not a therapist.
-- FORBIDDEN words/phrases: "unraveling", "adaptive", "unique process", "commit to", "given your", "deep awareness", "meaningful journey", "moving forward", "inner work".
-- Good: "What's the one thing you keep avoiding?" / "Who would you build this for first?"
-- Bad: "Given your background, what specific aspect would you now commit to exploring?"`;
+- ONE idea only. No compound clauses, no stacking.
+- Sound like a real person asking a direct question, not a therapist.
+- Root the question in the user's actual situation — use their specific context, not generic coaching language.
+- NEVER assume emotional states (do not use: "scary", "afraid", "keeping you up at night", "deep down").
+- NEVER assume the user is procrastinating ("keep putting off", "avoiding", "holding back").
+- FORBIDDEN words: "unraveling", "adaptive", "commit to", "deep awareness", "meaningful journey", "moving forward", "inner work", "unique process".`;
 
-      if (journeyStage === "DISCOVERY") {
-        nextQuestionPrompt = `You are the user's future self asking ONE follow-up question.
-${userContextForFollowUp}
-User's message: "${question}"
+      let nextQuestionPrompt = "";
+
+      if (resolvedEntryState === "BUILD") {
+        // BUILD: user already has something — question must surface the specific execution blocker.
+        // The answer should give Business Mentor everything to build the 30-day plan.
+        nextQuestionPrompt = `You are the user's future self. Ask ONE question that moves them forward.
+
+USER'S SITUATION (their own words):
+"${question}"
+
+DOMINANT THEME the mentors agreed on:
+"${dominantTheme}"
+
+YOUR MISSION FOR BUILD PHASE:
+The user already has something built or in motion. The mentors identified a dominant execution gap.
+Your question must surface the SPECIFIC BLOCKER that is keeping them from moving forward on that gap.
+The answer to your question should give a Business Mentor everything needed to design a 30-day action plan.
+
+NOT: inspiration, purpose exploration, or identity questions — they already have clarity.
+YES: the concrete obstacle, the missing piece, the gap between where they are and where they need to be.
+
 ${QUESTION_STYLE_RULES}
-${domainFocus === "PERSONAL" ?
-  'Good examples: "What keeps pulling you back to this?" / "What part of this scares you most?"' :
-  'Good examples: "Who would you build this for first?" / "What problem do you actually want to fix?"'}
+
+Good examples for BUILD:
+"You have something that works — what's stopping more people from finding it?"
+"What's the one thing that would actually move the needle this month?"
+"What have you tried that hasn't worked yet?"
+"Between product and reach — where is the real gap right now?"
 
 Output ONLY the question. Nothing else.`;
-      } else if (journeyStage === "CLARITY") {
-        if (domainFocus === "PERSONAL") {
-          nextQuestionPrompt = `You are the user's future self asking ONE follow-up question.
-${userContextForFollowUp}
-User's message: "${question}"
+
+      } else if (resolvedEntryState === "GROW") {
+        // GROW: user has traction — question must surface the growth constraint.
+        // The answer should give Strategist Mentor everything to design the next level.
+        nextQuestionPrompt = `You are the user's future self. Ask ONE question that moves them forward.
+
+USER'S SITUATION (their own words):
+"${question}"
+
+DOMINANT THEME the mentors agreed on:
+"${dominantTheme}"
+
+YOUR MISSION FOR GROW PHASE:
+The user has some traction but wants to scale or evolve. The mentors identified a dominant constraint.
+Your question must surface the SPECIFIC GAP between where they are now and the next level.
+The answer should give a Strategist Mentor everything needed to design the growth plan.
+
+NOT: basic identity or purpose questions — they have direction. NOT: what they're doing — they're already doing something.
+YES: what's limiting the next level, what needs to change, what's the bottleneck.
+
 ${QUESTION_STYLE_RULES}
-Good examples: "What would make this feel real to you?" / "What's the one thing holding you back?"
+
+Good examples for GROW:
+"What's working well enough to double down on right now?"
+"What's the one thing that would change everything at the next level?"
+"Where are you spending time that isn't moving this forward?"
+"What would need to be true to reach 10x from where you are?"
 
 Output ONLY the question. Nothing else.`;
-        } else {
-          nextQuestionPrompt = `You are the user's future self asking ONE follow-up question.
-${userContextForFollowUp}
-User's message: "${question}"
+
+      } else {
+        // DISCOVER (default): user is exploring — question must surface the strongest signal.
+        // The answer should give Creative Visionary the clearest direction to work from.
+        nextQuestionPrompt = `You are the user's future self. Ask ONE question that moves them forward.
+
+USER'S SITUATION (their own words):
+"${question}"
+
+DOMINANT THEME the mentors agreed on:
+"${dominantTheme}"
+
+YOUR MISSION FOR DISCOVER PHASE:
+The user is exploring who they are and what they want to build. The mentors surfaced a dominant theme.
+Your question must surface the CLEAREST SIGNAL — the idea, direction, or gift that has the most energy for them.
+The answer should give a Creative Visionary the clearest starting point to work from.
+
+NOT: what they should do, what's blocking them — that's premature. NOT: vague questions about feelings.
+YES: what pulls them most, what feels most alive, what they keep coming back to.
+
 ${QUESTION_STYLE_RULES}
-Good examples: "Who specifically needs this most?" / "What's the simplest version of this?"
+
+Good examples for DISCOVER:
+"Of everything that came up — what felt most like you?"
+"What problem would you solve even if nobody paid you for it?"
+"Who do you picture when you imagine the person you most want to help?"
+"What's the idea you keep coming back to no matter what?"
 
 Output ONLY the question. Nothing else.`;
-        }
-      } else if (journeyStage === "ACTION") {
-        if (domainFocus === "PERSONAL") {
-          nextQuestionPrompt = `You are the user's future self asking ONE follow-up question.
-${userContextForFollowUp}
-User's message: "${question}"
-${QUESTION_STYLE_RULES}
-Good examples: "What could you try this week?" / "Who could you talk to about this tomorrow?"
-
-Output ONLY the question. Nothing else.`;
-        } else {
-          nextQuestionPrompt = `You are the user's future self asking ONE follow-up question.
-${userContextForFollowUp}
-User's message: "${question}"
-Keywords from mentors: ${banterKeywords || "build, test, iterate, measure"}
-${QUESTION_STYLE_RULES}
-Good examples: "What's the simplest version you could launch this week?" / "What would a real test of this look like?"
-
-Output ONLY the question. Nothing else.`;
-        }
       }
 
       const nextQuestionResponse = await fetch("https://ai.gateway.lovable.dev/v1/chat/completions", {
@@ -1465,8 +1431,8 @@ Output ONLY the question. Nothing else.`;
 
       if (nextQuestionResponse.ok) {
         const data = await nextQuestionResponse.json();
-        suggestedNextQuestion = data.choices[0].message.content;
-        console.log("Generated stage-aware suggested question:", suggestedNextQuestion, "| Stage:", journeyStage, "| Domain:", domainFocus);
+        suggestedNextQuestion = data.choices[0].message.content.trim();
+        console.log("Generated phase-aware question:", suggestedNextQuestion, "| Phase:", resolvedEntryState, "| Dominant theme:", dominantTheme);
       }
     }
 
