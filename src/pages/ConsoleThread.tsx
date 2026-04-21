@@ -1549,11 +1549,13 @@ const ConsoleThread = ({ embedded = false, onProjectNameChange }: ConsoleThreadP
           return;
         }
 
-        Promise.all([
+        // Await structure save so ProjectEngine always loads with data
+        await Promise.all([
           supabase.from("integrator_projects").update({ project_structure: projectStructure, project_brief: description } as any).eq("id", projectId),
           supabase.from("profiles").update({ first_project_created_at: new Date().toISOString(), first_project_id: projectId, console_intake_completed: true } as any).eq("id", user.id),
         ]).catch(e => console.error("Project DB writes failed:", e));
 
+        // Fire-and-forget: atlas cluster + capability seeding (non-blocking)
         (async () => {
           try {
             const projectSlug = name.toLowerCase().replace(/[^a-z0-9]+/g, "-").replace(/(^-|-$)/g, "");
@@ -1678,8 +1680,8 @@ const ConsoleThread = ({ embedded = false, onProjectNameChange }: ConsoleThreadP
         return;
       }
 
-      // Fire all DB writes in parallel — none of these need to block the card
-      Promise.all([
+      // Await structure save so ProjectEngine always loads with data
+      await Promise.all([
         supabase
           .from("integrator_projects")
           .update({
