@@ -204,7 +204,7 @@
   /* Button gradient */
   .btn-gradient {
     background: linear-gradient(135deg, hsl(220 95% 58%), hsl(265 90% 62%), hsl(320 80% 55%));
-    transition: all 0.3s ease;
+    transition: box-shadow 0.15s ease-out, filter 0.15s ease-out, transform 0.15s ease-out;
   }
 
   .btn-gradient:hover {
@@ -213,8 +213,34 @@
     filter: brightness(1.1);
   }
 
+  .btn-gradient:active {
+    transform: scale(0.97);
+    filter: brightness(1.05);
+  }
+
   /* Neon line (for connections) */
   .neon-line {
     filter: drop-shadow(0 0 4px hsl(265 90% 62% / 0.4));
+  }
+}
+
+/* Reduced motion: keep opacity fades, remove position/scale movement */
+@media (prefers-reduced-motion: reduce) {
+  .animate-float,
+  .animate-pulse-glow,
+  .animate-notification-blink {
+    animation: none;
+  }
+
+  .animate-pulse {
+    animation-duration: 3s;
+  }
+
+  .btn-gradient:hover {
+    transform: none;
+  }
+
+  .btn-gradient:active {
+    transform: none;
   }
 }

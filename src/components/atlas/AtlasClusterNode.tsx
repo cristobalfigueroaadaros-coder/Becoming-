@@ -1,7 +1,9 @@
-import { motion } from "framer-motion";
+import { motion, useReducedMotion } from "framer-motion";
 import { Lock } from "lucide-react";
 import type { ClusterWithState } from "@/hooks/useAtlas";
 import { DOMAIN_COLORS, getDotColor } from "@/hooks/useAtlas";
+
+const canHover = typeof window !== "undefined" && window.matchMedia("(hover: hover) and (pointer: fine)").matches;
 
 interface AtlasClusterNodeProps {
   cluster: ClusterWithState;
@@ -47,6 +49,7 @@ const GROWTH_STYLES: Record<string, { size: number; opacity: string; glowSize: n
 };
 
 export const AtlasClusterNode = ({ cluster, index, onTap, isHighlighted, miniDotCounts = {}, isFocused, isFaded, scale = 1 }: AtlasClusterNodeProps) => {
+  const shouldReduceMotion = useReducedMotion();
   const domainName = cluster.meta_domain?.name || "Person";
   const isGolden = cluster.slug === "golden-moments";
   const isProject = cluster.cluster_category === "project";
@@ -80,19 +83,19 @@ export const AtlasClusterNode = ({ cluster, index, onTap, isHighlighted, miniDot
     <motion.button
       onClick={state !== "locked" ? onTap : undefined}
       initial={{ opacity: 0, scale: 0.6 }}
-      animate={{ 
-        opacity: 1, 
+      animate={{
+        opacity: 1,
         scale: 1,
-        y: state !== "locked" ? [0, -3, 0] : 0,
+        y: state !== "locked" && !shouldReduceMotion ? [0, -3, 0] : 0,
       }}
-      transition={{ 
-        delay: index * 0.05, 
-        type: "spring", 
-        stiffness: 200, 
+      transition={{
+        delay: index * 0.05,
+        type: "spring",
+        stiffness: 200,
         damping: 20,
-        y: { duration: 4 + index * 0.5, repeat: Infinity, ease: "easeInOut" }
+        y: { duration: 4 + index * 0.5, repeat: shouldReduceMotion ? 0 : Infinity, ease: "easeInOut" }
       }}
-      whileHover={state !== "locked" ? { scale: 1.08 } : undefined}
+      whileHover={state !== "locked" && canHover ? { scale: 1.08 } : undefined}
       className={`relative flex items-center justify-center ${style.opacity} ${fadeClass} ${state === "locked" ? "cursor-not-allowed" : "cursor-pointer"} transition-opacity duration-300`}
       style={{ width: containerSize, height: containerSize }}
     >
@@ -106,8 +109,8 @@ export const AtlasClusterNode = ({ cluster, index, onTap, isHighlighted, miniDot
             boxShadow: `0 0 30px ${colors.glow}, 0 0 60px ${colors.glow}`,
             border: `2px solid ${colors.border}`,
           }}
-          animate={{ opacity: [0.3, 1, 0.3], scale: [1, 1.15, 1] }}
-          transition={{ duration: 1.5, repeat: 2 }}
+          animate={shouldReduceMotion ? { opacity: 0.6 } : { opacity: [0.3, 1, 0.3], scale: [1, 1.15, 1] }}
+          transition={{ duration: 1.5, repeat: shouldReduceMotion ? 0 : 2 }}
         />
       )}
 
@@ -121,14 +124,14 @@ export const AtlasClusterNode = ({ cluster, index, onTap, isHighlighted, miniDot
             boxShadow: `0 0 ${style.glowSize}px ${colors.glow}, 0 0 ${style.glowSize * 2}px ${colors.glow}`,
             border: `1px solid ${colors.border}`,
           }}
-          animate={{ opacity: [0.3, 0.7, 0.3] }}
-          transition={{ duration: 3, repeat: Infinity }}
+          animate={shouldReduceMotion ? { opacity: 0.5 } : { opacity: [0.3, 0.7, 0.3] }}
+          transition={{ duration: 3, repeat: shouldReduceMotion ? 0 : Infinity }}
         />
       )}
 
       {/* Main circle — gradient fill */}
       <div
-        className="absolute rounded-full transition-all duration-300"
+        className="absolute rounded-full transition-opacity duration-300"
         style={{
           width: style.size,
           height: style.size,
@@ -183,8 +186,8 @@ export const AtlasClusterNode = ({ cluster, index, onTap, isHighlighted, miniDot
                       opacity: 0.7,
                     }}
                     initial={{ opacity: 0, scale: 0 }}
-                    animate={{ opacity: [0.4, 0.9, 0.4], scale: 1 }}
-                    transition={{ delay: index * 0.05 + i * 0.03 + mi * 0.05, duration: 2, repeat: Infinity }}
+                    animate={shouldReduceMotion ? { opacity: 0.6, scale: 1 } : { opacity: [0.4, 0.9, 0.4], scale: 1 }}
+                    transition={{ delay: index * 0.05 + i * 0.03 + mi * 0.05, duration: 2, repeat: shouldReduceMotion ? 0 : Infinity }}
                   />
                 );
               })}

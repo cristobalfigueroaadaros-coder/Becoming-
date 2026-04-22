@@ -1,4 +1,5 @@
 import { createClient } from "npm:@supabase/supabase-js@^2";
+import { getCorsHeaders, checkRateLimit, rateLimitResponse } from "../_shared/security.ts";
 
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
@@ -402,8 +403,10 @@ const hiddenKeywords = {
 };
 
 Deno.serve(async (req) => {
+  const dynamicCors = getCorsHeaders(req);
+
   if (req.method === "OPTIONS") {
-    return new Response(null, { headers: corsHeaders });
+    return new Response(null, { headers: dynamicCors });
   }
 
   try {
@@ -427,8 +430,11 @@ Deno.serve(async (req) => {
           .filter((m) => (m as any).role && (m as any).content)
       : [];
 
-    const authHeader = req.headers.get("Authorization")!;
-    const token = authHeader.replace("Bearer ", "");
+    const authHeader = req.headers.get("Authorization");
+    if (!authHeader || !authHeader.startsWith("Bearer ")) {
+      return new Response(JSON.stringify({ error: "Unauthorized" }), { status: 401, headers: { ...dynamicCors, "Content-Type": "application/json" } });
+    }
+    const token = authHeader.replace("Bearer ", "").trim();
 
     const supabaseClient = createClient(
       Deno.env.get("SUPABASE_URL") ?? "",
@@ -438,6 +444,10 @@ Deno.serve(async (req) => {
 
     const { data: { user }, error: userError } = await supabaseClient.auth.getUser(token);
     if (userError || !user) throw new Error("Not authenticated");
+
+    // Rate limit
+    const rl = await checkRateLimit(user.id, "council-meeting");
+    if (!rl.allowed) return rateLimitResponse(dynamicCors, rl.retryAfterMs);
 
     // Get profile for context
     const { data: profile } = await supabaseClient

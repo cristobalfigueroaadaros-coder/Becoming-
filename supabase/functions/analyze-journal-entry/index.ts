@@ -1,30 +1,41 @@
 import "https://deno.land/x/xhr@0.1.0/mod.ts";
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
-
-const corsHeaders = {
-  "Access-Control-Allow-Origin": "*",
-  "Access-Control-Allow-Headers": "authorization, x-client-info, apikey, content-type",
-};
+import { getCorsHeaders, validateAuth, checkRateLimit, rateLimitResponse, authErrorResponse } from "../_shared/security.ts";
 
 const LOVABLE_API_KEY = Deno.env.get("LOVABLE_API_KEY");
 const SUPABASE_URL = Deno.env.get("SUPABASE_URL");
 const SUPABASE_SERVICE_ROLE_KEY = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY");
 
 serve(async (req) => {
+  const corsHeaders = getCorsHeaders(req);
+
   if (req.method === "OPTIONS") {
     return new Response(null, { headers: corsHeaders });
   }
 
-  try {
-    const { journalEntryId, content, userId } = await req.json();
+  // Auth — validate JWT and get real user ID
+  const auth = await validateAuth(req);
+  if (auth.error) return authErrorResponse(corsHeaders);
 
-    if (!journalEntryId || !content || !userId) {
+  const { userId } = auth;
+
+  // Rate limit
+  const rl = await checkRateLimit(userId, "analyze-journal-entry");
+  if (!rl.allowed) return rateLimitResponse(corsHeaders, rl.retryAfterMs);
+
+  try {
+    const { journalEntryId, content } = await req.json();
+
+    if (!journalEntryId || !content) {
       return new Response(
-        JSON.stringify({ error: "Missing journalEntryId, content, or userId" }),
+        JSON.stringify({ error: "Missing journalEntryId or content" }),
         { status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" } }
       );
     }
+
+    // Cap content length to prevent oversized API calls
+    const safeContent = String(content).slice(0, 8000);
 
     const supabase = createClient(SUPABASE_URL!, SUPABASE_SERVICE_ROLE_KEY!);
 
@@ -50,8 +61,6 @@ Return a JSON object with:
   "overall_tone": "positive" | "negative" | "mixed" | "reflective" | "transformative"
 }`;
 
-    console.log("Analyzing journal entry...");
-
     const response = await fetch("https://ai.gateway.lovable.dev/v1/chat/completions", {
       method: "POST",
       headers: {
@@ -62,7 +71,7 @@ Return a JSON object with:
         model: "google/gemini-2.5-flash",
         messages: [
           { role: "system", content: systemPrompt },
-          { role: "user", content: `Analyze this journal entry:\n\n${content}` },
+          { role: "user", content: `Analyze this journal entry:\n\n${safeContent}` },
         ],
         tools: [
           {
@@ -122,17 +131,12 @@ Return a JSON object with:
     });
 
     if (!response.ok) {
-      const errorText = await response.text();
-      console.error("AI gateway error:", response.status, errorText);
       throw new Error(`AI gateway error: ${response.status}`);
     }
 
     const aiData = await response.json();
-    console.log("AI response:", JSON.stringify(aiData, null, 2));
-
     const toolCall = aiData.choices?.[0]?.message?.tool_calls?.[0];
     if (!toolCall) {
-      console.log("No tool call in response");
       return new Response(
         JSON.stringify({ error: "Failed to analyze journal entry" }),
         { status: 500, headers: { ...corsHeaders, "Content-Type": "application/json" } }
@@ -140,9 +144,8 @@ Return a JSON object with:
     }
 
     const analysis = JSON.parse(toolCall.function.arguments);
-    console.log("Analysis result:", analysis);
 
-    // Update the journal entry with detected analysis
+    // Update journal entry — scoped to userId from JWT (not from body)
     const { error: updateError } = await supabase
       .from("daily_journal")
       .update({
@@ -154,18 +157,15 @@ Return a JSON object with:
       .eq("user_id", userId);
 
     if (updateError) {
-      console.error("Error updating journal entry:", updateError);
+      console.error("Error updating journal entry:", updateError.message);
       throw updateError;
     }
 
-    console.log("Updated journal entry with analysis");
-
-    // Check for significant patterns that could trigger discoveries
+    // Save significant positive patterns as discoveries
     const significantPatterns = analysis.patterns.filter(
       (p: { type: string }) => p.type === "positive"
     );
 
-    // If there are significant positive patterns, save as discoveries
     for (const pattern of significantPatterns) {
       const { data: existing } = await supabase
         .from("becoming_discoveries")
@@ -173,7 +173,7 @@ Return a JSON object with:
         .eq("user_id", userId)
         .eq("discovery_type", "pattern")
         .eq("element_key", pattern.pattern.toLowerCase().replace(/\s+/g, "_"))
-        .single();
+        .maybeSingle();
 
       if (!existing) {
         await supabase.from("becoming_discoveries").insert({
@@ -184,20 +184,19 @@ Return a JSON object with:
           source: "journal_analysis",
           source_message_id: journalEntryId,
         });
-        console.log(`Saved pattern discovery: ${pattern.pattern}`);
       }
     }
 
     return new Response(
-      JSON.stringify({ 
-        success: true, 
+      JSON.stringify({
+        success: true,
         analysis,
-        patternsSaved: significantPatterns.length 
+        patternsSaved: significantPatterns.length,
       }),
       { headers: { ...corsHeaders, "Content-Type": "application/json" } }
     );
   } catch (error: unknown) {
-    console.error("Error in analyze-journal-entry:", error);
+    console.error("Error in analyze-journal-entry:", error instanceof Error ? error.message : "unknown");
     const errorMessage = error instanceof Error ? error.message : "Unknown error";
     return new Response(
       JSON.stringify({ error: errorMessage }),

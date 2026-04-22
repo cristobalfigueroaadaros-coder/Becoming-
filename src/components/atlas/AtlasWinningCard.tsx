@@ -97,11 +97,14 @@ export const AtlasWinningCard = ({
             const isSelected = selectedVars.some(s => s.title === v.title);
             const isMaxed = selectedVars.length >= MAX_SELECTIONS && !isSelected;
             return (
-              <button
+              <motion.button
                 key={i}
+                initial={{ opacity: 0, y: 10 }}
+                animate={{ opacity: 1, y: 0 }}
+                transition={{ delay: i * 0.07, duration: 0.22, ease: [0.23, 1, 0.32, 1] }}
                 onClick={() => !isMaxed && toggleVariation(v)}
                 disabled={isLoading || isMaxed}
-                className={`w-full text-left p-4 rounded-xl border-2 transition-all space-y-2 active:scale-[0.98] relative ${
+                className={`w-full text-left p-4 rounded-xl border-2 transition-colors space-y-2 active:scale-[0.98] relative ${
                   isSelected
                     ? "border-primary bg-primary/5"
                     : isMaxed
@@ -124,7 +127,7 @@ export const AtlasWinningCard = ({
                   </div>
                 </div>
                 <p className="text-sm text-muted-foreground">{v.description}</p>
-              </button>
+              </motion.button>
             );
           })}
         </div>

@@ -1,25 +1,28 @@
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
-
-const corsHeaders = {
-  "Access-Control-Allow-Origin": "*",
-  "Access-Control-Allow-Headers": "authorization, x-client-info, apikey, content-type",
-};
+import { getCorsHeaders, validateAuth, checkRateLimit, rateLimitResponse, authErrorResponse } from "../_shared/security.ts";
 
 serve(async (req) => {
+  const corsHeaders = getCorsHeaders(req);
+
   if (req.method === "OPTIONS") {
     return new Response(null, { headers: corsHeaders });
   }
 
+  // Auth — user_id comes from JWT, never from request body
+  const auth = await validateAuth(req);
+  if (auth.error) return authErrorResponse(corsHeaders);
+
+  const { userId } = auth;
+
+  // Rate limit
+  const rl = await checkRateLimit(userId, "analyze-purpose-alignment");
+  if (!rl.allowed) return rateLimitResponse(corsHeaders, rl.retryAfterMs);
+
   try {
-    const supabaseClient = createClient(
-      Deno.env.get("SUPABASE_URL") ?? "",
-      Deno.env.get("SUPABASE_SERVICE_ROLE_KEY") ?? ""
-    );
+    const { dots, userPurpose } = await req.json();
 
-    const { dots, userPurpose, userId } = await req.json();
-
-    if (!userId || !userPurpose || !dots || dots.length === 0) {
+    if (!userPurpose || !dots || dots.length === 0) {
       return new Response(
         JSON.stringify({ error: "Missing required fields" }),
         { status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" } }
@@ -27,21 +30,21 @@ serve(async (req) => {
     }
 
     const LOVABLE_API_KEY = Deno.env.get("LOVABLE_API_KEY");
-    if (!LOVABLE_API_KEY) {
-      throw new Error("LOVABLE_API_KEY not configured");
-    }
+    if (!LOVABLE_API_KEY) throw new Error("LOVABLE_API_KEY not configured");
 
-    // Prepare dots summary for AI analysis
-    const dotsSummary = dots.map((dot: any, idx: number) => 
-      `${idx + 1}. [ID: ${dot.id}] Theme: ${dot.core_theme} | ${dot.insight_text.slice(0, 100)}...`
-    ).join('\n');
+    // Validate dot count to prevent oversized payloads
+    const safeDots = dots.slice(0, 100);
+
+    const dotsSummary = safeDots.map((dot: any, idx: number) =>
+      `${idx + 1}. [ID: ${dot.id}] Theme: ${dot.core_theme} | ${String(dot.insight_text ?? "").slice(0, 100)}...`
+    ).join("\n");
 
     const analysisPrompt = `You are analyzing a user's constellation of life insights against their stated life purpose.
 
 USER'S PURPOSE:
-"${userPurpose}"
+<user_input>${userPurpose.slice(0, 500)}</user_input>
 
-INSIGHTS TO ANALYZE (${dots.length} total):
+INSIGHTS TO ANALYZE (${safeDots.length} total):
 ${dotsSummary}
 
 For each insight, determine its alignment strength with the user's purpose on a scale of 0-100:
@@ -67,43 +70,37 @@ Be specific about HOW each insight connects to the purpose. Only return the JSON
 
     if (!aiResponse.ok) {
       const errorText = await aiResponse.text();
-      console.error("AI API error:", aiResponse.status, errorText);
+      console.error("AI API error:", aiResponse.status, errorText.slice(0, 200));
       throw new Error(`AI API error: ${aiResponse.status}`);
     }
 
     const aiData = await aiResponse.json();
     const responseText = aiData.choices[0].message.content;
-    
-    // Extract JSON from response
+
     const jsonMatch = responseText.match(/\[[\s\S]*\]/);
-    if (!jsonMatch) {
-      throw new Error("No valid JSON found in AI response");
-    }
-    
+    if (!jsonMatch) throw new Error("No valid JSON found in AI response");
+
     const alignmentResults = JSON.parse(jsonMatch[0]);
 
-    // Group dots by alignment level
     const highAlignment = alignmentResults.filter((r: any) => r.alignmentScore >= 61);
     const mediumAlignment = alignmentResults.filter((r: any) => r.alignmentScore >= 31 && r.alignmentScore < 61);
     const lowAlignment = alignmentResults.filter((r: any) => r.alignmentScore < 31);
 
-    console.log(`Purpose alignment analysis: ${highAlignment.length} high, ${mediumAlignment.length} medium, ${lowAlignment.length} low`);
-
     return new Response(
-      JSON.stringify({ 
+      JSON.stringify({
         success: true,
         alignments: alignmentResults,
         summary: {
           high: highAlignment.length,
           medium: mediumAlignment.length,
           low: lowAlignment.length,
-          total: alignmentResults.length
-        }
+          total: alignmentResults.length,
+        },
       }),
       { headers: { ...corsHeaders, "Content-Type": "application/json" } }
     );
   } catch (error) {
-    console.error("Error in analyze-purpose-alignment:", error);
+    console.error("Error in analyze-purpose-alignment:", error instanceof Error ? error.message : "unknown");
     return new Response(
       JSON.stringify({ error: error instanceof Error ? error.message : "Unknown error" }),
       { status: 500, headers: { ...corsHeaders, "Content-Type": "application/json" } }

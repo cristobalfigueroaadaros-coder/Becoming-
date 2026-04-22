@@ -19,6 +19,7 @@ import { useProblemClarificationStatus } from "@/hooks/useProblemClarificationSt
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
 import { PaymentModal } from "@/components/PaymentModal";
+import { ThinkOutsideBoxPanel } from "@/components/creation-lab/ThinkOutsideBoxPanel";
 
 const modeConfig: Record<CreationLabMode, { title: string; description: string; color: string }> = {
   focus: {
@@ -403,21 +404,29 @@ const CreationLab = () => {
             transition={{ duration: 0.3 }}
           >
             {currentMode === "focus" && (
-              <FocusMode
-                activeProject={activeProject}
-                phases={phases}
-                steps={steps}
-                todaysStep={todaysStep}
-                currentPhase={currentPhase}
-                missedSteps={getMissedSteps()}
-                needsProblemClarification={needsProblemClarification}
-                onCompleteStep={handleCompleteStep}
-                onSkipStep={skipStep}
-                onEditStep={editStep}
-                onRescheduleStep={rescheduleStep}
-                onSkipMissedSteps={skipMissedSteps}
-                onProjectUpdate={(updates) => setActiveProject(prev => prev ? { ...prev, ...updates } : null)}
-              />
+              <>
+                <FocusMode
+                  activeProject={activeProject}
+                  phases={phases}
+                  steps={steps}
+                  todaysStep={todaysStep}
+                  currentPhase={currentPhase}
+                  missedSteps={getMissedSteps()}
+                  needsProblemClarification={needsProblemClarification}
+                  onCompleteStep={handleCompleteStep}
+                  onSkipStep={skipStep}
+                  onEditStep={editStep}
+                  onRescheduleStep={rescheduleStep}
+                  onSkipMissedSteps={skipMissedSteps}
+                  onProjectUpdate={(updates) => setActiveProject(prev => prev ? { ...prev, ...updates } : null)}
+                />
+                {activeProject && (
+                  <ThinkOutsideBoxPanel
+                    project={{ title: activeProject.project_title, description: activeProject.project_description }}
+                    currentPhase={currentPhase}
+                  />
+                )}
+              </>
             )}
 
             {currentMode === "purpose" && (

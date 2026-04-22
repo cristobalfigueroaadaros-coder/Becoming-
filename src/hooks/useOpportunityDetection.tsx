@@ -15,7 +15,7 @@ export function useOpportunityDetection(totalDots: number) {
       if (error) throw error;
       return data?.opportunity || null;
     },
-    enabled: totalDots >= 5,
+    enabled: totalDots >= 10,
     staleTime: 1000 * 60 * 30, // 30 min cache
     retry: false,
   });

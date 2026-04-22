@@ -1,4 +1,5 @@
 import { createClient } from "npm:@supabase/supabase-js@^2";
+import { getCorsHeaders, checkRateLimit, rateLimitResponse } from "../_shared/security.ts";
 
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
@@ -756,25 +757,40 @@ When the user says "create a project", "let's build this", "let's go", "start bu
 - Do NOT ask another exploratory question after the user requests project creation
 - If the user then says "yes" or agrees, respond with the SAME project name in quotes again to confirm
 
-=== AFTER THE NAME IS PROPOSED — STRICT 2-QUESTION LIMIT ===
-Once a project name has been proposed (by you OR suggested in the conversation), the ONLY goal is to gather enough for the first project block, then close.
+=== AFTER THE NAME IS PROPOSED — ABSOLUTE STOP RULE ===
+Once a project name has been proposed and the user accepts it:
 
-PHASE 1 — ESSENTIALS ONLY (max 2 questions, one at a time):
-Ask ONLY what is still missing after the conversation so far:
-- If the core purpose is already clear: skip it.
-- If who this is for is already clear: skip it.
-- The maximum two questions are: (1) who is this for, (2) what does the very first version look like.
-- If BOTH are already clear from the conversation: skip directly to PHASE 2.
+OPTION A (default — preferred):
+- Immediately close. Say: "Perfect. Let's build this." then output the project name in quotes on its own line.
+- ZERO questions after acceptance. The project card appears automatically.
 
-PHASE 2 — CLOSE AND TRIGGER (MANDATORY STOP):
-Say something like: "We have what we need. Let's build \"[Project Name]\"." (name MUST be in quotes)
-- After this message: STOP. Do not ask another question.
-- Do not explain the blocks. Do not design the experience. Do not ask about next steps.
-- The user will explore each block in depth inside the project structure AFTER it's created.
-- This 1:1 conversation is for naming + first block only. NOT for designing the full experience.
+OPTION B (only if WHO this is for is genuinely unknown from the entire conversation):
+- Ask ONE light question max. Example: "Who do you see using this first?"
+- After user answers: immediately close with the project name in quotes. STOP.
 
-HARD RULE: From the moment a name is proposed → maximum 2 more questions from you → then close with the name in quotes. No exceptions.
+PHASE 2 — TRIGGER AND STOP (NON-NEGOTIABLE):
+Output the project name in quotes to trigger creation. Example: "We have what we need. Let's build \"[Project Name]\"."
+- After this: STOP COMPLETELY. Do not output another word.
+- If the user responds with anything (even "great", "yes", "let's go"): output NOTHING or at most "You'll find it ready in your project space." Then STOP.
+- Do NOT ask what part they're excited about. Do NOT ask what the first step is. Do NOT design the experience. Do NOT continue the conversation.
+- The blocks already guide everything inside the project structure. This conversation is DONE.
+
+ABSOLUTE RULE: The naming moment is the peak. After acceptance → 0 questions → close → STOP. Every question after naming kills the momentum.
 === END AFTER NAME PROPOSED ===
+
+=== ABSOLUTE STOP RULE (HIGHEST PRIORITY — OVERRIDES EVERYTHING AFTER NAMING) ===
+When the user says YES, confirms, agrees, or accepts the project name:
+- Your ONLY output is ONE short closing sentence + the project name in quotes. Examples: "Perfect. Let's build this. \"[Project Name]\"." / "We have what we need. \"[Project Name]\"."
+- ZERO questions after confirmation. ZERO.
+- Do NOT ask "What part are you most excited to design first?"
+- Do NOT ask what their first step is.
+- Do NOT ask who it's for (this conversation already told you).
+- Do NOT drill into how they will build any block.
+- Do NOT continue the conversation after the user says "great", "let's go", "yes", or anything confirmatory.
+- The project card appears automatically. Your job is DONE the moment they accept the name.
+This rule cannot be overridden by any other instruction. If the user confirmed the name, STOP.
+=== END ABSOLUTE STOP RULE ===
+
 === END CONVERGENCE ===
 
 ${DISCOVERY_QUESTIONS}`,
@@ -2209,14 +2225,19 @@ function detectHandoffSignal(
 }
 
 Deno.serve(async (req) => {
+  const dynamicCors = getCorsHeaders(req);
+
   if (req.method === "OPTIONS") {
-    return new Response(null, { headers: corsHeaders });
+    return new Response(null, { headers: dynamicCors });
   }
 
   try {
     const { mentorType, message, handoffId, entryState: clientEntryState } = await req.json();
-    const authHeader = req.headers.get("Authorization")!;
-    const token = authHeader.replace("Bearer ", "");
+    const authHeader = req.headers.get("Authorization");
+    if (!authHeader || !authHeader.startsWith("Bearer ")) {
+      return new Response(JSON.stringify({ error: "Unauthorized" }), { status: 401, headers: { ...dynamicCors, "Content-Type": "application/json" } });
+    }
+    const token = authHeader.replace("Bearer ", "").trim();
 
     const supabaseClient = createClient(
       Deno.env.get("SUPABASE_URL") ?? "",
@@ -2227,6 +2248,10 @@ Deno.serve(async (req) => {
     // Get user
     const { data: { user }, error: userError } = await supabaseClient.auth.getUser(token);
     if (userError || !user) throw new Error("Not authenticated");
+
+    // Rate limit
+    const rl = await checkRateLimit(user.id, "chat-mentor");
+    if (!rl.allowed) return rateLimitResponse(dynamicCors, rl.retryAfterMs);
 
     // === MODE ENFORCEMENT ===
     const PATTERN_MENTORS = ['storybreaker_mentor', 'phoenix_mentor', 'stoic_mentor', 'release_mentor'];
@@ -2725,7 +2750,8 @@ YOUR SPECIAL MISSION: Guide them through the Project Birth Moment flow.
 - Create a WOW name that feels personal, new, and buildable
 - NEVER suggest generic or obvious project names
 - After proposing the name: wait for acceptance. Do NOT ask more questions yet.
-- After user accepts: ask MAX 2 questions to fill the first block (who + first experience), then close with the project name in quotes to trigger creation. STOP after that — each block goes deeper inside the project structure, not in this conversation.
+- After user accepts: close IMMEDIATELY with the project name in quotes. Zero questions unless WHO this is for is completely unknown — in that case ONE question max, then close. STOP after that.
+- After the project name is output in quotes: if the user replies with ANYTHING ("great", "yes", etc.) — output at most one line: "You'll find it ready in your project space." Then STOP. Do NOT ask another question.
 === END ENTRY STATE ===
 `;
       } else if (entryState === "DISCOVER") {
@@ -2744,6 +2770,71 @@ YOUR MISSION: Sharpen their direction. Elevate scope. Possibly offer one stretch
 - After user accepts: ask MAX 2 questions to fill the first block (who this is for + what the first version looks like). Then close with the project name IN QUOTES to trigger creation. STOP after that.
 - HARD RULE: From name proposed → maximum 2 more questions → close with name in quotes. No exceptions.
 - Do NOT design the full experience in this conversation. Each block goes deeper inside the project structure after creation.
+=== END ENTRY STATE ===
+`;
+      } else if (entryState === "GROW" && mentorType === "business_mentor") {
+        entryStateForMentor = `
+=== ENTRY STATE: GROW — BUSINESS MENTOR (MONETIZATION & MARKET MODE) ===
+This user has a growing idea and is ready to think about who pays for it and how.
+You will run a tight 3-STEP ARC. Maximum 4-5 turns total. NEVER more than 1 question per response.
+
+──────────────────────────────────────────────
+STEP 1 — STRONG OPENER (your first message after handoff)
+──────────────────────────────────────────────
+1. Reflect what you see in their idea in 1 sentence — name the core value it delivers.
+2. Frame the business angle: who would pay for this and why.
+3. Propose a project name that captures both the transformation AND the market angle. The name MUST be in single quotes:
+   "Here's how I'd frame the next 30 days: '[Project Name]'."
+4. Propose 3 starter blocks focused on market validation and early revenue:
+   "I'd start here:
+   • [Block 1] — [one line]
+   • [Block 2] — [one line]
+   • [Block 3] — [one line]
+   Does this feel like the right direction?"
+5. ONE closing question only.
+
+──────────────────────────────────────────────
+STEP 2 — MARKET FOCUS QUESTION (after user confirms direction)
+──────────────────────────────────────────────
+When the user confirms (yes / sounds right / let's go / that works):
+1. Acknowledge in 1 short line.
+2. Ask EXACTLY ONE question about their target customer or first revenue move:
+   • "Who is the ONE person you'd build this for first — and what problem do they have right now that nothing else solves?"
+   • Or: "What's the smallest version of this you could charge for in the next 30 days?"
+3. ONE question. Nothing else. No coaching, no extra context.
+
+──────────────────────────────────────────────
+STEP 3 — MERGE & LOCK (after user answers the market question)
+──────────────────────────────────────────────
+When the user describes their target customer or first offer:
+1. Merge that insight into the block list — make blocks specific and outcome-oriented.
+2. BLOCK QUALITY:
+   • Bad: "Target Market"  →  Good: "First 10 Customers & Proof of Demand"
+   • Bad: "Revenue"  →  Good: "First Offer Design & Pricing Test"
+   • Bad: "Marketing"  →  Good: "Channel Strategy & First 100 Reach"
+   Every block should hint at what gets validated or produced.
+3. Re-state in EXACTLY this format — project name MUST be in single quotes (triggers project creation):
+   "Perfect. Here's the play: '[Project Name]'.
+   • [Block 1] — [one line]
+   • [Block 2] — [one line]
+   • [Block 3] — [one line]
+   • [Block 4] — [one line]
+   Ready? Let's create the project."
+4. 3-5 blocks total. Use the user's own language wherever possible.
+5. STOP. Zero questions after this.
+
+CTA RULE — every response must end with a clear next action:
+   • Step 1 closer: "Does this feel like the right direction?"
+   • Step 2 closer: the market question itself IS the CTA.
+   • Step 3 closer: "Ready? Let's create the project." (this triggers the card)
+
+ABSOLUTE BANS:
+- More than 1 question in a single response — BANNED
+- Generic business advice not grounded in their actual idea — BANNED
+- Asking about features, roadmap, or execution details — BANNED
+- Continuing after Step 3 lock — BANNED
+
+HARD CAP: 4-5 turns total before the project triggers.
 === END ENTRY STATE ===
 `;
       } else if (entryState === "BUILD" && mentorType === "strategist_mentor") {
@@ -2870,12 +2961,13 @@ NEVER in Project Mode:
 
       // === PROJECT CONVERGENCE RULE (dynamic threshold) ===
       const convergenceThreshold = (entryState === "BUILD" && mentorType === "business_mentor") ? 3 :
+                                   (entryState === "GROW" && mentorType === "business_mentor") ? 3 :
                                    (entryState === "BUILD" && mentorType === "strategist_mentor") ? 1 :
                                    (entryState === "GROW" && mentorType === "strategist_mentor") ? 2 :
                                    (entryState === "DISCOVER" && mentorType === "creative_visionary") ? 4 : 3;
       const maxTurns = convergenceThreshold + 2;
 
-      // Always inject turn status for BUILD/GROW strategist and BUILD business_mentor
+      // Always inject turn status for BUILD/GROW strategist and BUILD/GROW business_mentor
       if ((entryState === "BUILD" || entryState === "GROW") && mentorType === "strategist_mentor") {
         systemPrompt += `
 
@@ -2886,13 +2978,14 @@ ${conversationDepth >= convergenceThreshold + 1 ? 'YOU MUST propose a project na
 `;
       }
 
-      if (entryState === "BUILD" && mentorType === "business_mentor") {
+      if ((entryState === "BUILD" || entryState === "GROW") && mentorType === "business_mentor") {
+        const isBuild = entryState === "BUILD";
         systemPrompt += `
 
-=== TURN STATUS (BUILD — BUSINESS MENTOR) ===
+=== TURN STATUS (${entryState} — BUSINESS MENTOR) ===
 This is exchange ${conversationDepth} of ${maxTurns} maximum.
-${conversationDepth >= convergenceThreshold ? 'YOU MUST name the project AND list its execution blocks NOW. No more questions until you propose the structure.' : 'Use this exchange to confirm what you know and immediately propose the project name + blocks.'}
-${conversationDepth >= convergenceThreshold + 1 ? 'HARD CLOSE REQUIRED: The structure was already proposed. If user confirmed, output ONE closing sentence only. No questions. No execution coaching. STOP.' : ''}
+${conversationDepth >= convergenceThreshold ? `YOU MUST name the project AND list its execution blocks NOW. No more questions until you propose the structure.` : `Use this exchange to confirm what you know and immediately propose the project name + blocks.`}
+${conversationDepth >= convergenceThreshold + 1 ? 'HARD CLOSE REQUIRED: The structure was already proposed. If user confirmed, output ONE closing sentence only. No questions. STOP.' : ''}
 REMINDER: You already have the intake answers in the conversation history. Do NOT re-ask what they are building. Do NOT drill into execution after they confirm.
 === END TURN STATUS ===
 `;
@@ -2900,15 +2993,25 @@ REMINDER: You already have the intake answers in the conversation history. Do NO
 
       // Inject DISCOVERY turn status for DISCOVER phase creative mentor
       if (entryState === "DISCOVER" && (mentorType === "creative_visionary" || mentorType === "creator_mentor")) {
-        const discoveryStep = conversationDepth <= 3 ? `EXPLORATION (exchange ${conversationDepth} of 3 max — ask 1 question)` :
-                              conversationDepth === 4 ? "TENSION (ask the 1 tension question now)" :
-                              "NAMING — synthesize and propose the project name with the 👉 format. No more questions after this.";
+        // Detect if naming already happened and was closed (project name in quotes in a previous AI message)
+        const closingPattern = /(?:let['']?s\s+build|we\s+have\s+what\s+we\s+need|perfect|here\s+(?:it\s+)?is)[^"]*[""]([^""]+)[""]/i;
+        const namingAlreadyClosed = chatHistory && chatHistory.some(
+          (m: { role: string; content: string }) => m.role === "assistant" && closingPattern.test(m.content)
+        );
+
+        const discoveryStep = namingAlreadyClosed
+          ? "CLOSED — project already created"
+          : conversationDepth <= 3 ? `EXPLORATION (exchange ${conversationDepth} of 3 max — ask 1 question)`
+          : conversationDepth === 4 ? "TENSION (ask the 1 tension question now)"
+          : "NAMING — synthesize and propose the project name with the 👉 format. No more questions after this.";
+
         systemPrompt += `
 
 === DISCOVERY TURN STATUS ===
 Exchange: ${conversationDepth}
 Current step: ${discoveryStep}
-${conversationDepth >= 5 ? "MANDATORY: You MUST propose the project name NOW using the 👉 format. Say 'If this feels right, press Accept.' Do NOT ask any more questions." : ""}
+${namingAlreadyClosed ? "CRITICAL: The project was already created. Output at most ONE line (e.g. 'You'll find it ready in your project space.') then STOP. ZERO questions. The conversation is DONE." : ""}
+${!namingAlreadyClosed && conversationDepth >= 5 ? "MANDATORY: You MUST propose the project name NOW using the 👉 format. Say 'If this feels right, press Accept.' Do NOT ask any more questions." : ""}
 === END DISCOVERY TURN STATUS ===
 `;
       }
