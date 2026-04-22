@@ -8,6 +8,7 @@ import { useNavigate } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
 import { BlockWorkspace } from "./BlockWorkspace";
 import { PaymentModal } from "@/components/PaymentModal";
+import { ProjectStructureOnboarding, useProjectStructureOnboarding } from "./ProjectStructureOnboarding";
 import type { ProjectEngineData } from "@/pages/ProjectEngine";
 
 export interface StructureNode {
@@ -77,6 +78,7 @@ export function ProjectStructure({ project, onUpdate }: Props) {
   const holdTimerRef = useRef<ReturnType<typeof setInterval> | null>(null);
   const holdProgressRef = useRef(0);
   const holdCompletedRef = useRef(false);
+  const { show: showOnboarding, dismiss: dismissOnboarding } = useProjectStructureOnboarding();
 
   const HOLD_DURATION = 5000;
   const TICK = 50;
@@ -287,9 +289,17 @@ export function ProjectStructure({ project, onUpdate }: Props) {
     <PaymentModal open={showPayment} onClose={() => setShowPayment(false)} />
     <Card className="border-border/40">
       <CardHeader className="pb-2">
-        <CardTitle className="text-base font-semibold text-primary/80">Project Structure</CardTitle>
+        <CardTitle className="text-base font-semibold text-primary/80">Focus</CardTitle>
       </CardHeader>
       <CardContent>
+        <AnimatePresence>
+          {showOnboarding && (
+            <div className="mb-4">
+              <ProjectStructureOnboarding onDone={dismissOnboarding} />
+            </div>
+          )}
+        </AnimatePresence>
+
         {structure.length === 0 ? (
           <div className="text-center py-8 space-y-3">
             <p className="text-sm text-muted-foreground">
