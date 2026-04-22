@@ -6,12 +6,10 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Progress } from "@/components/ui/progress";
 import { Avatar, AvatarFallback } from "@/components/ui/avatar";
-import { Textarea } from "@/components/ui/textarea";
-import { ArrowLeft, Trophy, Flame, Target, Zap, Award, Calendar, Ghost, Users, BookOpen, Settings, Compass, Edit2, Check, X, Crown, Heart, Sparkles } from "lucide-react";
+import { Trophy, Flame, Target, Zap, Award, Calendar, Ghost, Users, BookOpen, Settings, Edit2, Check, X, Crown, Heart, Sparkles } from "lucide-react";
 import { AchievementBadge } from "@/components/AchievementBadge";
 import { ThemeCustomizationModal } from "@/components/ThemeCustomizationModal";
 import { ProfileBadges } from "@/components/ProfileBadges";
-import { BirthInfoEditor } from "@/components/BirthInfoEditor";
 import { useProfileBadges } from "@/hooks/useProfileBadges";
 import { PaymentModal } from "@/components/PaymentModal";
 import { toast } from "sonner";
@@ -50,12 +48,6 @@ interface TimelineEvent {
   id: string;
   event_type: string;
   event_data: any;
-  created_at: string;
-}
-
-interface PurposeHistoryEntry {
-  id: string;
-  purpose_text: string;
   created_at: string;
 }
 
@@ -106,12 +98,10 @@ const Profile = () => {
   const [paymentModalOpen, setPaymentModalOpen] = useState(false);
   const [paymentStatus, setPaymentStatus] = useState<string>("free");
   const [purpose, setPurpose] = useState<string>("");
-  const [editingPurpose, setEditingPurpose] = useState(false);
-  const [purposeText, setPurposeText] = useState("");
-  const [savingPurpose, setSavingPurpose] = useState(false);
   const [purposeHistory, setPurposeHistory] = useState<PurposeHistoryEntry[]>([]);
-  const [showPurposeHistory, setShowPurposeHistory] = useState(false);
   const [birthInfo, setBirthInfo] = useState<BirthInfo | null>(null);
+  const [editingName, setEditingName] = useState(false);
+  const [nameText, setNameText] = useState("");
   const [currentUserId, setCurrentUserId] = useState<string>("");
   const { getUserBadgesWithDetails, loading: badgesLoading } = useProfileBadges(userId);
   const userBadges = getUserBadgesWithDetails();
@@ -286,65 +276,22 @@ const Profile = () => {
     }
   };
 
-  const handleSavePurpose = async () => {
-    if (!purposeText.trim()) {
-      toast.error("Purpose cannot be empty");
-      return;
-    }
-
-    // Check if purpose has actually changed
-    if (purposeText.trim() === purpose) {
-      setEditingPurpose(false);
-      return;
-    }
-
-    setSavingPurpose(true);
+  const handleSaveName = async () => {
+    if (!nameText.trim()) return;
     try {
       const { data: { user } } = await supabase.auth.getUser();
       if (!user) throw new Error("Not authenticated");
-
-      // Update current purpose
-      const { error: updateError } = await supabase
+      const { error } = await supabase
         .from("profiles")
-        .update({ main_mission: purposeText.trim() })
+        .update({ display_name: nameText.trim() })
         .eq("id", user.id);
-
-      if (updateError) throw updateError;
-
-      // Add to purpose history
-      const { error: historyError } = await supabase
-        .from("purpose_history")
-        .insert({
-          user_id: user.id,
-          purpose_text: purposeText.trim(),
-        });
-
-      if (historyError) throw historyError;
-
-      setPurpose(purposeText.trim());
-      setEditingPurpose(false);
-      
-      // Reload history
-      const { data: historyData } = await supabase
-        .from("purpose_history")
-        .select("*")
-        .eq("user_id", user.id)
-        .order("created_at", { ascending: false })
-        .limit(20);
-
-      setPurposeHistory(historyData || []);
-
-      toast.success("Purpose updated and saved to history!");
+      if (error) throw error;
+      setProfile(prev => prev ? { ...prev, display_name: nameText.trim() } : prev);
+      setEditingName(false);
+      toast.success("Name updated");
     } catch (error: any) {
-      toast.error("Failed to update purpose", { description: error.message });
-    } finally {
-      setSavingPurpose(false);
+      toast.error("Failed to update name", { description: error.message });
     }
-  };
-
-  const handleCancelEdit = () => {
-    setPurposeText(purpose);
-    setEditingPurpose(false);
   };
 
   // Privacy checks
@@ -400,7 +347,27 @@ const Profile = () => {
 
               <div className="flex-1 text-center md:text-left space-y-3">
                 <div className="space-y-2">
-                  <h2 className="text-2xl font-bold">{profile.display_name}</h2>
+                  {isOwnProfile && editingName ? (
+                    <div className="flex items-center gap-2">
+                      <input
+                        autoFocus
+                        value={nameText}
+                        onChange={e => setNameText(e.target.value)}
+                        onKeyDown={e => { if (e.key === "Enter") handleSaveName(); if (e.key === "Escape") setEditingName(false); }}
+                        className="text-2xl font-bold bg-transparent border-b border-primary outline-none w-full"
+                      />
+                      <Button size="icon" variant="ghost" onClick={handleSaveName}><Check className="w-4 h-4" /></Button>
+                      <Button size="icon" variant="ghost" onClick={() => setEditingName(false)}><X className="w-4 h-4" /></Button>
+                    </div>
+                  ) : (
+                    <button
+                      onClick={() => { if (isOwnProfile) { setNameText(profile.display_name); setEditingName(true); } }}
+                      className={cn("flex items-center gap-2 group", isOwnProfile && "cursor-pointer")}
+                    >
+                      <h2 className="text-2xl font-bold">{profile.display_name}</h2>
+                      {isOwnProfile && <Edit2 className="w-4 h-4 text-muted-foreground opacity-0 group-hover:opacity-60 transition-opacity" />}
+                    </button>
+                  )}
                   <p className="text-muted-foreground">
                     Member since {new Date(profile.joined_at).toLocaleDateString()}
                   </p>
@@ -429,156 +396,6 @@ const Profile = () => {
             </div>
           </CardContent>
         </Card>
-
-        {/* Life Purpose */}
-        {(isOwnProfile || purpose) && (
-          <Card className={cn("border-2 border-accent/20", getCardClass())}>
-            <CardHeader>
-              <div className="flex items-center justify-between">
-                <CardTitle className="flex items-center gap-2">
-                  <Compass className="w-5 h-5 text-accent" />
-                  Life Purpose
-                </CardTitle>
-                {isOwnProfile && !editingPurpose && (
-                  <Button
-                    variant="ghost"
-                    size="sm"
-                    onClick={() => setEditingPurpose(true)}
-                  >
-                    <Edit2 className="w-4 h-4 mr-2" />
-                    Edit
-                  </Button>
-                )}
-              </div>
-            </CardHeader>
-            <CardContent>
-              {editingPurpose ? (
-                <div className="space-y-4">
-                  <Textarea
-                    value={purposeText}
-                    onChange={(e) => setPurposeText(e.target.value)}
-                    placeholder="Describe your life's purpose or mission..."
-                    rows={5}
-                    className="resize-none"
-                  />
-                  <div className="flex gap-2">
-                    <Button
-                      onClick={handleSavePurpose}
-                      disabled={!purposeText.trim() || savingPurpose}
-                      className="flex-1"
-                    >
-                      <Check className="w-4 h-4 mr-2" />
-                      {savingPurpose ? "Saving..." : "Save Purpose"}
-                    </Button>
-                    <Button
-                      variant="outline"
-                      onClick={handleCancelEdit}
-                      disabled={savingPurpose}
-                    >
-                      <X className="w-4 h-4" />
-                    </Button>
-                  </div>
-                </div>
-              ) : purpose ? (
-                <div className="space-y-4">
-                  <p className="text-base leading-relaxed">{purpose}</p>
-                  
-                  {isOwnProfile && (
-                    <>
-                      <div className="bg-accent/10 border border-accent/20 rounded-lg p-3">
-                        <p className="text-sm text-muted-foreground">
-                          💡 <strong className="text-foreground">Tip:</strong> Your purpose will guide your journey and help the AI connect insights back to your mission. Update this as you evolve.
-                        </p>
-                      </div>
-
-                      {purposeHistory.length > 0 && (
-                        <div className="pt-2 border-t border-border">
-                          <Button
-                            variant="ghost"
-                            size="sm"
-                            onClick={() => setShowPurposeHistory(!showPurposeHistory)}
-                            className="w-full justify-between"
-                          >
-                            <span className="flex items-center gap-2">
-                              <Calendar className="w-4 h-4" />
-                              Purpose History ({purposeHistory.length} versions)
-                            </span>
-                            <span>{showPurposeHistory ? "−" : "+"}</span>
-                          </Button>
-
-                          {showPurposeHistory && (
-                            <div className="mt-4 space-y-4">
-                              <p className="text-sm text-muted-foreground">
-                                Track how your purpose has evolved over time:
-                              </p>
-                              <div className="space-y-3">
-                                {purposeHistory.map((entry, index) => (
-                                  <div
-                                    key={entry.id}
-                                    className="relative pl-6 pb-4 border-l-2 border-accent/30 last:border-l-0 last:pb-0"
-                                  >
-                                    <div className="absolute -left-2 top-0 w-4 h-4 rounded-full bg-accent border-2 border-background" />
-                                    <div className="space-y-2">
-                                      <div className="flex items-center gap-2">
-                                        <Badge variant={index === 0 ? "default" : "secondary"} className="text-xs">
-                                          {index === 0 ? "Current" : `Version ${purposeHistory.length - index}`}
-                                        </Badge>
-                                        <span className="text-xs text-muted-foreground">
-                                          {new Date(entry.created_at).toLocaleDateString(undefined, {
-                                            year: 'numeric',
-                                            month: 'long',
-                                            day: 'numeric'
-                                          })}
-                                        </span>
-                                      </div>
-                                      <p className="text-sm leading-relaxed bg-muted/30 rounded-lg p-3">
-                                        {entry.purpose_text}
-                                      </p>
-                                    </div>
-                                  </div>
-                                ))}
-                              </div>
-                            </div>
-                          )}
-                        </div>
-                      )}
-                    </>
-                  )}
-                </div>
-              ) : (
-                <div className="text-center py-8 space-y-4">
-                  <div className="w-16 h-16 rounded-full bg-accent/10 mx-auto flex items-center justify-center">
-                    <Compass className="w-8 h-8 text-accent" />
-                  </div>
-                  {isOwnProfile ? (
-                    <>
-                      <p className="text-muted-foreground">
-                        Define your life's purpose to guide your transformation journey
-                      </p>
-                      <Button onClick={() => setEditingPurpose(true)}>
-                        <Edit2 className="w-4 h-4 mr-2" />
-                        Add Purpose
-                      </Button>
-                    </>
-                  ) : (
-                    <p className="text-muted-foreground">
-                      This user hasn't shared their purpose yet
-                    </p>
-                  )}
-                </div>
-              )}
-            </CardContent>
-          </Card>
-        )}
-
-        {/* Birth Info Editor - Only for own profile */}
-        {isOwnProfile && currentUserId && (
-          <BirthInfoEditor
-            userId={currentUserId}
-            initialData={birthInfo || undefined}
-            onUpdate={loadProfile}
-          />
-        )}
 
         {/* Membership / Plan */}
         {isOwnProfile && (
