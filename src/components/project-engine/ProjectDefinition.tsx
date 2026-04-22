@@ -1,7 +1,7 @@
 import { useState, useEffect, useRef } from "react";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Textarea } from "@/components/ui/textarea";
-import { Check } from "lucide-react";
+import { Check, ChevronDown } from "lucide-react";
+import { motion, AnimatePresence } from "framer-motion";
 import { cn } from "@/lib/utils";
 import type { ProjectEngineData } from "@/pages/ProjectEngine";
 
@@ -19,11 +19,14 @@ const SUB_PROMPTS = [
 export function ProjectDefinition({ project, onUpdate }: Props) {
   const [brief, setBrief] = useState(project.project_brief || project.project_description || "");
   const [saved, setSaved] = useState(false);
+  const [expanded, setExpanded] = useState(!brief.trim());
   const timeoutRef = useRef<ReturnType<typeof setTimeout>>();
   const isEmpty = !brief.trim();
 
   useEffect(() => {
-    setBrief(project.project_brief || project.project_description || "");
+    const val = project.project_brief || project.project_description || "";
+    setBrief(val);
+    setExpanded(!val.trim());
   }, [project.id]);
 
   const handleBlur = () => {
@@ -36,41 +39,62 @@ export function ProjectDefinition({ project, onUpdate }: Props) {
 
   useEffect(() => () => { if (timeoutRef.current) clearTimeout(timeoutRef.current); }, []);
 
+  const preview = brief.trim().split("\n")[0].slice(0, 120);
+
   return (
-    <Card className="border-border/40">
-      <CardHeader className="pb-2">
-        <CardTitle className="text-base font-semibold text-primary/80">What are you building?</CardTitle>
-      </CardHeader>
-      <CardContent className="space-y-3">
-        <div className="relative">
-          <Textarea
-            value={brief}
-            onChange={e => setBrief(e.target.value)}
-            onBlur={handleBlur}
-            placeholder="Describe what you're building, where you are, and what matters most."
-            rows={4}
-            className={cn(
-              "resize-none transition-all",
-              isEmpty && "animate-pulse border-primary/40"
-            )}
-          />
-          {saved && (
-            <div className="absolute top-2 right-2 flex items-center gap-1 text-xs text-green-400">
-              <Check className="w-3 h-3" /> Saved
-            </div>
+    <div className="rounded-xl border border-border/40 bg-card/60 overflow-hidden">
+      <button
+        onClick={() => setExpanded(e => !e)}
+        className="w-full flex items-center justify-between gap-3 px-4 py-3 text-left hover:bg-muted/20 transition-colors"
+      >
+        <div className="flex-1 min-w-0">
+          <span className="text-xs font-semibold text-primary/70 uppercase tracking-wider">What you're building</span>
+          {!expanded && preview && (
+            <p className="text-sm text-muted-foreground truncate mt-0.5">{preview}</p>
+          )}
+          {!expanded && isEmpty && (
+            <p className="text-sm text-muted-foreground/50 italic mt-0.5">Add your project brief</p>
           )}
         </div>
+        <ChevronDown
+          className={cn("w-4 h-4 text-muted-foreground flex-shrink-0 transition-transform duration-200", expanded && "rotate-180")}
+        />
+      </button>
 
-        <div className="space-y-1.5 pl-1">
-          {SUB_PROMPTS.map(prompt => (
-            <p key={prompt} className="text-xs text-muted-foreground">• {prompt}</p>
-          ))}
-        </div>
-
-        <p className="text-[11px] text-muted-foreground/60 italic">
-          This context powers your mentors and weekly guidance.
-        </p>
-      </CardContent>
-    </Card>
+      <AnimatePresence initial={false}>
+        {expanded && (
+          <motion.div
+            initial={{ height: 0, opacity: 0 }}
+            animate={{ height: "auto", opacity: 1 }}
+            exit={{ height: 0, opacity: 0 }}
+            transition={{ duration: 0.22, ease: [0.23, 1, 0.32, 1] }}
+            className="overflow-hidden"
+          >
+            <div className="px-4 pb-4 space-y-3">
+              <div className="relative">
+                <Textarea
+                  value={brief}
+                  onChange={e => setBrief(e.target.value)}
+                  onBlur={handleBlur}
+                  placeholder="Describe what you're building, where you are, and what matters most."
+                  rows={4}
+                  className={cn("resize-none transition-all", isEmpty && "animate-pulse border-primary/40")}
+                />
+                {saved && (
+                  <div className="absolute top-2 right-2 flex items-center gap-1 text-xs text-green-400">
+                    <Check className="w-3 h-3" /> Saved
+                  </div>
+                )}
+              </div>
+              <div className="space-y-1 pl-1">
+                {SUB_PROMPTS.map(p => (
+                  <p key={p} className="text-xs text-muted-foreground">• {p}</p>
+                ))}
+              </div>
+            </div>
+          </motion.div>
+        )}
+      </AnimatePresence>
+    </div>
   );
 }
