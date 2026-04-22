@@ -4,7 +4,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Card } from "@/components/ui/card";
-import { ArrowLeft, Send, Sparkles, MessageCircle, RefreshCw, ChevronDown } from "lucide-react";
+import { ArrowLeft, Send, Sparkles, MessageCircle, RefreshCw, ChevronDown, Mic, MicOff } from "lucide-react";
 import { toast } from "sonner";
 import { cn } from "@/lib/utils";
 import { MentorLearningModule } from "@/components/MentorLearningModule";
@@ -165,6 +165,8 @@ const Chat = ({ mentorTypeOverride, embedded = false, locationState: propState }
   const [conversationSummary, setConversationSummary] = useState<string | null>(null);
   const [activityCtx, setActivityCtx] = useState<{ blockTitle: string; activityTitle: string; projectId: string; activityId: string } | null>(null);
   const [savedToNotes, setSavedToNotes] = useState(false);
+  const [isRecording, setIsRecording] = useState(false);
+  const recognitionRef = useRef<any>(null);
   const [isVoiceHandoffProcessed, setIsVoiceHandoffProcessed] = useState(false);
   const [isProblemClarificationProcessed, setIsProblemClarificationProcessed] = useState(false);
   const messagesEndRef = useRef<HTMLDivElement>(null);
@@ -680,6 +682,32 @@ const Chat = ({ mentorTypeOverride, embedded = false, locationState: propState }
     } finally {
       setLoading(false);
     }
+  };
+
+  const toggleVoice = () => {
+    const SpeechRecognition = (window as any).SpeechRecognition || (window as any).webkitSpeechRecognition;
+    if (!SpeechRecognition) {
+      toast.error("Voice input not supported in this browser. Try Chrome.");
+      return;
+    }
+    if (isRecording) {
+      recognitionRef.current?.stop();
+      setIsRecording(false);
+      return;
+    }
+    const recognition = new SpeechRecognition();
+    recognition.continuous = true;
+    recognition.interimResults = true;
+    recognition.lang = "en-US";
+    recognition.onresult = (event: any) => {
+      const transcript = Array.from(event.results).map((r: any) => r[0].transcript).join("");
+      setInput(transcript);
+    };
+    recognition.onend = () => setIsRecording(false);
+    recognition.onerror = () => setIsRecording(false);
+    recognitionRef.current = recognition;
+    recognition.start();
+    setIsRecording(true);
   };
 
   const handleSend = async () => {
@@ -1244,6 +1272,16 @@ const Chat = ({ mentorTypeOverride, embedded = false, locationState: propState }
         <div className="max-w-4xl mx-auto p-4">
           <div className="flex gap-2">
             <Input placeholder="Ask your mentor..." value={input} onChange={(e) => setInput(e.target.value)} onKeyPress={(e) => e.key === "Enter" && handleSend()} disabled={loading} />
+            <Button
+              variant="outline"
+              size="icon"
+              onClick={toggleVoice}
+              disabled={loading}
+              className={cn(isRecording && "border-red-500 text-red-500 animate-pulse")}
+              title={isRecording ? "Stop recording" : "Speak to your mentor"}
+            >
+              {isRecording ? <MicOff className="w-4 h-4" /> : <Mic className="w-4 h-4" />}
+            </Button>
             <Button onClick={handleSend} disabled={loading || !input.trim()}>
               <Send className="w-4 h-4" />
             </Button>
