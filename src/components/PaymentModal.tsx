@@ -54,7 +54,7 @@ export const PaymentModal = ({ open, onClose }: PaymentModalProps) => {
     setLoadingTier(tier.id);
     try {
       const { data, error } = await supabase.functions.invoke("create-checkout", {
-        body: { priceId: tier.priceId, mode: tier.mode },
+        body: { tier: tier.id },
       });
 
       if (error) throw error;
