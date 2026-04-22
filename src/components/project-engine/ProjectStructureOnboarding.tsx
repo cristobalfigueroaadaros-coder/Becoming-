@@ -1,25 +1,27 @@
 import { useState, useEffect } from "react";
 import { motion, AnimatePresence } from "framer-motion";
-import { X, Layers, ArrowRight, Zap } from "lucide-react";
-import { Button } from "@/components/ui/button";
+import { Layers, Zap, Users } from "lucide-react";
 
 const STORAGE_KEY = "project_structure_onboarded";
 
 const STEPS = [
   {
     icon: Layers,
-    title: "Your project, broken into blocks",
-    body: "Each block is a major part of your project — like Marketing, Product, or Revenue. Tap any block to go deeper.",
+    label: "Blocks",
+    title: "This is your project structure",
+    body: "Break your project into blocks.\nEach block is a major area to work through,\nlike Marketing, Product, or Revenue.",
   },
   {
     icon: Zap,
+    label: "Focus",
     title: "Follow the focus",
-    body: "The highlighted block is where you should be right now. Move through them one by one as you build.",
+    body: "The highlighted block shows where to start.\nWork through them one at a time\nas you build your project forward.",
   },
   {
-    icon: ArrowRight,
-    title: "Add activities inside each block",
-    body: "Inside each block you'll define the actions that move it forward. Your council can help you fill them in.",
+    icon: Users,
+    label: "Council",
+    title: "Your council is inside each block",
+    body: "Tap any block to go deeper.\nDefine activities and ask your council\nto help you think through each one.",
   },
 ];
 
@@ -33,10 +35,14 @@ export function ProjectStructureOnboarding({ onDone }: Props) {
   const isLast = step === STEPS.length - 1;
   const Icon = current.icon;
 
+  const dismiss = () => {
+    localStorage.setItem(STORAGE_KEY, "1");
+    onDone();
+  };
+
   const advance = () => {
     if (isLast) {
-      localStorage.setItem(STORAGE_KEY, "1");
-      onDone();
+      dismiss();
     } else {
       setStep(s => s + 1);
     }
@@ -44,54 +50,73 @@ export function ProjectStructureOnboarding({ onDone }: Props) {
 
   return (
     <motion.div
-      initial={{ opacity: 0, y: 8 }}
-      animate={{ opacity: 1, y: 0 }}
-      exit={{ opacity: 0, y: -8 }}
-      transition={{ duration: 0.22, ease: [0.23, 1, 0.32, 1] }}
-      className="rounded-xl border border-primary/30 bg-primary/5 p-5 space-y-4 relative"
+      initial={{ opacity: 0 }}
+      animate={{ opacity: 1 }}
+      exit={{ opacity: 0 }}
+      transition={{ duration: 0.4 }}
+      className="fixed inset-0 z-50 flex flex-col items-center justify-center bg-background/90 backdrop-blur-sm px-6"
+      onClick={advance}
     >
-      <button
-        onClick={() => { localStorage.setItem(STORAGE_KEY, "1"); onDone(); }}
-        className="absolute top-3 right-3 text-muted-foreground/50 hover:text-muted-foreground transition-colors"
-      >
-        <X className="w-4 h-4" />
-      </button>
+      {/* Step icons row */}
+      <div className="flex items-center gap-6 mb-10">
+        {STEPS.map((s, i) => {
+          const SIcon = s.icon;
+          const isActive = i === step;
+          return (
+            <motion.div
+              key={s.label}
+              initial={{ opacity: 0, y: 8 }}
+              animate={{ opacity: isActive ? 1 : 0.3, y: 0 }}
+              transition={{ duration: 0.4, delay: i * 0.08 }}
+              className="flex flex-col items-center gap-1.5"
+            >
+              <div className={`w-12 h-12 rounded-xl flex items-center justify-center transition-colors ${isActive ? "bg-primary/20" : "bg-muted"}`}>
+                <SIcon className={`w-6 h-6 transition-colors ${isActive ? "text-primary" : "text-muted-foreground"}`} />
+              </div>
+              <span className={`text-[11px] font-medium transition-colors ${isActive ? "text-foreground" : "text-muted-foreground/50"}`}>{s.label}</span>
+            </motion.div>
+          );
+        })}
+      </div>
 
+      {/* Step content */}
       <AnimatePresence mode="wait">
         <motion.div
           key={step}
-          initial={{ opacity: 0, x: 12 }}
-          animate={{ opacity: 1, x: 0 }}
-          exit={{ opacity: 0, x: -12 }}
-          transition={{ duration: 0.18, ease: [0.23, 1, 0.32, 1] }}
-          className="space-y-3"
+          initial={{ opacity: 0, y: 12 }}
+          animate={{ opacity: 1, y: 0 }}
+          exit={{ opacity: 0, y: -8 }}
+          transition={{ duration: 0.35, ease: [0.23, 1, 0.32, 1] }}
+          className="max-w-xs mx-auto text-center"
         >
-          <div className="flex items-center gap-3">
-            <div className="w-8 h-8 rounded-lg bg-primary/15 flex items-center justify-center flex-shrink-0">
-              <Icon className="w-4 h-4 text-primary" />
-            </div>
-            <p className="text-sm font-semibold text-foreground">{current.title}</p>
-          </div>
-          <p className="text-sm text-muted-foreground leading-relaxed">{current.body}</p>
+          <p className="text-base font-semibold text-foreground mb-3">{current.title}</p>
+          <p className="text-sm text-muted-foreground leading-relaxed whitespace-pre-line">{current.body}</p>
         </motion.div>
       </AnimatePresence>
 
-      <div className="flex items-center justify-between">
-        <div className="flex gap-1">
+      {/* Dots + CTA */}
+      <motion.div
+        initial={{ opacity: 0 }}
+        animate={{ opacity: 1 }}
+        transition={{ delay: 0.4 }}
+        className="mt-10 flex flex-col items-center gap-4"
+        onClick={e => e.stopPropagation()}
+      >
+        <div className="flex gap-1.5">
           {STEPS.map((_, i) => (
             <div
               key={i}
-              className={`w-1.5 h-1.5 rounded-full transition-colors ${
-                i === step ? "bg-primary" : "bg-primary/25"
-              }`}
+              className={`rounded-full transition-all duration-300 ${i === step ? "w-4 h-1.5 bg-primary" : "w-1.5 h-1.5 bg-primary/25"}`}
             />
           ))}
         </div>
-        <Button size="sm" onClick={advance} className="gap-1.5 h-8 text-xs">
-          {isLast ? "Got it" : "Next"}
-          {!isLast && <ArrowRight className="w-3 h-3" />}
-        </Button>
-      </div>
+        <button
+          onClick={advance}
+          className="text-xs text-muted-foreground hover:text-foreground transition-colors"
+        >
+          {isLast ? "Got it, let's build" : "Tap anywhere to continue"}
+        </button>
+      </motion.div>
     </motion.div>
   );
 }
@@ -101,8 +126,10 @@ export function useProjectStructureOnboarding() {
 
   useEffect(() => {
     const seen = localStorage.getItem(STORAGE_KEY);
-    if (!seen) setShow(true);
+    if (seen) return;
+    const timer = setTimeout(() => setShow(true), 4000);
+    return () => clearTimeout(timer);
   }, []);
 
-  return { show, dismiss: () => setShow(false) };
+  return { show, dismiss: () => { localStorage.setItem(STORAGE_KEY, "1"); setShow(false); } };
 }

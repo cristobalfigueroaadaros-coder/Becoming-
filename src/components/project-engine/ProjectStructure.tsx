@@ -286,19 +286,15 @@ export function ProjectStructure({ project, onUpdate }: Props) {
   // Overview view
   return (
     <>
+    <AnimatePresence>
+      {showOnboarding && <ProjectStructureOnboarding onDone={dismissOnboarding} />}
+    </AnimatePresence>
     <PaymentModal open={showPayment} onClose={() => setShowPayment(false)} />
     <Card className="border-border/40">
       <CardHeader className="pb-2">
         <CardTitle className="text-base font-semibold text-primary/80">Focus</CardTitle>
       </CardHeader>
       <CardContent>
-        <AnimatePresence>
-          {showOnboarding && (
-            <div className="mb-4">
-              <ProjectStructureOnboarding onDone={dismissOnboarding} />
-            </div>
-          )}
-        </AnimatePresence>
 
         {structure.length === 0 ? (
           <div className="text-center py-8 space-y-3">
