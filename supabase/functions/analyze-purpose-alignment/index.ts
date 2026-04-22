@@ -13,7 +13,7 @@ serve(async (req) => {
   const auth = await validateAuth(req);
   if (auth.error) return authErrorResponse(corsHeaders);
 
-  const { userId } = auth;
+  const userId = auth.userId!;
 
   // Rate limit
   const rl = await checkRateLimit(userId, "analyze-purpose-alignment");
