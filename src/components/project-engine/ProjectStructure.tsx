@@ -1,8 +1,8 @@
 import { useState, useEffect } from "react";
+import { motion, AnimatePresence } from "framer-motion";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
-import { Plus, Trash2, Sparkles, CheckCircle2, Lightbulb, Check, X } from "lucide-react";
+import { Plus, Trash2, Sparkles, CheckCircle2, Lightbulb, Check, X, ArrowRight } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { useNavigate } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
@@ -29,6 +29,29 @@ const STATUS_DOT: Record<string, string> = {
   strong: "bg-green-500",
   completed: "bg-primary",
 };
+
+// Derive an action-oriented CTA from the block title
+const ACTION_VERB_MAP: Array<[RegExp, string]> = [
+  [/market|audience|brand|reach|messag|social|promot|content/i, "Build the strategy"],
+  [/business|revenue|sales|finance|pric|model|money|monetiz/i, "Shape the model"],
+  [/design|ux|user|interface|experience|prototype/i, "Design the experience"],
+  [/creative|vision|story|idea|art|concept|narrative/i, "Craft the vision"],
+  [/tech|build|develop|code|engineer|invent|technical/i, "Define the build"],
+  [/research|data|test|experiment|science|validate|analys/i, "Run the research"],
+  [/community|people|relation|team|connect|heart|emotion/i, "Map the connections"],
+  [/discipline|habit|routine|focus|consistency|execut/i, "Set the rhythm"],
+  [/align|value|purpose|mission|clarity|direction/i, "Define the direction"],
+  [/space|place|environment|setting/i, "Design the space"],
+  [/offer|product|service|solution/i, "Shape the offer"],
+  [/impact|outcome|result|goal/i, "Define the outcome"],
+];
+
+function getBlockCta(title: string): string {
+  for (const [pattern, cta] of ACTION_VERB_MAP) {
+    if (pattern.test(title)) return cta;
+  }
+  return "Start this block";
+}
 
 function generateId() {
   return Math.random().toString(36).slice(2, 10);
@@ -135,7 +158,6 @@ export function ProjectStructure({ project, onUpdate }: Props) {
     saveStructure(clear(structure));
   };
 
-  // Generate a single suggested activity for an empty block
   const generateSuggestionForBlock = async (block: StructureNode) => {
     if (block.suggestedActivity || block.children.length > 0) return;
     setGeneratingSuggestionFor(block.id);
@@ -159,7 +181,6 @@ export function ProjectStructure({ project, onUpdate }: Props) {
     }
   };
 
-  // When opening a block workspace, generate suggestion if needed
   const handleOpenBlock = (blockId: string) => {
     setActiveBlockId(blockId);
     const block = structure.find(b => b.id === blockId);
@@ -169,6 +190,11 @@ export function ProjectStructure({ project, onUpdate }: Props) {
   };
 
   const activeBlock = structure.find(b => b.id === activeBlockId);
+
+  // Determine which block is the "current focus" — first non-completed block
+  const visibleBlocks = structure.filter(b => !b.pending_review);
+  const focusBlockIndex = visibleBlocks.findIndex(b => b.status !== "completed");
+  const focusBlock = focusBlockIndex >= 0 ? visibleBlocks[focusBlockIndex] : null;
 
   // Block Workspace view
   if (activeBlock) {
@@ -187,7 +213,6 @@ export function ProjectStructure({ project, onUpdate }: Props) {
               saveStructure(updateNodeRecursive(structure, activityId, updates));
             }}
             onAddActivity={() => {
-              // If there's a suggestion, use it as the first activity
               if (activeBlock.children.length === 0 && activeBlock.suggestedActivity) {
                 const updated = addChildToNode(
                   updateNodeRecursive(structure, activeBlock.id, { suggestedActivity: undefined }),
@@ -283,6 +308,24 @@ export function ProjectStructure({ project, onUpdate }: Props) {
               </div>
             )}
 
+            {/* Next step banner */}
+            {focusBlock && (
+              <motion.button
+                initial={{ opacity: 0, y: -6 }}
+                animate={{ opacity: 1, y: 0 }}
+                transition={{ duration: 0.25, ease: [0.23, 1, 0.32, 1] }}
+                onClick={() => handleOpenBlock(focusBlock.id)}
+                className="w-full flex items-center justify-between gap-3 px-4 py-3 rounded-xl border border-primary/25 bg-primary/5 hover:bg-primary/8 hover:border-primary/40 transition-colors text-left"
+              >
+                <div className="flex items-center gap-2 min-w-0">
+                  <div className="w-1.5 h-1.5 rounded-full bg-primary animate-pulse flex-shrink-0" />
+                  <span className="text-xs text-muted-foreground flex-shrink-0">Start with:</span>
+                  <span className="text-sm font-semibold text-foreground truncate">{focusBlock.title}</span>
+                </div>
+                <ArrowRight className="w-4 h-4 text-primary flex-shrink-0" />
+              </motion.button>
+            )}
+
             {/* Project root */}
             <div className="flex justify-center">
               <span className="inline-block px-5 py-2 rounded-xl border border-primary/30 bg-primary/5 text-sm font-semibold text-foreground">
@@ -293,43 +336,62 @@ export function ProjectStructure({ project, onUpdate }: Props) {
               <div className="w-px h-6 bg-border/60" />
             </div>
 
-            {/* Block cards - clickable */}
+            {/* Block cards */}
             <div className="relative">
               {structure.length > 1 && (
                 <div className="absolute top-0 h-px bg-border/40" style={{ left: '10%', right: '10%' }} />
               )}
               <div className="flex gap-4 overflow-x-auto pb-2 snap-x snap-mandatory">
-                {structure.map(node => {
+                {visibleBlocks.map((node, idx) => {
                   const completedChildren = node.children.filter(c => c.status === "completed" || c.status === "strong").length;
                   const totalChildren = node.children.length;
                   const isCompleted = node.status === "completed";
+                  const isFocus = focusBlock?.id === node.id;
+                  const isDimmed = !isCompleted && !isFocus;
 
                   return (
-                    <div key={node.id} className="snap-start">
+                    <motion.div
+                      key={node.id}
+                      className="snap-start"
+                      initial={{ opacity: 0, y: 8 }}
+                      animate={{ opacity: isDimmed ? 0.65 : 1, y: 0 }}
+                      transition={{ delay: idx * 0.05, duration: 0.22, ease: [0.23, 1, 0.32, 1] }}
+                    >
                       <div className="flex justify-center mb-2">
                         <div className="w-px h-4 bg-border/40" />
                       </div>
                       <button
                         onClick={() => handleOpenBlock(node.id)}
                         className={cn(
-                          "rounded-xl border p-4 min-w-[200px] max-w-[260px] flex-shrink-0 space-y-2 text-left transition-all hover:shadow-md",
+                          "rounded-xl border p-4 min-w-[200px] max-w-[260px] flex-shrink-0 space-y-2 text-left transition-all",
                           isCompleted
-                            ? "border-green-500/30 bg-green-500/5"
+                            ? "border-green-500/30 bg-green-500/5 hover:border-green-500/50"
+                            : isFocus
+                            ? "border-primary/50 bg-primary/5 shadow-[0_0_20px_hsl(265_90%_62%/0.12)] hover:shadow-[0_0_28px_hsl(265_90%_62%/0.18)] hover:border-primary/70"
                             : "border-border/50 bg-card/80 backdrop-blur-sm hover:border-primary/30"
                         )}
                       >
-                        {/* Title + status */}
+                        {/* Title + state indicators */}
                         <div className="flex items-center gap-2">
-                          <div className={cn("w-3 h-3 rounded-full flex-shrink-0", STATUS_DOT[node.status])} />
-                          <span className="text-sm font-semibold text-foreground truncate flex-1">{node.title}</span>
-                          {node.source === "builder_team" && (
-                            <span
-                              title="From Builder Team"
-                              className="w-1.5 h-1.5 rounded-full bg-lime-400 flex-shrink-0"
+                          {isFocus ? (
+                            <motion.div
+                              className="w-3 h-3 rounded-full bg-primary flex-shrink-0"
+                              animate={{ scale: [1, 1.25, 1], opacity: [0.7, 1, 0.7] }}
+                              transition={{ duration: 2, repeat: Infinity, ease: "easeInOut" }}
                             />
+                          ) : (
+                            <div className={cn("w-3 h-3 rounded-full flex-shrink-0", STATUS_DOT[node.status])} />
                           )}
+                          <span className="text-sm font-semibold text-foreground truncate flex-1">{node.title}</span>
                           {isCompleted && <CheckCircle2 className="w-4 h-4 text-green-500 flex-shrink-0" />}
                         </div>
+
+                        {/* "Start here" badge on focus block */}
+                        {isFocus && (
+                          <span className="inline-flex items-center gap-1 text-[10px] font-semibold text-primary/80 bg-primary/10 px-2 py-0.5 rounded-full">
+                            Start here
+                          </span>
+                        )}
 
                         {/* Activities preview */}
                         {totalChildren > 0 ? (
@@ -338,9 +400,6 @@ export function ProjectStructure({ project, onUpdate }: Props) {
                               <div key={child.id} className="flex items-center gap-2">
                                 <div className={cn("w-1.5 h-1.5 rounded-full flex-shrink-0", STATUS_DOT[child.status])} />
                                 <span className="text-xs text-muted-foreground truncate flex-1">{child.title}</span>
-                                {child.source === "builder_team" && (
-                                  <span title="From Builder Team" className="w-1.5 h-1.5 rounded-full bg-lime-400 flex-shrink-0" />
-                                )}
                               </div>
                             ))}
                             {totalChildren > 3 && (
@@ -351,13 +410,13 @@ export function ProjectStructure({ project, onUpdate }: Props) {
                             </div>
                           </div>
                         ) : (
-                          <div className="flex items-center gap-1.5 text-xs text-muted-foreground/50">
+                          <div className="flex items-center gap-1.5 text-xs text-muted-foreground/60">
                             <Lightbulb className="w-3 h-3" />
-                            Tap to define activities
+                            {getBlockCta(node.title)}
                           </div>
                         )}
                       </button>
-                    </div>
+                    </motion.div>
                   );
                 })}
 

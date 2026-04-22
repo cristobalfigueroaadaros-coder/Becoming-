@@ -6,7 +6,7 @@ import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import {
   ArrowLeft, Plus, Trash2, Check, CheckCircle2,
-  MessageCircle, Sparkles, Lightbulb, ArrowRight
+  MessageCircle, Sparkles, Lightbulb, ChevronDown, ChevronUp
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { useNavigate } from "react-router-dom";
@@ -22,6 +22,9 @@ interface StructureNode {
   children: StructureNode[];
   mentorType?: string;
   suggestedActivity?: string;
+  notes?: string;
+  source?: string;
+  pending_review?: boolean;
 }
 
 const STATUS_CONFIG: Record<string, { label: string; color: string; bg: string }> = {
@@ -91,6 +94,11 @@ export function BlockWorkspace({
   const [editingActivityId, setEditingActivityId] = useState<string | null>(null);
   const [editActivityTitle, setEditActivityTitle] = useState("");
   const [showMentorPicker, setShowMentorPicker] = useState(false);
+  const [expandedNotes, setExpandedNotes] = useState<Set<string>>(new Set());
+  const [activityNotes, setActivityNotes] = useState<Record<string, string>>(
+    () => Object.fromEntries(block.children.map(c => [c.id, c.notes || ""]))
+  );
+  const [suggestingFor, setSuggestingFor] = useState<string | null>(null);
 
   const linkedMentor = block.mentorType || suggestMentorForBlock(block.title);
   const mentorInfo = MENTOR_CONFIG[linkedMentor] || MENTOR_CONFIG.strategist_mentor;
@@ -104,11 +112,19 @@ export function BlockWorkspace({
     ? userMentors.filter(m => MENTOR_CONFIG[m])
     : Object.keys(MENTOR_CONFIG);
 
-  const handleMentorChat = () => {
+  const handleMentorChat = (activityTitle?: string) => {
+    const prefilledQuestion = activityTitle
+      ? `I need help answering this activity: "${activityTitle}" — it's part of the "${block.title}" block in my project "${projectTitle}". Help me think through a strong answer.`
+      : `I need help with "${block.title}" — this is part of my project "${projectTitle}". Help me define clear, actionable activities for this block.`;
+
     navigate(`/council?view=${linkedMentor}`, {
       state: {
-        prefilledQuestion: `I need help with "${block.title}" — this is part of my project "${projectTitle}". Help me define clear, actionable activities for this block.`,
+        prefilledQuestion,
         projectName: projectTitle,
+        activityContext: activityTitle ? {
+          blockTitle: block.title,
+          activityTitle,
+        } : undefined,
       },
     });
   };
@@ -117,6 +133,49 @@ export function BlockWorkspace({
     const order: StructureNode["status"][] = ["not_started", "in_progress", "strong", "completed"];
     const next = order[(order.indexOf(activity.status) + 1) % order.length];
     onUpdateActivity(activity.id, { status: next });
+  };
+
+  const toggleNotes = (activityId: string) => {
+    setExpandedNotes(prev => {
+      const next = new Set(prev);
+      if (next.has(activityId)) {
+        next.delete(activityId);
+      } else {
+        next.add(activityId);
+      }
+      return next;
+    });
+  };
+
+  const saveNotes = (activityId: string) => {
+    onUpdateActivity(activityId, { notes: activityNotes[activityId] || "" });
+  };
+
+  const handleSuggestAnswer = async (activity: StructureNode) => {
+    setSuggestingFor(activity.id);
+    if (!expandedNotes.has(activity.id)) {
+      setExpandedNotes(prev => new Set([...prev, activity.id]));
+    }
+    try {
+      const { data } = await supabase.functions.invoke("suggest-block-activity", {
+        body: {
+          blockTitle: block.title,
+          activityTitle: activity.title,
+          projectTitle,
+          projectDescription: "",
+          mode: "answer",
+        },
+      });
+      if (data?.suggestion) {
+        setActivityNotes(prev => ({ ...prev, [activity.id]: data.suggestion }));
+        onUpdateActivity(activity.id, { notes: data.suggestion });
+        toast.success("Suggestion added — edit it to make it yours");
+      }
+    } catch {
+      toast.error("Couldn't generate a suggestion right now");
+    } finally {
+      setSuggestingFor(null);
+    }
   };
 
   return (
@@ -185,7 +244,7 @@ export function BlockWorkspace({
                 <Button size="sm" variant="outline" onClick={() => setShowMentorPicker(true)} className="text-xs h-7">
                   Change
                 </Button>
-                <Button size="sm" onClick={handleMentorChat} className="text-xs h-7 gap-1">
+                <Button size="sm" onClick={() => handleMentorChat()} className="text-xs h-7 gap-1">
                   <MessageCircle className="w-3 h-3" /> Work with mentor
                 </Button>
               </div>
@@ -235,10 +294,9 @@ export function BlockWorkspace({
             </Button>
           </CardTitle>
         </CardHeader>
-        <CardContent className="space-y-2">
+        <CardContent className="space-y-3">
           {block.children.length === 0 ? (
             <div className="space-y-3 py-3">
-              {/* Suggested activity hint */}
               {block.suggestedActivity ? (
                 <div className="p-3 rounded-lg bg-primary/5 border border-primary/10 space-y-2">
                   <div className="flex items-start gap-2">
@@ -254,10 +312,7 @@ export function BlockWorkspace({
                     size="sm"
                     variant="outline"
                     className="w-full text-xs"
-                    onClick={() => {
-                      onAddActivity();
-                      // The parent will handle adding this as a real activity
-                    }}
+                    onClick={onAddActivity}
                   >
                     <Plus className="w-3 h-3 mr-1" /> Use as first activity
                   </Button>
@@ -273,77 +328,150 @@ export function BlockWorkspace({
                 <p className="text-sm text-muted-foreground">
                   Talk to your mentor to define a stronger plan.
                 </p>
-                <Button size="sm" onClick={handleMentorChat} className="gap-1">
+                <Button size="sm" onClick={() => handleMentorChat()} className="gap-1">
                   <MessageCircle className="w-3 h-3" /> Define with mentor
                 </Button>
               </div>
             </div>
           ) : (
             <>
-              {block.children.map((activity, idx) => {
-                const actStatus = STATUS_CONFIG[activity.status] || STATUS_CONFIG.not_started;
-                return (
-                  <div
-                    key={activity.id}
-                    className={cn(
-                      "flex items-center gap-3 p-2.5 rounded-lg border transition-colors group",
-                      activity.status === "completed" || activity.status === "strong"
-                        ? "border-green-500/20 bg-green-500/5"
-                        : "border-border/30 hover:border-border/60"
-                    )}
-                  >
-                    <button
-                      onClick={() => cycleActivityStatus(activity)}
+              <AnimatePresence initial={false}>
+                {block.children.map((activity, idx) => {
+                  const isDone = activity.status === "completed" || activity.status === "strong";
+                  const isNotesOpen = expandedNotes.has(activity.id);
+                  const hasAnswer = !!(activityNotes[activity.id] || activity.notes);
+
+                  return (
+                    <motion.div
+                      key={activity.id}
+                      initial={{ opacity: 0, y: 6 }}
+                      animate={{ opacity: 1, y: 0 }}
+                      exit={{ opacity: 0, y: -4 }}
+                      transition={{ delay: idx * 0.04, duration: 0.2, ease: [0.23, 1, 0.32, 1] }}
                       className={cn(
-                        "w-5 h-5 rounded-full border-2 flex items-center justify-center flex-shrink-0 transition-colors",
-                        activity.status === "completed" || activity.status === "strong"
-                          ? "border-green-500 bg-green-500"
-                          : activity.status === "in_progress"
-                          ? "border-yellow-500"
-                          : "border-muted-foreground/30"
+                        "rounded-xl border transition-colors group",
+                        isDone
+                          ? "border-green-500/20 bg-green-500/5"
+                          : "border-border/30 hover:border-border/60"
                       )}
                     >
-                      {(activity.status === "completed" || activity.status === "strong") && (
-                        <Check className="w-3 h-3 text-white" />
-                      )}
-                    </button>
+                      {/* Activity row */}
+                      <div className="flex items-center gap-3 p-3">
+                        <button
+                          onClick={() => cycleActivityStatus(activity)}
+                          className={cn(
+                            "w-5 h-5 rounded-full border-2 flex items-center justify-center flex-shrink-0 transition-colors",
+                            isDone
+                              ? "border-green-500 bg-green-500"
+                              : activity.status === "in_progress"
+                              ? "border-yellow-500"
+                              : "border-muted-foreground/30"
+                          )}
+                        >
+                          {isDone && <Check className="w-3 h-3 text-white" />}
+                        </button>
 
-                    {editingActivityId === activity.id ? (
-                      <Input
-                        value={editActivityTitle}
-                        onChange={e => setEditActivityTitle(e.target.value)}
-                        onBlur={() => { onUpdateActivity(activity.id, { title: editActivityTitle }); setEditingActivityId(null); }}
-                        onKeyDown={e => { if (e.key === "Enter") { onUpdateActivity(activity.id, { title: editActivityTitle }); setEditingActivityId(null); } }}
-                        className="h-7 text-sm flex-1"
-                        autoFocus
-                      />
-                    ) : (
-                      <span
-                        className={cn(
-                          "text-sm flex-1 cursor-pointer transition-colors",
-                          activity.status === "completed" || activity.status === "strong"
-                            ? "line-through text-muted-foreground"
-                            : "hover:text-primary"
+                        {editingActivityId === activity.id ? (
+                          <Input
+                            value={editActivityTitle}
+                            onChange={e => setEditActivityTitle(e.target.value)}
+                            onBlur={() => { onUpdateActivity(activity.id, { title: editActivityTitle }); setEditingActivityId(null); }}
+                            onKeyDown={e => { if (e.key === "Enter") { onUpdateActivity(activity.id, { title: editActivityTitle }); setEditingActivityId(null); } }}
+                            className="h-7 text-sm flex-1"
+                            autoFocus
+                          />
+                        ) : (
+                          <span
+                            className={cn(
+                              "text-sm flex-1 cursor-pointer transition-colors leading-snug",
+                              isDone
+                                ? "line-through text-muted-foreground"
+                                : "hover:text-primary"
+                            )}
+                            onClick={() => { setEditingActivityId(activity.id); setEditActivityTitle(activity.title); }}
+                          >
+                            {activity.title}
+                          </span>
                         )}
-                        onClick={() => { setEditingActivityId(activity.id); setEditActivityTitle(activity.title); }}
-                      >
-                        {activity.title}
-                      </span>
-                    )}
 
-                    <Button
-                      size="icon"
-                      variant="ghost"
-                      className="h-6 w-6 opacity-0 group-hover:opacity-100 transition-opacity text-destructive"
-                      onClick={() => onDeleteActivity(activity.id)}
-                    >
-                      <Trash2 className="w-3 h-3" />
-                    </Button>
-                  </div>
-                );
-              })}
+                        <div className="flex items-center gap-1 flex-shrink-0">
+                          {/* Toggle answer area */}
+                          <button
+                            onClick={() => toggleNotes(activity.id)}
+                            className={cn(
+                              "h-6 w-6 rounded flex items-center justify-center transition-colors text-muted-foreground/50 hover:text-muted-foreground",
+                              hasAnswer && !isNotesOpen && "text-primary/60"
+                            )}
+                            title={isNotesOpen ? "Collapse answer" : hasAnswer ? "View answer" : "Add answer"}
+                          >
+                            {isNotesOpen
+                              ? <ChevronUp className="w-3.5 h-3.5" />
+                              : <ChevronDown className="w-3.5 h-3.5" />
+                            }
+                          </button>
 
-              {/* Minimum activities hint */}
+                          <Button
+                            size="icon"
+                            variant="ghost"
+                            className="h-6 w-6 opacity-0 group-hover:opacity-100 transition-opacity text-destructive"
+                            onClick={() => onDeleteActivity(activity.id)}
+                          >
+                            <Trash2 className="w-3 h-3" />
+                          </Button>
+                        </div>
+                      </div>
+
+                      {/* Answer area */}
+                      <AnimatePresence>
+                        {isNotesOpen && (
+                          <motion.div
+                            initial={{ height: 0, opacity: 0 }}
+                            animate={{ height: "auto", opacity: 1 }}
+                            exit={{ height: 0, opacity: 0 }}
+                            transition={{ duration: 0.2, ease: [0.23, 1, 0.32, 1] }}
+                            className="overflow-hidden"
+                          >
+                            <div className="px-3 pb-3 space-y-2">
+                              <div className="w-full h-px bg-border/20" />
+                              <Textarea
+                                value={activityNotes[activity.id] ?? activity.notes ?? ""}
+                                onChange={e => setActivityNotes(prev => ({ ...prev, [activity.id]: e.target.value }))}
+                                onBlur={() => saveNotes(activity.id)}
+                                placeholder="Write your answer here, or ask your mentor for a suggestion..."
+                                rows={3}
+                                className="text-sm resize-none border-border/30 bg-transparent focus:border-primary/40 placeholder:text-muted-foreground/40"
+                              />
+                              <div className="flex items-center gap-2">
+                                <Button
+                                  size="sm"
+                                  variant="outline"
+                                  className="h-7 text-xs gap-1.5"
+                                  disabled={suggestingFor === activity.id}
+                                  onClick={() => handleSuggestAnswer(activity)}
+                                >
+                                  {suggestingFor === activity.id
+                                    ? <><Sparkles className="w-3 h-3 animate-pulse" /> Thinking...</>
+                                    : <><Sparkles className="w-3 h-3" /> Suggest</>
+                                  }
+                                </Button>
+                                <Button
+                                  size="sm"
+                                  variant="ghost"
+                                  className="h-7 text-xs gap-1.5 text-muted-foreground"
+                                  onClick={() => handleMentorChat(activity.title)}
+                                >
+                                  <MessageCircle className="w-3 h-3" /> Ask mentor
+                                </Button>
+                              </div>
+                            </div>
+                          </motion.div>
+                        )}
+                      </AnimatePresence>
+                    </motion.div>
+                  );
+                })}
+              </AnimatePresence>
+
               {block.children.length < 3 && (
                 <p className="text-xs text-muted-foreground/60 text-center py-1">
                   Add at least {3 - block.children.length} more {block.children.length === 2 ? "activity" : "activities"} for a complete block.
