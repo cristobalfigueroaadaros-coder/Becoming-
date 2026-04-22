@@ -112,18 +112,20 @@ export function BlockWorkspace({
     ? userMentors.filter(m => MENTOR_CONFIG[m])
     : Object.keys(MENTOR_CONFIG);
 
-  const handleMentorChat = (activityTitle?: string) => {
-    const prefilledQuestion = activityTitle
-      ? `I need help answering this activity: "${activityTitle}" — it's part of the "${block.title}" block in my project "${projectTitle}". Help me think through a strong answer.`
+  const handleMentorChat = (activity?: { id: string; title: string }) => {
+    const prefilledQuestion = activity
+      ? `I need help answering this activity: "${activity.title}" — it's part of the "${block.title}" block in my project "${projectTitle}". Help me think through a strong answer.`
       : `I need help with "${block.title}" — this is part of my project "${projectTitle}". Help me define clear, actionable activities for this block.`;
 
     navigate(`/council?view=${linkedMentor}`, {
       state: {
         prefilledQuestion,
         projectName: projectTitle,
-        activityContext: activityTitle ? {
+        activityContext: activity ? {
           blockTitle: block.title,
-          activityTitle,
+          activityTitle: activity.title,
+          projectId,
+          activityId: activity.id,
         } : undefined,
       },
     });
@@ -458,7 +460,7 @@ export function BlockWorkspace({
                                   size="sm"
                                   variant="ghost"
                                   className="h-7 text-xs gap-1.5 text-muted-foreground"
-                                  onClick={() => handleMentorChat(activity.title)}
+                                  onClick={() => handleMentorChat({ id: activity.id, title: activity.title })}
                                 >
                                   <MessageCircle className="w-3 h-3" /> Ask mentor
                                 </Button>

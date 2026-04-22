@@ -103,6 +103,12 @@ interface ChatProps {
       existingTransmutationData?: any;
       lifeEvents?: any;
     };
+    activityContext?: {
+      blockTitle: string;
+      activityTitle: string;
+      projectId: string;
+      activityId: string;
+    };
   } | null;
 }
 
@@ -157,6 +163,8 @@ const Chat = ({ mentorTypeOverride, embedded = false, locationState: propState }
   const [questInitialized, setQuestInitialized] = useState(false);
   const [showWelcomeBack, setShowWelcomeBack] = useState(false);
   const [conversationSummary, setConversationSummary] = useState<string | null>(null);
+  const [activityCtx, setActivityCtx] = useState<{ blockTitle: string; activityTitle: string; projectId: string; activityId: string } | null>(null);
+  const [savedToNotes, setSavedToNotes] = useState(false);
   const [isVoiceHandoffProcessed, setIsVoiceHandoffProcessed] = useState(false);
   const [isProblemClarificationProcessed, setIsProblemClarificationProcessed] = useState(false);
   const messagesEndRef = useRef<HTMLDivElement>(null);
@@ -218,6 +226,10 @@ const Chat = ({ mentorTypeOverride, embedded = false, locationState: propState }
     // Pre-fill input from block context (no handoff, just context)
     if (handoffState?.prefilledQuestion && !handoffState.handoffId && !handoffState.voiceHandoffId) {
       setInput(handoffState.prefilledQuestion);
+    }
+    // Store activity context for write-back
+    if ((handoffState as any)?.activityContext) {
+      setActivityCtx((handoffState as any).activityContext);
     }
     
     console.log('[Chat] Checking handoff state:', { 
@@ -477,6 +489,32 @@ const Chat = ({ mentorTypeOverride, embedded = false, locationState: propState }
       initializeQuest();
     }
   }, [questType, mentorType, questInitialized, messages.length, loading]);
+
+  const saveAnswerToActivityNotes = async (content: string) => {
+    if (!activityCtx) return;
+    try {
+      const { data: proj } = await supabase
+        .from("integrator_projects")
+        .select("project_structure")
+        .eq("id", activityCtx.projectId)
+        .single();
+      if (!proj) return;
+      const updateRecursive = (nodes: any[]): any[] =>
+        nodes.map((n: any) =>
+          n.id === activityCtx.activityId
+            ? { ...n, notes: content }
+            : { ...n, children: updateRecursive(n.children || []) }
+        );
+      const updated = updateRecursive(Array.isArray(proj.project_structure) ? proj.project_structure : []);
+      await supabase
+        .from("integrator_projects")
+        .update({ project_structure: updated })
+        .eq("id", activityCtx.projectId);
+      setSavedToNotes(true);
+    } catch (err) {
+      console.error("Failed to save notes:", err);
+    }
+  };
 
   const loadMessages = async () => {
     try {
@@ -1126,7 +1164,17 @@ const Chat = ({ mentorTypeOverride, embedded = false, locationState: propState }
             </div>
           )}
 
-          {messages.map((message) => (
+          {/* Activity context banner */}
+          {activityCtx && (
+            <div className="rounded-lg border border-primary/25 bg-primary/5 px-3 py-2 flex items-center gap-2 text-xs text-muted-foreground mb-2">
+              <Sparkles className="w-3 h-3 text-primary flex-shrink-0" />
+              <span>Answering <span className="text-foreground font-medium">"{activityCtx.activityTitle}"</span> in {activityCtx.blockTitle}</span>
+            </div>
+          )}
+
+          {messages.map((message, idx) => {
+            const isLastAssistant = message.role === "assistant" && idx === messages.map(m => m.role).lastIndexOf("assistant");
+            return (
             <div key={message.id} className={cn("flex", message.role === "user" ? "justify-end" : "justify-start")}>
               {message.role !== "user" && (() => {
                 const cfg = mentorType ? mentorConfig[mentorType] : undefined;
@@ -1146,15 +1194,25 @@ const Chat = ({ mentorTypeOverride, embedded = false, locationState: propState }
                   <KeywordHighlighter sourceType="mentor_chat" sourceId={message.id}>
                     <div className="space-y-2">
                       <HighlightedText text={message.content} />
-                      <div className="flex justify-end pt-1">
+                      <div className="flex justify-end items-center gap-2 pt-1 flex-wrap">
                         <InsightActionButton insightText={message.content} sourceType="mentor_message" sourceMentor={mentorType} sourceContext={{ messageId: message.id }} />
+                        {activityCtx && isLastAssistant && (
+                          <button
+                            onClick={() => saveAnswerToActivityNotes(message.content)}
+                            disabled={savedToNotes}
+                            className="text-xs text-primary/70 hover:text-primary transition-colors disabled:opacity-50"
+                          >
+                            {savedToNotes ? "✓ Saved to notes" : "Save to notes"}
+                          </button>
+                        )}
                       </div>
                     </div>
                   </KeywordHighlighter>
                 )}
               </Card>
             </div>
-          ))}
+            );
+          })}
           {loading && (
             <div className="flex justify-start">
               {(() => {
