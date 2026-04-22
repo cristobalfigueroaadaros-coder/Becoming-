@@ -68,6 +68,12 @@ interface BirthInfo {
   birth_time_unknown: boolean | null;
 }
 
+interface PurposeHistoryEntry {
+  id: string;
+  purpose_text: string;
+  created_at: string;
+}
+
 const themeColorMap: Record<string, string> = {
   purple: "from-purple-500/10 via-background to-purple-500/5",
   blue: "from-blue-500/10 via-background to-blue-500/5",
@@ -146,7 +152,6 @@ const Profile = () => {
 
       if (profileDetails?.main_mission) {
         setPurpose(profileDetails.main_mission);
-        setPurposeText(profileDetails.main_mission);
       }
 
       if (profileDetails) {
