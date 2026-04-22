@@ -1,4 +1,4 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -7,6 +7,7 @@ import { cn } from "@/lib/utils";
 import { useNavigate } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
 import { BlockWorkspace } from "./BlockWorkspace";
+import { PaymentModal } from "@/components/PaymentModal";
 import type { ProjectEngineData } from "@/pages/ProjectEngine";
 
 export interface StructureNode {
@@ -71,6 +72,49 @@ export function ProjectStructure({ project, onUpdate }: Props) {
   const [userMentors, setUserMentors] = useState<string[]>([]);
   const [activeBlockId, setActiveBlockId] = useState<string | null>(null);
   const [generatingSuggestionFor, setGeneratingSuggestionFor] = useState<string | null>(null);
+  const [showPayment, setShowPayment] = useState(false);
+  const [holdProgress, setHoldProgress] = useState(0);
+  const holdTimerRef = useRef<ReturnType<typeof setInterval> | null>(null);
+  const holdProgressRef = useRef(0);
+  const holdCompletedRef = useRef(false);
+
+  const HOLD_DURATION = 5000;
+  const TICK = 50;
+
+  const startHold = () => {
+    if (holdTimerRef.current) return;
+    holdProgressRef.current = 0;
+    holdCompletedRef.current = false;
+    holdTimerRef.current = setInterval(() => {
+      holdProgressRef.current += (TICK / HOLD_DURATION) * 100;
+      const clamped = Math.min(holdProgressRef.current, 100);
+      setHoldProgress(clamped);
+      if (holdProgressRef.current >= 100) {
+        clearInterval(holdTimerRef.current!);
+        holdTimerRef.current = null;
+        holdCompletedRef.current = true;
+        setHoldProgress(0);
+        setShowPayment(true);
+      }
+    }, TICK);
+  };
+
+  const cancelHold = () => {
+    if (holdTimerRef.current) {
+      clearInterval(holdTimerRef.current);
+      holdTimerRef.current = null;
+    }
+    setHoldProgress(0);
+    holdProgressRef.current = 0;
+  };
+
+  const handleFocusBannerClick = () => {
+    if (holdCompletedRef.current) {
+      holdCompletedRef.current = false;
+      return;
+    }
+    if (focusBlock) handleOpenBlock(focusBlock.id);
+  };
 
   useEffect(() => {
     const raw = project.project_structure;
@@ -239,6 +283,8 @@ export function ProjectStructure({ project, onUpdate }: Props) {
 
   // Overview view
   return (
+    <>
+    <PaymentModal open={showPayment} onClose={() => setShowPayment(false)} />
     <Card className="border-border/40">
       <CardHeader className="pb-2">
         <CardTitle className="text-base font-semibold text-primary/80">Project Structure</CardTitle>
@@ -308,21 +354,31 @@ export function ProjectStructure({ project, onUpdate }: Props) {
               </div>
             )}
 
-            {/* Next step banner */}
+            {/* Next step banner — tap to open, hold 5 s to unlock premium */}
             {focusBlock && (
               <motion.button
                 initial={{ opacity: 0, y: -6 }}
                 animate={{ opacity: 1, y: 0 }}
                 transition={{ duration: 0.25, ease: [0.23, 1, 0.32, 1] }}
-                onClick={() => handleOpenBlock(focusBlock.id)}
-                className="w-full flex items-center justify-between gap-3 px-4 py-3 rounded-xl border border-primary/25 bg-primary/5 hover:bg-primary/8 hover:border-primary/40 transition-colors text-left"
+                onClick={handleFocusBannerClick}
+                onPointerDown={startHold}
+                onPointerUp={cancelHold}
+                onPointerLeave={cancelHold}
+                className="relative w-full flex items-center justify-between gap-3 px-4 py-3 rounded-xl border border-primary/25 bg-primary/5 hover:bg-primary/8 hover:border-primary/40 active:scale-[0.98] transition-colors text-left overflow-hidden select-none"
               >
-                <div className="flex items-center gap-2 min-w-0">
+                {/* Hold-progress fill */}
+                {holdProgress > 0 && (
+                  <div
+                    className="absolute inset-0 rounded-xl bg-primary/20 pointer-events-none"
+                    style={{ clipPath: `inset(0 ${100 - holdProgress}% 0 0 round 12px)` }}
+                  />
+                )}
+                <div className="relative flex items-center gap-2 min-w-0">
                   <div className="w-1.5 h-1.5 rounded-full bg-primary animate-pulse flex-shrink-0" />
                   <span className="text-xs text-muted-foreground flex-shrink-0">Start with:</span>
                   <span className="text-sm font-semibold text-foreground truncate">{focusBlock.title}</span>
                 </div>
-                <ArrowRight className="w-4 h-4 text-primary flex-shrink-0" />
+                <ArrowRight className="relative w-4 h-4 text-primary flex-shrink-0" />
               </motion.button>
             )}
 
@@ -438,5 +494,6 @@ export function ProjectStructure({ project, onUpdate }: Props) {
         )}
       </CardContent>
     </Card>
+    </>
   );
 }
