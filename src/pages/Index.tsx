@@ -103,18 +103,18 @@ const Index = () => {
   const steps = [
     {
       number: "01",
-      title: "Discover",
-      description: "Don't know where to start? We help you understand yourself first.",
+      title: "Map",
+      description: "Complete guided quests across 13 identity clusters. Your Atlas grows with every insight you claim about who you are.",
     },
     {
       number: "02",
-      title: "Grow",
-      description: "Have ideas but lack clarity? We help you connect the dots.",
+      title: "Shape",
+      description: "Your council of 7 AI mentors reads your Atlas and helps you think through what to build, challenge your assumptions, and get clear.",
     },
     {
       number: "03",
       title: "Build",
-      description: "Already creating? We help you move forward with focus and real guidance.",
+      description: "Turn clarity into a real project. Set goals, track momentum, and come back each week sharper than before.",
     },
   ];
 
@@ -183,7 +183,7 @@ const Index = () => {
               Log in
             </Button>
             <Button size="sm" className="glow-purple-sm" onClick={scrollToAuth}>
-              Start your journey
+              Begin for free
             </Button>
           </div>
         </div>
@@ -200,7 +200,7 @@ const Index = () => {
         <div className="relative z-10 max-w-5xl mx-auto px-6 text-center">
           <motion.div initial="hidden" animate="visible" variants={fadeUp} custom={0} className="mb-6">
             <span className="inline-flex items-center gap-2 px-4 py-1.5 rounded-full border border-primary/20 bg-primary/5 text-sm text-primary">
-              <Sparkles className="w-3.5 h-3.5" />A new way to grow
+              <Sparkles className="w-3.5 h-3.5" />Now in early access
             </span>
           </motion.div>
 
@@ -211,9 +211,9 @@ const Index = () => {
             custom={1}
             className="font-sora text-5xl md:text-6xl lg:text-7xl font-bold leading-tight mb-6"
           >
-            <span className="text-foreground">Discover who you are.</span>
+            <span className="text-foreground">You know there's more in you.</span>
             <br />
-            <span className="gradient-text">Build what actually matters.</span>
+            <span className="gradient-text">This is how you find it.</span>
           </motion.h1>
 
           <motion.p
@@ -223,7 +223,7 @@ const Index = () => {
             custom={2}
             className="text-lg md:text-xl text-muted-foreground max-w-2xl mx-auto mb-10 leading-relaxed"
           >
-            Bcoming helps you understand yourself, uncover your gifts, and turn them into real projects that serve something bigger than you.
+            Map your identity. Shape it with a personal council of AI mentors who actually know your story. Turn what you discover into a real project with direction, structure, and momentum. Not self-help. A living system.
           </motion.p>
 
           <motion.div
@@ -234,7 +234,7 @@ const Index = () => {
             className="flex flex-col sm:flex-row items-center justify-center gap-4"
           >
             <Button size="lg" className="text-lg px-8 py-6 glow-purple gap-2" onClick={scrollToAuth}>
-              Start your journey <ArrowRight className="w-5 h-5" />
+              Begin for free <ArrowRight className="w-5 h-5" />
             </Button>
             <Button
               variant="outline"
@@ -245,6 +245,15 @@ const Index = () => {
               See how it works
             </Button>
           </motion.div>
+          <motion.p
+            initial="hidden"
+            animate="visible"
+            variants={fadeUp}
+            custom={4}
+            className="text-sm text-muted-foreground/60 mt-4"
+          >
+            Free to start. No credit card required.
+          </motion.p>
         </div>
       </section>
 
@@ -271,9 +280,9 @@ const Index = () => {
             </p>
             <div className="grid md:grid-cols-3 gap-6">
               {[
-                { text: "Not a lack of talent, a lack of direction", icon: "🧭" },
-                { text: "Not more information, the right guidance", icon: "🔮" },
-                { text: "Not motivation, knowing what to build", icon: "⚡" },
+                { text: "You have talent. You need direction.", icon: "🧭" },
+                { text: "You have enough information. You need clarity.", icon: "🔮" },
+                { text: "You have drive. You need to know what it's for.", icon: "⚡" },
               ].map((item, i) => (
                 <motion.div
                   key={i}
@@ -422,10 +431,7 @@ const Index = () => {
               We believe real happiness comes from finding that gift, crafting something with it, and offering it back to the world.
             </p>
             <p className="text-base text-foreground/80 leading-relaxed max-w-2xl mx-auto mb-6">
-              That's why we built Bcoming. Not as a productivity tool. As a space where people discover who they are, do something meaningful with what they find, and connect with creators around the world.
-            </p>
-            <p className="font-sora text-xl font-semibold gradient-text">
-              Because we can change the world together.
+              That's why we built Bcoming. Not as a productivity tool. As a space where your gifts become your direction, and your direction becomes your life's work.
             </p>
           </motion.div>
         </div>
@@ -445,10 +451,10 @@ const Index = () => {
                 Simple, honest pricing
               </span>
               <h2 className="font-sora text-3xl md:text-4xl font-bold text-foreground mb-4">
-                Support the journey
+                Choose your path
               </h2>
               <p className="text-muted-foreground text-lg max-w-xl mx-auto">
-                Bcoming is free to explore. If it resonates, consider supporting the vision.
+                Free to explore. Upgrade when you're ready to go deeper.
               </p>
             </motion.div>
           </div>
@@ -513,7 +519,7 @@ const Index = () => {
               Bcoming is not a tool. It's a space where who you are and what you create finally become the same thing. Your gifts are your greatest asset. Let's use them.
             </p>
             <Button size="lg" className="text-lg px-10 py-6 glow-purple gap-2" onClick={scrollToAuth}>
-              Start your journey <ArrowRight className="w-5 h-5" />
+              Begin for free <ArrowRight className="w-5 h-5" />
             </Button>
           </motion.div>
         </div>
@@ -535,10 +541,10 @@ const Index = () => {
             <div className="text-center mb-8">
               <img src={bcomingLogo} alt="Bcoming" className="h-12 w-12 mx-auto mb-4 rounded-xl" />
               <h2 className="font-sora text-2xl font-bold text-foreground mb-2">
-                {isSignUp ? "Start your journey" : "Welcome back"}
+                {isSignUp ? "Begin for free" : "Welcome back"}
               </h2>
               <p className="text-muted-foreground">
-                {isSignUp ? "Create your account and begin exploring" : "Continue your transformation"}
+                {isSignUp ? "Your Atlas is waiting. No credit card required." : "Continue your journey"}
               </p>
             </div>
 
