@@ -155,7 +155,7 @@ const Index = () => {
       <nav className="fixed top-0 left-0 right-0 z-50 glass-strong">
         <div className="max-w-7xl mx-auto px-6 h-16 flex items-center justify-between">
           <div className="flex items-center gap-2.5">
-            <img src={bcomingLogo} alt="Bcoming" className="h-11 w-11 rounded-xl drop-shadow-[0_0_12px_hsl(265_48%_58%/0.25)]" />
+            <img src={bcomingLogo} alt="Bcoming" className="h-11 w-11 rounded-xl drop-shadow-[0_0_12px_hsl(0_0%_100%/0.35)]" />
             <span className="font-sora font-bold text-lg text-foreground">Bcoming</span>
           </div>
           <div className="hidden md:flex items-center gap-8">
@@ -192,9 +192,9 @@ const Index = () => {
       {/* Hero Section */}
       <section className="relative min-h-screen flex items-center justify-center pt-16">
         <div className="absolute inset-0 overflow-hidden">
-          <div className="absolute top-1/4 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[800px] h-[600px] rounded-full bg-primary/8 blur-[120px]" />
-          <div className="absolute bottom-1/4 left-1/3 w-[400px] h-[400px] rounded-full bg-secondary/5 blur-[100px]" />
-          <div className="absolute top-1/3 right-1/4 w-[300px] h-[300px] rounded-full bg-accent/5 blur-[80px]" />
+          <div className="absolute top-1/4 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[800px] h-[600px] rounded-full bg-[hsl(325_68%_72%/0.4)] blur-[100px]" />
+          <div className="absolute bottom-1/4 left-1/3 w-[400px] h-[400px] rounded-full bg-[hsl(185_68%_65%/0.35)] blur-[90px]" />
+          <div className="absolute top-1/3 right-1/4 w-[300px] h-[300px] rounded-full bg-[hsl(224_80%_65%/0.35)] blur-[80px]" />
         </div>
 
         <div className="relative z-10 max-w-5xl mx-auto px-6 text-center">
