@@ -321,7 +321,7 @@ const AtlasPage = () => {
         >
           <Button
             onClick={() => navigate("/atlas/quest")}
-            className="rounded-full gap-2 shadow-[0_0_30px_hsl(265_90%_62%/0.3)]"
+            className="rounded-full gap-2 shadow-[0_0_30px_hsl(246_80%_70%/0.4)]"
             size="lg"
           >
             <Sparkles className="w-4 h-4" />

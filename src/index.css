@@ -8,15 +8,15 @@
 
 @layer base {
   :root {
-    /* Medium lavender — Soul Great Before palette */
-    --background: 262 42% 70%;
+    /* Deeper lavender — richer, more energy, better text contrast */
+    --background: 262 50% 56%;
     --foreground: 0 0% 98%;
 
-    /* Cards: lighter lavender — at opacity becomes frosted glass */
-    --card: 265 55% 82%;
+    /* Cards: lighter lavender glass */
+    --card: 265 48% 70%;
     --card-foreground: 0 0% 98%;
 
-    --popover: 265 55% 82%;
+    --popover: 265 48% 70%;
     --popover-foreground: 0 0% 98%;
 
     /* Primary — Deep rich indigo (pops clearly on medium lavender) */
@@ -31,15 +31,15 @@
     --accent: 224 78% 58%;
     --accent-foreground: 0 0% 100%;
 
-    --muted: 265 38% 62%;
-    --muted-foreground: 265 20% 88%;
+    --muted: 265 40% 52%;
+    --muted-foreground: 0 0% 92%;
 
     --destructive: 0 72% 55%;
     --destructive-foreground: 0 0% 100%;
 
     /* White borders — opacity via Tailwind modifiers creates glass frames */
     --border: 0 0% 100%;
-    --input: 265 42% 65%;
+    --input: 265 45% 60%;
     --ring: 265 72% 36%;
 
     --radius: 0.75rem;
@@ -66,7 +66,7 @@
     --gradient-accent: linear-gradient(135deg, hsl(265 72% 36%), hsl(224 78% 45%));
     --gradient-glow: linear-gradient(135deg, hsl(0 0% 100% / 0.15), hsl(185 65% 78% / 0.10));
     --gradient-surface: linear-gradient(180deg, hsl(0 0% 100% / 0.16), hsl(0 0% 100% / 0.06));
-    --gradient-cosmic: linear-gradient(135deg, hsl(262 42% 70%), hsl(248 45% 68%), hsl(278 40% 72%));
+    --gradient-cosmic: linear-gradient(135deg, hsl(262 50% 56%), hsl(248 52% 54%), hsl(278 48% 60%));
 
     /* Effects */
     --shadow-glow-sm: 0 4px 20px hsl(265 60% 30% / 0.25);
@@ -78,11 +78,11 @@
 
   /* Dark class mirrors root */
   .dark {
-    --background: 262 42% 70%;
+    --background: 262 50% 56%;
     --foreground: 0 0% 98%;
-    --card: 265 55% 82%;
+    --card: 265 48% 70%;
     --card-foreground: 0 0% 98%;
-    --popover: 265 55% 82%;
+    --popover: 265 48% 70%;
     --popover-foreground: 0 0% 98%;
     --primary: 265 72% 36%;
     --primary-foreground: 0 0% 100%;
@@ -90,12 +90,12 @@
     --secondary-foreground: 0 0% 100%;
     --accent: 224 78% 58%;
     --accent-foreground: 0 0% 100%;
-    --muted: 265 38% 62%;
-    --muted-foreground: 265 20% 88%;
+    --muted: 265 40% 52%;
+    --muted-foreground: 0 0% 92%;
     --destructive: 0 72% 55%;
     --destructive-foreground: 0 0% 100%;
     --border: 0 0% 100%;
-    --input: 265 42% 65%;
+    --input: 265 45% 60%;
     --ring: 265 72% 36%;
   }
 }
@@ -212,19 +212,19 @@
       hsl(var(--background));
   }
 
-  /* Button gradient — glassy frosted white (primary CTA style) */
+  /* Button gradient — white-to-#7f70ff glass degradé */
   .btn-gradient {
-    background: hsl(0 0% 100% / 0.20);
-    backdrop-filter: blur(12px);
-    -webkit-backdrop-filter: blur(12px);
-    border: 1px solid hsl(0 0% 100% / 0.50);
+    background: linear-gradient(135deg, hsl(0 0% 100% / 0.45) 0%, hsl(246 100% 72% / 0.50) 100%);
+    backdrop-filter: blur(16px);
+    -webkit-backdrop-filter: blur(16px);
+    border: 1px solid hsl(0 0% 100% / 0.55);
     color: white;
     transition: background 0.15s ease-out, box-shadow 0.15s ease-out, transform 0.15s ease-out;
   }
 
   .btn-gradient:hover {
-    background: hsl(0 0% 100% / 0.28);
-    box-shadow: 0 8px 32px hsl(265 60% 30% / 0.25), 0 2px 8px hsl(0 0% 100% / 0.15);
+    background: linear-gradient(135deg, hsl(0 0% 100% / 0.58) 0%, hsl(246 100% 72% / 0.65) 100%);
+    box-shadow: 0 8px 32px hsl(246 80% 68% / 0.45), 0 2px 8px hsl(0 0% 100% / 0.20);
     transform: translateY(-1px);
   }
 
@@ -235,6 +235,13 @@
   /* Soft glow line */
   .neon-line {
     filter: drop-shadow(0 0 4px hsl(0 0% 100% / 0.40));
+  }
+
+  /* Dark glass nav — high contrast for white text */
+  .nav-glass-dark {
+    background: hsl(265 65% 22% / 0.90);
+    backdrop-filter: blur(24px);
+    -webkit-backdrop-filter: blur(24px);
   }
 }
 
