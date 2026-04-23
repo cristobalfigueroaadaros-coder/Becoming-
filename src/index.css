@@ -18,8 +18,8 @@
     --popover: 0 0% 100%;
     --popover-foreground: 22 20% 12%;
 
-    /* Primary — Warm amber gold (the spark, the Atlas dot) */
-    --primary: 38 80% 52%;
+    /* Primary — Soul lavender-purple (the Great Before, the guide) */
+    --primary: 265 48% 58%;
     --primary-foreground: 0 0% 100%;
 
     /* Secondary — Soft muted lavender (Soul palette) */
@@ -31,14 +31,14 @@
     --accent-foreground: 0 0% 100%;
 
     --muted: 38 15% 93%;
-    --muted-foreground: 22 8% 50%;
+    --muted-foreground: 22 12% 36%;
 
     --destructive: 0 72% 55%;
     --destructive-foreground: 0 0% 100%;
 
     --border: 265 18% 88%;
     --input: 265 14% 94%;
-    --ring: 38 80% 52%;
+    --ring: 265 48% 58%;
 
     --radius: 0.75rem;
 
@@ -54,24 +54,24 @@
     --future-self-light: 330 42% 74%;
     --future-self-glow: 330 52% 86%;
 
-    /* Gradient palette — amber, lavender, teal */
-    --gradient-start: 38 80% 52%;
-    --gradient-mid: 265 42% 66%;
-    --gradient-end: 185 48% 50%;
+    /* Gradient palette — lavender, teal, soft rose */
+    --gradient-start: 265 48% 58%;
+    --gradient-mid: 185 48% 50%;
+    --gradient-end: 330 45% 62%;
 
     /* Gradients */
-    --gradient-primary: linear-gradient(135deg, hsl(38 80% 52%), hsl(265 42% 66%), hsl(185 48% 50%));
-    --gradient-accent: linear-gradient(135deg, hsl(38 80% 52%), hsl(28 78% 48%));
-    --gradient-glow: linear-gradient(135deg, hsl(38 80% 52% / 0.12), hsl(265 42% 66% / 0.08));
-    --gradient-surface: linear-gradient(180deg, hsl(0 0% 100%), hsl(38 25% 96%));
+    --gradient-primary: linear-gradient(135deg, hsl(265 48% 58%), hsl(185 48% 50%), hsl(330 45% 62%));
+    --gradient-accent: linear-gradient(135deg, hsl(265 48% 58%), hsl(265 42% 68%));
+    --gradient-glow: linear-gradient(135deg, hsl(265 48% 58% / 0.12), hsl(185 48% 50% / 0.08));
+    --gradient-surface: linear-gradient(180deg, hsl(0 0% 100%), hsl(265 20% 97%));
     --gradient-cosmic: linear-gradient(135deg, hsl(38 25% 97%), hsl(265 30% 95%), hsl(38 25% 97%));
 
     /* Effects — soft shadows for light UI */
-    --shadow-glow-sm: 0 4px 20px hsl(265 45% 65% / 0.15);
-    --shadow-glow-md: 0 8px 40px hsl(265 45% 65% / 0.20);
-    --shadow-glow-lg: 0 12px 60px hsl(265 45% 65% / 0.25);
+    --shadow-glow-sm: 0 4px 20px hsl(265 48% 58% / 0.15);
+    --shadow-glow-md: 0 8px 40px hsl(265 48% 58% / 0.20);
+    --shadow-glow-lg: 0 12px 60px hsl(265 48% 58% / 0.25);
     --shadow-soft: 0 4px 24px -4px hsl(22 20% 12% / 0.08);
-    --shadow-neon: 0 8px 30px hsl(38 80% 52% / 0.25), 0 2px 8px hsl(38 80% 52% / 0.12);
+    --shadow-neon: 0 8px 30px hsl(265 48% 58% / 0.25), 0 2px 8px hsl(265 48% 58% / 0.12);
   }
 
   /* Dark class mirrors root — app stays light regardless of dark class */
@@ -82,19 +82,19 @@
     --card-foreground: 22 20% 12%;
     --popover: 0 0% 100%;
     --popover-foreground: 22 20% 12%;
-    --primary: 38 80% 52%;
+    --primary: 265 48% 58%;
     --primary-foreground: 0 0% 100%;
     --secondary: 265 35% 70%;
     --secondary-foreground: 0 0% 100%;
     --accent: 185 48% 50%;
     --accent-foreground: 0 0% 100%;
     --muted: 38 15% 93%;
-    --muted-foreground: 22 8% 50%;
+    --muted-foreground: 22 12% 36%;
     --destructive: 0 72% 55%;
     --destructive-foreground: 0 0% 100%;
     --border: 265 18% 88%;
     --input: 265 14% 94%;
-    --ring: 38 80% 52%;
+    --ring: 265 48% 58%;
   }
 }
 
@@ -117,8 +117,12 @@
     background-attachment: fixed;
   }
 
-  h1, h2, h3, h4, h5, h6 {
+  h1 {
     font-family: 'Instrument Serif', Georgia, serif;
+  }
+
+  h2, h3, h4, h5, h6 {
+    font-family: 'Plus Jakarta Sans', system-ui, sans-serif;
   }
 }
 
@@ -138,27 +142,27 @@
   }
 
   .glow-gold {
-    box-shadow: 0 8px 32px hsl(38 80% 52% / 0.28), 0 2px 8px hsl(38 80% 52% / 0.15);
+    box-shadow: 0 8px 32px hsl(38 78% 55% / 0.28), 0 2px 8px hsl(38 78% 55% / 0.15);
   }
 
   .glow-magenta {
     box-shadow: 0 8px 32px hsl(330 50% 65% / 0.22), 0 2px 8px hsl(330 50% 65% / 0.12);
   }
 
-  /* Text glow — amber spark */
+  /* Text glow — Soul lavender */
   .text-glow {
-    text-shadow: 0 0 30px hsl(38 80% 52% / 0.35);
+    text-shadow: 0 0 30px hsl(265 48% 58% / 0.35);
   }
 
-  /* Gradient text — amber, lavender, teal */
+  /* Gradient text — Soul palette: lavender, teal, rose */
   .gradient-text {
     @apply bg-clip-text text-transparent;
-    background-image: linear-gradient(135deg, hsl(38 82% 48%), hsl(265 45% 62%), hsl(185 50% 48%));
+    background-image: linear-gradient(135deg, hsl(265 52% 55%), hsl(185 52% 46%), hsl(330 48% 58%));
   }
 
   .gradient-text-warm {
     @apply bg-clip-text text-transparent;
-    background-image: linear-gradient(135deg, hsl(38 80% 52%), hsl(28 78% 48%));
+    background-image: linear-gradient(135deg, hsl(265 48% 58%), hsl(265 42% 68%));
   }
 
   /* Glassmorphism — frosted white panels on light background */
@@ -205,14 +209,14 @@
       hsl(var(--background));
   }
 
-  /* Button gradient — amber spark */
+  /* Button gradient — Soul lavender */
   .btn-gradient {
-    background: linear-gradient(135deg, hsl(38 82% 55%), hsl(28 80% 50%));
+    background: linear-gradient(135deg, hsl(265 52% 62%), hsl(265 45% 52%));
     transition: box-shadow 0.15s ease-out, filter 0.15s ease-out, transform 0.15s ease-out;
   }
 
   .btn-gradient:hover {
-    box-shadow: 0 8px 28px hsl(38 80% 52% / 0.38), 0 2px 8px hsl(38 80% 52% / 0.18);
+    box-shadow: 0 8px 28px hsl(265 48% 58% / 0.38), 0 2px 8px hsl(265 48% 58% / 0.18);
     transform: translateY(-1px);
     filter: brightness(1.05);
   }
