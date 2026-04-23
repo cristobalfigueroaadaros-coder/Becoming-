@@ -135,7 +135,7 @@ const Index = () => {
       period: "/month",
       icon: Zap,
       description: "Full access. Cancel anytime.",
-      color: "from-primary to-[hsl(265,90%,50%)]",
+      color: "from-primary to-[hsl(28,80%,48%)]",
     },
     {
       id: "yearly",
@@ -145,7 +145,7 @@ const Index = () => {
       icon: Crown,
       description: "Best value. Save 36%.",
       badge: "Best Value",
-      color: "from-secondary to-[hsl(220,95%,45%)]",
+      color: "from-secondary to-[hsl(185,48%,50%)]",
     },
   ];
 
@@ -155,7 +155,7 @@ const Index = () => {
       <nav className="fixed top-0 left-0 right-0 z-50 glass-strong">
         <div className="max-w-7xl mx-auto px-6 h-16 flex items-center justify-between">
           <div className="flex items-center gap-2.5">
-            <img src={bcomingLogo} alt="Bcoming" className="h-11 w-11 rounded-xl drop-shadow-[0_0_12px_hsl(265_90%_62%/0.4)]" />
+            <img src={bcomingLogo} alt="Bcoming" className="h-11 w-11 rounded-xl drop-shadow-[0_0_12px_hsl(38_80%_52%/0.25)]" />
             <span className="font-sora font-bold text-lg text-foreground">Bcoming</span>
           </div>
           <div className="hidden md:flex items-center gap-8">

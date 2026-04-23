@@ -2,97 +2,99 @@
 @tailwind components;
 @tailwind utilities;
 
-/* Bcoming Design System — Warm Midnight */
-/* Warm, precise, alive. Deep walnut dark. Amber-gold transformation. */
+/* Bcoming Design System — Light Aurora */
+/* Soul-inspired. Apple-precision. Warm, precise, alive. */
+/* Light airy base. Frosted glass. Soft floating orbs. Amber spark. */
 
 @layer base {
   :root {
-    /* Deep walnut base — warm dark, not cold navy */
-    --background: 22 18% 6%;
-    --foreground: 38 12% 90%;
+    /* Light warm cream base — not clinical white, not dark */
+    --background: 38 25% 97%;
+    --foreground: 22 20% 12%;
 
-    --card: 22 16% 9%;
-    --card-foreground: 38 12% 90%;
+    --card: 0 0% 100%;
+    --card-foreground: 22 20% 12%;
 
-    --popover: 22 16% 9%;
-    --popover-foreground: 38 12% 90%;
+    --popover: 0 0% 100%;
+    --popover-foreground: 22 20% 12%;
 
-    /* Primary — Deep amber gold (transformation, action) */
-    --primary: 38 82% 54%;
-    --primary-foreground: 22 20% 8%;
+    /* Primary — Warm amber gold (the spark, the Atlas dot) */
+    --primary: 38 80% 52%;
+    --primary-foreground: 0 0% 100%;
 
-    /* Secondary — Warm terracotta (depth) */
-    --secondary: 22 55% 40%;
-    --secondary-foreground: 38 12% 90%;
+    /* Secondary — Soft muted lavender (Soul palette) */
+    --secondary: 265 35% 70%;
+    --secondary-foreground: 0 0% 100%;
 
-    /* Accent — Muted sage (calm contrast) */
-    --accent: 152 28% 36%;
-    --accent-foreground: 38 12% 90%;
+    /* Accent — Soft teal (Soul character, Atlas depth) */
+    --accent: 185 48% 50%;
+    --accent-foreground: 0 0% 100%;
 
-    --muted: 22 14% 12%;
-    --muted-foreground: 38 10% 58%;
+    --muted: 38 15% 93%;
+    --muted-foreground: 22 8% 50%;
 
     --destructive: 0 72% 55%;
     --destructive-foreground: 0 0% 100%;
 
-    --border: 22 14% 17%;
-    --input: 22 14% 17%;
-    --ring: 38 82% 54%;
+    --border: 265 18% 88%;
+    --input: 265 14% 94%;
+    --ring: 38 80% 52%;
 
     --radius: 0.75rem;
 
-    /* Mentor colors — warm, intentional, not neon */
-    --mamba: 330 55% 50%;
-    --creative: 280 45% 50%;
-    --quantum: 220 50% 50%;
-    --sage: 152 40% 40%;
-    --elder: 38 65% 48%;
+    /* Mentor colors — soft, warm, not neon */
+    --mamba: 330 52% 62%;
+    --creative: 280 42% 62%;
+    --quantum: 220 48% 58%;
+    --sage: 152 38% 46%;
+    --elder: 38 62% 54%;
 
     /* Future Self */
-    --future-self: 330 60% 55%;
-    --future-self-light: 330 50% 65%;
-    --future-self-glow: 330 60% 80%;
+    --future-self: 330 52% 65%;
+    --future-self-light: 330 42% 74%;
+    --future-self-glow: 330 52% 86%;
 
-    /* Gradient palette — amber → terracotta → warm rose */
-    --gradient-start: 38 82% 54%;
-    --gradient-mid: 22 65% 46%;
-    --gradient-end: 330 55% 50%;
+    /* Gradient palette — amber, lavender, teal */
+    --gradient-start: 38 80% 52%;
+    --gradient-mid: 265 42% 66%;
+    --gradient-end: 185 48% 50%;
 
     /* Gradients */
-    --gradient-primary: linear-gradient(135deg, hsl(38 82% 54%), hsl(22 65% 46%), hsl(330 55% 50%));
-    --gradient-accent: linear-gradient(135deg, hsl(38 82% 54%), hsl(28 80% 48%));
-    --gradient-glow: linear-gradient(135deg, hsl(38 82% 54% / 0.15), hsl(22 65% 46% / 0.06));
-    --gradient-surface: linear-gradient(180deg, hsl(22 16% 10%), hsl(22 18% 6%));
-    --gradient-cosmic: linear-gradient(135deg, hsl(22 18% 6%), hsl(24 16% 10%), hsl(22 18% 6%));
+    --gradient-primary: linear-gradient(135deg, hsl(38 80% 52%), hsl(265 42% 66%), hsl(185 48% 50%));
+    --gradient-accent: linear-gradient(135deg, hsl(38 80% 52%), hsl(28 78% 48%));
+    --gradient-glow: linear-gradient(135deg, hsl(38 80% 52% / 0.12), hsl(265 42% 66% / 0.08));
+    --gradient-surface: linear-gradient(180deg, hsl(0 0% 100%), hsl(38 25% 96%));
+    --gradient-cosmic: linear-gradient(135deg, hsl(38 25% 97%), hsl(265 30% 95%), hsl(38 25% 97%));
 
-    /* Effects */
-    --shadow-glow-sm: 0 0 20px hsl(38 82% 54% / 0.12);
-    --shadow-glow-md: 0 0 40px hsl(38 82% 54% / 0.16);
-    --shadow-glow-lg: 0 0 80px hsl(38 82% 54% / 0.20);
-    --shadow-soft: 0 4px 24px -4px hsl(0 0% 0% / 0.5);
-    --shadow-neon: 0 0 30px hsl(38 82% 54% / 0.22), 0 0 60px hsl(38 82% 54% / 0.08);
+    /* Effects — soft shadows for light UI */
+    --shadow-glow-sm: 0 4px 20px hsl(265 45% 65% / 0.15);
+    --shadow-glow-md: 0 8px 40px hsl(265 45% 65% / 0.20);
+    --shadow-glow-lg: 0 12px 60px hsl(265 45% 65% / 0.25);
+    --shadow-soft: 0 4px 24px -4px hsl(22 20% 12% / 0.08);
+    --shadow-neon: 0 8px 30px hsl(38 80% 52% / 0.25), 0 2px 8px hsl(38 80% 52% / 0.12);
   }
 
+  /* Dark class mirrors root — app stays light regardless of dark class */
   .dark {
-    --background: 22 18% 6%;
-    --foreground: 38 12% 90%;
-    --card: 22 16% 9%;
-    --card-foreground: 38 12% 90%;
-    --popover: 22 16% 9%;
-    --popover-foreground: 38 12% 90%;
-    --primary: 38 82% 54%;
-    --primary-foreground: 22 20% 8%;
-    --secondary: 22 55% 40%;
-    --secondary-foreground: 38 12% 90%;
-    --accent: 152 28% 36%;
-    --accent-foreground: 38 12% 90%;
-    --muted: 22 14% 12%;
-    --muted-foreground: 38 10% 58%;
+    --background: 38 25% 97%;
+    --foreground: 22 20% 12%;
+    --card: 0 0% 100%;
+    --card-foreground: 22 20% 12%;
+    --popover: 0 0% 100%;
+    --popover-foreground: 22 20% 12%;
+    --primary: 38 80% 52%;
+    --primary-foreground: 0 0% 100%;
+    --secondary: 265 35% 70%;
+    --secondary-foreground: 0 0% 100%;
+    --accent: 185 48% 50%;
+    --accent-foreground: 0 0% 100%;
+    --muted: 38 15% 93%;
+    --muted-foreground: 22 8% 50%;
     --destructive: 0 72% 55%;
     --destructive-foreground: 0 0% 100%;
-    --border: 22 14% 17%;
-    --input: 22 14% 17%;
-    --ring: 38 82% 54%;
+    --border: 265 18% 88%;
+    --input: 265 14% 94%;
+    --ring: 38 80% 52%;
   }
 }
 
@@ -104,13 +106,13 @@
   body {
     @apply text-foreground;
     font-family: 'Plus Jakarta Sans', system-ui, sans-serif;
-    /* Warm ambient glow — amber and terracotta, not purple/blue */
+    /* Soft floating orbs — Soul aurora palette */
     background:
-      radial-gradient(ellipse at 15% 10%, hsl(38 82% 54% / 0.07) 0%, transparent 40%),
-      radial-gradient(ellipse at 85% 20%, hsl(22 65% 46% / 0.05) 0%, transparent 38%),
-      radial-gradient(ellipse at 60% 65%, hsl(330 55% 50% / 0.04) 0%, transparent 42%),
-      radial-gradient(ellipse at 20% 80%, hsl(38 78% 50% / 0.04) 0%, transparent 35%),
-      radial-gradient(ellipse at 90% 85%, hsl(22 60% 42% / 0.03) 0%, transparent 30%),
+      radial-gradient(ellipse at 18% 12%, hsl(265 58% 82% / 0.42) 0%, transparent 48%),
+      radial-gradient(ellipse at 82% 8%, hsl(185 52% 78% / 0.32) 0%, transparent 44%),
+      radial-gradient(ellipse at 68% 72%, hsl(330 48% 84% / 0.28) 0%, transparent 44%),
+      radial-gradient(ellipse at 12% 78%, hsl(38 78% 82% / 0.32) 0%, transparent 40%),
+      radial-gradient(ellipse at 88% 58%, hsl(265 38% 88% / 0.22) 0%, transparent 36%),
       hsl(var(--background));
     background-attachment: fixed;
   }
@@ -120,59 +122,61 @@
   }
 }
 
-/* Utility classes — warm system */
+/* Utility classes — light aurora system */
 @layer utilities {
-  /* Primary amber glow */
+  /* Soft colored shadows for light UI */
   .glow-purple {
-    box-shadow: 0 0 30px hsl(38 82% 54% / 0.25), 0 0 60px hsl(38 82% 54% / 0.08);
+    box-shadow: 0 8px 32px hsl(265 45% 65% / 0.22), 0 2px 8px hsl(265 45% 65% / 0.12);
   }
 
   .glow-purple-sm {
-    box-shadow: 0 0 15px hsl(38 82% 54% / 0.18);
+    box-shadow: 0 4px 16px hsl(265 45% 65% / 0.18);
   }
 
   .glow-blue {
-    box-shadow: 0 0 30px hsl(22 65% 46% / 0.25), 0 0 60px hsl(22 65% 46% / 0.08);
+    box-shadow: 0 8px 32px hsl(185 48% 50% / 0.22), 0 2px 8px hsl(185 48% 50% / 0.12);
   }
 
   .glow-gold {
-    box-shadow: 0 0 30px hsl(38 82% 54% / 0.30), 0 0 60px hsl(38 82% 54% / 0.10);
+    box-shadow: 0 8px 32px hsl(38 80% 52% / 0.28), 0 2px 8px hsl(38 80% 52% / 0.15);
   }
 
   .glow-magenta {
-    box-shadow: 0 0 30px hsl(330 55% 50% / 0.25), 0 0 60px hsl(330 55% 50% / 0.08);
+    box-shadow: 0 8px 32px hsl(330 50% 65% / 0.22), 0 2px 8px hsl(330 50% 65% / 0.12);
   }
 
-  /* Text glow — amber */
+  /* Text glow — amber spark */
   .text-glow {
-    text-shadow: 0 0 40px hsl(38 82% 54% / 0.35);
+    text-shadow: 0 0 30px hsl(38 80% 52% / 0.35);
   }
 
-  /* Gradient text — amber → terracotta → rose */
+  /* Gradient text — amber, lavender, teal */
   .gradient-text {
     @apply bg-clip-text text-transparent;
-    background-image: linear-gradient(135deg, hsl(38 88% 62%), hsl(22 75% 55%), hsl(330 55% 58%));
+    background-image: linear-gradient(135deg, hsl(38 82% 48%), hsl(265 45% 62%), hsl(185 50% 48%));
   }
 
   .gradient-text-warm {
     @apply bg-clip-text text-transparent;
-    background-image: linear-gradient(135deg, hsl(38 82% 54%), hsl(28 80% 48%));
+    background-image: linear-gradient(135deg, hsl(38 80% 52%), hsl(28 78% 48%));
   }
 
-  /* Glassmorphism — warm depth */
+  /* Glassmorphism — frosted white panels on light background */
   .glass {
-    background: hsl(22 16% 9% / 0.6);
+    background: hsl(0 0% 100% / 0.62);
     backdrop-filter: blur(20px);
-    border: 1px solid hsl(22 14% 20% / 0.5);
+    -webkit-backdrop-filter: blur(20px);
+    border: 1px solid hsl(265 20% 88% / 0.60);
   }
 
   .glass-strong {
-    background: hsl(22 16% 10% / 0.8);
+    background: hsl(0 0% 100% / 0.80);
     backdrop-filter: blur(30px);
-    border: 1px solid hsl(22 14% 22% / 0.6);
+    -webkit-backdrop-filter: blur(30px);
+    border: 1px solid hsl(265 20% 90% / 0.70);
   }
 
-  /* Gradient border effect */
+  /* Gradient border */
   .gradient-border {
     position: relative;
   }
@@ -183,44 +187,44 @@
     inset: 0;
     border-radius: inherit;
     padding: 1px;
-    background: linear-gradient(135deg, hsl(38 82% 54% / 0.40), hsl(22 65% 46% / 0.35), hsl(330 55% 50% / 0.25));
+    background: linear-gradient(135deg, hsl(38 80% 52% / 0.45), hsl(265 45% 65% / 0.38), hsl(185 48% 52% / 0.32));
     -webkit-mask: linear-gradient(#fff 0 0) content-box, linear-gradient(#fff 0 0);
     -webkit-mask-composite: xor;
     mask-composite: exclude;
     pointer-events: none;
   }
 
-  /* Warm ambient background (for main containers) */
+  /* Aurora background (for sections and containers) */
   .bg-cosmic {
     background:
-      radial-gradient(ellipse at 25% 20%, hsl(38 82% 54% / 0.09) 0%, transparent 45%),
-      radial-gradient(ellipse at 75% 35%, hsl(22 65% 46% / 0.06) 0%, transparent 40%),
-      radial-gradient(ellipse at 40% 72%, hsl(330 55% 50% / 0.05) 0%, transparent 42%),
-      radial-gradient(ellipse at 85% 80%, hsl(22 60% 42% / 0.04) 0%, transparent 35%),
-      radial-gradient(ellipse at 10% 60%, hsl(38 75% 48% / 0.04) 0%, transparent 35%),
+      radial-gradient(ellipse at 25% 20%, hsl(265 55% 80% / 0.38) 0%, transparent 50%),
+      radial-gradient(ellipse at 75% 35%, hsl(185 48% 76% / 0.28) 0%, transparent 45%),
+      radial-gradient(ellipse at 40% 72%, hsl(330 48% 84% / 0.26) 0%, transparent 44%),
+      radial-gradient(ellipse at 85% 80%, hsl(38 72% 80% / 0.22) 0%, transparent 40%),
+      radial-gradient(ellipse at 10% 62%, hsl(265 38% 86% / 0.18) 0%, transparent 38%),
       hsl(var(--background));
   }
 
-  /* Button gradient */
+  /* Button gradient — amber spark */
   .btn-gradient {
-    background: linear-gradient(135deg, hsl(38 82% 54%), hsl(22 65% 46%), hsl(330 55% 50%));
+    background: linear-gradient(135deg, hsl(38 82% 55%), hsl(28 80% 50%));
     transition: box-shadow 0.15s ease-out, filter 0.15s ease-out, transform 0.15s ease-out;
   }
 
   .btn-gradient:hover {
-    box-shadow: 0 0 25px hsl(38 82% 54% / 0.35), 0 0 50px hsl(38 82% 54% / 0.12);
+    box-shadow: 0 8px 28px hsl(38 80% 52% / 0.38), 0 2px 8px hsl(38 80% 52% / 0.18);
     transform: translateY(-1px);
-    filter: brightness(1.1);
+    filter: brightness(1.05);
   }
 
   .btn-gradient:active {
     transform: scale(0.97);
-    filter: brightness(1.05);
+    filter: brightness(1.02);
   }
 
-  /* Warm line (for connections) */
+  /* Soft line */
   .neon-line {
-    filter: drop-shadow(0 0 4px hsl(38 82% 54% / 0.35));
+    filter: drop-shadow(0 0 4px hsl(265 45% 65% / 0.35));
   }
 }
 
