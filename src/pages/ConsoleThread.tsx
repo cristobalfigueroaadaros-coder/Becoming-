@@ -268,6 +268,17 @@ const ConsoleThread = ({ embedded = false, onProjectNameChange }: ConsoleThreadP
   const inputRef = useRef<HTMLInputElement>(null);
   const returnFlowStartedRef = useRef(false); // guard against double startReturnFlow call
   const discoveredProjectTypeRef = useRef<string>("experience"); // set when DISCOVER project is detected
+  // Refs so runCouncilMeeting always reads the latest values regardless of which render's closure calls it
+  const intakeAnswersRef = useRef<string[]>([]);
+  const userMentorsRef = useRef<string[]>([]);
+  const atlasSignalsRef = useRef<any>(null);
+  const entryStateRef = useRef<string>("DISCOVER");
+
+  // Keep refs in sync with state (runs after every render where these change)
+  useEffect(() => { intakeAnswersRef.current = intakeAnswers; }, [intakeAnswers]);
+  useEffect(() => { userMentorsRef.current = userMentors; }, [userMentors]);
+  useEffect(() => { atlasSignalsRef.current = atlasSignals; }, [atlasSignals]);
+  useEffect(() => { entryStateRef.current = entryState; }, [entryState]);
 
   // Persist handoffMentor to localStorage so it survives page reloads
   const persistHandoffMentor = (mentor: string | null, userId?: string) => {
@@ -967,10 +978,25 @@ const ConsoleThread = ({ embedded = false, onProjectNameChange }: ConsoleThreadP
       }).eq("id", user.id);
 
       const intakeLabels = getIntakeLabels(entryState);
-      const storyText = `${intakeLabels[0]}: ${answers[0]}\n\n${intakeLabels[1]}: ${answers[1]}\n\n${intakeLabels[2]}: ${answers[2]}`;
+      const story = `${intakeLabels[0]}: ${answers[0]}\n\n${intakeLabels[1]}: ${answers[1]}\n\n${intakeLabels[2]}: ${answers[2]}`;
       await supabase.functions.invoke("process-user-foundation", {
-        body: { storyText },
+        body: { story },
       });
+
+      // Refresh user mentors in case process-user-foundation assigned them
+      try {
+        const { data: { user: u } } = await supabase.auth.getUser();
+        if (u) {
+          const { data: freshMentors } = await supabase.from("user_mentors").select("mentor_type").eq("user_id", u.id);
+          if (freshMentors && freshMentors.length > 0) {
+            const mentorList = freshMentors.map((m: any) => m.mentor_type);
+            setUserMentors(mentorList);
+            userMentorsRef.current = mentorList;
+          }
+        }
+      } catch (e) {
+        console.error("Failed to refresh mentors (non-fatal):", e);
+      }
 
       // Reflection after final answer
       await showTyping("future_self", 1500);
@@ -1076,7 +1102,13 @@ const ConsoleThread = ({ embedded = false, onProjectNameChange }: ConsoleThreadP
     // Immediately cycle typing indicators through all mentors so user sees activity
     // right after "let's go" — before the API even returns.
     let typingCancelled = false;
-    const allMentorTypes = [...userMentors, "future_self"];
+    // Always read from refs so we get the latest state regardless of which closure called us
+    const freshAnswers = intakeAnswersRef.current;
+    const freshMentors = userMentorsRef.current;
+    const freshEntryState = entryStateRef.current;
+    const freshAtlasSignals = atlasSignalsRef.current;
+
+    const allMentorTypes = [...new Set([...freshMentors, "future_self"])];
     const cycleTypingWhileWaiting = async () => {
       let i = 0;
       while (!typingCancelled) {
@@ -1091,11 +1123,10 @@ const ConsoleThread = ({ embedded = false, onProjectNameChange }: ConsoleThreadP
     cycleTypingWhileWaiting();
 
     try {
-      const projectIdea = intakeAnswers[2] || "I want to build something meaningful";
+      const projectIdea = freshAnswers[2] || "I want to build something meaningful";
 
-      // Use module-scope getIntakeLabels
-      const labels = getIntakeLabels(entryState);
-      const fullIntakeContext = `${labels[0]}: ${intakeAnswers[0] || "Not shared"}\n\n${labels[1]}: ${intakeAnswers[1] || "Not shared"}\n\n${labels[2]}: ${intakeAnswers[2] || projectIdea}`;
+      const labels = getIntakeLabels(freshEntryState);
+      const fullIntakeContext = `${labels[0]}: ${freshAnswers[0] || "Not shared"}\n\n${labels[1]}: ${freshAnswers[1] || "Not shared"}\n\n${labels[2]}: ${freshAnswers[2] || projectIdea}`;
 
       // Pass EMPTY conversationHistory for first council call so edge function treats as Q1
       const { data, error } = await supabase.functions.invoke("council-meeting", {
@@ -1103,8 +1134,8 @@ const ConsoleThread = ({ embedded = false, onProjectNameChange }: ConsoleThreadP
           question: fullIntakeContext,
           mentorTypes: allMentorTypes,
           conversationHistory: [],
-          entryState,
-          atlasSignals,
+          entryState: freshEntryState,
+          atlasSignals: freshAtlasSignals,
         },
       });
 
@@ -1141,12 +1172,22 @@ const ConsoleThread = ({ embedded = false, onProjectNameChange }: ConsoleThreadP
 
       // Staggered reveal — one mentor at a time, reading gap between each
       const perspEntries1 = Object.entries(perspectives);
+
+      // Fallback: if edge function returned nothing, show a graceful recovery message
+      if (perspEntries1.length === 0) {
+        await showTyping("future_self", 1200);
+        addSystemMessage("The mentors are here. What would you like to explore first?", "future_self", "user_reply");
+        setPhase("user_reply");
+        persistPhase("user_reply");
+        return;
+      }
+
       for (let i = 0; i < perspEntries1.length; i++) {
         const [mentorType, perspective] = perspEntries1[i];
         await showTyping(mentorType, 900 + Math.random() * 700);
         addSystemMessage(perspective as string, mentorType, perspPhase, "perspective");
         if (i < perspEntries1.length - 1) {
-          await new Promise(r => setTimeout(r, 4000 + Math.random() * 1000));
+          await new Promise(r => setTimeout(r, 2500 + Math.random() * 800));
         }
       }
 
@@ -1220,13 +1261,13 @@ const ConsoleThread = ({ embedded = false, onProjectNameChange }: ConsoleThreadP
         const { data, error } = await supabase.functions.invoke("council-meeting", {
           body: {
             question: text,
-            mentorTypes: [...userMentors, "future_self"],
+            mentorTypes: [...new Set([...userMentorsRef.current, "future_self"])],
             conversationHistory: [{
               role: "user",
-              content: intakeAnswers.join("\n"),
+              content: intakeAnswersRef.current.join("\n"),
             }],
-            entryState,
-            atlasSignals,
+            entryState: entryStateRef.current,
+            atlasSignals: atlasSignalsRef.current,
           },
         });
 
