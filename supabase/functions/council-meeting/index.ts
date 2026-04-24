@@ -1093,6 +1093,10 @@ Mission: ${profile.main_mission}`;
         }
         
         mentorPerspectives[mentorType] = perspective;
+      } else {
+        // Surface AI Gateway errors so we know why a mentor went silent
+        const errBody = await aiResponse.text().catch(() => "<unreadable>");
+        console.error(`AI Gateway failed for mentor=${mentorType} status=${aiResponse.status} body=${errBody.substring(0, 300)}`);
       }
     }
 
