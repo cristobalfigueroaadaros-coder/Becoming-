@@ -3,7 +3,7 @@ import { useNavigate } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
-import { Send, ArrowLeft, Plus, ArrowRight } from "lucide-react";
+import { Send, ArrowLeft, Plus, ArrowRight, Mic, MicOff } from "lucide-react";
 import { toast } from "sonner";
 import { cn } from "@/lib/utils";
 import ChatBubble, { type ChatMessage } from "@/components/console-thread/ChatBubble";
@@ -262,6 +262,8 @@ const ConsoleThread = ({ embedded = false, onProjectNameChange }: ConsoleThreadP
   const [displayName, setDisplayName] = useState("friend");
   const [atlasSignals, setAtlasSignals] = useState<any>(null);
   const [showPayment, setShowPayment] = useState(false);
+  const [isRecording, setIsRecording] = useState(false);
+  const recognitionRef = useRef<any>(null);
   const scrollRef = useRef<HTMLDivElement>(null);
   const inputRef = useRef<HTMLInputElement>(null);
   const returnFlowStartedRef = useRef(false); // guard against double startReturnFlow call
@@ -674,6 +676,32 @@ const ConsoleThread = ({ embedded = false, onProjectNameChange }: ConsoleThreadP
     const config = mentorType ? mentorConfig[mentorType] : undefined;
     setTyping({ name: config?.name, icon: config?.icon, color: config?.color });
     return new Promise<void>(resolve => setTimeout(() => { setTyping(null); resolve(); }, durationMs));
+  };
+
+  const toggleVoice = () => {
+    const SpeechRecognition = (window as any).SpeechRecognition || (window as any).webkitSpeechRecognition;
+    if (!SpeechRecognition) {
+      toast.error("Voice input not supported in this browser. Try Chrome.");
+      return;
+    }
+    if (isRecording) {
+      recognitionRef.current?.stop();
+      setIsRecording(false);
+      return;
+    }
+    const recognition = new SpeechRecognition();
+    recognition.continuous = true;
+    recognition.interimResults = true;
+    recognition.lang = "en-US";
+    recognition.onresult = (event: any) => {
+      const transcript = Array.from(event.results).map((r: any) => r[0].transcript).join("");
+      setInput(transcript);
+    };
+    recognition.onend = () => setIsRecording(false);
+    recognition.onerror = () => setIsRecording(false);
+    recognitionRef.current = recognition;
+    recognition.start();
+    setIsRecording(true);
   };
 
   const handleSend = async () => {
@@ -2113,6 +2141,16 @@ const ConsoleThread = ({ embedded = false, onProjectNameChange }: ConsoleThreadP
             disabled={isInputDisabled}
             className="flex-1"
           />
+          <Button
+            variant="outline"
+            size="icon"
+            onClick={toggleVoice}
+            disabled={isInputDisabled}
+            className={cn(isRecording && "border-red-500 text-red-500 animate-pulse")}
+            title={isRecording ? "Stop recording" : "Speak your message"}
+          >
+            {isRecording ? <MicOff className="w-4 h-4" /> : <Mic className="w-4 h-4" />}
+          </Button>
           <Button
             onClick={handleSend}
             disabled={!input.trim() || isInputDisabled}

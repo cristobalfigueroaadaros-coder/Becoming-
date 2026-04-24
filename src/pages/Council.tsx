@@ -432,6 +432,7 @@ const Council = () => {
   // Sidebar content - shared between mobile and desktop
   // Determine if chats should be locked (only New Conversation visible initially)
   const [chatsLocked, setChatsLocked] = useState(true);
+  const [hoveredMentor, setHoveredMentor] = useState<string | null>(null);
 
   useEffect(() => {
     const checkChatLock = async () => {
@@ -459,11 +460,15 @@ const Council = () => {
           <button
             onClick={handleSelectIntake}
             className={cn(
-              "w-full flex items-center gap-3 p-3 rounded-lg transition-colors text-left",
+              "w-full flex items-center gap-3 p-3 rounded-lg transition-all duration-200 text-left",
               isIntake && !showMobileList
-                ? "bg-primary/10 text-primary" 
+                ? "border bg-primary/10 text-primary"
                 : "hover:bg-muted"
             )}
+            style={isIntake && !showMobileList ? {
+              borderColor: "hsl(265,90%,62%)",
+              boxShadow: "0 0 0 1px hsl(265 90% 62% / 0.30), 0 4px 16px hsl(265 90% 62% / 0.18)",
+            } : undefined}
           >
             <div className="w-10 h-10 rounded-full bg-primary/20 flex items-center justify-center">
               <span className="text-lg">✨</span>
@@ -482,13 +487,17 @@ const Council = () => {
           <button
             onClick={() => { if (chatsLocked) { toast("Complete your first conversation to unlock this.", { duration: 3000 }); return; } handleSelectConsole(); }}
             className={cn(
-              "w-full flex items-center gap-3 p-3 rounded-lg transition-colors text-left",
+              "w-full flex items-center gap-3 p-3 rounded-lg transition-all duration-200 text-left",
               chatsLocked
                 ? "opacity-40 cursor-not-allowed"
                 : isConsole && !showMobileList
-                  ? "bg-primary/10 text-primary" 
+                  ? "border bg-primary/10 text-primary"
                   : "hover:bg-muted"
             )}
+            style={!chatsLocked && isConsole && !showMobileList ? {
+              borderColor: "hsl(265,90%,62%)",
+              boxShadow: "0 0 0 1px hsl(265 90% 62% / 0.30), 0 4px 16px hsl(265 90% 62% / 0.18)",
+            } : undefined}
           >
             <div className="relative w-10 h-10 rounded-full bg-primary/20 flex items-center justify-center">
               <Users className="w-5 h-5 text-primary" />
@@ -513,13 +522,17 @@ const Council = () => {
               setShowMobileList(false);
             }}
             className={cn(
-              "w-full flex items-center gap-3 p-3 rounded-lg transition-colors text-left",
+              "w-full flex items-center gap-3 p-3 rounded-lg transition-all duration-200 text-left",
               chatsLocked
                 ? "opacity-40 cursor-not-allowed"
                 : isBuilderTeam && !showMobileList
-                  ? "bg-primary/10 text-primary" 
+                  ? "border bg-lime-500/10 text-lime-400"
                   : "hover:bg-muted"
             )}
+            style={!chatsLocked && isBuilderTeam && !showMobileList ? {
+              borderColor: "#84cc16",
+              boxShadow: "0 0 0 1px rgb(132 204 22 / 0.30), 0 4px 16px rgb(132 204 22 / 0.18)",
+            } : undefined}
           >
             <div className="relative w-10 h-10 rounded-full bg-lime-500/20 flex items-center justify-center">
               <Hammer className="w-5 h-5 text-lime-500" />
@@ -538,7 +551,7 @@ const Council = () => {
               navigate('/inner-self-council');
             }}
             className={cn(
-              "w-full flex items-center gap-3 p-3 rounded-lg transition-colors text-left",
+              "w-full flex items-center gap-3 p-3 rounded-lg transition-all duration-200 text-left",
               chatsLocked ? "opacity-40 cursor-not-allowed" : "hover:bg-muted"
             )}
           >
@@ -559,7 +572,7 @@ const Council = () => {
               navigate('/transmutation-council');
             }}
             className={cn(
-              "w-full flex items-center gap-3 p-3 rounded-lg transition-colors text-left",
+              "w-full flex items-center gap-3 p-3 rounded-lg transition-all duration-200 text-left",
               chatsLocked ? "opacity-40 cursor-not-allowed" : "hover:bg-muted"
             )}
           >
@@ -663,20 +676,30 @@ const Council = () => {
                   }
                   handleSelectMentor(mentorType);
                 }}
+                onMouseEnter={() => { if (!chatsLocked && !isSelected) setHoveredMentor(mentorType); }}
+                onMouseLeave={() => setHoveredMentor(null)}
                 className={cn(
-                  "w-full flex items-center gap-3 p-3 rounded-xl transition-all duration-200 text-left border",
+                  "w-full flex items-center gap-3 p-3 rounded-xl transition-all duration-200 text-left",
                   chatsLocked
                     ? lockedWithMessage
-                      ? "opacity-80 cursor-not-allowed border-destructive/30 bg-destructive/5"
-                      : "opacity-30 cursor-not-allowed border-white/5 bg-transparent"
-                    : isSelected
-                      ? "bg-card/80 cursor-pointer"
-                      : "border-white/8 bg-card/20 hover:bg-card/50 hover:border-white/15 cursor-pointer"
+                      ? "opacity-80 cursor-not-allowed"
+                      : "opacity-30 cursor-not-allowed"
+                    : "cursor-pointer"
                 )}
-                style={isSelected && !chatsLocked ? {
-                  borderColor: config.hex,
-                  boxShadow: `0 0 0 1px ${config.hex}30, 0 4px 16px ${config.hex}18`,
-                } : undefined}
+                style={
+                  chatsLocked && lockedWithMessage
+                    ? { boxShadow: "0 0 0 1px hsl(0 72% 55% / 0.30)", background: "hsl(0 72% 55% / 0.05)" }
+                    : !chatsLocked && isSelected
+                    ? {
+                        background: `linear-gradient(135deg, rgba(255,255,255,0.10) 0%, ${config.hex.replace("hsl(", "hsla(").replace(")", ", 0.45)")} 100%)`,
+                        backdropFilter: "blur(16px)",
+                        WebkitBackdropFilter: "blur(16px)",
+                        boxShadow: `0 0 0 1px ${config.hex.replace("hsl(", "hsla(").replace(")", ", 0.70)")}, 0 4px 20px ${config.hex.replace("hsl(", "hsla(").replace(")", ", 0.20)")}`,
+                      }
+                    : hoveredMentor === mentorType
+                    ? { boxShadow: `0 0 0 1px ${config.hex.replace("hsl(", "hsla(").replace(")", ", 0.55)")}` }
+                    : undefined
+                }
               >
                 <div
                   className="relative w-11 h-11 rounded-xl flex items-center justify-center flex-shrink-0"
