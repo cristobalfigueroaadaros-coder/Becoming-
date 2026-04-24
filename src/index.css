@@ -2,45 +2,44 @@
 @tailwind components;
 @tailwind utilities;
 
-/* Bcoming Design System — Soul Aurora */
-/* Medium lavender base. White glassmorphism. Saturated blobs. White text. */
-/* References: Soul movie UI, Bline, World Wide Web card */
+/* Bcoming Design System — Deep Night */
+/* Near-black purple base. Saturated glowing blobs. #7f70ff accent. White text. */
 
 @layer base {
   :root {
-    /* Deeper lavender — richer, more energy, better text contrast */
-    --background: 262 50% 56%;
-    --foreground: 0 0% 98%;
+    /* Deep night — almost black with purple depth */
+    --background: 262 55% 8%;
+    --foreground: 0 0% 96%;
 
-    /* Cards: lighter lavender glass */
-    --card: 265 48% 70%;
-    --card-foreground: 0 0% 98%;
+    /* Cards: dark glass */
+    --card: 265 50% 13%;
+    --card-foreground: 0 0% 96%;
 
-    --popover: 265 48% 70%;
-    --popover-foreground: 0 0% 98%;
+    --popover: 265 50% 13%;
+    --popover-foreground: 0 0% 96%;
 
-    /* Primary — Deep rich indigo (pops clearly on medium lavender) */
-    --primary: 265 72% 36%;
+    /* Primary — #7f70ff (hsl 246 100% 72%) — pops on dark bg */
+    --primary: 246 100% 72%;
     --primary-foreground: 0 0% 100%;
 
-    /* Secondary — Vibrant teal (Soul character accent) */
-    --secondary: 185 60% 52%;
+    /* Secondary — Teal */
+    --secondary: 185 55% 45%;
     --secondary-foreground: 0 0% 100%;
 
-    /* Accent — Energetic blue (blob energy, WWW reference) */
+    /* Accent — Blue */
     --accent: 224 78% 58%;
     --accent-foreground: 0 0% 100%;
 
-    --muted: 265 40% 52%;
-    --muted-foreground: 0 0% 92%;
+    --muted: 265 40% 16%;
+    --muted-foreground: 265 20% 62%;
 
     --destructive: 0 72% 55%;
     --destructive-foreground: 0 0% 100%;
 
     /* White borders — opacity via Tailwind modifiers creates glass frames */
     --border: 0 0% 100%;
-    --input: 265 45% 60%;
-    --ring: 265 72% 36%;
+    --input: 265 40% 16%;
+    --ring: 246 100% 72%;
 
     --radius: 0.75rem;
 
@@ -56,47 +55,47 @@
     --future-self-light: 330 50% 76%;
     --future-self-glow: 330 60% 88%;
 
-    /* Gradient palette — white, teal, rose (readable on lavender) */
+    /* Gradient palette */
     --gradient-start: 0 0% 100%;
-    --gradient-mid: 185 65% 78%;
-    --gradient-end: 330 58% 82%;
+    --gradient-mid: 246 80% 80%;
+    --gradient-end: 280 60% 72%;
 
     /* Gradients */
-    --gradient-primary: linear-gradient(135deg, hsl(0 0% 100%), hsl(185 65% 78%), hsl(330 58% 82%));
-    --gradient-accent: linear-gradient(135deg, hsl(265 72% 36%), hsl(224 78% 45%));
-    --gradient-glow: linear-gradient(135deg, hsl(0 0% 100% / 0.15), hsl(185 65% 78% / 0.10));
-    --gradient-surface: linear-gradient(180deg, hsl(0 0% 100% / 0.16), hsl(0 0% 100% / 0.06));
-    --gradient-cosmic: linear-gradient(135deg, hsl(262 50% 56%), hsl(248 52% 54%), hsl(278 48% 60%));
+    --gradient-primary: linear-gradient(135deg, hsl(0 0% 100%), hsl(246 80% 80%), hsl(280 60% 72%));
+    --gradient-accent: linear-gradient(135deg, hsl(246 100% 72%), hsl(224 78% 58%));
+    --gradient-glow: linear-gradient(135deg, hsl(0 0% 100% / 0.10), hsl(246 80% 72% / 0.08));
+    --gradient-surface: linear-gradient(180deg, hsl(0 0% 100% / 0.10), hsl(0 0% 100% / 0.04));
+    --gradient-cosmic: linear-gradient(135deg, hsl(262 55% 8%), hsl(248 60% 10%), hsl(278 55% 12%));
 
     /* Effects */
-    --shadow-glow-sm: 0 4px 20px hsl(265 60% 30% / 0.25);
-    --shadow-glow-md: 0 8px 40px hsl(265 60% 30% / 0.30);
-    --shadow-glow-lg: 0 12px 60px hsl(265 60% 30% / 0.35);
-    --shadow-soft: 0 4px 24px -4px hsl(265 50% 20% / 0.20);
-    --shadow-neon: 0 8px 30px hsl(0 0% 100% / 0.15), 0 2px 8px hsl(265 60% 30% / 0.20);
+    --shadow-glow-sm: 0 4px 20px hsl(246 80% 60% / 0.30);
+    --shadow-glow-md: 0 8px 40px hsl(246 80% 60% / 0.35);
+    --shadow-glow-lg: 0 12px 60px hsl(246 80% 60% / 0.40);
+    --shadow-soft: 0 4px 24px -4px hsl(246 80% 40% / 0.25);
+    --shadow-neon: 0 8px 30px hsl(246 80% 72% / 0.25), 0 2px 8px hsl(246 80% 40% / 0.20);
   }
 
   /* Dark class mirrors root */
   .dark {
-    --background: 262 50% 56%;
-    --foreground: 0 0% 98%;
-    --card: 265 48% 70%;
-    --card-foreground: 0 0% 98%;
-    --popover: 265 48% 70%;
-    --popover-foreground: 0 0% 98%;
-    --primary: 265 72% 36%;
+    --background: 262 55% 8%;
+    --foreground: 0 0% 96%;
+    --card: 265 50% 13%;
+    --card-foreground: 0 0% 96%;
+    --popover: 265 50% 13%;
+    --popover-foreground: 0 0% 96%;
+    --primary: 246 100% 72%;
     --primary-foreground: 0 0% 100%;
-    --secondary: 185 60% 52%;
+    --secondary: 185 55% 45%;
     --secondary-foreground: 0 0% 100%;
     --accent: 224 78% 58%;
     --accent-foreground: 0 0% 100%;
-    --muted: 265 40% 52%;
-    --muted-foreground: 0 0% 92%;
+    --muted: 265 40% 16%;
+    --muted-foreground: 265 20% 62%;
     --destructive: 0 72% 55%;
     --destructive-foreground: 0 0% 100%;
     --border: 0 0% 100%;
-    --input: 265 45% 60%;
-    --ring: 265 72% 36%;
+    --input: 265 40% 16%;
+    --ring: 246 100% 72%;
   }
 }
 
@@ -108,13 +107,13 @@
   body {
     @apply text-foreground;
     font-family: 'Plus Jakarta Sans', system-ui, sans-serif;
-    /* Energetic Soul aurora — saturated blobs on medium lavender */
+    /* Deep night aurora — saturated glowing blobs on near-black purple */
     background:
-      radial-gradient(ellipse at 18% 12%, hsl(325 68% 72% / 0.65) 0%, transparent 46%),
-      radial-gradient(ellipse at 80% 8%,  hsl(185 68% 65% / 0.55) 0%, transparent 42%),
-      radial-gradient(ellipse at 65% 75%, hsl(224 80% 65% / 0.55) 0%, transparent 45%),
-      radial-gradient(ellipse at 12% 80%, hsl(330 62% 74% / 0.50) 0%, transparent 40%),
-      radial-gradient(ellipse at 90% 55%, hsl(265 55% 55% / 0.42) 0%, transparent 36%),
+      radial-gradient(ellipse at 18% 12%, hsl(270 80% 60% / 0.45) 0%, transparent 46%),
+      radial-gradient(ellipse at 80% 8%,  hsl(240 90% 65% / 0.38) 0%, transparent 42%),
+      radial-gradient(ellipse at 65% 75%, hsl(280 75% 55% / 0.35) 0%, transparent 45%),
+      radial-gradient(ellipse at 12% 80%, hsl(246 85% 65% / 0.28) 0%, transparent 40%),
+      radial-gradient(ellipse at 90% 55%, hsl(265 70% 50% / 0.22) 0%, transparent 36%),
       hsl(var(--background));
     background-attachment: fixed;
   }
@@ -128,27 +127,27 @@
   }
 }
 
-/* Utility classes — Soul Aurora system */
+/* Utility classes — Deep Night system */
 @layer utilities {
   /* Colored glow for accents */
   .glow-purple {
-    box-shadow: 0 8px 32px hsl(265 60% 30% / 0.35), 0 2px 8px hsl(0 0% 100% / 0.12);
+    box-shadow: 0 8px 32px hsl(246 80% 60% / 0.50), 0 2px 8px hsl(0 0% 100% / 0.10);
   }
 
   .glow-purple-sm {
-    box-shadow: 0 4px 16px hsl(265 60% 30% / 0.28), 0 1px 4px hsl(0 0% 100% / 0.10);
+    box-shadow: 0 4px 16px hsl(246 80% 60% / 0.38), 0 1px 4px hsl(0 0% 100% / 0.08);
   }
 
   .glow-blue {
-    box-shadow: 0 8px 32px hsl(224 78% 58% / 0.35), 0 2px 8px hsl(0 0% 100% / 0.12);
+    box-shadow: 0 8px 32px hsl(224 78% 58% / 0.40), 0 2px 8px hsl(0 0% 100% / 0.10);
   }
 
   .glow-gold {
-    box-shadow: 0 8px 32px hsl(38 78% 58% / 0.30), 0 2px 8px hsl(38 78% 58% / 0.15);
+    box-shadow: 0 8px 32px hsl(38 78% 58% / 0.35), 0 2px 8px hsl(38 78% 58% / 0.15);
   }
 
   .glow-magenta {
-    box-shadow: 0 8px 32px hsl(325 68% 65% / 0.35), 0 2px 8px hsl(0 0% 100% / 0.12);
+    box-shadow: 0 8px 32px hsl(325 68% 65% / 0.40), 0 2px 8px hsl(0 0% 100% / 0.10);
   }
 
   /* Text glow — white luminance */
@@ -156,34 +155,33 @@
     text-shadow: 0 0 30px hsl(0 0% 100% / 0.50);
   }
 
-  /* Gradient text — white to teal to rose (readable on lavender) */
+  /* Gradient text — white to purple */
   .gradient-text {
     @apply bg-clip-text text-transparent;
-    background-image: linear-gradient(135deg, hsl(0 0% 100%), hsl(185 68% 78%), hsl(330 60% 82%));
+    background-image: linear-gradient(135deg, hsl(0 0% 100%), hsl(246 80% 80%), hsl(280 60% 72%));
   }
 
   .gradient-text-warm {
     @apply bg-clip-text text-transparent;
-    background-image: linear-gradient(135deg, hsl(0 0% 100%), hsl(265 55% 82%));
+    background-image: linear-gradient(135deg, hsl(0 0% 100%), hsl(246 80% 85%));
   }
 
-  /* Glassmorphism — frosted white panels on colored background */
-  /* This is the white-frame glassy style from the references */
+  /* Glassmorphism — dark glass panels */
   .glass {
-    background: hsl(0 0% 100% / 0.14);
+    background: hsl(0 0% 100% / 0.08);
     backdrop-filter: blur(20px);
     -webkit-backdrop-filter: blur(20px);
-    border: 1px solid hsl(0 0% 100% / 0.32);
+    border: 1px solid hsl(0 0% 100% / 0.18);
   }
 
   .glass-strong {
-    background: hsl(0 0% 100% / 0.22);
+    background: hsl(0 0% 100% / 0.13);
     backdrop-filter: blur(30px);
     -webkit-backdrop-filter: blur(30px);
-    border: 1px solid hsl(0 0% 100% / 0.45);
+    border: 1px solid hsl(0 0% 100% / 0.28);
   }
 
-  /* Gradient border — white glass frame */
+  /* Gradient border — purple glass frame */
   .gradient-border {
     position: relative;
   }
@@ -194,37 +192,37 @@
     inset: 0;
     border-radius: inherit;
     padding: 1px;
-    background: linear-gradient(135deg, hsl(0 0% 100% / 0.55), hsl(185 65% 78% / 0.40), hsl(330 58% 80% / 0.35));
+    background: linear-gradient(135deg, hsl(0 0% 100% / 0.40), hsl(246 80% 72% / 0.35), hsl(280 60% 70% / 0.25));
     -webkit-mask: linear-gradient(#fff 0 0) content-box, linear-gradient(#fff 0 0);
     -webkit-mask-composite: xor;
     mask-composite: exclude;
     pointer-events: none;
   }
 
-  /* Aurora background (for sections) */
+  /* Dark cosmic background */
   .bg-cosmic {
     background:
-      radial-gradient(ellipse at 25% 20%, hsl(325 65% 72% / 0.55) 0%, transparent 48%),
-      radial-gradient(ellipse at 75% 35%, hsl(185 65% 65% / 0.45) 0%, transparent 44%),
-      radial-gradient(ellipse at 40% 72%, hsl(224 78% 65% / 0.45) 0%, transparent 45%),
-      radial-gradient(ellipse at 85% 80%, hsl(330 62% 72% / 0.38) 0%, transparent 40%),
-      radial-gradient(ellipse at 10% 62%, hsl(265 55% 58% / 0.35) 0%, transparent 38%),
+      radial-gradient(ellipse at 25% 20%, hsl(270 80% 60% / 0.40) 0%, transparent 48%),
+      radial-gradient(ellipse at 75% 35%, hsl(240 90% 65% / 0.32) 0%, transparent 44%),
+      radial-gradient(ellipse at 40% 72%, hsl(280 75% 55% / 0.28) 0%, transparent 45%),
+      radial-gradient(ellipse at 85% 80%, hsl(246 85% 65% / 0.22) 0%, transparent 40%),
+      radial-gradient(ellipse at 10% 62%, hsl(265 70% 50% / 0.18) 0%, transparent 38%),
       hsl(var(--background));
   }
 
   /* Button gradient — white-to-#7f70ff glass degradé */
   .btn-gradient {
-    background: linear-gradient(135deg, hsl(0 0% 100% / 0.45) 0%, hsl(246 100% 72% / 0.50) 100%);
+    background: linear-gradient(135deg, hsl(0 0% 100% / 0.22) 0%, hsl(246 100% 72% / 0.85) 100%);
     backdrop-filter: blur(16px);
     -webkit-backdrop-filter: blur(16px);
-    border: 1px solid hsl(0 0% 100% / 0.55);
+    border: 1px solid hsl(0 0% 100% / 0.40);
     color: white;
     transition: background 0.15s ease-out, box-shadow 0.15s ease-out, transform 0.15s ease-out;
   }
 
   .btn-gradient:hover {
-    background: linear-gradient(135deg, hsl(0 0% 100% / 0.58) 0%, hsl(246 100% 72% / 0.65) 100%);
-    box-shadow: 0 8px 32px hsl(246 80% 68% / 0.45), 0 2px 8px hsl(0 0% 100% / 0.20);
+    background: linear-gradient(135deg, hsl(0 0% 100% / 0.30) 0%, hsl(246 100% 72% / 0.98) 100%);
+    box-shadow: 0 8px 32px hsl(246 100% 72% / 0.55), 0 2px 8px hsl(0 0% 100% / 0.15);
     transform: translateY(-1px);
   }
 
@@ -237,9 +235,9 @@
     filter: drop-shadow(0 0 4px hsl(0 0% 100% / 0.40));
   }
 
-  /* Dark glass nav — high contrast for white text */
+  /* Dark glass nav — near-black for maximum text contrast */
   .nav-glass-dark {
-    background: hsl(265 65% 22% / 0.90);
+    background: hsl(262 60% 5% / 0.96);
     backdrop-filter: blur(24px);
     -webkit-backdrop-filter: blur(24px);
   }
