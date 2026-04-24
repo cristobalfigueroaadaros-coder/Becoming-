@@ -9,6 +9,7 @@ import { IntegratorDailyStepCard } from "@/components/integrator/IntegratorDaily
 import { ProjectHeaderEditor } from "@/components/integrator/ProjectHeaderEditor";
 import { CatchUpMode } from "@/components/integrator/CatchUpMode";
 import { CelebrationMoment } from "@/components/integrator/CelebrationMoment";
+import { FocusProjectStructure } from "@/components/integrator/FocusProjectStructure";
 import { CreativeSpace } from "@/components/creative-space";
 import { DesignThinkingLab } from "@/components/design-thinking-lab";
 import type { IntegratorProject, IntegratorPhase, IntegratorDailyStep } from "@/hooks/useIntegratorProjects";
@@ -148,6 +149,9 @@ export const FocusMode = ({
         onProjectUpdate={onProjectUpdate}
       />
 
+      {/* Project Structure — placed right under the project name */}
+      <FocusProjectStructure projectId={activeProject.id} />
+
       {/* Simple Progress Bar (replaces phase timeline) */}
       <Card>
         <CardContent className="pt-6">
@@ -206,22 +210,24 @@ export const FocusMode = ({
 
       {/* Calendar View */}
       <Card>
-        <CardHeader>
-          <CardTitle className="text-lg flex items-center gap-2">
-            <Calendar className="w-5 h-5" />
+        <CardHeader className="pb-2">
+          <CardTitle className="text-base flex items-center gap-2">
+            <Calendar className="w-4 h-4" />
             Your Journey Calendar
           </CardTitle>
-          <CardDescription>
+          <CardDescription className="text-xs">
             Click any day to see details or add insights
           </CardDescription>
         </CardHeader>
-        <CardContent>
-          <IntegratorCalendar
-            steps={steps}
-            phases={phases}
-            onCompleteStep={onCompleteStep}
-            currentDay={activeProject.current_day}
-          />
+        <CardContent className="pt-2">
+          <div className="max-w-md mx-auto text-xs">
+            <IntegratorCalendar
+              steps={steps}
+              phases={phases}
+              onCompleteStep={onCompleteStep}
+              currentDay={activeProject.current_day}
+            />
+          </div>
         </CardContent>
       </Card>
 

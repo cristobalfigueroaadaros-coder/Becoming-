@@ -651,7 +651,9 @@ const Council = () => {
             const config = mentorConfig[mentorType] || { 
               name: mentorType, 
               color: "bg-muted", 
-              icon: "👤" 
+              icon: "👤",
+              hex: "hsl(var(--muted-foreground))",
+              archetype: "",
             };
             const notifications = mentorNotifications[mentorType] || 0;
             const hasFollowup = insightFollowupMentors.has(mentorType);
