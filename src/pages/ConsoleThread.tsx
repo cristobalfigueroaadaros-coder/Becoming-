@@ -1107,6 +1107,29 @@ const ConsoleThread = ({ embedded = false, onProjectNameChange }: ConsoleThreadP
       if (error) throw error;
 
       const perspectives = data.mentorPerspectives || {};
+      const perspectiveCount = Object.keys(perspectives).length;
+
+      // SAFETY NET: if AI Gateway calls all failed (rate-limit / credits / network),
+      // perspectives is empty and the user would see nothing after "Your council is ready".
+      // Surface a clear retry path instead of leaving them stuck.
+      if (perspectiveCount === 0) {
+        console.error("Council meeting returned 0 perspectives — AI gateway likely failed for all mentors", { data });
+        toast.error("The council had trouble loading. Tap retry to try again.");
+        await showTyping("future_self", 800);
+        addSystemMessage(
+          "The council had trouble gathering. Type \"retry\" and I'll bring them in again.",
+          "future_self",
+          "council_accepted"
+        );
+        // Reset so the user can retry: keep councilAccepted=true, but flip councilMeetingRan
+        // back to false so the next message re-runs the meeting.
+        setCouncilMeetingRan(false);
+        const retryPhase: Phase = "council_accepted";
+        setPhase(retryPhase);
+        persistPhase(retryPhase);
+        return;
+      }
+
       const perspPhase: Phase = "perspectives";
       setPhase(perspPhase);
       persistPhase(perspPhase);
