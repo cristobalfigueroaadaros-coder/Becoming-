@@ -9,6 +9,7 @@ import { IntegratorDailyStepCard } from "@/components/integrator/IntegratorDaily
 import { ProjectHeaderEditor } from "@/components/integrator/ProjectHeaderEditor";
 import { CatchUpMode } from "@/components/integrator/CatchUpMode";
 import { CelebrationMoment } from "@/components/integrator/CelebrationMoment";
+import { FocusProjectStructure } from "@/components/integrator/FocusProjectStructure";
 import { CreativeSpace } from "@/components/creative-space";
 import { DesignThinkingLab } from "@/components/design-thinking-lab";
 import type { IntegratorProject, IntegratorPhase, IntegratorDailyStep } from "@/hooks/useIntegratorProjects";
