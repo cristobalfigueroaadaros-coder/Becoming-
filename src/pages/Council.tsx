@@ -58,35 +58,32 @@ const allMentorTypes = [
   "storybreaker_mentor", "phoenix_mentor", "stoic_mentor"
 ];
 
-// Mentor configuration with colors
-const mentorConfig: Record<string, { name: string; color: string; icon: string }> = {
-  discipline_mentor: { name: "Discipline Mentor", color: "bg-orange-500", icon: "🎯" },
-  strategist_mentor: { name: "Strategist Mentor", color: "bg-blue-500", icon: "♟️" },
-  creative_visionary: { name: "Creative Visionary", color: "bg-purple-500", icon: "🎨" },
-  quantum_inventor: { name: "Quantum Inventor", color: "bg-cyan-500", icon: "⚡" },
-  mystic_mentor: { name: "Mystic Mentor", color: "bg-indigo-500", icon: "🔮" },
-  business_mentor: { name: "Business Mentor", color: "bg-green-500", icon: "📈" },
-  marketing_mentor: { name: "Marketing Mentor", color: "bg-pink-500", icon: "📣" },
-  scientific_mentor: { name: "Scientific Mentor", color: "bg-teal-500", icon: "🔬" },
-  heart_mentor: { name: "Heart Mentor", color: "bg-rose-500", icon: "💗" },
-  ancient_sage: { name: "Ancient Sage", color: "bg-amber-600", icon: "📜" },
-  alignment_mentor: { name: "Alignment Mentor", color: "bg-emerald-500", icon: "🧭" },
-  oracle_mother: { name: "Oracle Mother", color: "bg-violet-500", icon: "🌙" },
-  future_self: { name: "Future Self", color: "bg-primary", icon: "✨" },
-  // New mentors from PDR expansion
-  perspective_mentor: { name: "Perspective Mentor", color: "bg-sky-500", icon: "🗺️" },
-  challenger_mentor: { name: "Challenger Mentor", color: "bg-red-600", icon: "⚔️" },
-  design_thinking_mentor: { name: "Design Thinking Mentor", color: "bg-lime-500", icon: "🧪" },
-  ux_mentor: { name: "UX Mentor", color: "bg-fuchsia-500", icon: "💜" },
-  gamification_mentor: { name: "Gamification Mentor", color: "bg-yellow-500", icon: "🎮" },
-  // Clarity & Understanding mentors
-  problem_mentor: { name: "Problem Mentor", color: "bg-slate-600", icon: "🔍" },
-  inner_clarity_mentor: { name: "Inner Clarity Mentor", color: "bg-indigo-600", icon: "🪞" },
-  release_mentor: { name: "Release Mentor", color: "bg-teal-600", icon: "🌊" },
-  // Transmutation Council mentors
-  storybreaker_mentor: { name: "Storybreaker Mentor", color: "bg-rose-600", icon: "📖" },
-  phoenix_mentor: { name: "Phoenix Mentor", color: "bg-orange-500", icon: "🔥" },
-  stoic_mentor: { name: "Stoic Mentor", color: "bg-stone-600", icon: "⚖️" },
+// Mentor configuration — brand kit colors + archetypes
+const mentorConfig: Record<string, { name: string; color: string; hex: string; icon: string; archetype: string }> = {
+  discipline_mentor:      { name: "Discipline Mentor",      color: "bg-[hsl(330_80%_55%)]", hex: "hsl(330,80%,55%)",  icon: "🎯", archetype: "The Challenger — pushes your limits" },
+  strategist_mentor:      { name: "Strategist Mentor",      color: "bg-[hsl(220_90%_58%)]", hex: "hsl(220,90%,58%)",  icon: "♟️", archetype: "The Analyst — maps your patterns" },
+  creative_visionary:     { name: "Creative Visionary",     color: "bg-[hsl(280_75%_58%)]", hex: "hsl(280,75%,58%)",  icon: "🎨", archetype: "The Ideator — sparks imagination" },
+  quantum_inventor:       { name: "Quantum Inventor",       color: "bg-[hsl(220_90%_58%)]", hex: "hsl(220,90%,58%)",  icon: "⚡", archetype: "The Builder — turns ideas into reality" },
+  mystic_mentor:          { name: "Mystic Mentor",          color: "bg-[hsl(280_75%_58%)]", hex: "hsl(280,75%,58%)",  icon: "🔮", archetype: "The Intuitive — sees beyond the obvious" },
+  business_mentor:        { name: "Business Mentor",        color: "bg-[hsl(38_70%_55%)]",  hex: "hsl(38,70%,55%)",   icon: "📈", archetype: "The Guide — sees the whole path" },
+  marketing_mentor:       { name: "Marketing Mentor",       color: "bg-[hsl(320_75%_55%)]", hex: "hsl(320,75%,55%)",  icon: "📣", archetype: "The Amplifier — makes you visible" },
+  scientific_mentor:      { name: "Scientific Mentor",      color: "bg-[hsl(185_55%_45%)]", hex: "hsl(185,55%,45%)",  icon: "🔬", archetype: "The Researcher — finds the signal" },
+  heart_mentor:           { name: "Heart Mentor",           color: "bg-[hsl(330_80%_55%)]", hex: "hsl(330,80%,55%)",  icon: "💗", archetype: "The Nurturer — grounds you in truth" },
+  ancient_sage:           { name: "Ancient Sage",           color: "bg-[hsl(38_70%_55%)]",  hex: "hsl(38,70%,55%)",   icon: "📜", archetype: "The Wisdom keeper — grounds you" },
+  alignment_mentor:       { name: "Alignment Mentor",       color: "bg-[hsl(155_55%_48%)]", hex: "hsl(155,55%,48%)",  icon: "🧭", archetype: "The Integrator — connects the dots" },
+  oracle_mother:          { name: "Oracle Mother",          color: "bg-[hsl(265_90%_62%)]", hex: "hsl(265,90%,62%)",  icon: "🌙", archetype: "The Seer — reads what is unspoken" },
+  future_self:            { name: "Future Self",            color: "bg-[hsl(330_85%_60%)]", hex: "hsl(330,85%,60%)",  icon: "✨", archetype: "The Vision — who you are becoming" },
+  perspective_mentor:     { name: "Perspective Mentor",     color: "bg-[hsl(200_85%_52%)]", hex: "hsl(200,85%,52%)",  icon: "🗺️", archetype: "The Reframer — shifts your angle" },
+  challenger_mentor:      { name: "Challenger Mentor",      color: "bg-[hsl(330_80%_55%)]", hex: "hsl(330,80%,55%)",  icon: "⚔️", archetype: "The Challenger — pushes your limits" },
+  design_thinking_mentor: { name: "Design Thinking Mentor", color: "bg-[hsl(155_55%_48%)]", hex: "hsl(155,55%,48%)",  icon: "🧪", archetype: "The Prototyper — tests before building" },
+  ux_mentor:              { name: "UX Mentor",              color: "bg-[hsl(280_75%_58%)]", hex: "hsl(280,75%,58%)",  icon: "💜", archetype: "The Empath — designs for real people" },
+  gamification_mentor:    { name: "Gamification Mentor",    color: "bg-[hsl(38_70%_55%)]",  hex: "hsl(38,70%,55%)",   icon: "🎮", archetype: "The Playmaker — makes the work fun" },
+  problem_mentor:         { name: "Problem Mentor",         color: "bg-[hsl(220_40%_50%)]", hex: "hsl(220,40%,50%)",  icon: "🔍", archetype: "The Solver — breaks problems apart" },
+  inner_clarity_mentor:   { name: "Inner Clarity Mentor",   color: "bg-[hsl(265_90%_62%)]", hex: "hsl(265,90%,62%)",  icon: "🪞", archetype: "The Mirror — reflects back truth" },
+  release_mentor:         { name: "Release Mentor",         color: "bg-[hsl(185_55%_45%)]", hex: "hsl(185,55%,45%)",  icon: "🌊", archetype: "The Liberator — frees what holds you back" },
+  storybreaker_mentor:    { name: "Storybreaker Mentor",    color: "bg-[hsl(330_80%_55%)]", hex: "hsl(330,80%,55%)",  icon: "📖", archetype: "The Narrator — rewrites your story" },
+  phoenix_mentor:         { name: "Phoenix Mentor",         color: "bg-[hsl(25_90%_55%)]",  hex: "hsl(25,90%,55%)",   icon: "🔥", archetype: "The Transformer — rises through fire" },
+  stoic_mentor:           { name: "Stoic Mentor",           color: "bg-[hsl(220_20%_48%)]", hex: "hsl(220,20%,48%)",  icon: "⚖️", archetype: "The Steadfast — holds the centre" },
 };
 
 const Council = () => {
@@ -667,34 +664,44 @@ const Council = () => {
                   handleSelectMentor(mentorType);
                 }}
                 className={cn(
-                  "w-full flex items-center gap-3 p-3 rounded-lg transition-colors text-left",
+                  "w-full flex items-center gap-3 p-3 rounded-xl transition-all duration-200 text-left border",
                   chatsLocked
                     ? lockedWithMessage
-                      ? "opacity-80 cursor-not-allowed ring-1 ring-destructive/30 bg-destructive/5"
-                      : "opacity-40 cursor-not-allowed"
-                    : isSelected ? "bg-primary/10 text-primary" : "hover:bg-muted cursor-pointer"
+                      ? "opacity-80 cursor-not-allowed border-destructive/30 bg-destructive/5"
+                      : "opacity-30 cursor-not-allowed border-white/5 bg-transparent"
+                    : isSelected
+                      ? "bg-card/80 cursor-pointer"
+                      : "border-white/8 bg-card/20 hover:bg-card/50 hover:border-white/15 cursor-pointer"
                 )}
+                style={isSelected && !chatsLocked ? {
+                  borderColor: config.hex,
+                  boxShadow: `0 0 0 1px ${config.hex}30, 0 4px 16px ${config.hex}18`,
+                } : undefined}
               >
-                <div className={cn(
-                  "relative w-10 h-10 rounded-full flex items-center justify-center",
-                  config.color
-                )}>
+                <div
+                  className="relative w-11 h-11 rounded-xl flex items-center justify-center flex-shrink-0"
+                  style={{ backgroundColor: `color-mix(in srgb, ${config.hex} 22%, transparent)` }}
+                >
                   <span className="text-lg">{config.icon}</span>
                   {chatsLocked && <Lock className="w-3 h-3 absolute -bottom-0.5 -right-0.5 text-muted-foreground/60" />}
                 </div>
                 <div className="flex-1 min-w-0">
-                  <p className="font-medium truncate">{config.name}</p>
-                  {lockedWithMessage && (
+                  <p className="text-sm font-semibold text-foreground truncate">{config.name}</p>
+                  {lockedWithMessage ? (
                     <p className="text-xs text-destructive/80 truncate">Message waiting...</p>
+                  ) : (
+                    <p className="text-xs text-muted-foreground truncate">{config.archetype}</p>
                   )}
                 </div>
-                {notifications > 0 && (
-                  <Badge
-                    variant="destructive"
-                    className="rounded-full px-2"
-                  >
+                {notifications > 0 ? (
+                  <Badge variant="destructive" className="rounded-full px-2 flex-shrink-0">
                     {notifications}
                   </Badge>
+                ) : (
+                  <div
+                    className="w-2 h-2 rounded-full flex-shrink-0 opacity-70"
+                    style={{ backgroundColor: config.hex }}
+                  />
                 )}
               </button>
             );
