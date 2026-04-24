@@ -14,8 +14,8 @@ export default {
     },
     extend: {
       fontFamily: {
-        sora: ["Instrument Serif", "Georgia", "serif"],
-        inter: ["Plus Jakarta Sans", "system-ui", "sans-serif"],
+        sora: ["Sora", "system-ui", "sans-serif"],
+        inter: ["Inter", "system-ui", "sans-serif"],
       },
       colors: {
         border: "hsl(var(--border))",

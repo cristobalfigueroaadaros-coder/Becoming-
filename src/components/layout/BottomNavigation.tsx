@@ -119,16 +119,16 @@ export const BottomNavigation = () => {
                     <Lock className="w-2.5 h-2.5 absolute -bottom-0.5 -right-0.5 text-muted-foreground/50" />
                   </div>
                 ) : isOnboardingHighlighted ? (
-                  <div className={cn("p-1.5 rounded-xl transition-all duration-300 bg-primary/20 shadow-[0_0_20px_hsl(246_80%_70%/0.4)]")}>
+                  <div className={cn("p-1.5 rounded-xl transition-all duration-300 bg-primary/20 shadow-[0_0_20px_hsl(265_90%_62%/0.4)]")}>
                     <Icon className="w-5 h-5 text-primary drop-shadow-[0_0_8px_hsl(265_90%_62%/0.5)]" />
                   </div>
                 ) : (
                   <>
                     <div className={cn(
                       "p-1.5 rounded-xl transition-all duration-200",
-                      active && "bg-primary/15 shadow-[0_0_15px_hsl(246_80%_70%/0.3)]"
+                      active && "bg-primary/15 shadow-[0_0_15px_hsl(265_90%_62%/0.3)]"
                     )}>
-                      <Icon className={cn("w-5 h-5", active && "text-primary drop-shadow-[0_0_8px_hsl(246_80%_70%/0.6)]")} />
+                      <Icon className={cn("w-5 h-5", active && "text-primary drop-shadow-[0_0_8px_hsl(265_90%_62%/0.6)]")} />
                     </div>
                     {showBadge && (
                       <span className="absolute -top-1 -right-1 w-4 h-4 rounded-full bg-destructive text-destructive-foreground text-[10px] font-bold flex items-center justify-center animate-pulse shadow-[0_0_8px_hsl(0_72%_55%/0.4)]">

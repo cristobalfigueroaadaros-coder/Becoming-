@@ -2,100 +2,104 @@
 @tailwind components;
 @tailwind utilities;
 
-/* Bcoming Design System — Deep Night */
-/* Near-black purple base. Saturated glowing blobs. #7f70ff accent. White text. */
+/* Bcoming Design System — Deep Night × Brand Kit v1 */
+/* Near-black purple base. Brand Kit violet. Option C electric violet accent. Sora + Inter. */
 
 @layer base {
   :root {
-    /* Deep night — almost black with purple depth */
+    /* Deep night canvas — warm dark purple */
     --background: 262 55% 8%;
     --foreground: 0 0% 96%;
 
-    /* Cards: dark glass */
-    --card: 265 50% 13%;
+    /* Cards: dark glass surface */
+    --card: 265 45% 12%;
     --card-foreground: 0 0% 96%;
 
-    --popover: 265 50% 13%;
+    --popover: 265 45% 12%;
     --popover-foreground: 0 0% 96%;
 
-    /* Primary — #7f70ff (hsl 246 100% 72%) — pops on dark bg */
-    --primary: 246 100% 72%;
+    /* Primary — Brand Kit violet hsl(265,90%,62%) = #8b4ff5 */
+    --primary: 265 90% 62%;
     --primary-foreground: 0 0% 100%;
 
-    /* Secondary — Teal */
-    --secondary: 185 55% 45%;
+    /* Secondary — Electric blue from brand kit */
+    --secondary: 220 95% 58%;
     --secondary-foreground: 0 0% 100%;
 
-    /* Accent — Blue */
-    --accent: 224 78% 58%;
+    /* Accent — Brand Kit gold (rare accent only, never CTAs) */
+    --accent: 38 92% 58%;
     --accent-foreground: 0 0% 100%;
 
-    --muted: 265 40% 16%;
-    --muted-foreground: 265 20% 62%;
+    --muted: 265 35% 16%;
+    --muted-foreground: 265 15% 65%;
 
     --destructive: 0 72% 55%;
     --destructive-foreground: 0 0% 100%;
 
-    /* White borders — opacity via Tailwind modifiers creates glass frames */
+    /* White borders — opacity via Tailwind modifiers */
     --border: 0 0% 100%;
-    --input: 265 40% 16%;
-    --ring: 246 100% 72%;
+    --input: 265 35% 16%;
+    --ring: 265 90% 62%;
 
     --radius: 0.75rem;
 
-    /* Mentor colors */
-    --mamba: 330 62% 65%;
-    --creative: 280 52% 65%;
-    --quantum: 220 65% 62%;
-    --sage: 152 48% 52%;
-    --elder: 38 68% 58%;
+    /* Mentor colors — brand kit palette */
+    --mamba: 330 80% 55%;
+    --creative: 280 75% 58%;
+    --quantum: 220 90% 58%;
+    --sage: 155 55% 48%;
+    --elder: 38 70% 55%;
 
     /* Future Self */
-    --future-self: 330 60% 68%;
-    --future-self-light: 330 50% 76%;
-    --future-self-glow: 330 60% 88%;
+    --future-self: 330 85% 60%;
+    --future-self-light: 330 75% 70%;
+    --future-self-glow: 330 80% 82%;
+
+    /* Option C — Electric Violet — accent text, key brand moments */
+    --option-c: 270 90% 75%;
+    --option-c-glow: 270 90% 65%;
 
     /* Gradient palette */
-    --gradient-start: 0 0% 100%;
-    --gradient-mid: 246 80% 80%;
-    --gradient-end: 280 60% 72%;
+    --gradient-start: 220 95% 65%;
+    --gradient-mid: 265 90% 68%;
+    --gradient-end: 320 80% 60%;
 
-    /* Gradients */
-    --gradient-primary: linear-gradient(135deg, hsl(0 0% 100%), hsl(246 80% 80%), hsl(280 60% 72%));
-    --gradient-accent: linear-gradient(135deg, hsl(246 100% 72%), hsl(224 78% 58%));
-    --gradient-glow: linear-gradient(135deg, hsl(0 0% 100% / 0.10), hsl(246 80% 72% / 0.08));
-    --gradient-surface: linear-gradient(180deg, hsl(0 0% 100% / 0.10), hsl(0 0% 100% / 0.04));
-    --gradient-cosmic: linear-gradient(135deg, hsl(262 55% 8%), hsl(248 60% 10%), hsl(278 55% 12%));
+    /* Gradients — brand kit */
+    --gradient-primary: linear-gradient(135deg, hsl(220 95% 58%), hsl(265 90% 62%), hsl(320 80% 55%));
+    --gradient-accent: linear-gradient(135deg, hsl(38 92% 58%), hsl(28 95% 52%));
+    --gradient-glow: linear-gradient(135deg, hsl(265 90% 62% / 0.30), hsl(220 95% 58% / 0.10));
+    --gradient-surface: linear-gradient(180deg, hsl(265 45% 13%), hsl(262 55% 8%));
+    --gradient-cosmic: linear-gradient(135deg, hsl(262 55% 8%), hsl(265 50% 11%), hsl(270 45% 9%));
 
     /* Effects */
-    --shadow-glow-sm: 0 4px 20px hsl(246 80% 60% / 0.30);
-    --shadow-glow-md: 0 8px 40px hsl(246 80% 60% / 0.35);
-    --shadow-glow-lg: 0 12px 60px hsl(246 80% 60% / 0.40);
-    --shadow-soft: 0 4px 24px -4px hsl(246 80% 40% / 0.25);
-    --shadow-neon: 0 8px 30px hsl(246 80% 72% / 0.25), 0 2px 8px hsl(246 80% 40% / 0.20);
+    --shadow-glow-sm: 0 0 20px hsl(265 90% 62% / 0.20);
+    --shadow-glow-md: 0 0 40px hsl(265 90% 62% / 0.25);
+    --shadow-glow-lg: 0 0 80px hsl(265 90% 62% / 0.30);
+    --shadow-soft: 0 4px 24px -4px hsl(0 0% 0% / 0.40);
+    --shadow-neon: 0 0 30px hsl(265 90% 62% / 0.35), 0 0 60px hsl(265 90% 62% / 0.12);
   }
 
   /* Dark class mirrors root */
   .dark {
     --background: 262 55% 8%;
     --foreground: 0 0% 96%;
-    --card: 265 50% 13%;
+    --card: 265 45% 12%;
     --card-foreground: 0 0% 96%;
-    --popover: 265 50% 13%;
+    --popover: 265 45% 12%;
     --popover-foreground: 0 0% 96%;
-    --primary: 246 100% 72%;
+    --primary: 265 90% 62%;
     --primary-foreground: 0 0% 100%;
-    --secondary: 185 55% 45%;
+    --secondary: 220 95% 58%;
     --secondary-foreground: 0 0% 100%;
-    --accent: 224 78% 58%;
+    --accent: 38 92% 58%;
     --accent-foreground: 0 0% 100%;
-    --muted: 265 40% 16%;
-    --muted-foreground: 265 20% 62%;
+    --muted: 265 35% 16%;
+    --muted-foreground: 265 15% 65%;
     --destructive: 0 72% 55%;
     --destructive-foreground: 0 0% 100%;
     --border: 0 0% 100%;
-    --input: 265 40% 16%;
-    --ring: 246 100% 72%;
+    --input: 265 35% 16%;
+    --ring: 265 90% 62%;
   }
 }
 
@@ -106,82 +110,84 @@
 
   body {
     @apply text-foreground;
-    font-family: 'Plus Jakarta Sans', system-ui, sans-serif;
-    /* Deep night aurora — saturated glowing blobs on near-black purple */
+    font-family: 'Inter', system-ui, sans-serif;
+    /* Deep night aurora — saturated violet blobs on near-black canvas */
     background:
-      radial-gradient(ellipse at 18% 12%, hsl(270 80% 60% / 0.45) 0%, transparent 46%),
-      radial-gradient(ellipse at 80% 8%,  hsl(240 90% 65% / 0.38) 0%, transparent 42%),
-      radial-gradient(ellipse at 65% 75%, hsl(280 75% 55% / 0.35) 0%, transparent 45%),
-      radial-gradient(ellipse at 12% 80%, hsl(246 85% 65% / 0.28) 0%, transparent 40%),
-      radial-gradient(ellipse at 90% 55%, hsl(265 70% 50% / 0.22) 0%, transparent 36%),
+      radial-gradient(ellipse at 18% 12%, hsl(270 90% 55% / 0.45) 0%, transparent 46%),
+      radial-gradient(ellipse at 80% 8%,  hsl(220 95% 62% / 0.35) 0%, transparent 42%),
+      radial-gradient(ellipse at 65% 75%, hsl(320 80% 52% / 0.30) 0%, transparent 45%),
+      radial-gradient(ellipse at 12% 80%, hsl(265 90% 58% / 0.25) 0%, transparent 40%),
+      radial-gradient(ellipse at 90% 55%, hsl(270 75% 48% / 0.18) 0%, transparent 36%),
       hsl(var(--background));
     background-attachment: fixed;
   }
 
-  h1 {
-    font-family: 'Instrument Serif', Georgia, serif;
-  }
-
-  h2, h3, h4, h5, h6 {
-    font-family: 'Plus Jakarta Sans', system-ui, sans-serif;
+  h1, h2, h3, h4, h5, h6 {
+    font-family: 'Sora', system-ui, sans-serif;
   }
 }
 
-/* Utility classes — Deep Night system */
+/* Utility classes — Deep Night × Brand Kit */
 @layer utilities {
-  /* Colored glow for accents */
+  /* Option C electric violet text accent — for key brand moments */
+  .text-accent-c {
+    color: hsl(270 90% 75%);
+    text-shadow: 0 0 30px hsl(270 90% 65% / 0.55), 0 0 80px hsl(270 90% 65% / 0.20);
+  }
+
+  /* Colored glows */
   .glow-purple {
-    box-shadow: 0 8px 32px hsl(246 80% 60% / 0.50), 0 2px 8px hsl(0 0% 100% / 0.10);
+    box-shadow: 0 0 30px hsl(265 90% 62% / 0.40), 0 0 60px hsl(265 90% 62% / 0.15);
   }
 
   .glow-purple-sm {
-    box-shadow: 0 4px 16px hsl(246 80% 60% / 0.38), 0 1px 4px hsl(0 0% 100% / 0.08);
+    box-shadow: 0 0 20px hsl(265 90% 62% / 0.30), 0 0 40px hsl(265 90% 62% / 0.10);
   }
 
   .glow-blue {
-    box-shadow: 0 8px 32px hsl(224 78% 58% / 0.40), 0 2px 8px hsl(0 0% 100% / 0.10);
+    box-shadow: 0 0 30px hsl(220 95% 58% / 0.35), 0 0 60px hsl(220 95% 58% / 0.12);
   }
 
   .glow-gold {
-    box-shadow: 0 8px 32px hsl(38 78% 58% / 0.35), 0 2px 8px hsl(38 78% 58% / 0.15);
+    box-shadow: 0 0 30px hsl(38 92% 58% / 0.35), 0 0 60px hsl(38 92% 58% / 0.12);
   }
 
   .glow-magenta {
-    box-shadow: 0 8px 32px hsl(325 68% 65% / 0.40), 0 2px 8px hsl(0 0% 100% / 0.10);
+    box-shadow: 0 0 30px hsl(320 80% 55% / 0.40), 0 0 60px hsl(320 80% 55% / 0.15);
   }
 
-  /* Text glow — white luminance */
+  /* Text glow */
   .text-glow {
     text-shadow: 0 0 30px hsl(0 0% 100% / 0.50);
   }
 
-  /* Gradient text — white to purple */
+  /* Gradient text — Option C electric violet family */
   .gradient-text {
     @apply bg-clip-text text-transparent;
-    background-image: linear-gradient(135deg, hsl(0 0% 100%), hsl(246 80% 80%), hsl(280 60% 72%));
+    background-image: linear-gradient(135deg, hsl(0 0% 100%), hsl(270 90% 78%), hsl(320 80% 68%));
   }
 
   .gradient-text-warm {
     @apply bg-clip-text text-transparent;
-    background-image: linear-gradient(135deg, hsl(0 0% 100%), hsl(246 80% 85%));
+    background-image: linear-gradient(135deg, hsl(0 0% 100%), hsl(270 90% 82%));
   }
 
-  /* Glassmorphism — dark glass panels */
+  /* Glassmorphism — dark glass panels (brand kit bc-glass) */
   .glass {
-    background: hsl(0 0% 100% / 0.08);
+    background: hsl(265 45% 11% / 0.60);
     backdrop-filter: blur(20px);
     -webkit-backdrop-filter: blur(20px);
-    border: 1px solid hsl(0 0% 100% / 0.18);
+    border: 1px solid hsl(265 30% 30% / 0.50);
   }
 
   .glass-strong {
-    background: hsl(0 0% 100% / 0.13);
+    background: hsl(265 45% 13% / 0.80);
     backdrop-filter: blur(30px);
     -webkit-backdrop-filter: blur(30px);
-    border: 1px solid hsl(0 0% 100% / 0.28);
+    border: 1px solid hsl(265 30% 32% / 0.60);
   }
 
-  /* Gradient border — purple glass frame */
+  /* Gradient border — violet glass frame */
   .gradient-border {
     position: relative;
   }
@@ -192,7 +198,7 @@
     inset: 0;
     border-radius: inherit;
     padding: 1px;
-    background: linear-gradient(135deg, hsl(0 0% 100% / 0.40), hsl(246 80% 72% / 0.35), hsl(280 60% 70% / 0.25));
+    background: linear-gradient(135deg, hsl(220 95% 65% / 0.45), hsl(265 90% 68% / 0.40), hsl(320 80% 62% / 0.30));
     -webkit-mask: linear-gradient(#fff 0 0) content-box, linear-gradient(#fff 0 0);
     -webkit-mask-composite: xor;
     mask-composite: exclude;
@@ -202,42 +208,43 @@
   /* Dark cosmic background */
   .bg-cosmic {
     background:
-      radial-gradient(ellipse at 25% 20%, hsl(270 80% 60% / 0.40) 0%, transparent 48%),
-      radial-gradient(ellipse at 75% 35%, hsl(240 90% 65% / 0.32) 0%, transparent 44%),
-      radial-gradient(ellipse at 40% 72%, hsl(280 75% 55% / 0.28) 0%, transparent 45%),
-      radial-gradient(ellipse at 85% 80%, hsl(246 85% 65% / 0.22) 0%, transparent 40%),
-      radial-gradient(ellipse at 10% 62%, hsl(265 70% 50% / 0.18) 0%, transparent 38%),
+      radial-gradient(ellipse at 25% 20%, hsl(270 90% 55% / 0.40) 0%, transparent 48%),
+      radial-gradient(ellipse at 75% 35%, hsl(220 95% 62% / 0.30) 0%, transparent 44%),
+      radial-gradient(ellipse at 40% 72%, hsl(320 80% 52% / 0.25) 0%, transparent 45%),
+      radial-gradient(ellipse at 85% 80%, hsl(265 90% 58% / 0.20) 0%, transparent 40%),
+      radial-gradient(ellipse at 10% 62%, hsl(270 75% 48% / 0.15) 0%, transparent 38%),
       hsl(var(--background));
   }
 
-  /* Button gradient — white-to-#7f70ff glass degradé */
+  /* Button — brand kit glossy violet style */
+  /* Lighter violet left/top → deeper violet right/bottom + gloss highlight */
   .btn-gradient {
-    background: linear-gradient(135deg, hsl(0 0% 100% / 0.22) 0%, hsl(246 100% 72% / 0.85) 100%);
-    backdrop-filter: blur(16px);
-    -webkit-backdrop-filter: blur(16px);
-    border: 1px solid hsl(0 0% 100% / 0.40);
+    background: linear-gradient(135deg, hsl(270 90% 72%) 0%, hsl(265 90% 52%) 100%);
+    box-shadow: inset 0 1px 0 hsl(0 0% 100% / 0.28), inset 0 -1px 0 hsl(0 0% 0% / 0.20);
+    border: 1px solid hsl(265 60% 45% / 0.60);
     color: white;
-    transition: background 0.15s ease-out, box-shadow 0.15s ease-out, transform 0.15s ease-out;
+    transition: filter 0.15s ease-out, box-shadow 0.15s ease-out, transform 0.15s ease-out;
   }
 
   .btn-gradient:hover {
-    background: linear-gradient(135deg, hsl(0 0% 100% / 0.30) 0%, hsl(246 100% 72% / 0.98) 100%);
-    box-shadow: 0 8px 32px hsl(246 100% 72% / 0.55), 0 2px 8px hsl(0 0% 100% / 0.15);
+    filter: brightness(1.12);
+    box-shadow: inset 0 1px 0 hsl(0 0% 100% / 0.35), 0 0 30px hsl(265 90% 62% / 0.50), 0 0 60px hsl(265 90% 62% / 0.15);
     transform: translateY(-1px);
   }
 
   .btn-gradient:active {
     transform: scale(0.97);
+    filter: brightness(0.95);
   }
 
   /* Soft glow line */
   .neon-line {
-    filter: drop-shadow(0 0 4px hsl(0 0% 100% / 0.40));
+    filter: drop-shadow(0 0 4px hsl(265 90% 62% / 0.50));
   }
 
   /* Dark glass nav — near-black for maximum text contrast */
   .nav-glass-dark {
-    background: hsl(262 60% 5% / 0.96);
+    background: hsl(262 65% 5% / 0.96);
     backdrop-filter: blur(24px);
     -webkit-backdrop-filter: blur(24px);
   }
@@ -257,6 +264,7 @@
 
   .btn-gradient:hover {
     transform: none;
+    filter: brightness(1.12);
   }
 
   .btn-gradient:active {
