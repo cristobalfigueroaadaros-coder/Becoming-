@@ -1,6 +1,8 @@
 import { useEffect } from "react";
 import { motion } from "framer-motion";
 import { Compass, Users, FlaskConical, Globe } from "lucide-react";
+import { Button } from "@/components/ui/button";
+import { ArrowRight } from "lucide-react";
 
 interface AtlasOnboardingOverlayProps {
   onComplete: () => void;
@@ -16,9 +18,7 @@ const SECTIONS = [
 export const AtlasOnboardingOverlay = ({ onComplete }: AtlasOnboardingOverlayProps) => {
   useEffect(() => {
     window.dispatchEvent(new CustomEvent('atlas-onboarding-step', { detail: { step: 0 } }));
-    const timer = setTimeout(onComplete, 3000);
     return () => {
-      clearTimeout(timer);
       window.dispatchEvent(new CustomEvent('atlas-onboarding-step', { detail: { step: -1 } }));
     };
   }, [onComplete]);
@@ -60,6 +60,22 @@ export const AtlasOnboardingOverlay = ({ onComplete }: AtlasOnboardingOverlayPro
         <p className="text-sm text-muted-foreground leading-relaxed whitespace-pre-line">
           {"Everything starts here.\n\nYou answer simple quests\nand the system begins to understand who you are.\n\nYour strengths, your patterns, your direction."}
         </p>
+      </motion.div>
+
+      <motion.div
+        initial={{ opacity: 0, y: 12 }}
+        animate={{ opacity: 1, y: 0 }}
+        transition={{ duration: 0.5, delay: 0.8 }}
+        className="mt-10"
+      >
+        <Button
+          onClick={onComplete}
+          size="lg"
+          className="gap-2 px-8"
+        >
+          Continue
+          <ArrowRight className="w-4 h-4" />
+        </Button>
       </motion.div>
     </motion.div>
   );
