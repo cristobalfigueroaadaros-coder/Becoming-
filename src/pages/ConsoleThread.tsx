@@ -802,6 +802,11 @@ const ConsoleThread = ({ embedded = false, onProjectNameChange }: ConsoleThreadP
       // First "let's go" after council reveal — run initial council meeting
       setCouncilMeetingRan(true);
       await runCouncilMeeting();
+    } else if (phase === "council_accepted") {
+      // Retry path: previous council meeting failed (returned 0 perspectives).
+      // Any user message here re-runs the meeting.
+      setCouncilMeetingRan(true);
+      await runCouncilMeeting();
     } else if (phase === "user_reply") {
       await handleUserReply(text);
     } else if (phase === "handoff_offer") {
