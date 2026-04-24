@@ -192,9 +192,9 @@ const Index = () => {
       {/* Hero Section */}
       <section className="relative min-h-screen flex items-center justify-center pt-16">
         <div className="absolute inset-0 overflow-hidden">
-          <div className="absolute top-1/4 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[800px] h-[600px] rounded-full bg-[hsl(325_68%_72%/0.4)] blur-[100px]" />
-          <div className="absolute bottom-1/4 left-1/3 w-[400px] h-[400px] rounded-full bg-[hsl(185_68%_65%/0.35)] blur-[90px]" />
-          <div className="absolute top-1/3 right-1/4 w-[300px] h-[300px] rounded-full bg-[hsl(224_80%_65%/0.35)] blur-[80px]" />
+          <div className="absolute top-1/4 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[800px] h-[600px] rounded-full bg-[hsl(270_90%_55%/0.40)] blur-[100px]" />
+          <div className="absolute bottom-1/4 left-1/3 w-[400px] h-[400px] rounded-full bg-[hsl(220_95%_58%/0.28)] blur-[90px]" />
+          <div className="absolute top-1/3 right-1/4 w-[300px] h-[300px] rounded-full bg-[hsl(320_80%_52%/0.25)] blur-[80px]" />
         </div>
 
         <div className="relative z-10 max-w-5xl mx-auto px-6 text-center">
@@ -213,7 +213,7 @@ const Index = () => {
           >
             <span className="text-foreground">You know there's more in you.</span>
             <br />
-            <span className="gradient-text">This is how you find it.</span>
+            <span className="text-accent-c">This is how you find it.</span>
           </motion.h1>
 
           <motion.p
@@ -318,7 +318,7 @@ const Index = () => {
             <h2 className="font-sora text-3xl md:text-4xl font-bold mb-6 text-foreground">
               Where who you are
               <br />
-              <span className="gradient-text">becomes what you build.</span>
+              <span className="text-accent-c">becomes what you build.</span>
             </h2>
             <p className="text-lg text-muted-foreground leading-relaxed max-w-2xl mx-auto">
               Bcoming helps you connect your gifts, skills, and life experiences into something real. Through guided exploration and a personal council of AI mentors, your identity stops being a question and starts becoming your greatest asset.
