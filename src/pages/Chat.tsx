@@ -125,7 +125,7 @@ const mentorConfig: Record<string, { name: string; icon: string; color: string }
   ancient_sage:           { name: "Ancient Sage",            icon: "📜", color: "#d97706" },
   alignment_mentor:       { name: "Alignment Mentor",        icon: "🧭", color: "#10b981" },
   oracle_mother:          { name: "Oracle Mother",           icon: "🌙", color: "#8b5cf6" },
-  future_self:            { name: "Future Self",             icon: "✨", color: "hsl(var(--primary))" },
+  future_self:            { name: "Future Self",             icon: "✨", color: "#8b5cf6" },
   perspective_mentor:     { name: "Perspective Mentor",      icon: "🗺️", color: "#0ea5e9" },
   challenger_mentor:      { name: "Challenger Mentor",       icon: "⚔️", color: "#dc2626" },
   design_thinking_mentor: { name: "Design Thinking Mentor",  icon: "🧪", color: "#84cc16" },
@@ -1202,20 +1202,26 @@ const Chat = ({ mentorTypeOverride, embedded = false, locationState: propState }
 
           {messages.map((message, idx) => {
             const isLastAssistant = message.role === "assistant" && idx === messages.map(m => m.role).lastIndexOf("assistant");
+            const cfg = mentorType ? mentorConfig[mentorType] : undefined;
             return (
             <div key={message.id} className={cn("flex", message.role === "user" ? "justify-end" : "justify-start")}>
-              {message.role !== "user" && (() => {
-                const cfg = mentorType ? mentorConfig[mentorType] : undefined;
-                return cfg ? (
-                  <div
-                    className="w-8 h-8 rounded-full flex items-center justify-center shrink-0 text-sm mr-2.5 mt-1 self-start"
-                    style={{ backgroundColor: `${cfg.color}33` }}
-                  >
-                    {cfg.icon}
-                  </div>
-                ) : null;
-              })()}
-              <Card className={cn("max-w-[80%] p-4", message.role === "user" ? "btn-gradient text-white border-0" : "bg-card")}>
+              {message.role !== "user" && cfg && (
+                <div
+                  className="w-8 h-8 rounded-full flex items-center justify-center shrink-0 text-sm mr-2.5 mt-1 self-start"
+                  style={{ background: `linear-gradient(135deg, rgba(255,255,255,0.12) 0%, ${cfg.color}55 100%)`, boxShadow: `0 0 0 1px ${cfg.color}50` }}
+                >
+                  {cfg.icon}
+                </div>
+              )}
+              <Card
+                className={cn("max-w-[80%] p-4 border-0", message.role === "user" ? "btn-gradient text-white" : "")}
+                style={message.role !== "user" && cfg ? {
+                  background: `linear-gradient(135deg, rgba(255,255,255,0.08) 0%, ${cfg.color}40 100%)`,
+                  backdropFilter: "blur(16px)",
+                  WebkitBackdropFilter: "blur(16px)",
+                  boxShadow: `0 0 0 1px ${cfg.color}45, 0 4px 20px ${cfg.color}18`,
+                } : message.role !== "user" ? { background: "hsl(var(--card))" } : undefined}
+              >
                 {message.role === "user" ? (
                   <p className="whitespace-pre-wrap">{message.content}</p>
                 ) : (
@@ -1248,13 +1254,24 @@ const Chat = ({ mentorTypeOverride, embedded = false, locationState: propState }
                 return cfg ? (
                   <div
                     className="w-8 h-8 rounded-full flex items-center justify-center shrink-0 text-sm mr-2.5 mt-1 self-start"
-                    style={{ backgroundColor: `${cfg.color}33` }}
+                    style={{ background: `linear-gradient(135deg, rgba(255,255,255,0.12) 0%, ${cfg.color}55 100%)`, boxShadow: `0 0 0 1px ${cfg.color}50` }}
                   >
                     {cfg.icon}
                   </div>
                 ) : null;
               })()}
-              <Card className="max-w-[80%] px-5 py-4 bg-card">
+              <Card
+                className="max-w-[80%] px-5 py-4 border-0"
+                style={(() => {
+                  const cfg = mentorType ? mentorConfig[mentorType] : undefined;
+                  return cfg ? {
+                    background: `linear-gradient(135deg, rgba(255,255,255,0.08) 0%, ${cfg.color}40 100%)`,
+                    backdropFilter: "blur(16px)",
+                    WebkitBackdropFilter: "blur(16px)",
+                    boxShadow: `0 0 0 1px ${cfg.color}45`,
+                  } : { background: "hsl(var(--card))" };
+                })()}
+              >
                 <div className="flex items-center gap-1.5">
                   <span className="w-2 h-2 rounded-full bg-muted-foreground/60 animate-bounce [animation-delay:0ms]" />
                   <span className="w-2 h-2 rounded-full bg-muted-foreground/60 animate-bounce [animation-delay:150ms]" />

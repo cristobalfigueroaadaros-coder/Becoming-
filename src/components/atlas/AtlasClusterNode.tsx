@@ -54,14 +54,14 @@ export const AtlasClusterNode = ({ cluster, index, onTap, isHighlighted, miniDot
   const isGolden = cluster.slug === "golden-moments";
   const isProject = cluster.cluster_category === "project";
   const colors = isProject
-    ? { bg: "hsl(0, 75%, 55%)", glow: "hsl(0, 75%, 55%, 0.35)", border: "hsl(0, 75%, 45%)", gradient: "linear-gradient(135deg, hsl(0, 75%, 55%), hsl(350, 80%, 45%))" }
+    ? { bg: "hsl(0 75% 55%)", glow: "hsl(0 75% 55% / 0.35)", border: "hsl(0 75% 55% / 0.60)", gradient: "linear-gradient(135deg, rgba(255,255,255,0.15) 0%, hsl(0 75% 55% / 0.60) 100%)" }
     : isGolden
-    ? { bg: "hsl(40, 85%, 55%)", glow: "hsl(40, 85%, 55%, 0.35)", border: "hsl(40, 85%, 55%, 0.6)", gradient: "linear-gradient(135deg, hsl(40, 85%, 55%), hsl(30, 90%, 50%))" }
+    ? { bg: "hsl(40 85% 55%)", glow: "hsl(40 85% 55% / 0.35)", border: "hsl(40 85% 55% / 0.65)", gradient: "linear-gradient(135deg, rgba(255,255,255,0.15) 0%, hsl(40 85% 55% / 0.65) 100%)" }
     : {
         bg: DOMAIN_COLORS[domainName]?.bg || DOMAIN_COLORS.Person.bg,
         glow: DOMAIN_COLORS[domainName]?.glow || DOMAIN_COLORS.Person.glow,
         border: DOMAIN_COLORS[domainName]?.border || DOMAIN_COLORS.Person.border,
-        gradient: `linear-gradient(135deg, ${DOMAIN_COLORS[domainName]?.bg || "hsl(265, 90%, 62%)"}, ${DOMAIN_COLORS[domainName]?.border || "hsl(265, 80%, 50%)"})`,
+        gradient: `linear-gradient(135deg, rgba(255,255,255,0.15) 0%, ${(DOMAIN_COLORS[domainName]?.bg || "hsl(265 90% 62%)").replace(")", " / 0.60)")} 100%)`,
       };
   const state = cluster.computedState;
   const rawStyle = GROWTH_STYLES[state] || GROWTH_STYLES.dormant;
@@ -129,7 +129,7 @@ export const AtlasClusterNode = ({ cluster, index, onTap, isHighlighted, miniDot
         />
       )}
 
-      {/* Main circle — gradient fill */}
+      {/* Main circle — glass gradient fill */}
       <div
         className="absolute rounded-full transition-opacity duration-300"
         style={{
@@ -138,10 +138,12 @@ export const AtlasClusterNode = ({ cluster, index, onTap, isHighlighted, miniDot
           background: state === "locked"
             ? "hsl(232, 30%, 15%)"
             : colors.gradient,
+          backdropFilter: state !== "locked" ? "blur(10px)" : undefined,
+          WebkitBackdropFilter: state !== "locked" ? "blur(10px)" : undefined,
           border: `1.5px solid ${state === "locked" || state === "dormant" ? "hsl(232, 25%, 22%)" : colors.border}`,
           boxShadow: hasDepth && state !== "locked"
-            ? `0 0 ${style.glowSize + 10 + clusterMiniDotTotal * 2}px ${colors.glow}, inset 0 0 20px hsla(0, 0%, 100%, 0.05)`
-            : state !== "locked" ? `inset 0 0 20px hsla(0, 0%, 100%, 0.05)` : undefined,
+            ? `0 0 ${style.glowSize + 10 + clusterMiniDotTotal * 2}px ${colors.glow}, inset 0 1px 0 rgba(255,255,255,0.22)`
+            : state !== "locked" ? `inset 0 1px 0 rgba(255,255,255,0.22)` : undefined,
         }}
       />
 
