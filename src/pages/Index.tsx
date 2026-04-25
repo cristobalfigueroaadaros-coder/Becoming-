@@ -8,6 +8,7 @@ import { toast } from "sonner";
 import { motion } from "framer-motion";
 import { ArrowRight, Compass, Heart, MessageCircle, Rocket, Sparkles, Star, Users, Zap, Crown } from "lucide-react";
 import bcomingLogo from "@/assets/bcoming-logo.png";
+import { SparklesCore } from "@/components/ui/sparkles";
 
 const fadeUp = {
   hidden: { opacity: 0, y: 30 },
@@ -195,6 +196,15 @@ const Index = () => {
           <div className="absolute top-1/4 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[800px] h-[600px] rounded-full bg-primary/8 blur-[120px]" />
           <div className="absolute bottom-1/4 left-1/3 w-[400px] h-[400px] rounded-full bg-secondary/5 blur-[100px]" />
           <div className="absolute top-1/3 right-1/4 w-[300px] h-[300px] rounded-full bg-accent/5 blur-[80px]" />
+          <SparklesCore
+            background="transparent"
+            minSize={0.4}
+            maxSize={1.2}
+            particleDensity={60}
+            className="absolute inset-0 w-full h-full"
+            particleColor="#a78bfa"
+            speed={1.5}
+          />
         </div>
 
         <div className="relative z-10 max-w-5xl mx-auto px-6 text-center">
