@@ -78,43 +78,43 @@ const Index = () => {
       icon: Compass,
       title: "Atlas",
       description:
-        "Discover and connect your skills, passions, frustrations, and life patterns through guided quests that reveal who you truly are.",
+        "A visual map of everything inside you. Your life events, passions, aha moments, and gifts become a living picture that only you could have.",
     },
     {
       icon: MessageCircle,
       title: "AI Mentors",
       description:
-        "A personalized council of mentors that learns from your journey and guides you with wisdom that actually fits where you are.",
+        "Seven advisors assembled from what your Atlas reveals. Each one sees you from a different angle. They do not wait for you to come to them.",
     },
     {
       icon: Rocket,
       title: "Creation Lab",
       description:
-        "Turn what you discover into real projects, with structure, tools, and step-by-step guidance to help you build and ship.",
+        "Where your dots become a real project. Design thinking, daily goals, and an iteration structure that bridges who you are and what you build.",
     },
     {
       icon: Users,
       title: "Creators",
       description:
-        "Join a growing network of people building from their gifts. Share, connect, and grow together. Because the best things are built in community.",
+        "A community of people who are not performing. They are building from their truth and want to help you build from yours.",
     },
   ];
 
   const steps = [
     {
       number: "01",
-      title: "Map",
-      description: "Complete guided quests across 13 identity clusters. Your Atlas grows with every insight you claim about who you are.",
+      title: "Map it",
+      description: "Answer guided questions. Each answer adds a dot to your Atlas. The pattern starts becoming visible before you finish the first session.",
     },
     {
       number: "02",
-      title: "Shape",
-      description: "Your council of 7 AI mentors reads your Atlas and helps you think through what to build, challenge your assumptions, and get clear.",
+      title: "Shape it",
+      description: "Your council of AI mentors reads the pattern and helps you shape it into a project that could only come from your specific life.",
     },
     {
       number: "03",
-      title: "Build",
-      description: "Turn clarity into a real project. Set goals, track momentum, and come back each week sharper than before.",
+      title: "Build it",
+      description: "Creation Lab gives your work structure. The community holds you accountable. Every week the map grows and the direction gets clearer.",
     },
   ];
 
@@ -135,7 +135,7 @@ const Index = () => {
       period: "/month",
       icon: Zap,
       description: "Full access. Cancel anytime.",
-      color: "from-primary to-[hsl(265,42%,72%)]",
+      color: "from-primary to-[hsl(265,90%,50%)]",
     },
     {
       id: "yearly",
@@ -145,7 +145,7 @@ const Index = () => {
       icon: Crown,
       description: "Best value. Save 36%.",
       badge: "Best Value",
-      color: "from-secondary to-[hsl(185,48%,50%)]",
+      color: "from-secondary to-[hsl(220,95%,45%)]",
     },
   ];
 
@@ -155,8 +155,8 @@ const Index = () => {
       <nav className="fixed top-0 left-0 right-0 z-50 glass-strong">
         <div className="max-w-7xl mx-auto px-6 h-16 flex items-center justify-between">
           <div className="flex items-center gap-2.5">
-            <img src={bcomingLogo} alt="Bcoming" className="h-11 w-11 rounded-xl drop-shadow-[0_0_12px_hsl(0_0%_100%/0.35)]" />
-            <span className="font-sora font-bold text-lg text-foreground">Bcoming</span>
+            <img src={bcomingLogo} alt="Bcoming" className="h-11 w-11 rounded-xl drop-shadow-[0_0_12px_hsl(265_90%_62%/0.4)]" />
+            <span className="font-gloock font-bold text-lg text-foreground">Bcoming</span>
           </div>
           <div className="hidden md:flex items-center gap-8">
             <a href="#features" className="text-sm text-muted-foreground hover:text-foreground transition-colors">
@@ -183,7 +183,7 @@ const Index = () => {
               Log in
             </Button>
             <Button size="sm" className="glow-purple-sm" onClick={scrollToAuth}>
-              Begin for free
+              Start mapping
             </Button>
           </div>
         </div>
@@ -192,15 +192,16 @@ const Index = () => {
       {/* Hero Section */}
       <section className="relative min-h-screen flex items-center justify-center pt-16">
         <div className="absolute inset-0 overflow-hidden">
-          <div className="absolute top-1/4 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[800px] h-[600px] rounded-full bg-[hsl(270_90%_55%/0.40)] blur-[100px]" />
-          <div className="absolute bottom-1/4 left-1/3 w-[400px] h-[400px] rounded-full bg-[hsl(220_95%_58%/0.28)] blur-[90px]" />
-          <div className="absolute top-1/3 right-1/4 w-[300px] h-[300px] rounded-full bg-[hsl(320_80%_52%/0.25)] blur-[80px]" />
+          <div className="absolute top-1/4 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[800px] h-[600px] rounded-full bg-primary/8 blur-[120px]" />
+          <div className="absolute bottom-1/4 left-1/3 w-[400px] h-[400px] rounded-full bg-secondary/5 blur-[100px]" />
+          <div className="absolute top-1/3 right-1/4 w-[300px] h-[300px] rounded-full bg-accent/5 blur-[80px]" />
         </div>
 
         <div className="relative z-10 max-w-5xl mx-auto px-6 text-center">
           <motion.div initial="hidden" animate="visible" variants={fadeUp} custom={0} className="mb-6">
             <span className="inline-flex items-center gap-2 px-4 py-1.5 rounded-full border border-primary/20 bg-primary/5 text-sm text-primary">
-              <Sparkles className="w-3.5 h-3.5" />Now in early access
+              <Sparkles className="w-3.5 h-3.5" />
+              For the ones who feel it but haven't named it yet.
             </span>
           </motion.div>
 
@@ -209,11 +210,11 @@ const Index = () => {
             animate="visible"
             variants={fadeUp}
             custom={1}
-            className="font-sora text-5xl md:text-6xl lg:text-7xl font-bold leading-tight mb-6"
+            className="font-gloock text-5xl md:text-6xl lg:text-7xl font-bold leading-tight mb-6"
           >
-            <span className="text-foreground">You know there's more in you.</span>
+            <span className="text-foreground">You've been collecting dots your whole life.</span>
             <br />
-            <span className="text-accent-c">This is how you find it.</span>
+            <span className="gradient-text">This is how they connect.</span>
           </motion.h1>
 
           <motion.p
@@ -223,7 +224,7 @@ const Index = () => {
             custom={2}
             className="text-lg md:text-xl text-muted-foreground max-w-2xl mx-auto mb-10 leading-relaxed"
           >
-            Map your identity. Shape it with a personal council of AI mentors who actually know your story. Turn what you discover into a real project with direction, structure, and momentum. Not self-help. A living system.
+            Bcoming maps everything inside you. Your experiences, your obsessions, your failures, your gifts. All of it becomes a living picture. Then we help you build from it.
           </motion.p>
 
           <motion.div
@@ -234,7 +235,7 @@ const Index = () => {
             className="flex flex-col sm:flex-row items-center justify-center gap-4"
           >
             <Button size="lg" className="text-lg px-8 py-6 glow-purple gap-2" onClick={scrollToAuth}>
-              Begin for free <ArrowRight className="w-5 h-5" />
+              Start mapping <ArrowRight className="w-5 h-5" />
             </Button>
             <Button
               variant="outline"
@@ -245,15 +246,6 @@ const Index = () => {
               See how it works
             </Button>
           </motion.div>
-          <motion.p
-            initial="hidden"
-            animate="visible"
-            variants={fadeUp}
-            custom={4}
-            className="text-sm text-muted-foreground/60 mt-4"
-          >
-            Free to start. No credit card required.
-          </motion.p>
         </div>
       </section>
 
@@ -269,20 +261,20 @@ const Index = () => {
             viewport={{ once: true }}
             transition={{ duration: 0.6 }}
           >
-            <h2 className="font-sora text-3xl md:text-4xl font-bold mb-6 text-foreground">
-              Wherever you are, something feels missing.
+            <h2 className="font-gloock text-3xl md:text-4xl font-bold mb-6 text-foreground">
+              Most people feel it. Almost none of them know what to do with it.
             </h2>
             <p className="text-lg text-muted-foreground leading-relaxed max-w-2xl mx-auto mb-8">
-              Maybe you're just starting and don't know where to go. Maybe you have ideas but can't make them real. Or maybe you're already building but feel stuck and alone in it.
+              The restlessness. The sense that something in you is waiting to be built. You feel it in the gap between the life you are living and the one you sense you could be building.
             </p>
             <p className="text-base text-foreground/80 max-w-xl mx-auto mb-12">
-              You know there's more. You just need clarity, guidance, and a real place to begin.
+              You do not need more motivation. You need to see the pattern. Because once you see it, you know exactly what to build next.
             </p>
             <div className="grid md:grid-cols-3 gap-6">
               {[
-                { text: "You have talent. You need direction.", icon: "🧭" },
-                { text: "You have enough information. You need clarity.", icon: "🔮" },
-                { text: "You have drive. You need to know what it's for.", icon: "⚡" },
+                { text: "The clarity to see what's already there", icon: "🧭" },
+                { text: "A map that connects the dots you've been collecting", icon: "🗺️" },
+                { text: "A project that could only come from your specific life", icon: "✦" },
               ].map((item, i) => (
                 <motion.div
                   key={i}
@@ -315,13 +307,13 @@ const Index = () => {
               <Star className="w-3.5 h-3.5" />
               What is Bcoming
             </span>
-            <h2 className="font-sora text-3xl md:text-4xl font-bold mb-6 text-foreground">
+            <h2 className="font-gloock text-3xl md:text-4xl font-bold mb-6 text-foreground">
               Where who you are
               <br />
-              <span className="text-accent-c">becomes what you build.</span>
+              <span className="gradient-text">becomes what you build.</span>
             </h2>
             <p className="text-lg text-muted-foreground leading-relaxed max-w-2xl mx-auto">
-              Bcoming helps you connect your gifts, skills, and life experiences into something real. Through guided exploration and a personal council of AI mentors, your identity stops being a question and starts becoming your greatest asset.
+              Most people try to figure out their purpose by thinking about it. Bcoming takes a different approach. You collect what is real. Your experiences, your passions, the aha moments you never connected before. The system maps them. The pattern that emerges is yours and only yours.
             </p>
           </motion.div>
         </div>
@@ -333,11 +325,11 @@ const Index = () => {
         <div className="max-w-6xl mx-auto px-6">
           <div className="text-center mb-16">
             <motion.div initial={{ opacity: 0, y: 20 }} whileInView={{ opacity: 1, y: 0 }} viewport={{ once: true }}>
-              <h2 className="font-sora text-3xl md:text-4xl font-bold text-foreground mb-4">
+              <h2 className="font-gloock text-3xl md:text-4xl font-bold text-foreground mb-4">
                 From reflection to real creation.
               </h2>
               <p className="text-muted-foreground text-lg max-w-xl mx-auto">
-                Each part of Bcoming works together to take you from self-discovery to building something meaningful.
+                Each part of Bcoming works together to take you from self-discovery to building something that only you could build.
               </p>
             </motion.div>
           </div>
@@ -359,7 +351,7 @@ const Index = () => {
                     <div className="w-12 h-12 rounded-xl bg-primary/10 flex items-center justify-center mb-5 group-hover:glow-purple-sm transition-shadow duration-300">
                       <Icon className="w-6 h-6 text-primary" />
                     </div>
-                    <h3 className="font-sora text-xl font-bold text-foreground mb-3">{feature.title}</h3>
+                    <h3 className="font-gloock text-xl font-bold text-foreground mb-3">{feature.title}</h3>
                     <p className="text-muted-foreground leading-relaxed">{feature.description}</p>
                   </div>
                 </motion.div>
@@ -378,9 +370,9 @@ const Index = () => {
         <div className="max-w-5xl mx-auto px-6 relative z-10">
           <div className="text-center mb-16">
             <motion.div initial={{ opacity: 0, y: 20 }} whileInView={{ opacity: 1, y: 0 }} viewport={{ once: true }}>
-              <h2 className="font-sora text-3xl md:text-4xl font-bold text-foreground mb-4">How it works</h2>
+              <h2 className="font-gloock text-3xl md:text-4xl font-bold text-foreground mb-4">How it works</h2>
               <p className="text-muted-foreground text-lg max-w-xl mx-auto">
-                Your journey adapts to you. Everyone starts somewhere different. Bcoming meets you where you are.
+                You already have the dots. Bcoming helps you see them, connect them, and build from them.
               </p>
             </motion.div>
           </div>
@@ -395,8 +387,8 @@ const Index = () => {
                 transition={{ delay: i * 0.15, duration: 0.5 }}
                 className="text-center md:text-left"
               >
-                <span className="font-sora text-5xl font-bold gradient-text opacity-60 mb-4 block">{step.number}</span>
-                <h3 className="font-sora text-xl font-bold text-foreground mb-2">{step.title}</h3>
+                <span className="font-gloock text-5xl font-bold gradient-text opacity-60 mb-4 block">{step.number}</span>
+                <h3 className="font-gloock text-xl font-bold text-foreground mb-2">{step.title}</h3>
                 <p className="text-muted-foreground leading-relaxed">{step.description}</p>
               </motion.div>
             ))}
@@ -421,18 +413,47 @@ const Index = () => {
               <Heart className="w-3.5 h-3.5" />
               What we believe
             </span>
-            <h2 className="font-sora text-3xl md:text-4xl font-bold mb-6 text-foreground">
-              We believe every person has a gift.
+            <h2 className="font-gloock text-3xl md:text-4xl font-bold mb-6 text-foreground">
+              Purpose is not given. It is found by taking action.
             </h2>
             <p className="text-lg text-muted-foreground leading-relaxed max-w-2xl mx-auto mb-6">
-              Something unique. A way of seeing, creating, or connecting that only you carry.
+              Every experience you have had. Every person you have admired. Every failure that changed your direction. Every obsession you could not explain. All of it is data. All of it is material.
             </p>
             <p className="text-lg text-muted-foreground leading-relaxed max-w-2xl mx-auto mb-6">
-              We believe real happiness comes from finding that gift, crafting something with it, and offering it back to the world.
+              Bcoming is the system that reads it and shows you what is there. Not what someone else thinks you should build. What only you, with your specific combination of dots, could build.
             </p>
-            <p className="text-base text-foreground/80 leading-relaxed max-w-2xl mx-auto mb-6">
-              That's why we built Bcoming. Not as a productivity tool. As a space where your gifts become your direction, and your direction becomes your life's work.
+            <p className="font-gloock text-xl font-semibold gradient-text">
+              The dots are already there. They are already connecting.
             </p>
+          </motion.div>
+        </div>
+      </section>
+
+      {/* Founder Section */}
+      <section className="py-24 md:py-32 relative">
+        <div className="absolute top-0 left-0 right-0 h-px bg-gradient-to-r from-transparent via-border to-transparent" />
+        <div className="max-w-3xl mx-auto px-6">
+          <motion.div
+            initial={{ opacity: 0, y: 20 }}
+            whileInView={{ opacity: 1, y: 0 }}
+            viewport={{ once: true }}
+            transition={{ duration: 0.6 }}
+            className="p-10 md:p-14 rounded-3xl border border-primary/20 bg-card/30 text-center"
+          >
+            <blockquote className="font-gloock text-xl md:text-2xl text-foreground leading-relaxed mb-8 italic">
+              "I left home at 22 with something in me I couldn't name. I cleaned floors in Germany, built a board game across years of construction days and late nights in Australia, broke my leg during COVID, missed the investment, asked God for a sign, and kept moving. Every dot that looked like a failure turned out to be exactly what came next. I built Bcoming because I needed it. And I built it for you."
+            </blockquote>
+            <div className="mb-8">
+              <p className="text-foreground font-semibold">Cris</p>
+              <p className="text-muted-foreground text-sm">Founder of Bcoming</p>
+            </div>
+            <Button
+              variant="outline"
+              className="border-primary/30 hover:border-primary/60 gap-2"
+              onClick={scrollToAuth}
+            >
+              See my full Atlas map <ArrowRight className="w-4 h-4" />
+            </Button>
           </motion.div>
         </div>
       </section>
@@ -450,11 +471,11 @@ const Index = () => {
                 <Sparkles className="w-3.5 h-3.5" />
                 Simple, honest pricing
               </span>
-              <h2 className="font-sora text-3xl md:text-4xl font-bold text-foreground mb-4">
-                Choose your path
+              <h2 className="font-gloock text-3xl md:text-4xl font-bold text-foreground mb-4">
+                Support the journey
               </h2>
               <p className="text-muted-foreground text-lg max-w-xl mx-auto">
-                Free to explore. Upgrade when you're ready to go deeper.
+                Bcoming is free to explore. If it resonates, consider supporting the vision.
               </p>
             </motion.div>
           </div>
@@ -481,10 +502,10 @@ const Index = () => {
                   <div className={`w-12 h-12 rounded-xl bg-gradient-to-br ${tier.color} flex items-center justify-center mb-5`}>
                     <Icon className="w-6 h-6 text-foreground" />
                   </div>
-                  <h3 className="font-sora text-xl font-bold text-foreground mb-1">{tier.label}</h3>
+                  <h3 className="font-gloock text-xl font-bold text-foreground mb-1">{tier.label}</h3>
                   <p className="text-muted-foreground text-sm mb-4">{tier.description}</p>
                   <div className="mb-6">
-                    <span className="font-sora text-3xl font-bold text-foreground">{tier.price}</span>
+                    <span className="font-gloock text-3xl font-bold text-foreground">{tier.price}</span>
                     <span className="text-muted-foreground text-sm ml-1">{tier.period}</span>
                   </div>
                   <Button className="w-full glow-purple-sm" onClick={scrollToAuth}>
@@ -514,12 +535,15 @@ const Index = () => {
             <div className="w-16 h-16 mx-auto mb-8 rounded-2xl bg-accent/10 flex items-center justify-center">
               <Zap className="w-8 h-8 text-accent" />
             </div>
-            <h2 className="font-sora text-3xl md:text-4xl font-bold text-foreground mb-6">We become by building.</h2>
-            <p className="text-lg text-muted-foreground leading-relaxed max-w-2xl mx-auto mb-10">
-              Bcoming is not a tool. It's a space where who you are and what you create finally become the same thing. Your gifts are your greatest asset. Let's use them.
+            <h2 className="font-gloock text-3xl md:text-4xl font-bold text-foreground mb-6">Your dots are already there.</h2>
+            <p className="text-lg text-muted-foreground leading-relaxed max-w-2xl mx-auto mb-4">
+              You do not start from zero. You start from everything you have already lived. Bcoming helps you see it, map it, and build from it.
+            </p>
+            <p className="text-base text-foreground/70 leading-relaxed max-w-xl mx-auto mb-10">
+              At minute ten, you will not have a plan. You will have something more useful. The beginning of a belief that you are capable of building something. That feeling, once it is real, does not leave.
             </p>
             <Button size="lg" className="text-lg px-10 py-6 glow-purple gap-2" onClick={scrollToAuth}>
-              Begin for free <ArrowRight className="w-5 h-5" />
+              Start mapping <ArrowRight className="w-5 h-5" />
             </Button>
           </motion.div>
         </div>
@@ -540,11 +564,11 @@ const Index = () => {
           >
             <div className="text-center mb-8">
               <img src={bcomingLogo} alt="Bcoming" className="h-12 w-12 mx-auto mb-4 rounded-xl" />
-              <h2 className="font-sora text-2xl font-bold text-foreground mb-2">
-                {isSignUp ? "Begin for free" : "Welcome back"}
+              <h2 className="font-gloock text-2xl font-bold text-foreground mb-2">
+                {isSignUp ? "Start mapping" : "Welcome back"}
               </h2>
               <p className="text-muted-foreground">
-                {isSignUp ? "Your Atlas is waiting. No credit card required." : "Continue your journey"}
+                {isSignUp ? "Create your account and place your first dot." : "Continue your journey."}
               </p>
             </div>
 
@@ -603,9 +627,9 @@ const Index = () => {
         <div className="max-w-7xl mx-auto px-6 flex flex-col md:flex-row items-center justify-between gap-4">
           <div className="flex items-center gap-2">
             <img src={bcomingLogo} alt="Bcoming" className="h-6 w-6 rounded-md" />
-            <span className="font-sora font-semibold text-sm text-foreground">Bcoming</span>
+            <span className="font-gloock font-semibold text-sm text-foreground">Bcoming</span>
           </div>
-          <p className="text-sm text-muted-foreground">© {new Date().getFullYear()} Bcoming. We become by building.</p>
+          <p className="text-sm text-muted-foreground">© {new Date().getFullYear()} Bcoming. The dots are connecting.</p>
           <div className="flex items-center gap-4 text-xs text-muted-foreground">
             <a href="/privacy" className="hover:text-foreground transition-colors">Privacy Policy</a>
             <a href="/terms" className="hover:text-foreground transition-colors">Terms of Service</a>
