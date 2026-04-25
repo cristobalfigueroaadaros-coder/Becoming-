@@ -12,6 +12,8 @@ import { ThinkOutOfBoxCard } from "@/components/atlas/ThinkOutOfBoxCard";
 import { useOpportunityDetection } from "@/hooks/useOpportunityDetection";
 import { toast } from "@/hooks/use-toast";
 import { supabase } from "@/integrations/supabase/client";
+import { FoundersMap } from "@/components/atlas/founders/FoundersMap";
+import { cn } from "@/lib/utils";
 
 const CLUSTER_POSITION_MAP: Record<string, { x: number; y: number }> = {
   "life-events": { x: 18, y: 10 },
@@ -99,6 +101,29 @@ const AtlasPage = () => {
   const [showOnboarding, setShowOnboarding] = useState(false);
   const [opportunityDismissed, setOpportunityDismissed] = useState(false);
   const { data: opportunity } = useOpportunityDetection(totalDots);
+
+  // ── Founder's Atlas tab ─────────────────────────────────────────────
+  const FOUNDERS_SEEN_FLAG = "atlas_founders_map_seen";
+  const [activeTab, setActiveTab] = useState<"mine" | "founders">(() => {
+    if (typeof window === "undefined") return "founders";
+    try {
+      return localStorage.getItem(FOUNDERS_SEEN_FLAG) ? "mine" : "founders";
+    } catch {
+      return "founders";
+    }
+  });
+
+  const handleFoundersCta = () => {
+    try {
+      localStorage.setItem(FOUNDERS_SEEN_FLAG, "true");
+    } catch {
+      // ignore
+    }
+    setActiveTab("mine");
+    if (completedCount === 0) {
+      navigate("/atlas/quest");
+    }
+  };
 
   const councilThreshold = COUNCIL_UNLOCK_THRESHOLDS[entryState] ?? 4;
 
@@ -196,6 +221,39 @@ const AtlasPage = () => {
         ))}
       </div>
 
+      {/* Two-tab toggle (always visible) */}
+      <div className="relative z-30 px-5 pt-4">
+        <div className="inline-flex rounded-full border border-border/60 bg-card/70 backdrop-blur-md p-1 shadow-sm">
+          <button
+            onClick={() => setActiveTab("mine")}
+            className={cn(
+              "px-4 py-1.5 text-xs font-semibold rounded-full transition-all",
+              activeTab === "mine"
+                ? "bg-primary text-primary-foreground shadow-[0_0_16px_hsl(265_90%_62%/0.4)]"
+                : "text-muted-foreground hover:text-foreground"
+            )}
+          >
+            My Map
+          </button>
+          <button
+            onClick={() => setActiveTab("founders")}
+            className={cn(
+              "px-4 py-1.5 text-xs font-semibold rounded-full transition-all flex items-center gap-1.5",
+              activeTab === "founders"
+                ? "bg-primary text-primary-foreground shadow-[0_0_16px_hsl(265_90%_62%/0.4)]"
+                : "text-muted-foreground hover:text-foreground"
+            )}
+          >
+            <Sparkles className="w-3 h-3" />
+            Cris's Map
+          </button>
+        </div>
+      </div>
+
+      {activeTab === "founders" ? (
+        <FoundersMap onCtaClick={handleFoundersCta} />
+      ) : (
+        <>
       {/* Phase-based Council unlock progress */}
       {intakeCompleted === false && (
         <div className="relative z-20">
@@ -355,6 +413,8 @@ const AtlasPage = () => {
           />
         )}
       </AnimatePresence>
+        </>
+      )}
     </div>
   );
 };
