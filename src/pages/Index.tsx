@@ -9,6 +9,7 @@ import { motion } from "framer-motion";
 import { ArrowRight, Compass, Heart, MessageCircle, Rocket, Sparkles, Star, Users, Zap, Crown } from "lucide-react";
 import bcomingLogo from "@/assets/bcoming-logo.png";
 import { SparklesCore } from "@/components/ui/sparkles";
+import RadialOrbitalTimeline from "@/components/ui/radial-orbital-timeline";
 
 const fadeUp = {
   hidden: { opacity: 0, y: 30 },
@@ -329,45 +330,33 @@ const Index = () => {
         </div>
       </section>
 
-      {/* Features — Four Pillars */}
+      {/* Features — Four Pillars (Orbital) */}
       <section id="features" className="py-24 md:py-32 relative">
         <div className="absolute top-0 left-0 right-0 h-px bg-gradient-to-r from-transparent via-border to-transparent" />
         <div className="max-w-6xl mx-auto px-6">
-          <div className="text-center mb-16">
+          <div className="text-center mb-4">
             <motion.div initial={{ opacity: 0, y: 20 }} whileInView={{ opacity: 1, y: 0 }} viewport={{ once: true }}>
               <h2 className="font-gloock text-3xl md:text-4xl font-bold text-foreground mb-4">
                 From reflection to real creation.
               </h2>
               <p className="text-muted-foreground text-lg max-w-xl mx-auto">
-                Each part of Bcoming works together to take you from self-discovery to building something that only you could build.
+                Tap any node to explore. Each part of Bcoming connects to the others.
               </p>
             </motion.div>
           </div>
-
-          <div className="grid md:grid-cols-2 lg:grid-cols-4 gap-6">
-            {features.map((feature, i) => {
-              const Icon = feature.icon;
-              return (
-                <motion.div
-                  key={feature.title}
-                  initial={{ opacity: 0, y: 30 }}
-                  whileInView={{ opacity: 1, y: 0 }}
-                  viewport={{ once: true }}
-                  transition={{ delay: i * 0.15, duration: 0.5 }}
-                  className="group relative p-8 rounded-2xl border border-border/50 bg-card/30 hover:border-primary/30 hover:bg-card/60 transition-all duration-300"
-                >
-                  <div className="absolute inset-0 rounded-2xl opacity-0 group-hover:opacity-100 transition-opacity duration-500 bg-gradient-to-br from-primary/5 to-transparent" />
-                  <div className="relative z-10">
-                    <div className="w-12 h-12 rounded-xl bg-primary/10 flex items-center justify-center mb-5 group-hover:glow-purple-sm transition-shadow duration-300">
-                      <Icon className="w-6 h-6 text-primary" />
-                    </div>
-                    <h3 className="font-gloock text-xl font-bold text-foreground mb-3">{feature.title}</h3>
-                    <p className="text-muted-foreground leading-relaxed">{feature.description}</p>
-                  </div>
-                </motion.div>
-              );
-            })}
-          </div>
+          <motion.div initial={{ opacity: 0 }} whileInView={{ opacity: 1 }} viewport={{ once: true }} transition={{ duration: 0.8 }}>
+            <RadialOrbitalTimeline timelineData={features.map((f, i) => ({
+              id: i + 1,
+              title: f.title,
+              date: "",
+              content: f.description,
+              category: f.title,
+              icon: f.icon,
+              relatedIds: features.map((_, j) => j + 1).filter(j => j !== i + 1),
+              status: "completed" as const,
+              energy: 80,
+            }))} />
+          </motion.div>
         </div>
       </section>
 
