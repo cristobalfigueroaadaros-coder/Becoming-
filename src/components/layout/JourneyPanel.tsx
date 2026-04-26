@@ -9,6 +9,8 @@ import { supabase } from "@/integrations/supabase/client";
 import { useAtlas } from "@/hooks/useAtlas";
 import { useIntegratorProjects } from "@/hooks/useIntegratorProjects";
 import { cn } from "@/lib/utils";
+import { JourneyCompassCard } from "./JourneyCompassCard";
+import { useJourneyCompass } from "@/hooks/useJourneyCompass";
 
 // ─── Stage definitions ────────────────────────────────────────────────────────
 
@@ -157,6 +159,8 @@ export const JourneyPanel = () => {
   const [pulse, setPulse] = useState(false);
   const [profile, setProfile] = useState<any>(null);
   const inputRef = useRef<HTMLInputElement>(null);
+  const askCompass = useJourneyCompass();
+  const [askLoading, setAskLoading] = useState(false);
 
   const navigate = useNavigate();
   const location = useLocation();
@@ -219,10 +223,25 @@ export const JourneyPanel = () => {
   };
 
   const handleAsk = () => {
-    if (!question.trim()) return;
-    const ctx = { entryState, totalDots, phase1Count, councilUnlocked, councilStarted, hasProject, currentStageId };
-    setAnswer(getQuickAnswer(question.trim(), ctx));
-    setQuestion("");
+    const q = question.trim();
+    if (!q || askLoading) return;
+    setAskLoading(true);
+    setAnswer(null);
+    askCompass
+      .fetchGuidance({ userInput: q })
+      .then((res) => {
+        if (res) {
+          setAnswer(`${res.stateSummary} → ${res.primarySuggestion.title}`);
+        } else {
+          // fallback to local rule-based
+          const ctx = { entryState, totalDots, phase1Count, councilUnlocked, councilStarted, hasProject, currentStageId };
+          setAnswer(getQuickAnswer(q, ctx));
+        }
+      })
+      .finally(() => {
+        setAskLoading(false);
+        setQuestion("");
+      });
   };
 
   const stageStateFor = (stageId: string): "completed" | "current" | "upcoming" => {
