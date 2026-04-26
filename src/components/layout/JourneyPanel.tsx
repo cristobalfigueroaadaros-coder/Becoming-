@@ -335,6 +335,9 @@ export const JourneyPanel = () => {
               {/* Scrollable track */}
               <div className="flex-1 overflow-y-auto px-5 py-4">
 
+                {/* AI Compass — proactive next move */}
+                <JourneyCompassCard open={open} onAction={() => handleOpen(false)} />
+
                 {/* Stage track */}
                 <div className="relative">
                   {/* Vertical line */}
