@@ -506,7 +506,7 @@ export const JourneyPanel = () => {
 
                 {/* Answer from chat */}
                 <AnimatePresence>
-                  {answer && (
+                  {(answer || askLoading) && (
                     <motion.div
                       initial={{ opacity: 0, y: 6 }}
                       animate={{ opacity: 1, y: 0 }}
@@ -514,7 +514,26 @@ export const JourneyPanel = () => {
                       transition={{ duration: 0.2 }}
                       className="mt-3 p-3 rounded-xl bg-muted/50 border border-border/40"
                     >
-                      <p className="text-[12px] text-foreground/80 leading-relaxed">{answer}</p>
+                      {askLoading ? (
+                        <p className="text-[12px] text-muted-foreground italic">Thinking through your situation…</p>
+                      ) : (
+                        <>
+                          <p className="text-[12px] text-foreground/80 leading-relaxed">{answer}</p>
+                          {askCompass.guidance && (
+                            <button
+                              onClick={() => {
+                                if (!askCompass.guidance) return;
+                                handleOpen(false);
+                                askCompass.executeSuggestion(askCompass.guidance.primarySuggestion);
+                              }}
+                              className="mt-2 inline-flex items-center gap-1 text-[11px] font-medium text-primary"
+                            >
+                              {askCompass.guidance.primarySuggestion.ctaLabel}
+                              <ArrowRight className="w-3 h-3" />
+                            </button>
+                          )}
+                        </>
+                      )}
                     </motion.div>
                   )}
                 </AnimatePresence>
