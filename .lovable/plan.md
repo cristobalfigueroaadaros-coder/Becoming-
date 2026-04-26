@@ -1,124 +1,161 @@
+## 🧭 Analysis: Where Journey Is Today vs Where It Needs To Go
 
+### Current state
 
-## What's broken
+- `**JourneyPanel.tsx**` is a hardcoded 4-stage map (Atlas → Council → Projects → Creators) with **rule-based answers** (`getQuickAnswer`, `getNextAction`).
+- It only knows *which onboarding stage* the user is in. It does **not** know:
+  - Which Atlas clusters are weak/strong
+  - Which mentor would unblock the user *right now*
+  - Which design thinking phase the project is stuck in
+  - Which block/activity is overdue
+  - What inner pattern is interfering
+- It's separate from `voice-of-system` edge function (which already does deep contextual analysis but only outputs **mentor handoffs**).
+- The "ask" input does keyword matching — not real intelligence.
 
-The Business Mentor BUILD flow currently does this:
+### What you want — confirmed understanding
 
-```text
-Turn 1: Strong opener → proposes project name + 3-5 blocks (mentor-invented)
-Turn 2: User says yes
-Turn 3: Project triggers (or mentor over-asks and loses focus)
-```
+Journey becomes the **always-available, intelligent compass** that:
 
-Two problems:
-1. **Blocks are mentor-invented**, not co-created from the user's own strategic thinking
-2. After confirmation, the mentor sometimes drills into execution instead of stopping → loss of focus, user drops off
+1. Knows the user's *complete* state (Atlas dots, mentors talked to, project phase, blocks, patterns, days since action)
+2. Uses **Cris's Map as the reference model** — sees what clusters/dimensions a "complete" journey looks like and identifies gaps in the user's
+3. Recommends the *single most useful next move* across **any** surface:
+  - "Do the **Childhood Signals** quest — you have strong Skills but no roots"
+  - "Talk to **The Heart Mentor** — you've been looping on the same problem for 4 days"
+  - "Move your project from Define → Ideate — you've been stuck on Define for 6 days"
+  - "Complete activity *Validate Pricing* in Block 2 — it's blocking your next milestone"
+  - "Do a **Transmutation** on the pattern you wrote about yesterday"
+4. Offers proactive suggestions on open (not just on ask) — like "Voice of System" but persistent.
 
-## What you want (the corrected pattern)
+---
 
-```text
-Turn 1: STRONG OPENER (keep exactly as-is)
-        "Here's how I'd frame the next 30 days: '[Project Name]'.
-         I'd break it into 3 blocks: [block 1] · [block 2] · [block 3].
-         Does this match what you want to build?"
+## 🏗️ Implementation Plan
 
-Turn 2: User confirms direction
-        Mentor: "Fantastic. One question before we lock this in —
-                 imagine the app is working perfectly and feedback is great.
-                 What's the next move you'd want to focus on?"
-        (ONE strategic forward-looking question — adapts to project)
+### Phase 1 — Backend Intelligence: extend `voice-of-system` into `journey-compass`
 
-Turn 3: User names next-step areas
-        (e.g. "marketing, influencer outreach, content for social")
+Create a new edge function `**supabase/functions/journey-compass/index.ts**` (do not break existing `voice-of-system`; the modal still uses it).
 
-Turn 4: Mentor merges those into the block list and triggers project
-        "Perfect. Locking this in: '[Project Name]' with [merged blocks].
-         The structure is set."
-        → project card appears → blocks include user's named areas
-```
+**Inputs:** `userInput` (optional — if omitted, returns proactive suggestion), `mode: 'ask' | 'proactive'`.
 
-Hard cap: **4-5 turns max** before project trigger. After trigger: total stop, no execution coaching.
+**Context aggregation (parallel queries):**
 
-## Implementation
+- Profile + entry_state + console_intake_completed
+- Atlas clusters (with dot counts per slug) + recent quest completions
+- Active project + current_phase + days_since_last_action
+- Design thinking phases for that project (which phase has fewest notes / is stale)
+- Project blocks + activities (overdue / pending / blocking)
+- Recent mentors talked to (last 14 days, count per mentor_type) — to detect *under-used* mentors
+- Inner patterns (active, untransmuted)
+- Recent Future Self / Voice handoffs (avoid repeating recommendations)
 
-### 1. Rewrite the BUILD + business_mentor entry-state prompt (`supabase/functions/chat-mentor/index.ts`, lines 2743-2790)
+**Cris's Map reference embedded in the prompt** as the "destination shape":
 
-Replace the current "propose name + blocks → confirm → done" flow with a 3-step structured arc:
+> A complete journey has presence across: Life Events, Passions, Skills, Aha Moments, Natural Talents, Childhood Signals, Experiments, People I Admire, Who I Serve, External Reflections, Personal Frustrations, How I Create Impact, Visions for a Better World, Values, Ideal Life. Gold connections form between Frustrations↔Visions, Aha Moments↔Who I Serve, Experiments↔Life Events, Childhood Signals↔Natural Talents.
 
-```text
-STEP 1 (opening message — UNCHANGED, the strong opener works):
-   - Reflect what you heard (1 sentence)
-   - Name the 30-day project in single quotes
-   - Propose 3 starter blocks
-   - Ask: "Does this match what you want to build?"
+The AI compares the user's current cluster distribution to Cris's reference and identifies the **most leverage-producing gap**.
 
-STEP 2 (after user confirms direction — NEW):
-   - Acknowledge briefly: "Fantastic. Let's make this real."
-   - Ask EXACTLY ONE forward-looking strategic question, adapted to their project. Examples:
-     • App project → "Imagine the app is working perfectly and feedback is great. What's the next move?"
-     • Service project → "Imagine your first 10 clients love it. What's the next move?"
-     • Content project → "Imagine your first piece lands well. What's the next move?"
-   - This question MUST surface the user's own strategic priorities (marketing, content, partnerships, hiring, etc.)
-   - DO NOT ask anything else. ONE question only.
-
-STEP 3 (after user lists their next-step areas):
-   - Merge user's areas into 3-5 final blocks (combine with original starter blocks if helpful)
-   - Re-state in EXACTLY this format:
-     "Perfect. Here's the full play: '[Project Name]'.
-      • [Block 1] — [one line]
-      • [Block 2] — [one line]
-      • [Block 3] — [one line]
-      Locking this in."
-   - The project name in single quotes triggers project creation
-   - STOP. No more questions. The project card appears automatically.
-
-ABSOLUTE BANS:
-- More than 1 question per response
-- Drilling into HOW to execute any block
-- Continuing after the final structure is locked
-```
-
-### 2. Update convergence threshold
-
-Currently `convergenceThreshold = 1` for BUILD + business_mentor (forces project trigger after 1 exchange). Change to `3` so the strategic forward-looking question fits naturally.
+**Structured output (tool calling, not JSON-in-text):**
 
 ```ts
-const convergenceThreshold = 
-  (entryState === "BUILD" && mentorType === "business_mentor") ? 3 :
-  // ...existing other conditions
+{
+  primarySuggestion: {
+    surface: 'atlas_quest' | 'mentor' | 'design_thinking' | 'project_block' | 'transmutation' | 'becoming' | 'creators',
+    targetId: string,           // cluster slug, mentor_type, phase name, block_id, etc.
+    title: string,              // "Explore your Childhood Signals"
+    why: string,                // 1-2 sentences referencing their actual data
+    leverageInsight: string,    // "This will give your mentors a missing dimension"
+    ctaLabel: string,
+    handoffContext: string      // for the surface to use
+  },
+  alternativeSuggestions: [     // 2 more options (different surfaces) so user has agency
+    { surface, targetId, title, why, ctaLabel } x 2
+  ],
+  stateSummary: string          // "You've built strong Skills (8) and Passions (5), but no Childhood Signals or Frustrations yet. Your project Define phase is 6 days stale."
+}
 ```
 
-`maxTurns` becomes `5` (3 + 2 buffer). Matches your requested "4-5 questions max."
+Use `google/gemini-2.5-flash` with **tool calling** (not JSON-in-text) for reliability — fixes the `JSON.parse` brittleness in current `voice-of-system`.
 
-### 3. Update the fast-path threshold (line 4099-4101)
+### Phase 2 — Frontend Hook: `useJourneyCompass`
 
-Change BUILD + business_mentor fast-path from `1` to `3` so the project only triggers after the strategic question + user's blocks-input arrives:
+New hook `**src/hooks/useJourneyCompass.tsx**`:
 
-```ts
-const fastPathDepthThreshold =
-  (entryState === "BUILD" && mentorType === "business_mentor") ? 3 :
-  // ...
+- `getProactiveSuggestion()` — fires on panel open (cached 10 min in React Query)
+- `askCompass(question: string)` — fires when user types
+- `executeSuggestion(suggestion)` — handles routing across all surfaces:
+  - `atlas_quest` → `/atlas?startQuest={slug}`
+  - `mentor` → creates handoff record (like `useVoiceOfSystem.executeHandoff`) → `/chat/{mentor_type}`
+  - `design_thinking` → `/creation-lab?dtPhase={phase}`
+  - `project_block` → `/creation-lab?focusBlock={block_id}`
+  - `transmutation` → `/creation-lab?bmode=transmutation&pattern={id}`
+  - `becoming` → `/creation-lab?bmode=becoming`
+  - `creators` → `/creators`
+
+### Phase 3 — Refactor `JourneyPanel.tsx`
+
+Keep the existing 4-stage visual track (it's good orientation). **Add a new top section above the stage track**:
+
+```
+┌────────────────────────────────────────┐
+│ 🧭 Your next move                       │
+│                                         │
+│ [Compass icon + glow]                   │
+│ "You've mapped 8 skills but no          │
+│  Childhood Signals. The thread that     │
+│  started it all is still missing."      │
+│                                         │
+│ → [Explore Childhood Signals]  (primary)│
+│                                         │
+│ Or: • Talk to Heart Mentor              │
+│     • Define your project's problem     │
+└────────────────────────────────────────┘
 ```
 
-### 4. Inject user's named areas into the project blocks
+- Loads proactive suggestion on panel open
+- Shows `stateSummary` as the orientation line
+- Primary CTA = `executeSuggestion(primarySuggestion)`
+- 2 alt suggestions as small chips below
+- Existing chat input now calls `askCompass()` (real AI) instead of `getQuickAnswer()` (regex)
+- Keep the 4-stage track underneath as the macro view
 
-When the project triggers, the user's "next-step areas" from Step 3 should become real blocks in `project_structure`, not just the mentor's original 3.
+### Phase 4 — Smart pulse trigger
 
-In the project-creation extraction logic, parse the final mentor message for the bullet list of blocks (after "Here's the full play"). Pass these as `initialBlocks` to the project-structure scaffolding so they appear in the Project Engine immediately.
+Replace the dot-count-based pulse with a server-side "is there a fresh suggestion?" indicator:
 
-This already partially works via `extract-project-structure` — we ensure it's invoked with the final mentor confirmation message (not the opener), so it captures the merged block list, not the starter list.
+- Pulse when: project phase stale >5 days, OR mentor not talked to in 7+ days who is recommended, OR new pattern detected, OR Atlas gap is significant.
+- Stored in `localStorage` keyed by suggestion hash so same suggestion doesn't re-pulse.
 
-### 5. Reinforce the STOP rule (`business_mentor` system prompt, line 875-885)
+---
 
-Add one line: *"After Step 3 (locking the play), output ZERO questions. The project card auto-appears."*
+## 📁 Files
 
-## Files modified
+**Create**
 
-- `supabase/functions/chat-mentor/index.ts` — entry-state prompt rewrite (lines 2743-2790), convergence threshold (line 2828), fast-path threshold (line 4099), business_mentor base prompt (line 875-885)
+- `supabase/functions/journey-compass/index.ts` — new AI compass function with cross-domain awareness
+- `src/hooks/useJourneyCompass.tsx` — fetch + execute suggestions
+- `src/components/layout/JourneyCompassCard.tsx` — the new top-of-panel suggestion card
 
-## Out of scope
+**Modify**
 
-- Not changing the opening message format (it's working — your direct quote confirms this)
-- Not changing other mentors' BUILD flows (strategist_mentor stays at threshold 1)
-- Not touching the project-card UI
+- `src/components/layout/JourneyPanel.tsx` — mount `<JourneyCompassCard />`, wire ask input to AI, replace pulse logic
+- `supabase/config.toml` — register new function (verify_jwt = true so we get the user)
 
+**Untouched**
+
+- `voice-of-system` (still used by the standalone `VoiceOfSystemModal`)
+- All 4 stage definitions and the visual track
+- All routing pages (we just navigate with new query params they already support)
+
+---
+
+## ✅ Success criteria
+
+- Open Journey from anywhere → see a context-aware suggestion in <1s after AI returns
+- Suggestion references **specific** user data (cluster name, project name, days, mentor name)
+- At least 6 different surfaces can be recommended (quest, mentor, DT phase, block, transmutation, creators)
+- Asking "what should I do" returns an AI-generated answer, not a regex match
+- Pulse only fires when there's something genuinely new
+- Existing 4-stage map still works exactly as today
+
+## ⚠️ Open question before building
+
+Want me to also **auto-trigger** a proactive Journey notification (toast or pulse) when the user has been **idle on a stale phase >5 days** without opening Journey? Or keep Journey strictly pull-based (user must open it)?  yes, also trigger notification or the bipping when the system suggest the user to do X action 

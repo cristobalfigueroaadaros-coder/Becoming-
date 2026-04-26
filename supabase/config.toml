@@ -109,3 +109,5 @@ project_id = "vfrocfbbcvpfqehzntbc"
     verify_jwt = true
   [functions.voice-of-system]
     verify_jwt = true
+  [functions.journey-compass]
+    verify_jwt = true

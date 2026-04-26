@@ -9,6 +9,8 @@ import { supabase } from "@/integrations/supabase/client";
 import { useAtlas } from "@/hooks/useAtlas";
 import { useIntegratorProjects } from "@/hooks/useIntegratorProjects";
 import { cn } from "@/lib/utils";
+import { JourneyCompassCard } from "./JourneyCompassCard";
+import { useJourneyCompass } from "@/hooks/useJourneyCompass";
 
 // ─── Stage definitions ────────────────────────────────────────────────────────
 
@@ -157,6 +159,8 @@ export const JourneyPanel = () => {
   const [pulse, setPulse] = useState(false);
   const [profile, setProfile] = useState<any>(null);
   const inputRef = useRef<HTMLInputElement>(null);
+  const askCompass = useJourneyCompass();
+  const [askLoading, setAskLoading] = useState(false);
 
   const navigate = useNavigate();
   const location = useLocation();
@@ -219,10 +223,25 @@ export const JourneyPanel = () => {
   };
 
   const handleAsk = () => {
-    if (!question.trim()) return;
-    const ctx = { entryState, totalDots, phase1Count, councilUnlocked, councilStarted, hasProject, currentStageId };
-    setAnswer(getQuickAnswer(question.trim(), ctx));
-    setQuestion("");
+    const q = question.trim();
+    if (!q || askLoading) return;
+    setAskLoading(true);
+    setAnswer(null);
+    askCompass
+      .fetchGuidance({ userInput: q })
+      .then((res) => {
+        if (res) {
+          setAnswer(`${res.stateSummary} → ${res.primarySuggestion.title}`);
+        } else {
+          // fallback to local rule-based
+          const ctx = { entryState, totalDots, phase1Count, councilUnlocked, councilStarted, hasProject, currentStageId };
+          setAnswer(getQuickAnswer(q, ctx));
+        }
+      })
+      .finally(() => {
+        setAskLoading(false);
+        setQuestion("");
+      });
   };
 
   const stageStateFor = (stageId: string): "completed" | "current" | "upcoming" => {
@@ -315,6 +334,9 @@ export const JourneyPanel = () => {
 
               {/* Scrollable track */}
               <div className="flex-1 overflow-y-auto px-5 py-4">
+
+                {/* AI Compass — proactive next move */}
+                <JourneyCompassCard open={open} onAction={() => handleOpen(false)} />
 
                 {/* Stage track */}
                 <div className="relative">
@@ -484,7 +506,7 @@ export const JourneyPanel = () => {
 
                 {/* Answer from chat */}
                 <AnimatePresence>
-                  {answer && (
+                  {(answer || askLoading) && (
                     <motion.div
                       initial={{ opacity: 0, y: 6 }}
                       animate={{ opacity: 1, y: 0 }}
@@ -492,7 +514,26 @@ export const JourneyPanel = () => {
                       transition={{ duration: 0.2 }}
                       className="mt-3 p-3 rounded-xl bg-muted/50 border border-border/40"
                     >
-                      <p className="text-[12px] text-foreground/80 leading-relaxed">{answer}</p>
+                      {askLoading ? (
+                        <p className="text-[12px] text-muted-foreground italic">Thinking through your situation…</p>
+                      ) : (
+                        <>
+                          <p className="text-[12px] text-foreground/80 leading-relaxed">{answer}</p>
+                          {askCompass.guidance && (
+                            <button
+                              onClick={() => {
+                                if (!askCompass.guidance) return;
+                                handleOpen(false);
+                                askCompass.executeSuggestion(askCompass.guidance.primarySuggestion);
+                              }}
+                              className="mt-2 inline-flex items-center gap-1 text-[11px] font-medium text-primary"
+                            >
+                              {askCompass.guidance.primarySuggestion.ctaLabel}
+                              <ArrowRight className="w-3 h-3" />
+                            </button>
+                          )}
+                        </>
+                      )}
                     </motion.div>
                   )}
                 </AnimatePresence>
@@ -509,12 +550,13 @@ export const JourneyPanel = () => {
                     value={question}
                     onChange={e => setQuestion(e.target.value)}
                     onKeyDown={e => e.key === "Enter" && handleAsk()}
-                    placeholder="Not sure what to do? Ask."
+                    placeholder={askLoading ? "Thinking…" : "Not sure what to do? Ask anything."}
+                    disabled={askLoading}
                     className="flex-1 bg-transparent text-sm placeholder:text-muted-foreground/45 focus:outline-none text-foreground"
                   />
                   <button
                     onClick={handleAsk}
-                    disabled={!question.trim()}
+                    disabled={!question.trim() || askLoading}
                     className="shrink-0 text-primary disabled:text-muted-foreground/25 transition-colors"
                   >
                     <Send className="w-4 h-4" />
