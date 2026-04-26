@@ -550,12 +550,13 @@ export const JourneyPanel = () => {
                     value={question}
                     onChange={e => setQuestion(e.target.value)}
                     onKeyDown={e => e.key === "Enter" && handleAsk()}
-                    placeholder="Not sure what to do? Ask."
+                    placeholder={askLoading ? "Thinking…" : "Not sure what to do? Ask anything."}
+                    disabled={askLoading}
                     className="flex-1 bg-transparent text-sm placeholder:text-muted-foreground/45 focus:outline-none text-foreground"
                   />
                   <button
                     onClick={handleAsk}
-                    disabled={!question.trim()}
+                    disabled={!question.trim() || askLoading}
                     className="shrink-0 text-primary disabled:text-muted-foreground/25 transition-colors"
                   >
                     <Send className="w-4 h-4" />
