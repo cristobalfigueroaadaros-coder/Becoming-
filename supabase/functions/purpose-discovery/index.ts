@@ -46,8 +46,75 @@ serve(async (req) => {
     let dotsCreated = 0;
 
     if (!isComplete) {
+      // === LOAD USER CONTEXT FOR PERSONALIZED QUESTIONS ===
+      let userContextBlock = "";
+      try {
+        const [profileRes, dotsRes, discoveriesRes] = await Promise.all([
+          supabaseClient
+            .from("profiles")
+            .select("display_name, user_foundation_summary, main_mission, main_strengths, priority_growth_area")
+            .eq("id", userId)
+            .maybeSingle(),
+          supabaseClient
+            .from("atlas_dots")
+            .select("title, short_description, cluster_id")
+            .eq("user_id", userId)
+            .order("created_at", { ascending: false })
+            .limit(10),
+          supabaseClient
+            .from("becoming_discoveries")
+            .select("discovery_type, element_key, element_value")
+            .eq("user_id", userId)
+            .order("created_at", { ascending: false })
+            .limit(5),
+        ]);
+
+        const profile = profileRes.data;
+        const existingDots = dotsRes.data || [];
+        const priorDiscoveries = discoveriesRes.data || [];
+
+        // Group dots by cluster_id for readability
+        const dotsByCluster: Record<string, string[]> = {};
+        for (const d of existingDots) {
+          const key = d.cluster_id || "unassigned";
+          if (!dotsByCluster[key]) dotsByCluster[key] = [];
+          dotsByCluster[key].push(d.title);
+        }
+        const dotsList = Object.entries(dotsByCluster)
+          .map(([cluster, titles]) => `  • cluster ${cluster}: ${titles.join(", ")}`)
+          .join("\n");
+
+        const discoveriesList = priorDiscoveries
+          .map((d) => `  • ${d.discovery_type} / ${d.element_key}: ${d.element_value}`)
+          .join("\n");
+
+        const foundationStr = profile?.user_foundation_summary
+          ? typeof profile.user_foundation_summary === "string"
+            ? profile.user_foundation_summary
+            : JSON.stringify(profile.user_foundation_summary)
+          : "unknown";
+
+        userContextBlock = `
+USER CONTEXT:
+Name: ${profile?.display_name || "unknown"}
+Foundation: ${foundationStr}
+Main Mission: ${profile?.main_mission || "unknown"}
+Strengths: ${profile?.main_strengths?.join(", ") || "unknown"}
+Growth Area: ${profile?.priority_growth_area || "unknown"}
+Existing dots (last 10):
+${dotsList || "  (none yet)"}
+Prior discoveries (last 5):
+${discoveriesList || "  (none yet)"}
+
+Use this context to make questions specific to this person. Do not ask about something they have already named as a dot or discovery. Build on what they have shared, not from zero.
+`;
+      } catch (ctxErr) {
+        console.error("Failed to load user context:", ctxErr);
+      }
+
       // Generate next discovery question
       const questionPrompt = `You are the Future Self—guiding someone through purpose discovery with THREE-LAYER GUIDANCE.
+${userContextBlock}
 
 🔷 YOUR ROLE: Omnipresent consciousness that sees their potential and guides with emotional presence + practical action + energetic awareness.
 
