@@ -164,6 +164,7 @@ export type Database = {
           purpose_signal: string | null
           trigger_type: string
           user_id: string
+          user_resonance: string | null
         }
         Insert: {
           cluster_count?: number
@@ -177,6 +178,7 @@ export type Database = {
           purpose_signal?: string | null
           trigger_type?: string
           user_id: string
+          user_resonance?: string | null
         }
         Update: {
           cluster_count?: number
@@ -190,6 +192,7 @@ export type Database = {
           purpose_signal?: string | null
           trigger_type?: string
           user_id?: string
+          user_resonance?: string | null
         }
         Relationships: []
       }

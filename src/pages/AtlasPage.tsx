@@ -9,6 +9,7 @@ import { AtlasClusterNode, AtlasClusterDetail } from "@/components/atlas";
 import { AtlasOnboardingOverlay } from "@/components/atlas/AtlasOnboardingOverlay";
 import { AtlasUnlockProgress } from "@/components/atlas/AtlasUnlockProgress";
 import { ThinkOutOfBoxCard } from "@/components/atlas/ThinkOutOfBoxCard";
+import { YourPatternsCard } from "@/components/atlas/YourPatternsCard";
 import { useOpportunityDetection } from "@/hooks/useOpportunityDetection";
 import { toast } from "@/hooks/use-toast";
 import { supabase } from "@/integrations/supabase/client";
@@ -273,6 +274,11 @@ const AtlasPage = () => {
           <ThinkOutOfBoxCard opportunity={opportunity} onDismiss={() => setOpportunityDismissed(true)} />
         </div>
       )}
+
+      {/* Your Patterns — surfaces latest atlas analysis snapshot */}
+      <div className="relative z-20">
+        <YourPatternsCard totalDots={totalDots} />
+      </div>
 
       {/* Header */}
       <div className="relative z-10 px-5 pt-6 pb-2">
