@@ -94,6 +94,7 @@ Deno.serve(async (req) => {
       stepsR,
       chatsR,
       patternsR,
+      snapshotR,
     ] = await Promise.all([
       supabaseClient.from("profiles").select("display_name, entry_state, console_intake_completed").eq("id", user.id).maybeSingle(),
       supabaseClient.from("atlas_dots").select("cluster_slug, created_at").eq("user_id", user.id),
@@ -101,6 +102,7 @@ Deno.serve(async (req) => {
       supabaseClient.from("integrator_daily_steps").select("step_title, status, completed_at, created_at").eq("user_id", user.id).order("created_at", { ascending: false }).limit(15),
       supabaseClient.from("chats").select("mentor_type, role, created_at").eq("user_id", user.id).order("created_at", { ascending: false }).limit(60),
       supabaseClient.from("inner_patterns").select("pattern_name, transmutation_data, created_at").eq("user_id", user.id).limit(8),
+      supabaseClient.from("atlas_analysis_snapshots").select("patterns, emerging_genius, purpose_signal, created_at").eq("user_id", user.id).order("created_at", { ascending: false }).limit(1).maybeSingle(),
     ]);
 
     const profile = profileR.data;
@@ -109,6 +111,13 @@ Deno.serve(async (req) => {
     const steps = stepsR.data || [];
     const chats = chatsR.data || [];
     const patterns = patternsR.data || [];
+
+    // Use the latest analysis snapshot only if it's fresh (<= 30 days old)
+    const snapshotRaw: any = snapshotR.data;
+    const snapshotAgeMs = snapshotRaw?.created_at
+      ? Date.now() - new Date(snapshotRaw.created_at).getTime()
+      : Infinity;
+    const snapshot = snapshotAgeMs <= 30 * 24 * 60 * 60 * 1000 ? snapshotRaw : null;
 
     // Build cluster distribution
     const clusterCounts: Record<string, number> = {};
@@ -176,6 +185,23 @@ Deno.serve(async (req) => {
 
     const fullContext = contextLines.join("\n");
 
+    // ─── Optional: prior AI analysis (Your Patterns snapshot) ──────────
+    let snapshotBlock = "";
+    if (snapshot) {
+      const snapPatterns = Array.isArray(snapshot.patterns) ? snapshot.patterns : [];
+      const snapGenius = Array.isArray(snapshot.emerging_genius) ? snapshot.emerging_genius : [];
+      const patternLines = snapPatterns
+        .slice(0, 5)
+        .map((p: any) => `- ${p.pattern_title || p.title || "Pattern"} — ${p.pattern_description || p.description || ""}`.trim())
+        .join("\n");
+      const firstGenius = snapGenius[0];
+      const geniusLine = firstGenius
+        ? `${firstGenius.title || "Direction"} — ${firstGenius.description || ""}`.trim()
+        : "";
+
+      snapshotBlock = `\n\nPATTERNS ALREADY FOUND IN THIS USER'S MAP:\n${patternLines || "(none yet)"}\n\nEMERGING DIRECTION:\n${geniusLine || "(not yet articulated)"}\n\nPURPOSE SIGNAL:\n${snapshot.purpose_signal || "(none recorded)"}\n\nUse this as the starting point for compass guidance. Do not re-explain what the system already knows. Build on it. Reference these patterns directly when suggesting which clusters to explore next or which mentor to engage. The compass should feel like it has been watching this person, not meeting them for the first time.`;
+    }
+
     // ─── AI prompt ─────────────────────────────────────────────────────
     const systemPrompt = `You are the Journey Compass — the user's living guide across the entire Bcoming app. You always know exactly where they are and what the single most leverage-producing next move is.
 
@@ -183,7 +209,7 @@ REFERENCE — what a complete founder journey looks like (use this to spot gaps)
 ${CRIS_MAP_REFERENCE}
 
 THE USER'S CURRENT STATE:
-${fullContext}
+${fullContext}${snapshotBlock}
 
 ${userInput ? `THE USER JUST ASKED: "${userInput}"` : `MODE: Proactive — they opened the Compass without a question. Read their state and recommend the move that will create the most movement.`}
 
