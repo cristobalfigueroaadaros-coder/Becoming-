@@ -257,6 +257,15 @@ const Index = () => {
               See how it works
             </Button>
           </motion.div>
+          <motion.p
+            initial="hidden"
+            animate="visible"
+            variants={fadeUp}
+            custom={4}
+            className="text-sm text-muted-foreground mt-6"
+          >
+            Happiness is not in what you get. It's in who you become.
+          </motion.p>
         </div>
       </section>
 
@@ -439,11 +448,22 @@ const Index = () => {
             transition={{ duration: 0.6 }}
             className="p-10 md:p-14 rounded-3xl border border-primary/20 bg-card/30 text-center"
           >
-            <blockquote className="font-gloock text-xl md:text-2xl text-foreground leading-relaxed mb-8 italic">
-              "I left home at 22 with something in me I couldn't name. I cleaned floors in Germany, built a board game across years of construction days and late nights in Australia, broke my leg during COVID, missed the investment, asked God for a sign, and kept moving. Every dot that looked like a failure turned out to be exactly what came next. I built Bcoming because I needed it. And I built it for you."
+            <blockquote className="text-left mb-8 space-y-4">
+              <p className="font-gloock text-xl md:text-2xl text-foreground leading-relaxed italic">
+                "Happiness is not contained in what you get. It is contained in who you become."
+              </p>
+              <p className="text-base md:text-lg text-muted-foreground leading-relaxed">
+                I believe we all carry something rare, a gift that is entirely our own, and our purpose is to find it, shape it, and bring it back to the world. But that process takes time. It is uncertain. Most of the time it feels like walking without a map.
+              </p>
+              <p className="text-base md:text-lg text-muted-foreground leading-relaxed">
+                I have lived my life as an adventure, and many things have happened. I thought they were isolated but the truth is that everything happened for a reason. The dots only made sense when I looked back.
+              </p>
+              <p className="text-base md:text-lg text-foreground/80 leading-relaxed">
+                This is why I built Becoming. As a compass for that journey. And why I am sharing my Atlas, so you can see what it really looks like to find your own path.
+              </p>
             </blockquote>
             <div className="mb-8">
-              <p className="text-foreground font-semibold">Cris</p>
+              <p className="text-foreground font-semibold">Cristóbal</p>
               <p className="text-muted-foreground text-sm">Founder of Bcoming</p>
             </div>
             <Button
