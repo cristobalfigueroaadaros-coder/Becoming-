@@ -151,6 +151,90 @@ export type Database = {
           },
         ]
       }
+      atlas_analysis_snapshots: {
+        Row: {
+          cluster_count: number
+          created_at: string
+          creation_ideas: Json
+          cross_connections: Json
+          dot_count: number
+          emerging_genius: Json
+          id: string
+          patterns: Json
+          purpose_signal: string | null
+          trigger_type: string
+          user_id: string
+          user_resonance: string | null
+        }
+        Insert: {
+          cluster_count?: number
+          created_at?: string
+          creation_ideas?: Json
+          cross_connections?: Json
+          dot_count?: number
+          emerging_genius?: Json
+          id?: string
+          patterns?: Json
+          purpose_signal?: string | null
+          trigger_type?: string
+          user_id: string
+          user_resonance?: string | null
+        }
+        Update: {
+          cluster_count?: number
+          created_at?: string
+          creation_ideas?: Json
+          cross_connections?: Json
+          dot_count?: number
+          emerging_genius?: Json
+          id?: string
+          patterns?: Json
+          purpose_signal?: string | null
+          trigger_type?: string
+          user_id?: string
+          user_resonance?: string | null
+        }
+        Relationships: []
+      }
+      atlas_breakthroughs: {
+        Row: {
+          approach: string | null
+          concept_name: string
+          conversation_depth: number
+          created_at: string
+          first_step: string | null
+          id: string
+          readiness_score: number
+          source_mentor_type: string | null
+          target_audience: string | null
+          user_id: string
+        }
+        Insert: {
+          approach?: string | null
+          concept_name: string
+          conversation_depth?: number
+          created_at?: string
+          first_step?: string | null
+          id?: string
+          readiness_score?: number
+          source_mentor_type?: string | null
+          target_audience?: string | null
+          user_id: string
+        }
+        Update: {
+          approach?: string | null
+          concept_name?: string
+          conversation_depth?: number
+          created_at?: string
+          first_step?: string | null
+          id?: string
+          readiness_score?: number
+          source_mentor_type?: string | null
+          target_audience?: string | null
+          user_id?: string
+        }
+        Relationships: []
+      }
       atlas_cluster_progress: {
         Row: {
           activated_at: string | null
