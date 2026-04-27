@@ -257,6 +257,16 @@ const Index = () => {
               See how it works
             </Button>
           </motion.div>
+
+          <motion.p
+            initial="hidden"
+            animate="visible"
+            variants={fadeUp}
+            custom={4}
+            className="text-sm text-muted-foreground text-center mt-8"
+          >
+            Happiness is not in what you get. It's in who you become.
+          </motion.p>
         </div>
       </section>
 
@@ -622,13 +632,19 @@ const Index = () => {
       </section>
 
       {/* Footer */}
+      <div className="py-16 px-6">
+        <p className="text-center text-base md:text-lg text-muted-foreground max-w-2xl mx-auto">
+          Happiness is not in what you get. It's in who you become.
+        </p>
+      </div>
+
       <footer className="py-12 border-t border-border/30">
         <div className="max-w-7xl mx-auto px-6 flex flex-col md:flex-row items-center justify-between gap-4">
           <div className="flex items-center gap-2">
             <img src={bcomingLogo} alt="Bcoming" className="h-6 w-6 rounded-md" />
             <span className="font-gloock font-semibold text-sm text-foreground">Bcoming</span>
           </div>
-          <p className="text-sm text-muted-foreground">© {new Date().getFullYear()} Bcoming. The dots are connecting.</p>
+          <p className="text-sm text-muted-foreground">© {new Date().getFullYear()} Bcoming.</p>
           <div className="flex items-center gap-4 text-xs text-muted-foreground">
             <a href="/privacy" className="hover:text-foreground transition-colors">Privacy Policy</a>
             <a href="/terms" className="hover:text-foreground transition-colors">Terms of Service</a>
