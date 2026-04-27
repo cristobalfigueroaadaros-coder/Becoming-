@@ -81,6 +81,23 @@ Deno.serve(async (req) => {
   try {
     const { conversation, mentorType, userContext, conversationDepth, forceCheck } = await req.json();
 
+    // Resolve user from auth header (best-effort — do not block detection)
+    let userId: string | null = null;
+    try {
+      const authHeader = req.headers.get("Authorization");
+      if (authHeader) {
+        const supabaseClient = createClient(
+          Deno.env.get("SUPABASE_URL") ?? "",
+          Deno.env.get("SUPABASE_ANON_KEY") ?? "",
+          { global: { headers: { Authorization: authHeader } } }
+        );
+        const { data: { user } } = await supabaseClient.auth.getUser();
+        userId = user?.id ?? null;
+      }
+    } catch (authErr) {
+      console.error("Auth resolve failed:", authErr);
+    }
+
     const LOVABLE_API_KEY = Deno.env.get("LOVABLE_API_KEY");
     if (!LOVABLE_API_KEY) throw new Error("LOVABLE_API_KEY not configured");
 
@@ -197,6 +214,35 @@ If no breakthrough detected, respond:
       const result = JSON.parse(content);
       result.readinessScore = readinessScore;
       console.log("Breakthrough detection result:", result);
+
+      // === SAVE TO atlas_breakthroughs (best-effort) ===
+      if (result.detected && result.breakthrough && userId && readinessScore >= 50) {
+        try {
+          const adminClient = createClient(
+            Deno.env.get("SUPABASE_URL") ?? "",
+            Deno.env.get("SUPABASE_SERVICE_ROLE_KEY") ?? ""
+          );
+          const bt = result.breakthrough;
+          const { error: insertError } = await adminClient
+            .from("atlas_breakthroughs")
+            .insert({
+              user_id: userId,
+              concept_name: bt.title || "Untitled breakthrough",
+              target_audience: bt.target_audience || bt.targetAudience || null,
+              approach: bt.approach || bt.description || null,
+              first_step: bt.next_step || bt.first_step || bt.firstStep || null,
+              readiness_score: readinessScore,
+              conversation_depth: depth,
+              source_mentor_type: mentorType ?? null,
+            });
+          if (insertError) {
+            console.error("Failed to insert atlas_breakthrough:", insertError);
+          }
+        } catch (insertErr) {
+          console.error("atlas_breakthroughs insert threw:", insertErr);
+        }
+      }
+
       return new Response(
         JSON.stringify(result),
         { headers: { ...corsHeaders, "Content-Type": "application/json" } }

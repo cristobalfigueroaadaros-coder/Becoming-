@@ -303,6 +303,42 @@ Return valid JSON:
       console.error('Failed to save analysis:', saveError);
     }
 
+    // === SAVE TO atlas_analysis_snapshots ===
+    try {
+      const clusterCount = new Set(
+        dots.map((d: any) => d.cluster_id).filter((c: any) => c != null)
+      ).size;
+
+      const purposeSignal =
+        typeof analysis.emergingGenius === "string"
+          ? analysis.emergingGenius
+          : analysis.energeticInsights?.highestFrequencyDirection || null;
+
+      const { error: snapshotError } = await supabaseClient
+        .from("atlas_analysis_snapshots")
+        .insert({
+          user_id: user.id,
+          trigger_type: "manual",
+          dot_count: dots.length,
+          cluster_count: clusterCount,
+          patterns: analysis.patterns || [],
+          emerging_genius: Array.isArray(analysis.emergingGenius)
+            ? analysis.emergingGenius
+            : analysis.emergingGenius
+            ? [analysis.emergingGenius]
+            : [],
+          creation_ideas: analysis.creationIdeas || [],
+          cross_connections: analysis.connections || [],
+          purpose_signal: purposeSignal,
+        });
+
+      if (snapshotError) {
+        console.error("Failed to save atlas_analysis_snapshot:", snapshotError);
+      }
+    } catch (snapErr) {
+      console.error("Snapshot insert threw:", snapErr);
+    }
+
     // === STEP 6: OPTIONALLY SAVE CONNECTIONS TO DATABASE ===
     if (autoSave && analysis.connections && analysis.connections.length > 0) {
       const connectionsToSave = analysis.connections
