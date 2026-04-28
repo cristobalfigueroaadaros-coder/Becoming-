@@ -794,20 +794,20 @@ export const ATLAS_QUESTS: AtlasQuestDefinition[] = [
 // Phase 2 (6–9): Depth layer — values, inspiration, roots, growth moments
 // Phase 3 (10–14): Purpose + direction — who they serve, how they contribute, their vision
 export const ONBOARDING_QUEST_SEQUENCE: string[] = [
-  "skills",               // 1. What they've built — capability baseline
+  "skills",               // 1. What they can do — capability baseline
   "passions",             // 2. What drives them — motivational fuel
-  "personal-frustrations",// 3. What blocks them — shadow (makes quest 4 answers more honest)
-  "natural-talents",      // 4. What comes naturally — answered after shadow is activated
-  "life-events",          // 5. Their story — WHY behind quests 1–4
-  "values",               // 6. What they stand for — filter for all mentor advice from here on
-  "inspirations",         // 7. Who shaped them — mirrors their aspirational identity
-  "childhood-signals",    // 8. Deep roots — early programming, only works after trust is built
-  "aha-moments",          // 9. How they grow — rich after 8 quests of self-reflection
-  "who-i-serve",          // 10. Who they want to help — bridge to project + creator system
-  "experiments",          // 11. What they've tried — grounds vision in real experience
+  "aha-moments",          // 3. How they grow — surfaces insight pattern early
+  "experiments",          // 4. What they've tried — grounds vision in real experience
+  "natural-talents",      // 5. What comes naturally
+  "personal-frustrations",// 6. What blocks them — shadow
+  "life-events",          // 7. Their story — WHY behind everything above
+  "values",               // 8. What they stand for — filter for mentor advice from here on
+  "inspirations",         // 9. Who shaped them — aspirational identity
+  "childhood-signals",    // 10. Deep roots — works after trust is built
+  "who-i-serve",          // 11. Who they want to help — bridge to project + creator system
   "ideal-life",           // 12. Personal vision — what their fulfilled life looks like
-  "external-reflections", // 13. What others see in them — often surprising, deepens self-awareness
-  "vision-for-a-better-world", // 14. World vision — purpose beyond self, closes the arc
+  "external-reflections", // 13. What others see in them — deepens self-awareness
+  "vision-for-a-better-world", // 14. World vision — closes the arc
 ];
 
 export const ONBOARDING_QUESTS: AtlasQuestDefinition[] = [
