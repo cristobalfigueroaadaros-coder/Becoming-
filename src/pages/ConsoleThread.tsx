@@ -1695,9 +1695,6 @@ const ConsoleThread = ({ embedded = false, onProjectNameChange }: ConsoleThreadP
           "post_project"
         );
 
-        // Auto-open the project so the user sees the structure → payment flow
-        setTimeout(() => navigate(`/project/${projectId}`), 3500);
-
         setLoading(false);
         return;
       }
@@ -1811,7 +1808,6 @@ const ConsoleThread = ({ embedded = false, onProjectNameChange }: ConsoleThreadP
           "post_project"
         );
 
-        setTimeout(() => navigate(`/project/${discoverProjectId}`), 3500);
         setLoading(false);
         return;
       }
@@ -1972,9 +1968,6 @@ const ConsoleThread = ({ embedded = false, onProjectNameChange }: ConsoleThreadP
         undefined,
         "post_project"
       );
-
-      // Auto-open the project so the user sees the structure → payment flow
-      setTimeout(() => navigate(`/project/${finalProjectId}`), 3500);
     } catch (error: any) {
       console.error("Error in project structuring:", error);
       toast.error("Something went wrong");

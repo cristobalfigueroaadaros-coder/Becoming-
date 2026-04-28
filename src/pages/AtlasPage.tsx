@@ -102,6 +102,7 @@ const AtlasPage = () => {
   const [showOnboarding, setShowOnboarding] = useState(false);
   const [opportunityDismissed, setOpportunityDismissed] = useState(false);
   const { data: opportunity } = useOpportunityDetection(totalDots);
+  const [atlasOnboardingPending, setAtlasOnboardingPending] = useState(false);
 
   // ── Founder's Atlas tab ─────────────────────────────────────────────
   const FOUNDERS_SEEN_FLAG = "atlas_founders_map_seen";
@@ -143,12 +144,20 @@ const AtlasPage = () => {
       setIntakeCompleted(!!p?.console_intake_completed);
       if (p?.entry_state) setEntryState(p.entry_state);
       if (!p?.atlas_onboarding_completed) {
-        const timer = setTimeout(() => setShowOnboarding(true), 5000);
-        return () => clearTimeout(timer);
+        setAtlasOnboardingPending(true);
       }
     };
     checkFlags();
   }, []);
+
+  // Trigger Atlas onboarding overlay only once the user is on "My Map".
+  // Show it ~2s after they land there so the map can render first.
+  useEffect(() => {
+    if (!atlasOnboardingPending) return;
+    if (activeTab !== "mine") return;
+    const timer = setTimeout(() => setShowOnboarding(true), 2000);
+    return () => clearTimeout(timer);
+  }, [atlasOnboardingPending, activeTab]);
 
   useEffect(() => {
     if (highlightSlug) {
