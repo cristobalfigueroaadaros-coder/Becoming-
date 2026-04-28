@@ -7,7 +7,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
 import { motion } from "framer-motion";
 import { ArrowRight, Compass, Heart, MessageCircle, Rocket, Sparkles, Star, Users, Zap, Crown } from "lucide-react";
-import bcomingLogo from "@/assets/bcoming-logo.png";
+import bcomingLogo from "@/assets/bcoming-icon.svg";
 import { SparklesCore } from "@/components/ui/sparkles";
 import RadialOrbitalTimeline from "@/components/ui/radial-orbital-timeline";
 
@@ -157,7 +157,7 @@ const Index = () => {
       <nav className="fixed top-0 left-0 right-0 z-50 glass-strong">
         <div className="max-w-7xl mx-auto px-6 h-16 flex items-center justify-between">
           <div className="flex items-center gap-2.5">
-            <img src={bcomingLogo} alt="Bcoming" className="h-11 w-11 rounded-xl drop-shadow-[0_0_12px_hsl(265_90%_62%/0.4)]" />
+            <img src={bcomingLogo} alt="Bcoming" className="h-11 w-11 drop-shadow-[0_0_12px_hsl(265_90%_62%/0.4)]" />
             <span className="font-gloock font-bold text-lg text-foreground">Bcoming</span>
           </div>
           <div className="hidden md:flex items-center gap-8">
@@ -583,7 +583,7 @@ const Index = () => {
             transition={{ duration: 0.5 }}
           >
             <div className="text-center mb-8">
-              <img src={bcomingLogo} alt="Bcoming" className="h-12 w-12 mx-auto mb-4 rounded-xl" />
+              <img src={bcomingLogo} alt="Bcoming" className="h-12 w-12 mx-auto mb-4" />
               <h2 className="font-gloock text-2xl font-bold text-foreground mb-2">
                 {isSignUp ? "Start mapping" : "Welcome back"}
               </h2>
@@ -652,7 +652,7 @@ const Index = () => {
       <footer className="py-12 border-t border-border/30">
         <div className="max-w-7xl mx-auto px-6 flex flex-col md:flex-row items-center justify-between gap-4">
           <div className="flex items-center gap-2">
-            <img src={bcomingLogo} alt="Bcoming" className="h-6 w-6 rounded-md" />
+            <img src={bcomingLogo} alt="Bcoming" className="h-6 w-6" />
             <span className="font-gloock font-semibold text-sm text-foreground">Bcoming</span>
           </div>
           <p className="text-sm text-muted-foreground">© {new Date().getFullYear()} Bcoming.</p>
