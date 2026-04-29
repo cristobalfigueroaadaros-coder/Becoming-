@@ -423,6 +423,7 @@ const AtlasPage = () => {
                   .update({ atlas_onboarding_completed: true } as any)
                   .eq("id", user.id);
               }
+              navigate("/atlas/quest");
             }}
           />
         )}
