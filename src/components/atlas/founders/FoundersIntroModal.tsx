@@ -27,18 +27,25 @@ export const FoundersIntroModal = ({ onNext }: FoundersIntroModalProps) => {
           </span>
         </div>
 
-        <h2 className="text-xl sm:text-2xl font-bold text-foreground mb-4">
-          Before you build your own map, I want to show you mine.
+        <h2 className="text-xl sm:text-2xl font-bold text-foreground mb-4 italic">
+          "Happiness is not contained in what you get, it's contained in what you become."
         </h2>
 
         <p className="text-sm sm:text-base text-muted-foreground leading-relaxed">
-          This is Cris's Atlas — a real example of how scattered experiences start
-          connecting into a pattern. Tap the dots, notice the lines, then you'll begin
-          creating your own map from your answers, your strengths, and your direction.
+          I believe we all carry a special gift, and that everything in our lives happens
+          for a reason. When we connect those experiences and shape something from them,
+          we begin to discover our purpose. But that journey takes time. It feels uncertain,
+          and often like you are moving without a map.
+        </p>
+
+        <p className="text-sm sm:text-base text-muted-foreground leading-relaxed mt-4">
+          I created Bcoming to guide you through that process. This is my Atlas, a real
+          example that with time and effort, everything connects. My hope is that it
+          inspires you to start creating your own path.
         </p>
 
         <p className="text-sm text-foreground/80 mt-4 italic">
-          — Cris, founder of Becoming
+          — Cris, founder of Bcoming
         </p>
 
         <div className="mt-6 flex justify-end">
