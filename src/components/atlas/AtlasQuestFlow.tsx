@@ -566,8 +566,7 @@ export const AtlasQuestFlow = ({ quest, clusterId, onboardingIndex }: Props) => 
               <div className="flex flex-col gap-3 w-full">
                 <button
                   onClick={() => navigate("/council?view=intake")}
-                  className="w-full py-3 rounded-xl font-semibold text-sm text-white"
-                  style={{ background: "hsl(265, 90%, 62%)" }}
+                  className="w-full py-3 rounded-xl bg-primary text-primary-foreground font-semibold text-sm"
                 >
                   Meet my Council →
                 </button>
