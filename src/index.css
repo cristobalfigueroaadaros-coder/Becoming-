@@ -1,0 +1,272 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+/* Bcoming Design System — Deep Night × Brand Kit v1 */
+/* Near-black purple base. Brand Kit violet. Option C electric violet accent. Sora + Inter. */
+
+@layer base {
+  :root {
+    /* Deep night canvas — warm dark purple */
+    --background: 262 55% 8%;
+    --foreground: 0 0% 96%;
+
+    /* Cards: dark glass surface */
+    --card: 265 45% 12%;
+    --card-foreground: 0 0% 96%;
+
+    --popover: 265 45% 12%;
+    --popover-foreground: 0 0% 96%;
+
+    /* Primary — Brand Kit violet hsl(265,90%,62%) = #8b4ff5 */
+    --primary: 265 90% 62%;
+    --primary-foreground: 0 0% 100%;
+
+    /* Secondary — Electric blue from brand kit */
+    --secondary: 220 95% 58%;
+    --secondary-foreground: 0 0% 100%;
+
+    /* Accent — Brand Kit gold (rare accent only, never CTAs) */
+    --accent: 38 92% 58%;
+    --accent-foreground: 0 0% 100%;
+
+    --muted: 265 35% 16%;
+    --muted-foreground: 265 15% 65%;
+
+    --destructive: 0 72% 55%;
+    --destructive-foreground: 0 0% 100%;
+
+    /* White borders — opacity via Tailwind modifiers */
+    --border: 0 0% 100%;
+    --input: 265 35% 16%;
+    --ring: 265 90% 62%;
+
+    --radius: 0.75rem;
+
+    /* Mentor colors — brand kit palette */
+    --mamba: 330 80% 55%;
+    --creative: 280 75% 58%;
+    --quantum: 220 90% 58%;
+    --sage: 155 55% 48%;
+    --elder: 38 70% 55%;
+
+    /* Future Self */
+    --future-self: 330 85% 60%;
+    --future-self-light: 330 75% 70%;
+    --future-self-glow: 330 80% 82%;
+
+    /* Option C — Electric Violet — accent text, key brand moments */
+    --option-c: 270 90% 75%;
+    --option-c-glow: 270 90% 65%;
+
+    /* Gradient palette */
+    --gradient-start: 220 95% 65%;
+    --gradient-mid: 265 90% 68%;
+    --gradient-end: 320 80% 60%;
+
+    /* Gradients — brand kit */
+    --gradient-primary: linear-gradient(135deg, hsl(220 95% 58%), hsl(265 90% 62%), hsl(320 80% 55%));
+    --gradient-accent: linear-gradient(135deg, hsl(38 92% 58%), hsl(28 95% 52%));
+    --gradient-glow: linear-gradient(135deg, hsl(265 90% 62% / 0.30), hsl(220 95% 58% / 0.10));
+    --gradient-surface: linear-gradient(180deg, hsl(265 45% 13%), hsl(262 55% 8%));
+    --gradient-cosmic: linear-gradient(135deg, hsl(262 55% 8%), hsl(265 50% 11%), hsl(270 45% 9%));
+
+    /* Effects */
+    --shadow-glow-sm: 0 0 20px hsl(265 90% 62% / 0.20);
+    --shadow-glow-md: 0 0 40px hsl(265 90% 62% / 0.25);
+    --shadow-glow-lg: 0 0 80px hsl(265 90% 62% / 0.30);
+    --shadow-soft: 0 4px 24px -4px hsl(0 0% 0% / 0.40);
+    --shadow-neon: 0 0 30px hsl(265 90% 62% / 0.35), 0 0 60px hsl(265 90% 62% / 0.12);
+  }
+
+  /* Dark class mirrors root */
+  .dark {
+    --background: 262 55% 8%;
+    --foreground: 0 0% 96%;
+    --card: 265 45% 12%;
+    --card-foreground: 0 0% 96%;
+    --popover: 265 45% 12%;
+    --popover-foreground: 0 0% 96%;
+    --primary: 265 90% 62%;
+    --primary-foreground: 0 0% 100%;
+    --secondary: 220 95% 58%;
+    --secondary-foreground: 0 0% 100%;
+    --accent: 38 92% 58%;
+    --accent-foreground: 0 0% 100%;
+    --muted: 265 35% 16%;
+    --muted-foreground: 265 15% 65%;
+    --destructive: 0 72% 55%;
+    --destructive-foreground: 0 0% 100%;
+    --border: 0 0% 100%;
+    --input: 265 35% 16%;
+    --ring: 265 90% 62%;
+  }
+}
+
+@layer base {
+  * {
+    @apply border-border;
+  }
+
+  body {
+    @apply text-foreground;
+    font-family: 'Inter', system-ui, sans-serif;
+    /* Deep night aurora — saturated violet blobs on near-black canvas */
+    background:
+      radial-gradient(ellipse at 18% 12%, hsl(270 90% 55% / 0.45) 0%, transparent 46%),
+      radial-gradient(ellipse at 80% 8%,  hsl(220 95% 62% / 0.35) 0%, transparent 42%),
+      radial-gradient(ellipse at 65% 75%, hsl(320 80% 52% / 0.30) 0%, transparent 45%),
+      radial-gradient(ellipse at 12% 80%, hsl(265 90% 58% / 0.25) 0%, transparent 40%),
+      radial-gradient(ellipse at 90% 55%, hsl(270 75% 48% / 0.18) 0%, transparent 36%),
+      hsl(var(--background));
+    background-attachment: fixed;
+  }
+
+  h1, h2, h3, h4, h5, h6 {
+    font-family: 'Sora', system-ui, sans-serif;
+  }
+}
+
+/* Utility classes — Deep Night × Brand Kit */
+@layer utilities {
+  /* Option C electric violet text accent — for key brand moments */
+  .text-accent-c {
+    color: hsl(270 90% 75%);
+    text-shadow: 0 0 30px hsl(270 90% 65% / 0.55), 0 0 80px hsl(270 90% 65% / 0.20);
+  }
+
+  /* Colored glows */
+  .glow-purple {
+    box-shadow: 0 0 30px hsl(265 90% 62% / 0.40), 0 0 60px hsl(265 90% 62% / 0.15);
+  }
+
+  .glow-purple-sm {
+    box-shadow: 0 0 20px hsl(265 90% 62% / 0.30), 0 0 40px hsl(265 90% 62% / 0.10);
+  }
+
+  .glow-blue {
+    box-shadow: 0 0 30px hsl(220 95% 58% / 0.35), 0 0 60px hsl(220 95% 58% / 0.12);
+  }
+
+  .glow-gold {
+    box-shadow: 0 0 30px hsl(38 92% 58% / 0.35), 0 0 60px hsl(38 92% 58% / 0.12);
+  }
+
+  .glow-magenta {
+    box-shadow: 0 0 30px hsl(320 80% 55% / 0.40), 0 0 60px hsl(320 80% 55% / 0.15);
+  }
+
+  /* Text glow */
+  .text-glow {
+    text-shadow: 0 0 30px hsl(0 0% 100% / 0.50);
+  }
+
+  /* Gradient text — Option C electric violet family */
+  .gradient-text {
+    @apply bg-clip-text text-transparent;
+    background-image: linear-gradient(135deg, hsl(0 0% 100%), hsl(270 90% 78%), hsl(320 80% 68%));
+  }
+
+  .gradient-text-warm {
+    @apply bg-clip-text text-transparent;
+    background-image: linear-gradient(135deg, hsl(0 0% 100%), hsl(270 90% 82%));
+  }
+
+  /* Glassmorphism — dark glass panels (brand kit bc-glass) */
+  .glass {
+    background: hsl(265 45% 11% / 0.60);
+    backdrop-filter: blur(20px);
+    -webkit-backdrop-filter: blur(20px);
+    border: 1px solid hsl(265 30% 30% / 0.50);
+  }
+
+  .glass-strong {
+    background: hsl(265 45% 13% / 0.80);
+    backdrop-filter: blur(30px);
+    -webkit-backdrop-filter: blur(30px);
+    border: 1px solid hsl(265 30% 32% / 0.60);
+  }
+
+  /* Gradient border — violet glass frame */
+  .gradient-border {
+    position: relative;
+  }
+
+  .gradient-border::before {
+    content: '';
+    position: absolute;
+    inset: 0;
+    border-radius: inherit;
+    padding: 1px;
+    background: linear-gradient(135deg, hsl(220 95% 65% / 0.45), hsl(265 90% 68% / 0.40), hsl(320 80% 62% / 0.30));
+    -webkit-mask: linear-gradient(#fff 0 0) content-box, linear-gradient(#fff 0 0);
+    -webkit-mask-composite: xor;
+    mask-composite: exclude;
+    pointer-events: none;
+  }
+
+  /* Dark cosmic background */
+  .bg-cosmic {
+    background:
+      radial-gradient(ellipse at 25% 20%, hsl(270 90% 55% / 0.40) 0%, transparent 48%),
+      radial-gradient(ellipse at 75% 35%, hsl(220 95% 62% / 0.30) 0%, transparent 44%),
+      radial-gradient(ellipse at 40% 72%, hsl(320 80% 52% / 0.25) 0%, transparent 45%),
+      radial-gradient(ellipse at 85% 80%, hsl(265 90% 58% / 0.20) 0%, transparent 40%),
+      radial-gradient(ellipse at 10% 62%, hsl(270 75% 48% / 0.15) 0%, transparent 38%),
+      hsl(var(--background));
+  }
+
+  /* Button — white glass to #7f70ff degradé */
+  .btn-gradient {
+    background: linear-gradient(135deg, hsl(0 0% 100% / 0.22) 0%, hsl(246 100% 72% / 0.85) 100%);
+    backdrop-filter: blur(16px);
+    -webkit-backdrop-filter: blur(16px);
+    border: 1px solid hsl(0 0% 100% / 0.40);
+    color: white;
+    transition: background 0.15s ease-out, box-shadow 0.15s ease-out, transform 0.15s ease-out;
+  }
+
+  .btn-gradient:hover {
+    background: linear-gradient(135deg, hsl(0 0% 100% / 0.30) 0%, hsl(246 100% 72% / 0.98) 100%);
+    box-shadow: 0 8px 32px hsl(246 100% 72% / 0.50), 0 2px 8px hsl(0 0% 100% / 0.12);
+    transform: translateY(-1px);
+  }
+
+  .btn-gradient:active {
+    transform: scale(0.97);
+  }
+
+  /* Soft glow line */
+  .neon-line {
+    filter: drop-shadow(0 0 4px hsl(265 90% 62% / 0.50));
+  }
+
+  /* Dark glass nav — near-black for maximum text contrast */
+  .nav-glass-dark {
+    background: hsl(262 65% 5% / 0.96);
+    backdrop-filter: blur(24px);
+    -webkit-backdrop-filter: blur(24px);
+  }
+}
+
+/* Reduced motion */
+@media (prefers-reduced-motion: reduce) {
+  .animate-float,
+  .animate-pulse-glow,
+  .animate-notification-blink {
+    animation: none;
+  }
+
+  .animate-pulse {
+    animation-duration: 3s;
+  }
+
+  .btn-gradient:hover {
+    transform: none;
+    filter: brightness(1.12);
+  }
+
+  .btn-gradient:active {
+    transform: none;
+  }
+}

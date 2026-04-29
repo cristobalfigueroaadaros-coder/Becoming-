@@ -1,0 +1,145 @@
+import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
+import { Button } from "@/components/ui/button";
+import { Sparkles, X } from "lucide-react";
+import { motion } from "framer-motion";
+import { HighlightedText } from "@/components/HighlightedText";
+
+interface FutureSelfMessage {
+  message: string;
+  triggerReason: string;
+  emotionalTone: string;
+  timestamp: string;
+}
+
+interface FutureSelfOmnipresenceModalProps {
+  message: FutureSelfMessage | null;
+  onDismiss: (wasReceived: boolean) => void;
+}
+
+const triggerReasonLabels: Record<string, string> = {
+  low_energy: "I sense your energy dipping",
+  breakthrough: "This is a breakthrough moment",
+  high_coherence: "You're in perfect alignment",
+  flow_state: "You've entered flow",
+  energy_decline: "I feel you losing momentum",
+  expansion: "You're expanding beautifully",
+  manual_request: "You called, I'm here",
+};
+
+export function FutureSelfOmnipresenceModal({ message, onDismiss }: FutureSelfOmnipresenceModalProps) {
+  if (!message) return null;
+
+  return (
+    <Dialog open={!!message} onOpenChange={() => onDismiss(false)}>
+      <DialogContent className="max-w-2xl border-2 border-[hsl(330,85%,60%)]/40 bg-gradient-to-br from-[hsl(330,85%,98%)] via-card/95 to-[hsl(330,75%,95%)] backdrop-blur dark:from-card dark:to-[hsl(330,85%,20%)]/20">
+        <div className="absolute inset-0 bg-gradient-to-br from-[hsl(330,85%,60%)]/10 via-transparent to-[hsl(330,75%,70%)]/10 pointer-events-none" />
+        
+        <DialogHeader className="relative">
+          <div className="flex items-center gap-3 mb-2">
+            <motion.div
+              initial={{ scale: 0, rotate: -180 }}
+              animate={{ scale: 1, rotate: 0 }}
+              transition={{ type: "spring", duration: 0.6 }}
+              className="w-12 h-12 rounded-full bg-gradient-to-br from-[hsl(330,85%,60%)] to-[hsl(330,75%,70%)] flex items-center justify-center shadow-lg shadow-[hsl(330,85%,60%)]/30"
+            >
+              <Sparkles className="w-6 h-6 text-white" />
+            </motion.div>
+            <div className="flex-1">
+              <DialogTitle className="text-2xl bg-gradient-to-r from-[hsl(330,85%,60%)] via-[hsl(330,75%,70%)] to-[hsl(330,85%,60%)] bg-clip-text text-transparent font-bold">
+                Future Self
+              </DialogTitle>
+              <p className="text-sm text-muted-foreground">
+                {triggerReasonLabels[message.triggerReason] || "A message for you"}
+              </p>
+            </div>
+            <Button
+              variant="ghost"
+              size="icon"
+              onClick={() => onDismiss(false)}
+              className="absolute top-0 right-0"
+            >
+              <X className="w-4 h-4" />
+            </Button>
+          </div>
+        </DialogHeader>
+
+        <motion.div
+          initial={{ opacity: 0, y: 20 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ delay: 0.2 }}
+          className="relative space-y-6 pt-4"
+        >
+          {/* Message */}
+          <div className="prose prose-sm max-w-none">
+            <p className="text-lg leading-relaxed text-foreground">
+              <HighlightedText text={message.message} highlightClassName="font-semibold text-[hsl(330,85%,60%)]" />
+            </p>
+          </div>
+
+          {/* Energetic indicator */}
+          <div className="flex items-center gap-2 pt-4 border-t border-border/50">
+            <div className="flex gap-1">
+              {[1, 2, 3, 4, 5].map((i) => (
+                <motion.div
+                  key={i}
+                  initial={{ opacity: 0, scale: 0 }}
+                  animate={{ opacity: 1, scale: 1 }}
+                  transition={{ delay: 0.4 + i * 0.1 }}
+                  className="w-2 h-8 rounded-full bg-gradient-to-t from-[hsl(330,85%,60%)]/30 to-[hsl(330,75%,70%)]"
+                  style={{
+                    height: `${20 + i * 4}px`,
+                    opacity: 0.4 + i * 0.12,
+                  }}
+                />
+              ))}
+            </div>
+            <p className="text-xs text-muted-foreground flex-1">
+              Vibrational signature: <span className="text-[hsl(330,85%,60%)] font-medium capitalize">{message.emotionalTone}</span>
+            </p>
+          </div>
+
+          {/* Actions */}
+          <div className="flex gap-3 pt-2">
+            <Button
+              onClick={() => onDismiss(true)}
+              className="flex-1 bg-gradient-to-r from-[hsl(330,85%,60%)] to-[hsl(330,75%,70%)] hover:opacity-90 text-white shadow-lg shadow-[hsl(330,85%,60%)]/30"
+            >
+              I receive this
+            </Button>
+            <Button
+              onClick={() => onDismiss(false)}
+              variant="outline"
+            >
+              Not now
+            </Button>
+          </div>
+        </motion.div>
+
+        {/* Animated background particles */}
+        <div className="absolute inset-0 pointer-events-none overflow-hidden">
+          {[...Array(12)].map((_, i) => (
+            <motion.div
+              key={i}
+              className="absolute w-1 h-1 rounded-full bg-[hsl(330,85%,60%)]/40"
+              initial={{
+                x: Math.random() * 100 + "%",
+                y: Math.random() * 100 + "%",
+                scale: 0,
+              }}
+              animate={{
+                y: [null, "-20%", "120%"],
+                scale: [0, 1, 0],
+                opacity: [0, 0.6, 0],
+              }}
+              transition={{
+                duration: 3 + Math.random() * 2,
+                repeat: Infinity,
+                delay: Math.random() * 2,
+              }}
+            />
+          ))}
+        </div>
+      </DialogContent>
+    </Dialog>
+  );
+}

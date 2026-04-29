@@ -1,0 +1,18 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="32" height="32" viewBox="0 0 120 120">
+  <defs>
+    <radialGradient id="fvbg" cx="35%" cy="30%" r="70%">
+      <stop offset="0%" stop-color="hsl(268,72%,38%)"></stop>
+      <stop offset="100%" stop-color="hsl(255,65%,18%)"></stop>
+    </radialGradient>
+  </defs>
+  <rect width="120" height="120" rx="26" fill="url(#fvbg)"></rect>
+  <rect x="28" y="18" width="13" height="84" rx="3.6" fill="white"></rect>
+  <path d="M41 18 L41 60 C41 60 74 60 74 39 C74 18 41 18 41 18Z" fill="white"></path>
+  <path d="M41 60 L41 102 C41 102 78 102 78 81 C78 60 41 60 41 60Z" fill="white"></path>
+  <circle cx="86" cy="18" r="8" fill="hsl(42,90%,65%)" opacity="0.2"></circle>
+  <circle cx="86" cy="18" r="4.5" fill="hsl(42,90%,65%)"></circle>
+  <circle cx="100" cy="14" r="2.5" fill="hsl(42,90%,65%)" opacity="0.6"></circle>
+  <circle cx="104" cy="30" r="2" fill="hsl(42,90%,65%)" opacity="0.5"></circle>
+  <circle cx="73" cy="10" r="1.8" fill="hsl(42,90%,65%)" opacity="0.45"></circle>
+  <circle cx="94" cy="42" r="1.6" fill="hsl(42,90%,65%)" opacity="0.38"></circle>
+</svg>

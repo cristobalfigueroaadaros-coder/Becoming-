@@ -1,0 +1,1 @@
+ALTER TABLE public.atlas_dots ADD COLUMN IF NOT EXISTS signal_tags jsonb DEFAULT '{}';

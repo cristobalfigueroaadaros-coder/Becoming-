@@ -1,0 +1,1 @@
+ALTER TABLE public.superpowers ADD COLUMN category text;

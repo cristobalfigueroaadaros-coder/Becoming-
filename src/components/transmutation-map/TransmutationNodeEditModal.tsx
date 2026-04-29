@@ -1,0 +1,291 @@
+import { useState, useEffect } from "react";
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogFooter } from "@/components/ui/dialog";
+import { Button } from "@/components/ui/button";
+import { Textarea } from "@/components/ui/textarea";
+import { Badge } from "@/components/ui/badge";
+import { MessageCircle, Sparkles, Flame, Shield } from "lucide-react";
+
+// Define the structure for node prompts and examples
+interface NodePrompt {
+  prompt: string;
+  examples: string[];
+}
+
+// Define the structure for the props of the TransmutationNodeEditModal component
+interface TransmutationNodeEditModalProps {
+  open: boolean;
+  onClose: () => void;
+  nodeId: string;
+  nodeLabel: string;
+  phase: 'black' | 'white' | 'red' | 'gold';
+  currentContent: string | null;
+  onSave: (content: string) => void;
+  patternName?: string;
+  patternContext?: string;
+  onNavigateToMentor?: (mentorType: string) => void;
+}
+
+const NODE_PROMPTS: Record<string, { prompt: string; examples: string[] }> = {
+  shadow: {
+    prompt: "What happened, or what part feels heavy right now?",
+    examples: [
+      "A relationship breakup...",
+      "A moment I felt rejected...",
+      "A memory from childhood...",
+      "A situation where I felt unsafe, ashamed, or not good enough...",
+    ],
+  },
+  dark_night: {
+    prompt: "That moment when it felt like everything was lost, or you hit rock bottom. How was it?",
+    examples: [
+      "What did you feel emotionally in that moment?",
+      "Where were you physically?",
+      "What happened around you?",
+      "If this moment had a name, what would you call it?",
+    ],
+  },
+  shift_moment: {
+    prompt: "What made you change your perspective?",
+    examples: [
+      "A conversation...",
+      "A person who helped...",
+      "A moment of clarity...",
+      "An insight or realization...",
+      "A decision I finally made...",
+    ],
+  },
+  protective_purpose: {
+    prompt: "If this pattern was trying to protect you... what was it protecting you from?",
+    examples: [
+      "Being rejected...",
+      "Feeling shame again...",
+      "Getting hurt...",
+      "Being alone...",
+      "Failing in front of others...",
+    ],
+  },
+  lesson_learned: {
+    prompt: "Now that you lived this... what do you think it was trying to teach you?",
+    examples: [
+      "I realized I need boundaries...",
+      "I realized I don't need to prove myself...",
+      "I realized I can trust myself...",
+      "I realized I'm stronger than I thought...",
+    ],
+  },
+  gold_insight: {
+    prompt: "What did you gain from this experience?",
+    examples: [
+      "A new belief I chose...",
+      "A new strength I discovered...",
+      "A new truth I'm living by...",
+      "Something I now understand about myself...",
+    ],
+  },
+  letter_to_self: {
+    prompt: "If you could speak to that version of you, what would you say now?",
+    examples: [
+      "What do they need to hear?",
+      "What truth would you give them today?",
+      "What message would change everything?",
+    ],
+  },
+  brave_step: {
+    prompt: "What is one small brave action you can take this week to live this new truth?",
+    examples: [
+      "Say no to something...",
+      "Have one honest conversation...",
+      "Take one step I've been avoiding...",
+      "Share something vulnerable...",
+      "Choose myself once...",
+    ],
+  },
+  release_burden: {
+    prompt: "What part of this pattern are you tired of repeating?",
+    examples: [
+      "Always trying to be perfect before I start...",
+      "Taking responsibility for everyone else's feelings...",
+      "Replaying the same guilt cycle...",
+      "Proving myself to people who don't care...",
+    ],
+  },
+  release_belief: {
+    prompt: "What belief are you ready to let go of?",
+    examples: [
+      "I'm not good enough...",
+      "I need to earn love...",
+      "If I rest, I'll fall behind...",
+      "I always have to be strong...",
+    ],
+  },
+  release_cost: {
+    prompt: "If you keep living this pattern, what will it cost you?",
+    examples: [
+      "My peace of mind...",
+      "Real connection with people I love...",
+      "My health and energy...",
+      "The life I actually want to live...",
+    ],
+  },
+};
+
+const getPhaseStyle = (phase: 'black' | 'white' | 'red' | 'gold') => {
+  switch (phase) {
+    case 'black':
+      return {
+        badge: "bg-slate-700 text-slate-200",
+        border: "border-slate-600/30",
+        bg: "from-slate-800/10 to-transparent",
+      };
+    case 'white':
+      return {
+        badge: "bg-slate-200 text-slate-700",
+        border: "border-slate-300/30",
+        bg: "from-slate-100/10 to-transparent",
+      };
+    case 'red':
+      return {
+        badge: "bg-red-500/20 text-red-400",
+        border: "border-red-500/30",
+        bg: "from-red-500/10 to-transparent",
+      };
+    case 'gold':
+      return {
+        badge: "bg-amber-500/20 text-amber-400",
+        border: "border-amber-500/30",
+        bg: "from-amber-500/10 to-transparent",
+      };
+  }
+};
+
+export const TransmutationNodeEditModal = ({
+  open,
+  onClose,
+  nodeId,
+  nodeLabel,
+  phase,
+  currentContent,
+  onSave,
+  patternName,
+  patternContext,
+  onNavigateToMentor,
+}: TransmutationNodeEditModalProps) => {
+  const [content, setContent] = useState(currentContent || "");
+  const nodeConfig = NODE_PROMPTS[nodeId] || { prompt: "Share your thoughts...", examples: [] };
+  const style = getPhaseStyle(phase);
+
+  // Sync content when currentContent changes (e.g. auto-populated from mentor)
+  useEffect(() => {
+    setContent(currentContent || "");
+  }, [currentContent, open]);
+
+  const handleSave = () => {
+    if (content.trim()) {
+      onSave(content.trim());
+    }
+  };
+
+  const getMentorCTAText = () => {
+    if (phase === 'red') return "Talk to Release Mentor";
+    if (phase === 'white') return "Talk to Phoenix Mentor";
+    if (phase === 'gold') return "Talk to Stoic Mentor";
+    return "Talk to Inner Clarity Mentor";
+  };
+
+  const getMentorIcon = () => {
+    if (phase === 'red') return <Flame className="w-4 h-4 mr-2" />;
+    if (phase === 'white') return <Flame className="w-4 h-4 mr-2" />;
+    if (phase === 'gold') return <Shield className="w-4 h-4 mr-2" />;
+    return <MessageCircle className="w-4 h-4 mr-2" />;
+  };
+
+  const handleTalkToMentor = () => {
+    if (!onNavigateToMentor) return;
+    
+    const mentorType = phase === 'red' ? 'release_mentor' : phase === 'white' ? 'phoenix_mentor' : phase === 'gold' ? 'stoic_mentor' : 'inner_clarity_mentor';
+    onClose();
+    onNavigateToMentor(mentorType);
+  };
+
+  return (
+    <Dialog open={open} onOpenChange={onClose}>
+      <DialogContent className={`sm:max-w-md ${style.border} bg-gradient-to-br ${style.bg}`}>
+        <DialogHeader>
+          <div className="flex items-center gap-2 mb-1">
+            <Badge className={style.badge}>
+              {phase.charAt(0).toUpperCase() + phase.slice(1)} Phase
+            </Badge>
+          </div>
+          <DialogTitle className="text-lg">{nodeLabel}</DialogTitle>
+          <DialogDescription className="text-base font-medium mt-2">
+            {nodeConfig.prompt}
+          </DialogDescription>
+        </DialogHeader>
+
+        <div className="space-y-4 py-2">
+          {/* Mentor CTA - prominent placement at top */}
+          {(phase === 'white' || phase === 'red' || phase === 'gold') && onNavigateToMentor && (
+            <Button 
+              onClick={handleTalkToMentor}
+              variant="outline"
+              className={`w-full ${
+                phase === 'red'
+                  ? 'border-red-500/30 text-red-400 hover:bg-red-500/10'
+                  : phase === 'white' 
+                    ? 'border-orange-500/30 text-orange-400 hover:bg-orange-500/10' 
+                    : 'border-amber-500/30 text-amber-400 hover:bg-amber-500/10'
+              }`}
+            >
+              {getMentorIcon()}
+              {getMentorCTAText()}
+            </Button>
+          )}
+
+          {/* Divider */}
+          {(phase === 'white' || phase === 'red' || phase === 'gold') && onNavigateToMentor && (
+            <div className="flex items-center gap-3">
+              <div className="flex-1 h-px bg-border" />
+              <span className="text-xs text-muted-foreground">or write it yourself</span>
+              <div className="flex-1 h-px bg-border" />
+            </div>
+          )}
+
+          {/* Example guidance */}
+          <div className="text-xs text-muted-foreground space-y-1">
+            {nodeConfig.examples.map((example, index) => (
+              <p key={index} className="opacity-70">• {example}</p>
+            ))}
+          </div>
+
+          <Textarea
+            value={content}
+            onChange={(e) => setContent(e.target.value)}
+            placeholder="Share as little or as much as you want..."
+            className="min-h-[120px] resize-none"
+          />
+
+          {/* Safety message */}
+          <p className="text-xs text-muted-foreground text-center italic">
+            This is a safe space. You're in control of what you share.
+          </p>
+        </div>
+
+        <DialogFooter className="flex-col sm:flex-col gap-2">
+          <div className="flex gap-2 w-full">
+            <Button variant="outline" onClick={onClose} className="flex-1">
+              Cancel
+            </Button>
+            <Button 
+              onClick={handleSave} 
+              disabled={!content.trim()}
+              className={`flex-1 ${phase === 'gold' ? 'bg-amber-600 hover:bg-amber-500' : phase === 'red' ? 'bg-red-600 hover:bg-red-500' : ''}`}
+            >
+              <Sparkles className="w-4 h-4 mr-2" />
+              Save
+            </Button>
+          </div>
+        </DialogFooter>
+      </DialogContent>
+    </Dialog>
+  );
+};
