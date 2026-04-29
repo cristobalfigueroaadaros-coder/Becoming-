@@ -122,9 +122,6 @@ const AtlasPage = () => {
       // ignore
     }
     setActiveTab("mine");
-    if (completedCount === 0) {
-      navigate("/atlas/quest");
-    }
   };
 
   const councilThreshold = COUNCIL_UNLOCK_THRESHOLDS[entryState] ?? 4;
@@ -151,11 +148,11 @@ const AtlasPage = () => {
   }, []);
 
   // Trigger Atlas onboarding overlay only once the user is on "My Map".
-  // Show it ~2s after they land there so the map can render first.
+  // Show it ~3s after they land there so the map can render first.
   useEffect(() => {
     if (!atlasOnboardingPending) return;
     if (activeTab !== "mine") return;
-    const timer = setTimeout(() => setShowOnboarding(true), 2000);
+    const timer = setTimeout(() => setShowOnboarding(true), 3000);
     return () => clearTimeout(timer);
   }, [atlasOnboardingPending, activeTab]);
 
@@ -416,6 +413,7 @@ const AtlasPage = () => {
           <AtlasOnboardingOverlay
             onComplete={async () => {
               setShowOnboarding(false);
+              setAtlasOnboardingPending(false);
               const { data: { user } } = await supabase.auth.getUser();
               if (user) {
                 await supabase
@@ -423,7 +421,6 @@ const AtlasPage = () => {
                   .update({ atlas_onboarding_completed: true } as any)
                   .eq("id", user.id);
               }
-              navigate("/atlas/quest");
             }}
           />
         )}
