@@ -145,7 +145,13 @@ const AtlasPage = () => {
       if (p?.entry_state) setEntryState(p.entry_state);
       if (!p?.atlas_onboarding_completed) {
         setAtlasOnboardingPending(true);
-        if (completedCount === 0) setActiveTab("founders");
+        try {
+          if (completedCount === 0 && !localStorage.getItem(FOUNDERS_SEEN_FLAG)) {
+            setActiveTab("founders");
+          }
+        } catch {
+          if (completedCount === 0) setActiveTab("founders");
+        }
       }
     };
     checkFlags();
