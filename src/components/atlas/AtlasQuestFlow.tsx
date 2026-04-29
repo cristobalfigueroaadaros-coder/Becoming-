@@ -465,8 +465,8 @@ export const AtlasQuestFlow = ({ quest, clusterId, onboardingIndex }: Props) => 
         return;
       }
 
-      // If onboarding quest 13 just completed, mark onboarding as done
-      if (isOnboarding && onboardingIndex === 12) {
+      // If the full onboarding sequence just completed, mark onboarding as done
+      if (isOnboarding && onboardingIndex === 13) {
         await supabase.from("profiles").update({ onboarding_quest_completed: true } as any).eq("id", user.id);
         queryClient.invalidateQueries({ queryKey: ["profile-onboarding-status"] });
         setShowConnectionMoment(true);
@@ -501,7 +501,7 @@ export const AtlasQuestFlow = ({ quest, clusterId, onboardingIndex }: Props) => 
   };
 
   const handleConnectionMomentContinue = async () => {
-    if (isOnboarding && onboardingIndex === 12) {
+    if (isOnboarding && onboardingIndex === 13) {
       navigate("/atlas");
     } else if (isOnboarding) {
       navigate("/atlas/quest", { state: { ts: Date.now() } });
@@ -521,7 +521,7 @@ export const AtlasQuestFlow = ({ quest, clusterId, onboardingIndex }: Props) => 
         <div className="flex-1">
           <p className="text-xs text-muted-foreground">
             {isOnboarding && onboardingIndex !== undefined
-              ? `Quest ${onboardingIndex + 1} of 13 · ${quest.clusterName}`
+              ? `Quest ${onboardingIndex + 1} of 14 · ${quest.clusterName}`
               : quest.clusterName}
           </p>
           <div className="flex gap-1 mt-1.5">
