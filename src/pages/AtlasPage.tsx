@@ -81,6 +81,14 @@ const COUNCIL_UNLOCK_THRESHOLDS: Record<string, number> = {
   BUILD: 2,
 };
 
+type EntryState = "DISCOVER" | "GROW" | "BUILD";
+
+type AtlasProfileFlags = {
+  console_intake_completed?: boolean | null;
+  atlas_onboarding_completed?: boolean | null;
+  entry_state?: string | null;
+};
+
 const AtlasPage = () => {
   const navigate = useNavigate();
   const [searchParams, setSearchParams] = useSearchParams();
@@ -137,10 +145,10 @@ const AtlasPage = () => {
       if (!user) return;
       const { data: profile } = await supabase
         .from("profiles")
-        .select("console_intake_completed, atlas_onboarding_completed, entry_state" as any)
+        .select("console_intake_completed, atlas_onboarding_completed, entry_state" as unknown as string)
         .eq("id", user.id)
         .single();
-      const p = profile as any;
+      const p = profile as AtlasProfileFlags | null;
       setIntakeCompleted(!!p?.console_intake_completed);
       if (p?.entry_state) setEntryState(p.entry_state);
       if (!p?.atlas_onboarding_completed) {
@@ -205,6 +213,7 @@ const AtlasPage = () => {
   const currentPhase = getCurrentPhase(totalDots);
   const nextThreshold = getNextPhaseThreshold(totalDots);
   const unlockedCount = clusters.filter(c => c.computedState !== "locked").length;
+  const normalizedEntryState: EntryState = entryState === "GROW" || entryState === "BUILD" ? entryState : "DISCOVER";
 
   return (
     <div className={`min-h-screen bg-cosmic relative ${isMobile ? "overflow-x-hidden overflow-y-auto" : "overflow-hidden"}`}>
@@ -275,7 +284,7 @@ const AtlasPage = () => {
       {intakeCompleted === false && (
         <div className="relative z-20">
           <AtlasUnlockProgress
-            phase={entryState as any}
+            phase={normalizedEntryState}
             completedCount={completedCount}
             councilAlreadyStarted={!!intakeCompleted}
             onGoToCouncil={() => navigate("/council?view=intake")}
@@ -428,7 +437,7 @@ const AtlasPage = () => {
               if (user) {
                 await supabase
                   .from("profiles")
-                  .update({ atlas_onboarding_completed: true } as any)
+                  .update({ atlas_onboarding_completed: true } as unknown as never)
                   .eq("id", user.id);
               }
               navigate("/atlas/quest");
