@@ -20,24 +20,20 @@ const AtlasQuestPage = () => {
   type QuestData = { quest: any; clusterId: string; onboardingIndex?: number } | null;
   const location = useLocation();
   const [lockedQuestData, setLockedQuestData] = useState<QuestData | "none">("none");
-  // Reset locked quest and safety-valve timer every time we navigate to this page
+  // Reset locked quest every time we navigate to this page
   // (location.key changes on each navigation, even same-URL navigations with state).
-  // This fixes the stuck-on-3-options bug when navigating /atlas/quest → /atlas/quest.
-  const [timedOut, setTimedOut] = useState(false);
+  // Wait for fresh quest data so the just-completed quest cannot be selected again.
   useEffect(() => {
     setLockedQuestData("none");
-    setTimedOut(false);
-    const t = setTimeout(() => setTimedOut(true), 4000);
-    return () => clearTimeout(t);
   }, [location.key]);
 
   useEffect(() => {
-    const ready = timedOut || (!isLoading && !questsLoading && !questsFetching);
+    const ready = !isLoading && !questsLoading && !questsFetching;
     if (!ready) return;
     if (lockedQuestData !== "none") return; // already locked
     const data = clusterId ? getClusterQuest(clusterId) : getNextQuest();
     setLockedQuestData(data ?? null);
-  }, [isLoading, questsLoading, questsFetching, timedOut]);
+  }, [clusterId, getClusterQuest, getNextQuest, isLoading, lockedQuestData, questsFetching, questsLoading]);
 
   // Only gate on lockedQuestData — the loading flags control when we lock,
   // but must not block the render once the lock is set (or timed out).

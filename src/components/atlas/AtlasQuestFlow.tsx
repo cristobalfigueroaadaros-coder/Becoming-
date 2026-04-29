@@ -444,10 +444,12 @@ export const AtlasQuestFlow = ({ quest, clusterId, onboardingIndex }: Props) => 
       const prevLevel = getGrowthLevelName(prevDotCount);
       const newLevel = getGrowthLevelName(newDotCount);
 
-      queryClient.invalidateQueries({ queryKey: ["atlas-dots"] });
-      queryClient.invalidateQueries({ queryKey: ["atlas-quests-completed"] });
-      queryClient.invalidateQueries({ queryKey: ["atlas-signals"] });
-      queryClient.invalidateQueries({ queryKey: ["atlas-patterns"] });
+      await Promise.all([
+        queryClient.invalidateQueries({ queryKey: ["atlas-dots"] }),
+        queryClient.invalidateQueries({ queryKey: ["atlas-quests-completed"] }),
+        queryClient.invalidateQueries({ queryKey: ["atlas-signals"] }),
+        queryClient.invalidateQueries({ queryKey: ["atlas-patterns"] }),
+      ]);
 
       toast({ title: reinforced ? "Discovery reinforced!" : "Discovery added to Atlas!", description: finalDot.title });
 
@@ -459,14 +461,8 @@ export const AtlasQuestFlow = ({ quest, clusterId, onboardingIndex }: Props) => 
 
       setDotSaved(true);
 
-      // Check if we should show connection moment (onboarding)
-      if (isOnboarding && onboardingIndex !== undefined && shouldShowConnectionMoment(onboardingIndex)) {
-        setShowConnectionMoment(true);
-        return;
-      }
-
-      // If onboarding quest 13 just completed, mark onboarding as done
-      if (isOnboarding && onboardingIndex === 12) {
+      // If the full onboarding sequence just completed, mark onboarding as done
+      if (isOnboarding && onboardingIndex === 13) {
         await supabase.from("profiles").update({ onboarding_quest_completed: true } as any).eq("id", user.id);
         queryClient.invalidateQueries({ queryKey: ["profile-onboarding-status"] });
         setShowConnectionMoment(true);
@@ -485,6 +481,12 @@ export const AtlasQuestFlow = ({ quest, clusterId, onboardingIndex }: Props) => 
         }
       }
 
+      // Check if we should show connection moment (onboarding)
+      if (isOnboarding && onboardingIndex !== undefined && shouldShowConnectionMoment(onboardingIndex)) {
+        setShowConnectionMoment(true);
+        return;
+      }
+
       // For onboarding, go to next quest; otherwise go to atlas with highlight
       if (isOnboarding) {
         navigate("/atlas/quest", { state: { ts: Date.now() } });
@@ -501,7 +503,7 @@ export const AtlasQuestFlow = ({ quest, clusterId, onboardingIndex }: Props) => 
   };
 
   const handleConnectionMomentContinue = async () => {
-    if (isOnboarding && onboardingIndex === 12) {
+    if (isOnboarding && onboardingIndex === 13) {
       navigate("/atlas");
     } else if (isOnboarding) {
       navigate("/atlas/quest", { state: { ts: Date.now() } });
@@ -521,7 +523,7 @@ export const AtlasQuestFlow = ({ quest, clusterId, onboardingIndex }: Props) => 
         <div className="flex-1">
           <p className="text-xs text-muted-foreground">
             {isOnboarding && onboardingIndex !== undefined
-              ? `Quest ${onboardingIndex + 1} of 13 · ${quest.clusterName}`
+              ? `Quest ${onboardingIndex + 1} of 14 · ${quest.clusterName}`
               : quest.clusterName}
           </p>
           <div className="flex gap-1 mt-1.5">
@@ -566,8 +568,7 @@ export const AtlasQuestFlow = ({ quest, clusterId, onboardingIndex }: Props) => 
               <div className="flex flex-col gap-3 w-full">
                 <button
                   onClick={() => navigate("/council?view=intake")}
-                  className="w-full py-3 rounded-xl font-semibold text-sm text-white"
-                  style={{ background: "hsl(265, 90%, 62%)" }}
+                  className="w-full py-3 rounded-xl bg-primary text-primary-foreground font-semibold text-sm"
                 >
                   Meet my Council →
                 </button>

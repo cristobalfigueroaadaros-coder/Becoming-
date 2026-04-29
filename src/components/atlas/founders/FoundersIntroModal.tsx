@@ -28,16 +28,13 @@ export const FoundersIntroModal = ({ onNext }: FoundersIntroModalProps) => {
         </div>
 
         <h2 className="text-xl sm:text-2xl font-bold text-foreground mb-4">
-          This is my map.
+          Before you build your own map, I want to show you mine.
         </h2>
 
         <p className="text-sm sm:text-base text-muted-foreground leading-relaxed">
-          I left home at 22 with something in me I couldn't name. I cleaned floors in
-          Germany, built a board game across years of construction days and late
-          nights in Australia, broke my leg during COVID, missed the investment,
-          asked God for a sign, and kept moving. Every dot that looked like a failure
-          turned out to be exactly what came next. I built Becoming because I needed
-          it. And I built it for you.
+          This is Cris's Atlas — a real example of how scattered experiences start
+          connecting into a pattern. Tap the dots, notice the lines, then you'll begin
+          creating your own map from your answers, your strengths, and your direction.
         </p>
 
         <p className="text-sm text-foreground/80 mt-4 italic">
