@@ -459,12 +459,6 @@ export const AtlasQuestFlow = ({ quest, clusterId, onboardingIndex }: Props) => 
 
       setDotSaved(true);
 
-      // Check if we should show connection moment (onboarding)
-      if (isOnboarding && onboardingIndex !== undefined && shouldShowConnectionMoment(onboardingIndex)) {
-        setShowConnectionMoment(true);
-        return;
-      }
-
       // If the full onboarding sequence just completed, mark onboarding as done
       if (isOnboarding && onboardingIndex === 13) {
         await supabase.from("profiles").update({ onboarding_quest_completed: true } as any).eq("id", user.id);
@@ -483,6 +477,12 @@ export const AtlasQuestFlow = ({ quest, clusterId, onboardingIndex }: Props) => 
           setShowCouncilUnlocked(true);
           return;
         }
+      }
+
+      // Check if we should show connection moment (onboarding)
+      if (isOnboarding && onboardingIndex !== undefined && shouldShowConnectionMoment(onboardingIndex)) {
+        setShowConnectionMoment(true);
+        return;
       }
 
       // For onboarding, go to next quest; otherwise go to atlas with highlight
