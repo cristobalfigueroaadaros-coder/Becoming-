@@ -444,10 +444,12 @@ export const AtlasQuestFlow = ({ quest, clusterId, onboardingIndex }: Props) => 
       const prevLevel = getGrowthLevelName(prevDotCount);
       const newLevel = getGrowthLevelName(newDotCount);
 
-      queryClient.invalidateQueries({ queryKey: ["atlas-dots"] });
-      queryClient.invalidateQueries({ queryKey: ["atlas-quests-completed"] });
-      queryClient.invalidateQueries({ queryKey: ["atlas-signals"] });
-      queryClient.invalidateQueries({ queryKey: ["atlas-patterns"] });
+      await Promise.all([
+        queryClient.invalidateQueries({ queryKey: ["atlas-dots"] }),
+        queryClient.invalidateQueries({ queryKey: ["atlas-quests-completed"] }),
+        queryClient.invalidateQueries({ queryKey: ["atlas-signals"] }),
+        queryClient.invalidateQueries({ queryKey: ["atlas-patterns"] }),
+      ]);
 
       toast({ title: reinforced ? "Discovery reinforced!" : "Discovery added to Atlas!", description: finalDot.title });
 
