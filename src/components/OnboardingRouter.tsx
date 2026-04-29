@@ -18,7 +18,7 @@ const OnboardingRouter = () => {
 
         const { data: profile } = await supabase
           .from("profiles")
-          .select("birth_name, gravity_orientation_completed, gravity_transition_completed, council_introduction_completed, first_project_created_at, onboarding_completion_seen, console_intake_completed")
+          .select("birth_name, gravity_orientation_completed, gravity_transition_completed, council_introduction_completed, first_project_created_at, onboarding_completion_seen, console_intake_completed, entry_state")
           .eq("id", user.id)
           .single();
 
@@ -46,6 +46,8 @@ const OnboardingRouter = () => {
         } else if (!questCompleted && !(profile as any)?.onboarding_quest_completed) {
           // Route to Atlas onboarding quest flow
           navigate("/atlas/quest");
+        } else if (!(profile as any)?.console_intake_completed) {
+          navigate("/council?view=intake");
         } else {
           // Check if thread unlock conditions are met — route to Atlas to see invitation
           const { data: dots } = await supabase
