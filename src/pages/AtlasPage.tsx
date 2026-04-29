@@ -103,6 +103,7 @@ const AtlasPage = () => {
   const [opportunityDismissed, setOpportunityDismissed] = useState(false);
   const { data: opportunity } = useOpportunityDetection(totalDots);
   const [atlasOnboardingPending, setAtlasOnboardingPending] = useState(false);
+  const [hasStartedOwnMap, setHasStartedOwnMap] = useState(false);
 
   // ── Founder's Atlas tab ─────────────────────────────────────────────
   const FOUNDERS_SEEN_FLAG = "atlas_founders_map_seen";
@@ -122,9 +123,7 @@ const AtlasPage = () => {
       // ignore
     }
     setActiveTab("mine");
-    if (!atlasOnboardingPending && completedCount === 0) {
-      navigate("/atlas/quest");
-    }
+    setHasStartedOwnMap(true);
   };
 
   const councilThreshold = COUNCIL_UNLOCK_THRESHOLDS[entryState] ?? 4;
@@ -154,10 +153,10 @@ const AtlasPage = () => {
   // Show it ~3s after they land there so the map can render first.
   useEffect(() => {
     if (!atlasOnboardingPending) return;
-    if (activeTab !== "mine") return;
+    if (activeTab !== "mine" || !hasStartedOwnMap) return;
     const timer = setTimeout(() => setShowOnboarding(true), 3000);
     return () => clearTimeout(timer);
-  }, [atlasOnboardingPending, activeTab]);
+  }, [atlasOnboardingPending, activeTab, hasStartedOwnMap]);
 
   useEffect(() => {
     if (highlightSlug) {
