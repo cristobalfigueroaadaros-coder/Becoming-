@@ -29,6 +29,15 @@ const OnboardingRouter = () => {
           .eq("id", user.id)
           .single();
         const questCompleted = (questCheck as any)?.onboarding_quest_completed;
+        const entryState = (profile as any)?.entry_state || "DISCOVER";
+        const councilThresholds: Record<string, number> = { DISCOVER: 4, GROW: 3, BUILD: 2 };
+        const councilThreshold = councilThresholds[entryState] ?? 4;
+        const { count: completedQuestCount } = await supabase
+          .from("atlas_quests")
+          .select("*", { count: "exact", head: true })
+          .eq("user_id", user.id)
+          .eq("status", "completed");
+        const councilReady = (completedQuestCount || 0) >= councilThreshold;
 
         // Route to the correct step based on completion status
         // Follow the exact onboarding flow order:
@@ -43,7 +52,7 @@ const OnboardingRouter = () => {
           navigate("/gravity/orientation");
         } else if (!profile?.birth_name) {
           navigate("/onboarding");
-        } else if (!questCompleted && !(profile as any)?.onboarding_quest_completed) {
+        } else if (!questCompleted && !(profile as any)?.onboarding_quest_completed && !councilReady) {
           // Route to Atlas onboarding quest flow
           navigate("/atlas/quest");
         } else if (!(profile as any)?.console_intake_completed) {
