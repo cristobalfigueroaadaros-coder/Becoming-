@@ -102,11 +102,11 @@ export const AtlasOnboardingOverlay = ({ onComplete }: AtlasOnboardingOverlayPro
         className="mt-10"
       >
         <Button
-          onClick={onComplete}
+          onClick={handleNext}
           size="lg"
           className="gap-2 px-8"
         >
-          {step < SECTIONS.length - 1 ? "Next" : "Start"}
+          {step < SECTIONS.length - 1 ? "Next" : "Start first quest"}
           <ArrowRight className="w-4 h-4" />
         </Button>
       </motion.div>
