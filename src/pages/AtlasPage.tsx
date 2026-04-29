@@ -245,7 +245,10 @@ const AtlasPage = () => {
       <div className="relative z-30 px-5 pt-4">
         <div className="inline-flex rounded-full border border-border/60 bg-card/70 backdrop-blur-md p-1 shadow-sm">
           <button
-            onClick={() => setActiveTab("mine")}
+            onClick={() => {
+              if (shouldShowFoundersFirst && !hasStartedOwnMap) return;
+              setActiveTab("mine");
+            }}
             className={cn(
               "px-4 py-1.5 text-xs font-semibold rounded-full transition-all",
               activeTab === "mine"
