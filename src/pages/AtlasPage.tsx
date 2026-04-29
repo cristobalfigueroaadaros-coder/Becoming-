@@ -107,6 +107,7 @@ const AtlasPage = () => {
 
   // ── Founder's Atlas tab ─────────────────────────────────────────────
   const FOUNDERS_SEEN_FLAG = "atlas_founders_map_seen";
+  const shouldShowFoundersFirst = atlasOnboardingPending && completedCount === 0;
   const [activeTab, setActiveTab] = useState<"mine" | "founders">(() => {
     if (typeof window === "undefined") return "founders";
     try {
@@ -144,10 +145,11 @@ const AtlasPage = () => {
       if (p?.entry_state) setEntryState(p.entry_state);
       if (!p?.atlas_onboarding_completed) {
         setAtlasOnboardingPending(true);
+        if (completedCount === 0) setActiveTab("founders");
       }
     };
     checkFlags();
-  }, []);
+  }, [completedCount]);
 
   // Trigger Atlas onboarding overlay only once the user is on "My Map".
   // Show it ~3s after they land there so the map can render first.
@@ -260,7 +262,7 @@ const AtlasPage = () => {
       </div>
 
       {activeTab === "founders" ? (
-        <FoundersMap onCtaClick={handleFoundersCta} />
+        <FoundersMap onCtaClick={handleFoundersCta} forceIntro={shouldShowFoundersFirst} />
       ) : (
         <>
       {/* Phase-based Council unlock progress */}
