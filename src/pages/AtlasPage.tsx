@@ -81,6 +81,14 @@ const COUNCIL_UNLOCK_THRESHOLDS: Record<string, number> = {
   BUILD: 2,
 };
 
+type EntryState = "DISCOVER" | "GROW" | "BUILD";
+
+type AtlasProfileFlags = {
+  console_intake_completed?: boolean | null;
+  atlas_onboarding_completed?: boolean | null;
+  entry_state?: string | null;
+};
+
 const AtlasPage = () => {
   const navigate = useNavigate();
   const [searchParams, setSearchParams] = useSearchParams();
@@ -103,9 +111,11 @@ const AtlasPage = () => {
   const [opportunityDismissed, setOpportunityDismissed] = useState(false);
   const { data: opportunity } = useOpportunityDetection(totalDots);
   const [atlasOnboardingPending, setAtlasOnboardingPending] = useState(false);
+  const [hasStartedOwnMap, setHasStartedOwnMap] = useState(false);
 
   // ── Founder's Atlas tab ─────────────────────────────────────────────
   const FOUNDERS_SEEN_FLAG = "atlas_founders_map_seen";
+  const shouldShowFoundersFirst = atlasOnboardingPending && completedCount === 0;
   const [activeTab, setActiveTab] = useState<"mine" | "founders">(() => {
     if (typeof window === "undefined") return "founders";
     try {
@@ -122,9 +132,7 @@ const AtlasPage = () => {
       // ignore
     }
     setActiveTab("mine");
-    if (!atlasOnboardingPending && completedCount === 0) {
-      navigate("/atlas/quest");
-    }
+    setHasStartedOwnMap(true);
   };
 
   const councilThreshold = COUNCIL_UNLOCK_THRESHOLDS[entryState] ?? 4;
@@ -137,27 +145,28 @@ const AtlasPage = () => {
       if (!user) return;
       const { data: profile } = await supabase
         .from("profiles")
-        .select("console_intake_completed, atlas_onboarding_completed, entry_state" as any)
+        .select("console_intake_completed, atlas_onboarding_completed, entry_state" as unknown as string)
         .eq("id", user.id)
         .single();
-      const p = profile as any;
+      const p = profile as AtlasProfileFlags | null;
       setIntakeCompleted(!!p?.console_intake_completed);
       if (p?.entry_state) setEntryState(p.entry_state);
       if (!p?.atlas_onboarding_completed) {
         setAtlasOnboardingPending(true);
+        if (completedCount === 0) setActiveTab("founders");
       }
     };
     checkFlags();
-  }, []);
+  }, [completedCount]);
 
   // Trigger Atlas onboarding overlay only once the user is on "My Map".
   // Show it ~3s after they land there so the map can render first.
   useEffect(() => {
     if (!atlasOnboardingPending) return;
-    if (activeTab !== "mine") return;
+    if (activeTab !== "mine" || !hasStartedOwnMap) return;
     const timer = setTimeout(() => setShowOnboarding(true), 3000);
     return () => clearTimeout(timer);
-  }, [atlasOnboardingPending, activeTab]);
+  }, [atlasOnboardingPending, activeTab, hasStartedOwnMap]);
 
   useEffect(() => {
     if (highlightSlug) {
@@ -198,6 +207,7 @@ const AtlasPage = () => {
   const currentPhase = getCurrentPhase(totalDots);
   const nextThreshold = getNextPhaseThreshold(totalDots);
   const unlockedCount = clusters.filter(c => c.computedState !== "locked").length;
+  const normalizedEntryState: EntryState = entryState === "GROW" || entryState === "BUILD" ? entryState : "DISCOVER";
 
   return (
     <div className={`min-h-screen bg-cosmic relative ${isMobile ? "overflow-x-hidden overflow-y-auto" : "overflow-hidden"}`}>
@@ -235,7 +245,10 @@ const AtlasPage = () => {
       <div className="relative z-30 px-5 pt-4">
         <div className="inline-flex rounded-full border border-border/60 bg-card/70 backdrop-blur-md p-1 shadow-sm">
           <button
-            onClick={() => setActiveTab("mine")}
+            onClick={() => {
+              if (shouldShowFoundersFirst && !hasStartedOwnMap) return;
+              setActiveTab("mine");
+            }}
             className={cn(
               "px-4 py-1.5 text-xs font-semibold rounded-full transition-all",
               activeTab === "mine"
@@ -261,14 +274,14 @@ const AtlasPage = () => {
       </div>
 
       {activeTab === "founders" ? (
-        <FoundersMap onCtaClick={handleFoundersCta} />
+        <FoundersMap onCtaClick={handleFoundersCta} forceIntro={shouldShowFoundersFirst} />
       ) : (
         <>
       {/* Phase-based Council unlock progress */}
       {intakeCompleted === false && (
         <div className="relative z-20">
           <AtlasUnlockProgress
-            phase={entryState as any}
+            phase={normalizedEntryState}
             completedCount={completedCount}
             councilAlreadyStarted={!!intakeCompleted}
             onGoToCouncil={() => navigate("/council?view=intake")}
@@ -421,9 +434,10 @@ const AtlasPage = () => {
               if (user) {
                 await supabase
                   .from("profiles")
-                  .update({ atlas_onboarding_completed: true } as any)
+                  .update({ atlas_onboarding_completed: true } as unknown as never)
                   .eq("id", user.id);
               }
+              navigate("/atlas/quest");
             }}
           />
         )}

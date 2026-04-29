@@ -14,13 +14,15 @@ import { FoundersTimeline } from "./FoundersTimeline";
 
 interface FoundersMapProps {
   onCtaClick: () => void;
+  forceIntro?: boolean;
 }
 
 const POPUP_FLAG = "founders_popup_seen";
 
-export const FoundersMap = ({ onCtaClick }: FoundersMapProps) => {
+export const FoundersMap = ({ onCtaClick, forceIntro = false }: FoundersMapProps) => {
   const [isMobile, setIsMobile] = useState(false);
   const [showPopup, setShowPopup] = useState(false);
+  const [introDismissed, setIntroDismissed] = useState(false);
   const [selected, setSelected] = useState<FounderCluster | null>(null);
 
   useEffect(() => {
@@ -31,13 +33,17 @@ export const FoundersMap = ({ onCtaClick }: FoundersMapProps) => {
   }, []);
 
   useEffect(() => {
+    if (forceIntro) {
+      setShowPopup(!introDismissed);
+      return;
+    }
     try {
       const seen = localStorage.getItem(POPUP_FLAG);
       if (!seen) setShowPopup(true);
     } catch {
       setShowPopup(true);
     }
-  }, []);
+  }, [forceIntro, introDismissed]);
 
   const handleDismissPopup = () => {
     try {
@@ -45,6 +51,7 @@ export const FoundersMap = ({ onCtaClick }: FoundersMapProps) => {
     } catch {
       // ignore
     }
+    setIntroDismissed(true);
     setShowPopup(false);
   };
 
