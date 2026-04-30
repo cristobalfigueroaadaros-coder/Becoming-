@@ -107,12 +107,12 @@ const ProjectCreationCard = ({ projectName, projectDescription, onProjectCreated
 
         {alreadyCreatedId ? (
           <Button onClick={handleCreate} className="w-full gap-2" size="sm">
-            <ArrowRight className="w-4 h-4" /> Open Project
+            <Check className="w-4 h-4" /> Accept the project
           </Button>
         ) : !created ? (
           <Button onClick={handleCreate} disabled={creating} className="w-full gap-2" size="sm">
             {creating ? <Loader2 className="w-4 h-4 animate-spin" /> : <Check className="w-4 h-4" />}
-            {creating ? "Creating..." : "Create This Project"}
+            {creating ? "Creating..." : "Accept the project"}
           </Button>
         ) : (
           <div className="text-center text-sm text-primary font-medium py-1">
