@@ -27,6 +27,7 @@ const Index = () => {
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [loading, setLoading] = useState(false);
+  const [activeTab, setActiveTab] = useState(0);
 
   const handleAuth = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -80,19 +81,19 @@ const Index = () => {
       icon: Compass,
       title: "Atlas",
       description:
-        "A visual map of everything inside you. Your life events, passions, aha moments, and gifts become a living picture that only you could have.",
+        "A visual map of everything inside you. Your experiences, passions, aha moments, and gifts become a living picture that only you could have.",
     },
     {
       icon: MessageCircle,
       title: "AI Mentors",
       description:
-        "Seven advisors assembled from what your Atlas reveals. Each one sees you from a different angle. They do not wait for you to come to them.",
+        "25 mentors from different perspectives, each one seeing a different angle of you. From those, a personalized council of 7 is assembled to guide you, challenge you, and help you shape your project.",
     },
     {
       icon: Rocket,
       title: "Creation Lab",
       description:
-        "Where your dots become a real project. Design thinking, daily goals, and an iteration structure that bridges who you are and what you build.",
+        "Where your project becomes reality. Design thinking, daily goals, and business tools that give structure to what you are building and keep you moving forward.",
     },
     {
       icon: Users,
@@ -102,21 +103,18 @@ const Index = () => {
     },
   ];
 
-  const steps = [
+  const phases = [
     {
-      number: "01",
-      title: "Map it",
-      description: "Answer guided questions. Each answer adds a dot to your Atlas. The pattern starts becoming visible before you finish the first session.",
+      title: "Discover",
+      body: "You are figuring out who you are. We help you see yourself clearly, connect your dots, understand the gift you carry, and create a first project to start working on it.",
     },
     {
-      number: "02",
-      title: "Shape it",
-      description: "Your council of AI mentors reads the pattern and helps you shape it into a project that could only come from your specific life.",
+      title: "Grow",
+      body: "You have an idea but it's not real yet. We help you shape it, test it, and take it from inside your head to something you can actually build.",
     },
     {
-      number: "03",
-      title: "Build it",
-      description: "Creation Lab gives your work structure. The community holds you accountable. Every week the map grows and the direction gets clearer.",
+      title: "Build",
+      body: "You have a project or a business and you need to move it forward. Find your direction, grow your impact, and connect with the right people.",
     },
   ];
 
@@ -163,9 +161,6 @@ const Index = () => {
           <div className="hidden md:flex items-center gap-8">
             <a href="#features" className="text-sm text-muted-foreground hover:text-foreground transition-colors">
               Features
-            </a>
-            <a href="#how-it-works" className="text-sm text-muted-foreground hover:text-foreground transition-colors">
-              How it works
             </a>
             <a href="#pricing" className="text-sm text-muted-foreground hover:text-foreground transition-colors">
               Pricing
@@ -228,7 +223,7 @@ const Index = () => {
           >
             <span className="text-foreground">You've been collecting dots your whole life.</span>
             <br />
-            <span className="gradient-text">This is how they connect.</span>
+            <span className="gradient-text">Now let's build with them.</span>
           </motion.h1>
 
           <motion.p
@@ -251,153 +246,184 @@ const Index = () => {
             <Button size="lg" className="text-lg px-8 py-6 glow-purple gap-2" onClick={scrollToAuth}>
               Start mapping <ArrowRight className="w-5 h-5" />
             </Button>
-            <Button
-              variant="outline"
-              size="lg"
-              className="text-lg px-8 py-6 border-border/50 hover:border-primary/30"
-              onClick={() => document.getElementById("how-it-works")?.scrollIntoView({ behavior: "smooth" })}
-            >
-              See how it works
-            </Button>
           </motion.div>
-
-          <motion.p
-            initial="hidden"
-            animate="visible"
-            variants={fadeUp}
-            custom={4}
-            className="text-sm text-muted-foreground text-center mt-8"
-          >
-            Happiness is not in what you get. It's in who you become.
-          </motion.p>
         </div>
       </section>
 
-      {/* Problem / Emotional Pain */}
+      {/* Block 2 — Pain and Promise */}
       <section className="py-24 md:py-32 relative overflow-hidden">
         <div className="absolute inset-0">
           <div className="absolute top-0 left-0 right-0 h-px bg-gradient-to-r from-transparent via-border to-transparent" />
           <FloatingDots count={30} color="167,139,250" minSize={1} maxSize={2} speed={0.6} />
         </div>
-        <div className="max-w-4xl mx-auto px-6 text-center relative z-10">
-          <motion.h2
+        <div className="max-w-3xl mx-auto px-6 text-center relative z-10">
+          <motion.p
             initial={{ opacity: 0, y: 30 }}
             whileInView={{ opacity: 1, y: 0 }}
             viewport={{ once: true }}
             transition={{ duration: 0.7 }}
-            className="font-gloock text-3xl md:text-4xl font-bold mb-6 text-foreground"
+            className="font-gloock text-2xl md:text-3xl text-foreground leading-relaxed mb-8"
           >
-            Most people feel it. Almost none of them know what to do with it.
-          </motion.h2>
-          <motion.p
-            initial={{ opacity: 0 }}
-            whileInView={{ opacity: 1 }}
-            viewport={{ once: true }}
-            transition={{ delay: 0.2, duration: 0.6 }}
-            className="text-lg text-muted-foreground leading-relaxed max-w-2xl mx-auto mb-8"
-          >
-            The restlessness. The sense that something in you is waiting to be built. You feel it in the gap between the life you are living and the one you sense you could be building.
+            Building something that matters is hard. It's lonely. It's uncertain. And most of the time you don't know what the next step is.
           </motion.p>
           <motion.p
             initial={{ opacity: 0 }}
             whileInView={{ opacity: 1 }}
             viewport={{ once: true }}
-            transition={{ delay: 0.35, duration: 0.6 }}
-            className="text-base text-foreground/80 max-w-xl mx-auto mb-12"
+            transition={{ delay: 0.25, duration: 0.6 }}
+            className="text-lg text-muted-foreground leading-relaxed max-w-2xl mx-auto"
           >
-            You do not need more motivation. You need to see the pattern. Because once you see it, you know exactly what to build next.
+            Bcoming helps you move forward. With structure, with guidance, and with accountability. Wherever you are in your journey.
           </motion.p>
+        </div>
+      </section>
+
+      {/* Block 3 — Three Phases */}
+      <section className="py-24 md:py-32 relative overflow-hidden">
+        <div className="absolute inset-0">
+          <div className="absolute top-0 left-0 right-0 h-px bg-gradient-to-r from-transparent via-border to-transparent" />
+          <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[600px] h-[600px] rounded-full bg-primary/3 blur-[150px]" />
+          <FloatingDots count={25} color="99,102,241" minSize={1} maxSize={2.5} speed={0.5} />
+        </div>
+        <div className="max-w-5xl mx-auto px-6 relative z-10">
+          <div className="text-center mb-14">
+            <motion.p
+              initial={{ opacity: 0, y: 20 }}
+              whileInView={{ opacity: 1, y: 0 }}
+              viewport={{ once: true }}
+              transition={{ duration: 0.6 }}
+              className="text-lg md:text-xl text-muted-foreground leading-relaxed max-w-2xl mx-auto"
+            >
+              We all have a different path. And we are all at a different place in it. Bcoming adapts to the phase you are in right now and helps you move forward.
+            </motion.p>
+          </div>
           <div className="grid md:grid-cols-3 gap-6">
-            {[
-              { text: "The clarity to see what's already there", icon: "🧭" },
-              { text: "A map that connects the dots you've been collecting", icon: "🗺️" },
-              { text: "A project that could only come from your specific life", icon: "✦" },
-            ].map((item, i) => (
+            {phases.map((phase, i) => (
               <motion.div
-                key={i}
+                key={phase.title}
                 initial={{ opacity: 0, y: 30, scale: 0.95 }}
                 whileInView={{ opacity: 1, y: 0, scale: 1 }}
                 viewport={{ once: true }}
                 transition={{ delay: i * 0.15, duration: 0.5 }}
                 whileHover={{ y: -4, borderColor: "rgba(167,139,250,0.4)" }}
-                className="p-6 rounded-2xl border border-border/50 bg-card/50 transition-colors duration-300"
+                className="p-8 rounded-2xl border border-border/50 bg-card/50 transition-colors duration-300"
               >
-                <span className="text-3xl mb-3 block">{item.icon}</span>
-                <p className="text-foreground font-medium">{item.text}</p>
+                <h3 className="font-gloock text-xl font-bold text-foreground mb-4">{phase.title}</h3>
+                <p className="text-muted-foreground leading-relaxed">{phase.body}</p>
               </motion.div>
             ))}
           </div>
         </div>
       </section>
 
-      {/* What Bcoming Does */}
-      <section className="py-24 md:py-32 relative overflow-hidden">
+      {/* Block 4 — Conscious Creators */}
+      <section className="relative py-24 md:py-32 overflow-hidden">
+        <div className="absolute inset-0">
+          <video
+            autoPlay
+            muted
+            playsInline
+            loop
+            className="absolute inset-0 w-full h-full object-cover"
+            src="/creators-bg.mp4"
+          />
+          <div className="absolute inset-0 bg-background/70" />
+        </div>
         <div className="absolute inset-0">
           <div className="absolute top-0 left-0 right-0 h-px bg-gradient-to-r from-transparent via-border to-transparent" />
-          <FloatingDots count={25} color="99,102,241" minSize={1} maxSize={2.5} speed={0.5} />
+          <FloatingDots count={20} color="167,139,250" minSize={1} maxSize={2} speed={0.35} />
         </div>
-        <div className="max-w-4xl mx-auto px-6 text-center relative z-10">
+        <div className="relative z-10 max-w-3xl mx-auto px-6 text-center">
           <motion.div
             initial={{ opacity: 0, y: 20 }}
             whileInView={{ opacity: 1, y: 0 }}
             viewport={{ once: true }}
             transition={{ duration: 0.6 }}
           >
-            <span className="inline-flex items-center gap-2 px-4 py-1.5 rounded-full border border-accent/20 bg-accent/5 text-sm text-accent mb-6">
-              <Star className="w-3.5 h-3.5" />
-              What is Bcoming
-            </span>
-            <h2 className="font-gloock text-3xl md:text-4xl font-bold mb-6 text-foreground">
-              Where who you are
-              <br />
-              <span className="gradient-text">becomes what you build.</span>
-            </h2>
-            <p className="text-lg text-muted-foreground leading-relaxed max-w-2xl mx-auto">
-              Most people try to figure out their purpose by thinking about it. Bcoming takes a different approach. You collect what is real. Your experiences, your passions, the aha moments you never connected before. The system maps them. The pattern that emerges is yours and only yours.
+            <p className="text-lg md:text-xl text-muted-foreground leading-relaxed mb-6">
+              Bcoming is building a network of people who are creating with intention. Not just building for growth. Building for impact.
+            </p>
+            <p className="text-lg md:text-xl text-muted-foreground leading-relaxed mb-6">
+              People who believe the work they put into the world matters. Who want to do it alongside others who feel the same way.
+            </p>
+            <p className="font-gloock text-xl md:text-2xl font-semibold gradient-text">
+              If that's you, you're in the right place. We can change the world together.
             </p>
           </motion.div>
         </div>
       </section>
 
-      {/* Features — Four Pillars (Orbital) */}
+      {/* Block 5 — What's Inside (with tabs) */}
       <section id="features" className="py-24 md:py-32 relative overflow-hidden">
         <div className="absolute inset-0">
           <div className="absolute top-0 left-0 right-0 h-px bg-gradient-to-r from-transparent via-border to-transparent" />
           <FloatingDots count={45} color="167,139,250" minSize={1} maxSize={3} speed={0.8} />
         </div>
-        <div className="max-w-6xl mx-auto px-6 relative z-10">
-          <div className="text-center mb-8">
-            <motion.div initial={{ opacity: 0, y: 20 }} whileInView={{ opacity: 1, y: 0 }} viewport={{ once: true }}>
-              <h2 className="font-gloock text-3xl md:text-4xl font-bold text-foreground mb-4">
-                From reflection to real creation.
-              </h2>
-              <p className="text-muted-foreground text-lg max-w-xl mx-auto">
-                Every part of Bcoming connects to the others.
+        <div className="max-w-5xl mx-auto px-6 relative z-10">
+          {/* Opening copy */}
+          <div className="text-center mb-16">
+            <motion.div
+              initial={{ opacity: 0, y: 20 }}
+              whileInView={{ opacity: 1, y: 0 }}
+              viewport={{ once: true }}
+              transition={{ duration: 0.6 }}
+            >
+              <p className="text-lg md:text-xl text-muted-foreground leading-relaxed max-w-2xl mx-auto mb-6">
+                Within your first ten minutes you will have a clear project to work on. One that is based on who you actually are and the phase you are in right now.
+              </p>
+              <p className="text-lg md:text-xl text-muted-foreground leading-relaxed max-w-2xl mx-auto mb-6">
+                Bcoming is a system purposely designed to move you in the right direction. To help you achieve goals that feel meaningful to you. Not goals someone else gave you. Yours.
+              </p>
+              <p className="font-gloock text-xl font-semibold text-foreground mb-12">
+                Every part of it connects to the others.
               </p>
             </motion.div>
-          </div>
 
-          {/* Mobile: card grid */}
-          <div className="grid grid-cols-2 gap-4 md:hidden">
-            {features.map((f, i) => {
-              const Icon = f.icon;
-              return (
-                <motion.div
+            {/* Tab navigation */}
+            <motion.div
+              initial={{ opacity: 0, y: 10 }}
+              whileInView={{ opacity: 1, y: 0 }}
+              viewport={{ once: true }}
+              transition={{ delay: 0.2, duration: 0.5 }}
+              className="flex flex-wrap justify-center gap-3 mb-10"
+            >
+              {features.map((f, i) => (
+                <button
                   key={f.title}
-                  initial={{ opacity: 0, y: 20 }}
-                  whileInView={{ opacity: 1, y: 0 }}
-                  viewport={{ once: true }}
-                  transition={{ delay: i * 0.1, duration: 0.5 }}
-                  className="p-5 rounded-2xl border border-border/50 bg-card/50 backdrop-blur-sm"
+                  onClick={() => setActiveTab(i)}
+                  className={`px-5 py-2.5 rounded-full text-sm font-medium transition-all duration-300 ${
+                    activeTab === i
+                      ? "bg-primary text-primary-foreground shadow-[0_0_20px_rgba(167,139,250,0.4)]"
+                      : "border border-border/50 text-muted-foreground hover:border-primary/40 hover:text-foreground"
+                  }`}
                 >
-                  <div className="w-9 h-9 rounded-xl bg-primary/10 flex items-center justify-center mb-3">
-                    <Icon className="w-4 h-4 text-primary" />
-                  </div>
-                  <h3 className="font-gloock text-base font-bold text-foreground mb-1">{f.title}</h3>
-                  <p className="text-xs text-muted-foreground leading-relaxed">{f.description}</p>
-                </motion.div>
-              );
-            })}
+                  {f.title}
+                </button>
+              ))}
+            </motion.div>
+
+            {/* Active tab content */}
+            <motion.div
+              key={activeTab}
+              initial={{ opacity: 0, y: 10 }}
+              animate={{ opacity: 1, y: 0 }}
+              transition={{ duration: 0.4 }}
+              className="p-8 rounded-2xl border border-primary/20 bg-card/40 backdrop-blur-sm max-w-2xl mx-auto"
+            >
+              {(() => {
+                const f = features[activeTab];
+                const Icon = f.icon;
+                return (
+                  <>
+                    <div className="w-12 h-12 rounded-xl bg-primary/10 flex items-center justify-center mb-4 mx-auto">
+                      <Icon className="w-6 h-6 text-primary" />
+                    </div>
+                    <h3 className="font-gloock text-2xl font-bold text-foreground mb-3">{f.title}</h3>
+                    <p className="text-muted-foreground leading-relaxed">{f.description}</p>
+                  </>
+                );
+              })()}
+            </motion.div>
           </div>
 
           {/* Desktop: orbital */}
@@ -417,44 +443,7 @@ const Index = () => {
         </div>
       </section>
 
-      {/* How It Works */}
-      <section id="how-it-works" className="py-24 md:py-32 relative overflow-hidden">
-        <div className="absolute inset-0">
-          <div className="absolute top-0 left-0 right-0 h-px bg-gradient-to-r from-transparent via-border to-transparent" />
-          <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[600px] h-[600px] rounded-full bg-primary/3 blur-[150px]" />
-          <FloatingDots count={20} color="167,139,250" minSize={1} maxSize={2} speed={0.4} />
-        </div>
-        <div className="max-w-5xl mx-auto px-6 relative z-10">
-          <div className="text-center mb-16">
-            <motion.div initial={{ opacity: 0, y: 20 }} whileInView={{ opacity: 1, y: 0 }} viewport={{ once: true }}>
-              <h2 className="font-gloock text-3xl md:text-4xl font-bold text-foreground mb-4">How it works</h2>
-              <p className="text-muted-foreground text-lg max-w-xl mx-auto">
-                You already have the dots. Bcoming helps you see them, connect them, and build from them.
-              </p>
-            </motion.div>
-          </div>
-
-          <div className="grid md:grid-cols-3 gap-8">
-            {steps.map((step, i) => (
-              <motion.div
-                key={step.number}
-                initial={{ opacity: 0, x: i === 0 ? -30 : i === 2 ? 30 : 0, y: i === 1 ? 30 : 0 }}
-                whileInView={{ opacity: 1, x: 0, y: 0 }}
-                viewport={{ once: true }}
-                transition={{ delay: i * 0.2, duration: 0.6, ease: "easeOut" }}
-                whileHover={{ y: -4 }}
-                className="text-center md:text-left p-6 rounded-2xl border border-border/30 bg-card/30 hover:border-primary/30 hover:bg-card/50 transition-colors duration-300"
-              >
-                <span className="font-gloock text-5xl font-bold gradient-text opacity-60 mb-4 block">{step.number}</span>
-                <h3 className="font-gloock text-xl font-bold text-foreground mb-2">{step.title}</h3>
-                <p className="text-muted-foreground leading-relaxed">{step.description}</p>
-              </motion.div>
-            ))}
-          </div>
-        </div>
-      </section>
-
-      {/* Belief Section */}
+      {/* Block 6 — Belief Section (unchanged) */}
       <section className="py-24 md:py-32 relative overflow-hidden">
         <div className="absolute inset-0">
           <div className="absolute top-0 left-0 right-0 h-px bg-gradient-to-r from-transparent via-border to-transparent" />
@@ -494,50 +483,7 @@ const Index = () => {
         </div>
       </section>
 
-      {/* Founder Section */}
-      <section className="py-24 md:py-32 relative overflow-hidden">
-        <div className="absolute inset-0">
-          <div className="absolute top-0 left-0 right-0 h-px bg-gradient-to-r from-transparent via-border to-transparent" />
-          <FloatingDots count={20} color="167,139,250" minSize={1} maxSize={2} speed={0.35} />
-        </div>
-        <div className="max-w-3xl mx-auto px-6 relative z-10">
-          <motion.div
-            initial={{ opacity: 0, y: 20 }}
-            whileInView={{ opacity: 1, y: 0 }}
-            viewport={{ once: true }}
-            transition={{ duration: 0.6 }}
-            className="p-10 md:p-14 rounded-3xl border border-primary/20 bg-card/30 text-center"
-          >
-            <blockquote className="text-left mb-8 space-y-4">
-              <p className="font-gloock text-xl md:text-2xl text-foreground leading-relaxed italic">
-                "Happiness is not contained in what you get. It is contained in who you become."
-              </p>
-              <p className="text-base md:text-lg text-muted-foreground leading-relaxed">
-                I believe we all carry something rare, a gift that is entirely our own, and our purpose is to find it, shape it, and bring it back to the world. But that process takes time. It is uncertain. Most of the time it feels like walking without a map.
-              </p>
-              <p className="text-base md:text-lg text-muted-foreground leading-relaxed">
-                I have lived my life as an adventure, and many things have happened. I thought they were isolated but the truth is that everything happened for a reason. The dots only made sense when I looked back.
-              </p>
-              <p className="text-base md:text-lg text-foreground/80 leading-relaxed">
-                This is why I built Becoming. As a compass for that journey. And why I am sharing my Atlas, so you can see what it really looks like to find your own path.
-              </p>
-            </blockquote>
-            <div className="mb-8">
-              <p className="text-foreground font-semibold">Cristóbal</p>
-              <p className="text-muted-foreground text-sm">Founder of Bcoming</p>
-            </div>
-            <Button
-              variant="outline"
-              className="border-primary/30 hover:border-primary/60 gap-2"
-              onClick={scrollToAuth}
-            >
-              See my full Atlas map <ArrowRight className="w-4 h-4" />
-            </Button>
-          </motion.div>
-        </div>
-      </section>
-
-      {/* Pricing Section */}
+      {/* Block 7 — Pricing Section (unchanged) */}
       <section id="pricing" className="py-24 md:py-32 relative overflow-hidden">
         <div className="absolute inset-0">
           <div className="absolute top-0 left-0 right-0 h-px bg-gradient-to-r from-transparent via-border to-transparent" />
@@ -603,7 +549,7 @@ const Index = () => {
         </div>
       </section>
 
-      {/* Closing CTA */}
+      {/* Block 8 — Final CTA */}
       <section id="vision" className="py-24 md:py-32 relative overflow-hidden">
         <div className="absolute inset-0">
           <div className="absolute top-0 left-0 right-0 h-px bg-gradient-to-r from-transparent via-border to-transparent" />
@@ -619,12 +565,12 @@ const Index = () => {
             <div className="w-16 h-16 mx-auto mb-8 rounded-2xl bg-accent/10 flex items-center justify-center">
               <Zap className="w-8 h-8 text-accent" />
             </div>
-            <h2 className="font-gloock text-3xl md:text-4xl font-bold text-foreground mb-6">Your dots are already there.</h2>
+            <h2 className="font-gloock text-3xl md:text-4xl font-bold text-foreground mb-6">You already have more than you think.</h2>
             <p className="text-lg text-muted-foreground leading-relaxed max-w-2xl mx-auto mb-4">
-              You do not start from zero. You start from everything you have already lived. Bcoming helps you see it, map it, and build from it.
+              Every experience, every obsession, every moment that felt like something. It's all there. You just haven't seen it as a whole picture yet.
             </p>
             <p className="text-base text-foreground/70 leading-relaxed max-w-xl mx-auto mb-10">
-              At minute ten, you will not have a plan. You will have something more useful. The beginning of a belief that you are capable of building something. That feeling, once it is real, does not leave.
+              That's minute one. And it doesn't leave you.
             </p>
             <Button size="lg" className="text-lg px-10 py-6 glow-purple gap-2" onClick={scrollToAuth}>
               Start mapping <ArrowRight className="w-5 h-5" />
