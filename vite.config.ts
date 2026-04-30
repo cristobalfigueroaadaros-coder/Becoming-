@@ -15,4 +15,27 @@ export default defineConfig(({ mode }) => ({
       "@": path.resolve(__dirname, "./src"),
     },
   },
+  build: {
+    rollupOptions: {
+      output: {
+        manualChunks: {
+          charts: ["recharts"],
+          pdf: ["jspdf", "jspdf-autotable"],
+          flow: ["@xyflow/react"],
+          maps: ["react-simple-maps"],
+          particles: ["@tsparticles/engine", "@tsparticles/react", "@tsparticles/slim"],
+          motion: ["framer-motion"],
+          radix: [
+            "@radix-ui/react-dialog",
+            "@radix-ui/react-dropdown-menu",
+            "@radix-ui/react-popover",
+            "@radix-ui/react-tabs",
+            "@radix-ui/react-tooltip",
+            "@radix-ui/react-select",
+            "@radix-ui/react-scroll-area",
+          ],
+        },
+      },
+    },
+  },
 }));
