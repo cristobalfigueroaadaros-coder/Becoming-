@@ -1,161 +1,119 @@
-## 🧭 Analysis: Where Journey Is Today vs Where It Needs To Go
+# Loading Time Audit — Bcoming
 
-### Current state
+## What's actually slow (and why)
 
-- `**JourneyPanel.tsx**` is a hardcoded 4-stage map (Atlas → Council → Projects → Creators) with **rule-based answers** (`getQuickAnswer`, `getNextAction`).
-- It only knows *which onboarding stage* the user is in. It does **not** know:
-  - Which Atlas clusters are weak/strong
-  - Which mentor would unblock the user *right now*
-  - Which design thinking phase the project is stuck in
-  - Which block/activity is overdue
-  - What inner pattern is interfering
-- It's separate from `voice-of-system` edge function (which already does deep contextual analysis but only outputs **mentor handoffs**).
-- The "ask" input does keyword matching — not real intelligence.
+I inspected the bundle, the landing page, the Council page, and the routing layer. Here's what's making things slow:
 
-### What you want — confirmed understanding
+### 1. Landing page (bcoming.app) — heavy on first paint
+- `public/hero-bg.mp4` = **1.6 MB**, `public/creators-bg.mp4` = **2.7 MB** → ~**4.3 MB of video** loaded on first visit.
+- Hero video is also `<link rel="preload" as="video">` in `index.html`, forcing the browser to start downloading it before anything else, blocking the critical path.
+- Both videos use `preload="auto"` (download the whole file immediately) instead of lazy-loading the second one.
+- No poster image → the user sees a black box while the video downloads.
 
-Journey becomes the **always-available, intelligent compass** that:
+### 2. Initial JS bundle is massive
+- `src/App.tsx` eagerly `import`s **60+ page components**. Every page (Council, CreationLab, MomentumDashboard, ProjectEngine, Pattern Map, Superpower Map, all the onboarding screens, etc.) ships in the **first JS chunk**, even when the user only needs the landing page.
+- Heavy dependencies always loaded up-front: `recharts`, `jspdf` + `jspdf-autotable`, `@xyflow/react`, `react-simple-maps`, `@tsparticles/*`, `framer-motion`, `embla-carousel-react`, `canvas-confetti`, `dompurify`. Most are only used in 1–2 pages.
+- `vite.config.ts` has **no manualChunks / code-splitting** config → one giant chunk.
 
-1. Knows the user's *complete* state (Atlas dots, mentors talked to, project phase, blocks, patterns, days since action)
-2. Uses **Cris's Map as the reference model** — sees what clusters/dimensions a "complete" journey looks like and identifies gaps in the user's
-3. Recommends the *single most useful next move* across **any** surface:
-  - "Do the **Childhood Signals** quest — you have strong Skills but no roots"
-  - "Talk to **The Heart Mentor** — you've been looping on the same problem for 4 days"
-  - "Move your project from Define → Ideate — you've been stuck on Define for 6 days"
-  - "Complete activity *Validate Pricing* in Block 2 — it's blocking your next milestone"
-  - "Do a **Transmutation** on the pattern you wrote about yesterday"
-4. Offers proactive suggestions on open (not just on ask) — like "Voice of System" but persistent.
+### 3. Council "loading to mentor perspective" lag
+- `src/pages/Council.tsx` synchronously imports `CouncilMeeting` (**1,081 lines**), `Chat`, `ConsoleThread`, and `BuilderTeamThread`. Switching mentors mounts the full conversation tree even before any data arrives.
+- Mentor switch refetches last 50 messages + profile + user_mentors on every change instead of caching.
+- The "Unmasked Practice Kit" structure block in `ProjectEngine` / design-thinking blocks renders the entire structure tree at once with framer-motion animations on every node.
 
----
+### 4. Bottom-nav tab taps (Home / Atlas / Chats / Projects / Creators) feel slow
+- Each tab routes to a page that does **multiple sequential** Supabase queries on mount (profile, atlas, dots, clusters, mentors, notifications, etc.). No parallelization, no `Promise.all`, no shared cache between tabs.
+- `AtlasPage` does its own `supabase.auth.getUser()` + profile fetch + clusters + dots + opportunity detection + `useAtlasQuests`, all sequentially.
 
-## 🏗️ Implementation Plan
-
-### Phase 1 — Backend Intelligence: extend `voice-of-system` into `journey-compass`
-
-Create a new edge function `**supabase/functions/journey-compass/index.ts**` (do not break existing `voice-of-system`; the modal still uses it).
-
-**Inputs:** `userInput` (optional — if omitted, returns proactive suggestion), `mode: 'ask' | 'proactive'`.
-
-**Context aggregation (parallel queries):**
-
-- Profile + entry_state + console_intake_completed
-- Atlas clusters (with dot counts per slug) + recent quest completions
-- Active project + current_phase + days_since_last_action
-- Design thinking phases for that project (which phase has fewest notes / is stale)
-- Project blocks + activities (overdue / pending / blocking)
-- Recent mentors talked to (last 14 days, count per mentor_type) — to detect *under-used* mentors
-- Inner patterns (active, untransmuted)
-- Recent Future Self / Voice handoffs (avoid repeating recommendations)
-
-**Cris's Map reference embedded in the prompt** as the "destination shape":
-
-> A complete journey has presence across: Life Events, Passions, Skills, Aha Moments, Natural Talents, Childhood Signals, Experiments, People I Admire, Who I Serve, External Reflections, Personal Frustrations, How I Create Impact, Visions for a Better World, Values, Ideal Life. Gold connections form between Frustrations↔Visions, Aha Moments↔Who I Serve, Experiments↔Life Events, Childhood Signals↔Natural Talents.
-
-The AI compares the user's current cluster distribution to Cris's reference and identifies the **most leverage-producing gap**.
-
-**Structured output (tool calling, not JSON-in-text):**
-
-```ts
-{
-  primarySuggestion: {
-    surface: 'atlas_quest' | 'mentor' | 'design_thinking' | 'project_block' | 'transmutation' | 'becoming' | 'creators',
-    targetId: string,           // cluster slug, mentor_type, phase name, block_id, etc.
-    title: string,              // "Explore your Childhood Signals"
-    why: string,                // 1-2 sentences referencing their actual data
-    leverageInsight: string,    // "This will give your mentors a missing dimension"
-    ctaLabel: string,
-    handoffContext: string      // for the surface to use
-  },
-  alternativeSuggestions: [     // 2 more options (different surfaces) so user has agency
-    { surface, targetId, title, why, ctaLabel } x 2
-  ],
-  stateSummary: string          // "You've built strong Skills (8) and Passions (5), but no Childhood Signals or Frustrations yet. Your project Define phase is 6 days stale."
-}
-```
-
-Use `google/gemini-2.5-flash` with **tool calling** (not JSON-in-text) for reliability — fixes the `JSON.parse` brittleness in current `voice-of-system`.
-
-### Phase 2 — Frontend Hook: `useJourneyCompass`
-
-New hook `**src/hooks/useJourneyCompass.tsx**`:
-
-- `getProactiveSuggestion()` — fires on panel open (cached 10 min in React Query)
-- `askCompass(question: string)` — fires when user types
-- `executeSuggestion(suggestion)` — handles routing across all surfaces:
-  - `atlas_quest` → `/atlas?startQuest={slug}`
-  - `mentor` → creates handoff record (like `useVoiceOfSystem.executeHandoff`) → `/chat/{mentor_type}`
-  - `design_thinking` → `/creation-lab?dtPhase={phase}`
-  - `project_block` → `/creation-lab?focusBlock={block_id}`
-  - `transmutation` → `/creation-lab?bmode=transmutation&pattern={id}`
-  - `becoming` → `/creation-lab?bmode=becoming`
-  - `creators` → `/creators`
-
-### Phase 3 — Refactor `JourneyPanel.tsx`
-
-Keep the existing 4-stage visual track (it's good orientation). **Add a new top section above the stage track**:
-
-```
-┌────────────────────────────────────────┐
-│ 🧭 Your next move                       │
-│                                         │
-│ [Compass icon + glow]                   │
-│ "You've mapped 8 skills but no          │
-│  Childhood Signals. The thread that     │
-│  started it all is still missing."      │
-│                                         │
-│ → [Explore Childhood Signals]  (primary)│
-│                                         │
-│ Or: • Talk to Heart Mentor              │
-│     • Define your project's problem     │
-└────────────────────────────────────────┘
-```
-
-- Loads proactive suggestion on panel open
-- Shows `stateSummary` as the orientation line
-- Primary CTA = `executeSuggestion(primarySuggestion)`
-- 2 alt suggestions as small chips below
-- Existing chat input now calls `askCompass()` (real AI) instead of `getQuickAnswer()` (regex)
-- Keep the 4-stage track underneath as the macro view
-
-### Phase 4 — Smart pulse trigger
-
-Replace the dot-count-based pulse with a server-side "is there a fresh suggestion?" indicator:
-
-- Pulse when: project phase stale >5 days, OR mentor not talked to in 7+ days who is recommended, OR new pattern detected, OR Atlas gap is significant.
-- Stored in `localStorage` keyed by suggestion hash so same suggestion doesn't re-pulse.
+### 5. Misc
+- `App.tsx` blocks the entire app behind `loading || !authReady` with just "Loading..." text — feels like a dead page for ~300–700ms.
+- `<FloatingDots>` runs on most landing sections (5 instances, 20–45 dots each, 60fps animations) — minor CPU drain on slower devices.
 
 ---
 
-## 📁 Files
+## The Plan — what I'll change
 
-**Create**
+### Phase A — Landing page speed (biggest win, fastest)
+1. **Compress the videos** server-side and replace the originals:
+   - hero-bg.mp4: re-encode to ~400–600 KB (h.264, CRF 30, 720p) and add a `.webm` AV1/VP9 sibling.
+   - creators-bg.mp4: same treatment, target ~600–900 KB. Or replace with a static blurred image — it sits below the fold.
+2. Remove `<link rel="preload" as="video" href="/hero-bg.mp4">` from `index.html`. It blocks LCP without helping (the `<video>` element triggers its own request).
+3. Add a `poster` image (small JPEG) on the hero `<video>` so users see the scene immediately.
+4. Change the second video (`creators-bg.mp4`) to `preload="none"` and only load it once it scrolls into view (IntersectionObserver) — or replace with a still frame.
+5. Trim `<FloatingDots>` instances from 5 → 2, lower counts, and pause when off-screen.
 
-- `supabase/functions/journey-compass/index.ts` — new AI compass function with cross-domain awareness
-- `src/hooks/useJourneyCompass.tsx` — fetch + execute suggestions
-- `src/components/layout/JourneyCompassCard.tsx` — the new top-of-panel suggestion card
+### Phase B — Code-split the bundle (huge win for everyone past landing)
+6. Convert every page import in `src/App.tsx` to `React.lazy(() => import(...))` and wrap `<Routes>` in `<Suspense fallback={...}>`. Landing page (`Index`) stays eager. Result: first load drops from one mega-chunk to ~10 small per-route chunks.
+7. Add `manualChunks` in `vite.config.ts` to split heavy vendors into their own chunks so they're only fetched when needed:
+   - `recharts` → its own chunk (only Momentum / Insights pages)
+   - `jspdf` + `jspdf-autotable` → its own chunk (only export/report pages)
+   - `@xyflow/react`, `react-simple-maps` → its own chunks
+   - `@tsparticles/*` → its own chunk
+   - `framer-motion` → shared chunk (used everywhere)
+8. Lazy-load `CouncilMeeting`, `Chat`, `ConsoleThread`, `BuilderTeamThread` inside `Council.tsx` so switching mentors doesn't pay the cost of all four conversation engines up-front.
 
-**Modify**
+### Phase C — Faster perceived load on tab taps
+9. Replace the "Loading..." text in `App.tsx` with a lightweight skeleton matching the page shell so taps feel instant.
+10. In `AtlasPage` (and the same pattern in Council, Dashboard, CreationLab): batch the on-mount Supabase calls with `Promise.all` instead of awaiting them sequentially. Lift the `auth.getUser()` result into a tiny shared context so it isn't re-fetched on every navigation.
+11. Bump react-query `staleTime` for atlas / profile / mentors to ~60 s so re-entering a tab uses cached data instantly while it revalidates in the background.
 
-- `src/components/layout/JourneyPanel.tsx` — mount `<JourneyCompassCard />`, wire ask input to AI, replace pulse logic
-- `supabase/config.toml` — register new function (verify_jwt = true so we get the user)
+### Phase D — Council mentor-switch latency
+12. When a mentor is selected, render the mentor header + skeleton **immediately**, then fetch messages in the background (today the page waits for the fetch before rendering anything).
+13. Cache the last 50 messages per mentor in react-query keyed by `[mentorType, userId]` so re-opening the same mentor is instant.
+14. Defer the heavy `mentorConfig` icon set and avoid recomputing `userMentors` ordering on every render (memoize).
 
-**Untouched**
-
-- `voice-of-system` (still used by the standalone `VoiceOfSystemModal`)
-- All 4 stage definitions and the visual track
-- All routing pages (we just navigate with new query params they already support)
+### Phase E — "Unmasked Practice Kit" structure block (the section you flagged as slow)
+15. Find the component rendering this 7-section structure (likely in `src/components/project-engine/` or `design-thinking-lab/`) and:
+    - Replace per-node `framer-motion` mount animations with a single fade on the container.
+    - Render the section list eagerly but lazy-mount the inner bullet trees only when a section is expanded.
+    - Memoize the structure parser so it doesn't re-run on every keystroke / save.
+16. If the slowness is the AI generation itself (not render), add an immediate skeleton with the section titles and stream the body in.
 
 ---
 
-## ✅ Success criteria
+## Technical notes (for the build phase)
 
-- Open Journey from anywhere → see a context-aware suggestion in <1s after AI returns
-- Suggestion references **specific** user data (cluster name, project name, days, mentor name)
-- At least 6 different surfaces can be recommended (quest, mentor, DT phase, block, transmutation, creators)
-- Asking "what should I do" returns an AI-generated answer, not a regex match
-- Pulse only fires when there's something genuinely new
-- Existing 4-stage map still works exactly as today
+- Code-splitting pattern:
+  ```tsx
+  const Council = lazy(() => import("./pages/Council"));
+  // ...
+  <Suspense fallback={<PageSkeleton />}>
+    <Routes>...</Routes>
+  </Suspense>
+  ```
+- Vite manualChunks example:
+  ```ts
+  build: {
+    rollupOptions: {
+      output: {
+        manualChunks: {
+          charts: ["recharts"],
+          pdf: ["jspdf", "jspdf-autotable"],
+          flow: ["@xyflow/react", "react-simple-maps"],
+          particles: ["@tsparticles/engine", "@tsparticles/react", "@tsparticles/slim"],
+        },
+      },
+    },
+  }
+  ```
+- Video re-encode (run inside the build container, not committed manually):
+  ```bash
+  ffmpeg -i hero-bg.mp4 -vf scale=1280:-2 -c:v libx264 -crf 30 -preset slow -an hero-bg.mp4
+  ffmpeg -i hero-bg.mp4 -c:v libvpx-vp9 -crf 35 -b:v 0 -an hero-bg.webm
+  ```
 
-## ⚠️ Open question before building
+## Expected impact (rough)
 
-Want me to also **auto-trigger** a proactive Journey notification (toast or pulse) when the user has been **idle on a stale phase >5 days** without opening Journey? Or keep Journey strictly pull-based (user must open it)?  yes, also trigger notification or the bipping when the system suggest the user to do X action 
+| Area | Before | After |
+|---|---|---|
+| Landing page initial transfer | ~5 MB | ~800 KB |
+| Landing JS chunk | ~2–3 MB | ~400–600 KB |
+| Time to interactive (landing) | 3–6 s | <1.5 s |
+| Tab tap (Home/Atlas/Chats/Projects/Creators) | 800–1500 ms blank | <200 ms (skeleton instant) |
+| Council mentor switch | 1–2 s blank | <300 ms (skeleton + cached) |
+
+## What I will NOT change
+- Visual design, copy, or any onboarding flow logic.
+- Backend / edge function behavior (only cache durations on the client).
+- Existing routing structure or auth flow.
+
+Approve and I'll implement Phases A → E in that order, verifying each with the dev-server log and a quick browser check before moving on.
