@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useEffect, useRef } from "react";
 import { useNavigate } from "react-router-dom";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -192,7 +192,8 @@ const Index = () => {
             autoPlay
             muted
             playsInline
-            preload="auto"
+            preload="metadata"
+            poster="/hero-poster.jpg"
             className="absolute inset-0 w-full h-full object-cover"
             src="/hero-bg.mp4"
             onTimeUpdate={(e) => {
