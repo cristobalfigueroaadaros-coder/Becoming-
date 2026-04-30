@@ -192,6 +192,7 @@ const Index = () => {
             autoPlay
             muted
             playsInline
+            preload="auto"
             className="absolute inset-0 w-full h-full object-cover"
             src="/hero-bg.mp4"
             onTimeUpdate={(e) => {
@@ -263,7 +264,8 @@ const Index = () => {
             transition={{ duration: 0.6 }}
             className="font-gloock text-3xl md:text-4xl font-bold text-foreground mb-8"
           >
-            We help you move forward. No matter where you are right now.
+            We help you move forward.{" "}
+            <span className="gradient-text">No matter where you are right now.</span>
           </motion.h2>
           <motion.p
             initial={{ opacity: 0, y: 30 }}
@@ -302,7 +304,8 @@ const Index = () => {
               transition={{ duration: 0.6 }}
               className="font-gloock text-3xl md:text-4xl font-bold text-foreground mb-6"
             >
-              Bcoming adapts to your journey.
+              Bcoming adapts{" "}
+              <span className="gradient-text">to your journey.</span>
             </motion.h2>
             <motion.p
               initial={{ opacity: 0 }}
@@ -334,53 +337,50 @@ const Index = () => {
       </section>
 
       {/* Block 4 — Conscious Creators */}
-      <section className="relative overflow-hidden" style={{ background: "#000" }}>
-        {/* Video — natural size, centered, no expansion */}
-        <div className="relative w-full flex items-center justify-center" style={{ minHeight: "420px" }}>
+      <section className="relative py-24 md:py-32 overflow-hidden bg-black">
+        <div className="absolute inset-0">
           <video
             autoPlay
             muted
             playsInline
             loop
             preload="auto"
-            className="relative z-0 w-full max-w-3xl mx-auto"
-            style={{ display: "block", objectFit: "contain" }}
+            className="absolute inset-0 w-full h-full object-cover opacity-50"
             src="/creators-bg.mp4"
           />
-          {/* Gradient fades at top and bottom so section blends */}
-          <div className="absolute inset-x-0 top-0 h-24 bg-gradient-to-b from-background to-transparent z-10" />
-          <div className="absolute inset-x-0 bottom-0 h-24 bg-gradient-to-t from-background to-transparent z-10" />
+          <div className="absolute inset-0 bg-background/60" />
         </div>
-
-        {/* Text content over a dark overlay */}
-        <div className="relative z-20 py-16 md:py-20 -mt-16">
-          <div className="max-w-3xl mx-auto px-6 text-center">
-            <motion.h2
-              initial={{ opacity: 0, y: 20 }}
-              whileInView={{ opacity: 1, y: 0 }}
-              viewport={{ once: true }}
-              transition={{ duration: 0.6 }}
-              className="font-gloock text-3xl md:text-4xl font-bold text-foreground mb-8"
-            >
-              We're building something together.
-            </motion.h2>
-            <motion.div
-              initial={{ opacity: 0, y: 20 }}
-              whileInView={{ opacity: 1, y: 0 }}
-              viewport={{ once: true }}
-              transition={{ delay: 0.1, duration: 0.6 }}
-            >
-              <p className="text-lg md:text-xl text-muted-foreground leading-relaxed mb-6">
-                Bcoming is building a network of people who are creating with intention. Not just building for growth. Building for impact.
-              </p>
-              <p className="text-lg md:text-xl text-muted-foreground leading-relaxed mb-6">
-                People who believe the work they put into the world matters. Who want to do it alongside others who feel the same way.
-              </p>
-              <p className="font-gloock text-xl md:text-2xl font-semibold gradient-text">
-                If that's you, you're in the right place. We can change the world together.
-              </p>
-            </motion.div>
-          </div>
+        <div className="absolute inset-0">
+          <div className="absolute top-0 left-0 right-0 h-px bg-gradient-to-r from-transparent via-border to-transparent" />
+          <FloatingDots count={20} color="167,139,250" minSize={1} maxSize={2} speed={0.35} />
+        </div>
+        <div className="relative z-10 max-w-3xl mx-auto px-6 text-center">
+          <motion.h2
+            initial={{ opacity: 0, y: 20 }}
+            whileInView={{ opacity: 1, y: 0 }}
+            viewport={{ once: true }}
+            transition={{ duration: 0.6 }}
+            className="font-gloock text-3xl md:text-4xl font-bold text-foreground mb-8"
+          >
+            We're building{" "}
+            <span className="gradient-text">something together.</span>
+          </motion.h2>
+          <motion.div
+            initial={{ opacity: 0, y: 20 }}
+            whileInView={{ opacity: 1, y: 0 }}
+            viewport={{ once: true }}
+            transition={{ delay: 0.1, duration: 0.6 }}
+          >
+            <p className="text-lg md:text-xl text-muted-foreground leading-relaxed mb-6">
+              Bcoming is building a network of people who are creating with intention. Not just building for growth. Building for impact.
+            </p>
+            <p className="text-lg md:text-xl text-muted-foreground leading-relaxed mb-6">
+              People who believe the work they put into the world matters. Who want to do it alongside others who feel the same way.
+            </p>
+            <p className="font-gloock text-xl md:text-2xl font-semibold gradient-text">
+              If that's you, you're in the right place. We can change the world together.
+            </p>
+          </motion.div>
         </div>
       </section>
 
@@ -399,7 +399,7 @@ const Index = () => {
               transition={{ duration: 0.6 }}
             >
               <h2 className="font-gloock text-3xl md:text-4xl font-bold text-foreground mb-8">
-                We help you to WIN
+                We help you to <span className="gradient-text">WIN</span>
               </h2>
               <p className="text-lg md:text-xl text-muted-foreground leading-relaxed max-w-2xl mx-auto mb-6">
                 Within your first ten minutes you will have a clear project to work on. One that is based on who you actually are and the phase you are in right now.
@@ -584,7 +584,8 @@ const Index = () => {
               <Zap className="w-8 h-8 text-accent" />
             </div>
             <h2 className="font-gloock text-3xl md:text-4xl font-bold text-foreground mb-6">
-              You already have everything you need to build your dream life. Let's make it real.
+              You already have everything you need to build your dream life.{" "}
+              <span className="gradient-text">Let's make it real.</span>
             </h2>
             <p className="text-lg text-muted-foreground leading-relaxed max-w-2xl mx-auto mb-4">
               Yes, it's going to be hard. Yes, it's going to take time. Yes, it's going to test you.
