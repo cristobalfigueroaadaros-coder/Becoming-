@@ -27,6 +27,28 @@ const Index = () => {
   const [password, setPassword] = useState("");
   const [loading, setLoading] = useState(false);
   const [activeTab, setActiveTab] = useState(0);
+  const creatorsVideoRef = useRef<HTMLVideoElement | null>(null);
+  const creatorsSectionRef = useRef<HTMLDivElement | null>(null);
+  const [creatorsVideoVisible, setCreatorsVideoVisible] = useState(false);
+
+  useEffect(() => {
+    const el = creatorsSectionRef.current;
+    if (!el) return;
+    const io = new IntersectionObserver(
+      (entries) => {
+        for (const entry of entries) {
+          if (entry.isIntersecting) {
+            setCreatorsVideoVisible(true);
+            io.disconnect();
+            break;
+          }
+        }
+      },
+      { rootMargin: "300px" }
+    );
+    io.observe(el);
+    return () => io.disconnect();
+  }, []);
 
   const handleAuth = async (e: React.FormEvent) => {
     e.preventDefault();
