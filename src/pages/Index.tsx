@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useEffect, useRef } from "react";
 import { useNavigate } from "react-router-dom";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -27,6 +27,28 @@ const Index = () => {
   const [password, setPassword] = useState("");
   const [loading, setLoading] = useState(false);
   const [activeTab, setActiveTab] = useState(0);
+  const creatorsVideoRef = useRef<HTMLVideoElement | null>(null);
+  const creatorsSectionRef = useRef<HTMLDivElement | null>(null);
+  const [creatorsVideoVisible, setCreatorsVideoVisible] = useState(false);
+
+  useEffect(() => {
+    const el = creatorsSectionRef.current;
+    if (!el) return;
+    const io = new IntersectionObserver(
+      (entries) => {
+        for (const entry of entries) {
+          if (entry.isIntersecting) {
+            setCreatorsVideoVisible(true);
+            io.disconnect();
+            break;
+          }
+        }
+      },
+      { rootMargin: "300px" }
+    );
+    io.observe(el);
+    return () => io.disconnect();
+  }, []);
 
   const handleAuth = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -192,7 +214,8 @@ const Index = () => {
             autoPlay
             muted
             playsInline
-            preload="auto"
+            preload="metadata"
+            poster="/hero-poster.jpg"
             className="absolute inset-0 w-full h-full object-cover"
             src="/hero-bg.mp4"
             onTimeUpdate={(e) => {
@@ -337,17 +360,20 @@ const Index = () => {
       </section>
 
       {/* Block 4 — Conscious Creators */}
-      <section className="relative py-24 md:py-32 overflow-hidden bg-black">
+      <section ref={creatorsSectionRef} className="relative py-24 md:py-32 overflow-hidden bg-black">
         <div className="absolute inset-0">
-          <video
-            autoPlay
-            muted
-            playsInline
-            loop
-            preload="auto"
-            className="absolute inset-0 w-full h-full object-cover opacity-50"
-            src="/creators-bg.mp4"
-          />
+          {creatorsVideoVisible && (
+            <video
+              ref={creatorsVideoRef}
+              autoPlay
+              muted
+              playsInline
+              loop
+              preload="metadata"
+              className="absolute inset-0 w-full h-full object-cover opacity-50"
+              src="/creators-bg.mp4"
+            />
+          )}
           <div className="absolute inset-0 bg-background/60" />
         </div>
         <div className="absolute inset-0">

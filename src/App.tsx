@@ -3,7 +3,7 @@ import { Toaster as Sonner } from "@/components/ui/sonner";
 import { TooltipProvider } from "@/components/ui/tooltip";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { BrowserRouter, Routes, Route, Navigate, useParams, useLocation } from "react-router-dom";
-import { useEffect, useState } from "react";
+import { useEffect, useState, lazy, Suspense } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { ShadowEncounterModal } from "@/components/ShadowEncounterModal";
 import { useShadowEncounters } from "@/hooks/useShadowEncounters";
@@ -14,68 +14,81 @@ import { AppLayout } from "@/components/layout";
 import { ErrorBoundary } from "@/components/ErrorBoundary";
 import Index from "./pages/Index";
 import OnboardingRouter from "./components/OnboardingRouter";
-import OnboardingStep1 from "./pages/OnboardingStep1";
-import OnboardingStep2 from "./pages/OnboardingStep2";
 
-import OnboardingStep4 from "./pages/OnboardingStep4";
-import OnboardingQuest from "./pages/OnboardingQuest";
-import OnboardingWorkContext from "./pages/OnboardingWorkContext";
-import GravityOrientation from "./pages/GravityOrientation";
-import GravityTransition from "./pages/GravityTransition";
-import GravityCouncilIntro from "./pages/GravityCouncilIntro";
-import GravityCouncilWelcome from "./pages/GravityCouncilWelcome";
-import GravityFirstProject from "./pages/GravityFirstProject";
-import OnboardingCompletion from "./pages/OnboardingCompletion";
-import ProjectCouncilIntroduction from "./pages/ProjectCouncilIntroduction";
-import Dashboard from "./pages/Dashboard";
-import CommunityHub from "./pages/CommunityHub";
+const OnboardingStep1 = lazy(() => import("./pages/OnboardingStep1"));
+const OnboardingStep2 = lazy(() => import("./pages/OnboardingStep2"));
+const OnboardingStep4 = lazy(() => import("./pages/OnboardingStep4"));
+const OnboardingQuest = lazy(() => import("./pages/OnboardingQuest"));
+const OnboardingWorkContext = lazy(() => import("./pages/OnboardingWorkContext"));
+const GravityOrientation = lazy(() => import("./pages/GravityOrientation"));
+const GravityTransition = lazy(() => import("./pages/GravityTransition"));
+const GravityCouncilIntro = lazy(() => import("./pages/GravityCouncilIntro"));
+const GravityCouncilWelcome = lazy(() => import("./pages/GravityCouncilWelcome"));
+const GravityFirstProject = lazy(() => import("./pages/GravityFirstProject"));
+const OnboardingCompletion = lazy(() => import("./pages/OnboardingCompletion"));
+const ProjectCouncilIntroduction = lazy(() => import("./pages/ProjectCouncilIntroduction"));
+const Dashboard = lazy(() => import("./pages/Dashboard"));
+const CommunityHub = lazy(() => import("./pages/CommunityHub"));
+const LifeDomainsPage = lazy(() => import("./pages/LifeDomainsPage"));
+const GoalStructurePage = lazy(() => import("./pages/GoalStructurePage"));
+const ConstellationPage = lazy(() => import("./pages/ConstellationPage"));
+const ConstellationInsightsDashboard = lazy(() => import("./pages/ConstellationInsightsDashboard"));
+const QuestsPage = lazy(() => import("./pages/QuestsPage"));
+const ActualSelfPage = lazy(() => import("./pages/ActualSelfPage"));
+const FutureSelfDetailPage = lazy(() => import("./pages/FutureSelfDetailPage"));
+const Council = lazy(() => import("./pages/Council"));
+const CouncilLog = lazy(() => import("./pages/CouncilLog"));
+const BuildersTeam = lazy(() => import("./pages/BuildersTeam"));
+const InnerSelfCouncil = lazy(() => import("./pages/InnerSelfCouncil"));
+const TransmutationCouncil = lazy(() => import("./pages/TransmutationCouncil"));
+const MyTasks = lazy(() => import("./pages/MyTasks"));
+const YourNewTasks = lazy(() => import("./pages/YourNewTasks"));
+const Premium = lazy(() => import("./pages/Premium"));
+const Profile = lazy(() => import("./pages/Profile"));
+const NotFound = lazy(() => import("./pages/NotFound"));
+const PurposeDiscoveryFlow = lazy(() => import("./pages/PurposeDiscoveryFlow"));
+const PurposeEvolution = lazy(() => import("./pages/PurposeEvolution"));
+const PurposeEvolutionEngine = lazy(() => import("./pages/PurposeEvolutionEngine"));
+const MappingDotsPage = lazy(() => import("./pages/MappingDotsPage"));
+const DailyPortal = lazy(() => import("./pages/DailyPortal"));
+const ChallengeHistory = lazy(() => import("./pages/ChallengeHistory"));
+const ChallengeReports = lazy(() => import("./pages/ChallengeReports"));
+const DotConnectionEngine = lazy(() => import("./pages/DotConnectionEngine"));
+const CreationLab = lazy(() => import("./pages/CreationLab"));
+const EnergeticDashboard = lazy(() => import("./pages/EnergeticDashboard"));
+const VibrationalPatternInsights = lazy(() => import("./pages/VibrationalPatternInsights"));
+const OptimalTimingDashboard = lazy(() => import("./pages/OptimalTimingDashboard"));
+const PatternMap = lazy(() => import("./pages/PatternMap"));
+const SuperpowerMap = lazy(() => import("./pages/SuperpowerMap"));
+const MomentumDashboard = lazy(() => import("./pages/MomentumDashboard"));
+const CreatorsWall = lazy(() => import("./pages/CreatorsWall"));
+const CreatorProfile = lazy(() => import("./pages/CreatorProfile"));
+const LifeAssessment = lazy(() => import("./pages/LifeAssessment"));
+const AtlasPage = lazy(() => import("./pages/AtlasPage"));
+const AtlasQuestPage = lazy(() => import("./pages/AtlasQuestPage"));
+const PaymentSuccess = lazy(() => import("./pages/PaymentSuccess"));
+const ProjectEngine = lazy(() => import("./pages/ProjectEngine"));
+const PrivacyPolicy = lazy(() => import("./pages/PrivacyPolicy"));
+const TermsOfService = lazy(() => import("./pages/TermsOfService"));
 
-import LifeDomainsPage from "./pages/LifeDomainsPage";
-import GoalStructurePage from "./pages/GoalStructurePage";
-import ConstellationPage from "./pages/ConstellationPage";
-import ConstellationInsightsDashboard from "./pages/ConstellationInsightsDashboard";
-import QuestsPage from "./pages/QuestsPage";
-import ActualSelfPage from "./pages/ActualSelfPage";
-import FutureSelfDetailPage from "./pages/FutureSelfDetailPage";
-import Chat from "./pages/Chat";
-import CouncilMeeting from "./pages/CouncilMeeting";
-import Council from "./pages/Council";
-import CouncilLog from "./pages/CouncilLog";
-import BuildersTeam from "./pages/BuildersTeam";
-import InnerSelfCouncil from "./pages/InnerSelfCouncil";
-import TransmutationCouncil from "./pages/TransmutationCouncil";
-import MyTasks from "./pages/MyTasks";
-import YourNewTasks from "./pages/YourNewTasks";
-import Premium from "./pages/Premium";
-import Profile from "./pages/Profile";
-import NotFound from "./pages/NotFound";
-import PurposeDiscoveryFlow from "./pages/PurposeDiscoveryFlow";
-import PurposeEvolution from "./pages/PurposeEvolution";
-import PurposeEvolutionEngine from "./pages/PurposeEvolutionEngine";
-import MappingDotsPage from "./pages/MappingDotsPage";
-import DailyPortal from "./pages/DailyPortal";
-import ChallengeHistory from "./pages/ChallengeHistory";
-import ChallengeReports from "./pages/ChallengeReports";
-import DotConnectionEngine from "./pages/DotConnectionEngine";
-import CreationLab from "./pages/CreationLab";
-import EnergeticDashboard from "./pages/EnergeticDashboard";
-import VibrationalPatternInsights from "./pages/VibrationalPatternInsights";
-import OptimalTimingDashboard from "./pages/OptimalTimingDashboard";
-import PatternMap from "./pages/PatternMap";
-import SuperpowerMap from "./pages/SuperpowerMap";
-import MomentumDashboard from "./pages/MomentumDashboard";
-import CreatorsWall from "./pages/CreatorsWall";
-import CreatorProfile from "./pages/CreatorProfile";
-import LifeAssessment from "./pages/LifeAssessment";
-import AtlasPage from "./pages/AtlasPage";
-import AtlasQuestPage from "./pages/AtlasQuestPage";
-import PaymentSuccess from "./pages/PaymentSuccess";
-import ProjectEngine from "./pages/ProjectEngine";
-import PrivacyPolicy from "./pages/PrivacyPolicy";
-import TermsOfService from "./pages/TermsOfService";
+const queryClient = new QueryClient({
+  defaultOptions: {
+    queries: {
+      staleTime: 60_000,
+      gcTime: 5 * 60_000,
+      refetchOnWindowFocus: false,
+    },
+  },
+});
 
-
-const queryClient = new QueryClient();
+const RouteFallback = () => (
+  <div className="min-h-screen flex items-center justify-center bg-background">
+    <div className="flex flex-col items-center gap-3">
+      <div className="h-8 w-8 rounded-full border-2 border-primary/30 border-t-primary animate-spin" />
+      <p className="text-xs text-muted-foreground">Loading…</p>
+    </div>
+  </div>
+);
 
 const ShadowEncounterWrapper = () => {
   const { activeEncounter, refetch } = useShadowEncounters();
@@ -185,9 +198,7 @@ const App = () => {
   // Wait for auth state to be confirmed before rendering
   if (loading || !authReady) {
     return (
-      <div className="min-h-screen flex items-center justify-center">
-        <p className="text-muted-foreground">Loading...</p>
-      </div>
+      <RouteFallback />
     );
   }
 
@@ -200,6 +211,7 @@ const App = () => {
         <FutureSelfOmnipresenceWrapper />
         <ErrorBoundary>
         <BrowserRouter>
+          <Suspense fallback={<RouteFallback />}>
           <Routes>
             <Route path="/" element={session ? <OnboardingRouter /> : <Index />} />
             {/* Redirect old /auth route to new merged page */}
@@ -451,6 +463,7 @@ const App = () => {
             <Route path="/terms" element={<TermsOfService />} />
             <Route path="*" element={<NotFound />} />
           </Routes>
+          </Suspense>
         </BrowserRouter>
         </ErrorBoundary>
       </TooltipProvider>

@@ -1,4 +1,4 @@
-import { useState, useEffect, useMemo, useCallback } from "react";
+import { useState, useEffect, useMemo, useCallback, lazy, Suspense } from "react";
 import { useSearchParams, useNavigate, useLocation } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
 import { cn } from "@/lib/utils";
@@ -10,11 +10,18 @@ import { toast } from "sonner";
 import { ChatRequestCard } from "@/components/creators/ChatRequestCard";
 import { CreatorChatView } from "@/components/creators/CreatorChatView";
 
-// Lazy load the actual conversation components to avoid circular deps
-import CouncilMeetingPage from "./CouncilMeeting";
-import ChatPage from "./Chat";
-import ConsoleThread from "./ConsoleThread";
-import BuilderTeamThread from "./BuilderTeamThread";
+// Lazy-load the heavy conversation engines so opening Council does not
+// pay the cost of all four trees up-front.
+const CouncilMeetingPage = lazy(() => import("./CouncilMeeting"));
+const ChatPage = lazy(() => import("./Chat"));
+const ConsoleThread = lazy(() => import("./ConsoleThread"));
+const BuilderTeamThread = lazy(() => import("./BuilderTeamThread"));
+
+const ConversationFallback = () => (
+  <div className="flex-1 flex items-center justify-center min-h-[200px]">
+    <div className="h-6 w-6 rounded-full border-2 border-primary/30 border-t-primary animate-spin" />
+  </div>
+);
 // Type for location state passed from various flows
 interface LocationState {
   prefilledQuestion?: string;
@@ -767,6 +774,7 @@ const Council = () => {
         
         {/* Right Content Area */}
         <div className="flex-1 overflow-hidden h-full">
+          <Suspense fallback={<ConversationFallback />}>
           {isIntake ? (
             <ConsoleThread embedded onProjectNameChange={setThreadProjectName} />
           ) : isBuilderTeam ? (
@@ -786,6 +794,7 @@ const Council = () => {
               Select a conversation
             </div>
           )}
+          </Suspense>
         </div>
       </div>
 
@@ -797,6 +806,7 @@ const Council = () => {
           <div className="h-full flex flex-col">
             <MobileBackHeader />
             <div className="flex-1 overflow-hidden">
+              <Suspense fallback={<ConversationFallback />}>
               {isIntake ? (
                 <ConsoleThread embedded onProjectNameChange={setThreadProjectName} />
               ) : isBuilderTeam ? (
@@ -812,6 +822,7 @@ const Council = () => {
               ) : selectedMentor ? (
                 <ChatPage mentorTypeOverride={selectedMentor} embedded locationState={location.state} />
               ) : null}
+              </Suspense>
             </div>
           </div>
         )}
