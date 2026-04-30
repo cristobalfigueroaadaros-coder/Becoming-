@@ -1626,18 +1626,8 @@ const ConsoleThread = ({ embedded = false, onProjectNameChange }: ConsoleThreadP
           ];
         }
 
-        // Build and show structure text
-        let structureText = `**${name}**\n\nStructure:\n`;
-        projectStructure.forEach((block: any) => {
-          structureText += `\n● **${block.title}**`;
-          if (block.children?.length > 0) {
-            block.children.forEach((child: any) => { structureText += `\n  · ${child.title}`; });
-          }
-        });
-
-        await showTyping("future_self", 800);
-        addSystemMessage(structureText, "future_self", "project_detected");
-
+        // Structure preview is shown directly inside the ProjectCreationCard below —
+        // no need to dump the full structure as a chat message.
         // Payment is shown by ProjectEngine once the user opens the project
 
         const fsConfig2 = mentorConfig["future_self"];
@@ -1766,16 +1756,7 @@ const ConsoleThread = ({ embedded = false, onProjectNameChange }: ConsoleThreadP
           return;
         }
 
-        // Show structure in chat
-        let structureText = `**${name}**\n\nStructure:\n`;
-        projectStructure.forEach((block: any) => {
-          structureText += `\n● **${block.title}**`;
-          if (block.children?.length > 0) {
-            block.children.forEach((child: any) => { structureText += `\n  · ${child.title}`; });
-          }
-        });
-        await showTyping("future_self", 1200);
-        addSystemMessage(structureText, "future_self", "project_detected");
+        // Structure preview is rendered directly inside the ProjectCreationCard below.
 
         await Promise.all([
           supabase.from("integrator_projects").update({ project_structure: projectStructure, project_brief: description } as any).eq("id", projectId),
@@ -1847,20 +1828,8 @@ const ConsoleThread = ({ embedded = false, onProjectNameChange }: ConsoleThreadP
         ];
       }
 
-      // --- Step 2: Show structure in chat --- (GROW only — DISCOVER returns early above)
-      let structureText = `**${name}**\n\nStructure:\n`;
-      projectStructure.forEach((block: any) => {
-        structureText += `\n● **${block.title}**`;
-        if (block.children && block.children.length > 0) {
-          block.children.forEach((child: any) => {
-            structureText += `\n  · ${child.title}`;
-          });
-        }
-      });
-
-      await showTyping("future_self", 1200);
-      addSystemMessage(structureText, "future_self", "project_detected");
-
+      // --- Step 2: (GROW) Structure preview is rendered directly inside the
+      // ProjectCreationCard below — no chat dump of the full structure.
       // Payment is shown by ProjectEngine once the user opens the project
 
       // Keep typing indicator alive while we wait — user sees Future Self is "working"
