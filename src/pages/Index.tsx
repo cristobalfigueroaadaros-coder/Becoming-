@@ -360,17 +360,20 @@ const Index = () => {
       </section>
 
       {/* Block 4 — Conscious Creators */}
-      <section className="relative py-24 md:py-32 overflow-hidden bg-black">
+      <section ref={creatorsSectionRef} className="relative py-24 md:py-32 overflow-hidden bg-black">
         <div className="absolute inset-0">
-          <video
-            autoPlay
-            muted
-            playsInline
-            loop
-            preload="auto"
-            className="absolute inset-0 w-full h-full object-cover opacity-50"
-            src="/creators-bg.mp4"
-          />
+          {creatorsVideoVisible && (
+            <video
+              ref={creatorsVideoRef}
+              autoPlay
+              muted
+              playsInline
+              loop
+              preload="metadata"
+              className="absolute inset-0 w-full h-full object-cover opacity-50"
+              src="/creators-bg.mp4"
+            />
+          )}
           <div className="absolute inset-0 bg-background/60" />
         </div>
         <div className="absolute inset-0">
