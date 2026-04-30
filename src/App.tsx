@@ -213,6 +213,7 @@ const App = () => {
         <FutureSelfOmnipresenceWrapper />
         <ErrorBoundary>
         <BrowserRouter>
+          <Suspense fallback={<RouteFallback />}>
           <Routes>
             <Route path="/" element={session ? <OnboardingRouter /> : <Index />} />
             {/* Redirect old /auth route to new merged page */}
@@ -464,6 +465,7 @@ const App = () => {
             <Route path="/terms" element={<TermsOfService />} />
             <Route path="*" element={<NotFound />} />
           </Routes>
+          </Suspense>
         </BrowserRouter>
         </ErrorBoundary>
       </TooltipProvider>
