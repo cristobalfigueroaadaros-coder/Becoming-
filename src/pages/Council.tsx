@@ -774,6 +774,7 @@ const Council = () => {
         
         {/* Right Content Area */}
         <div className="flex-1 overflow-hidden h-full">
+          <Suspense fallback={<ConversationFallback />}>
           {isIntake ? (
             <ConsoleThread embedded onProjectNameChange={setThreadProjectName} />
           ) : isBuilderTeam ? (
@@ -793,6 +794,7 @@ const Council = () => {
               Select a conversation
             </div>
           )}
+          </Suspense>
         </div>
       </div>
 
@@ -804,6 +806,7 @@ const Council = () => {
           <div className="h-full flex flex-col">
             <MobileBackHeader />
             <div className="flex-1 overflow-hidden">
+              <Suspense fallback={<ConversationFallback />}>
               {isIntake ? (
                 <ConsoleThread embedded onProjectNameChange={setThreadProjectName} />
               ) : isBuilderTeam ? (
@@ -819,6 +822,7 @@ const Council = () => {
               ) : selectedMentor ? (
                 <ChatPage mentorTypeOverride={selectedMentor} embedded locationState={location.state} />
               ) : null}
+              </Suspense>
             </div>
           </div>
         )}
