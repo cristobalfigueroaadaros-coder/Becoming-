@@ -198,9 +198,7 @@ const App = () => {
   // Wait for auth state to be confirmed before rendering
   if (loading || !authReady) {
     return (
-      <div className="min-h-screen flex items-center justify-center">
-        <p className="text-muted-foreground">Loading...</p>
-      </div>
+      <RouteFallback />
     );
   }
 
