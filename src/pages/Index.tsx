@@ -6,9 +6,8 @@ import { Label } from "@/components/ui/label";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
 import { motion } from "framer-motion";
-import { ArrowRight, Compass, Heart, MessageCircle, Rocket, Sparkles, Star, Users, Zap, Crown } from "lucide-react";
+import { ArrowRight, Compass, Heart, MessageCircle, Rocket, Sparkles, Users, Zap, Crown } from "lucide-react";
 import bcomingLogo from "@/assets/bcoming-icon.svg";
-import RadialOrbitalTimeline from "@/components/ui/radial-orbital-timeline";
 import { FloatingDots } from "@/components/ui/floating-dots";
 
 const fadeUp = {
@@ -186,7 +185,7 @@ const Index = () => {
         </div>
       </nav>
 
-      {/* Hero Section */}
+      {/* Block 1 — Hero */}
       <section className="relative min-h-screen flex items-center justify-center pt-16">
         <div className="absolute inset-0 overflow-hidden">
           <video
@@ -257,12 +256,21 @@ const Index = () => {
           <FloatingDots count={30} color="167,139,250" minSize={1} maxSize={2} speed={0.6} />
         </div>
         <div className="max-w-3xl mx-auto px-6 text-center relative z-10">
+          <motion.h2
+            initial={{ opacity: 0, y: 20 }}
+            whileInView={{ opacity: 1, y: 0 }}
+            viewport={{ once: true }}
+            transition={{ duration: 0.6 }}
+            className="font-gloock text-3xl md:text-4xl font-bold text-foreground mb-8"
+          >
+            We help you move forward. No matter where you are right now.
+          </motion.h2>
           <motion.p
             initial={{ opacity: 0, y: 30 }}
             whileInView={{ opacity: 1, y: 0 }}
             viewport={{ once: true }}
-            transition={{ duration: 0.7 }}
-            className="font-gloock text-2xl md:text-3xl text-foreground leading-relaxed mb-8"
+            transition={{ delay: 0.1, duration: 0.7 }}
+            className="text-lg md:text-xl text-muted-foreground leading-relaxed mb-6"
           >
             Building something that matters is hard. It's lonely. It's uncertain. And most of the time you don't know what the next step is.
           </motion.p>
@@ -287,11 +295,20 @@ const Index = () => {
         </div>
         <div className="max-w-5xl mx-auto px-6 relative z-10">
           <div className="text-center mb-14">
-            <motion.p
+            <motion.h2
               initial={{ opacity: 0, y: 20 }}
               whileInView={{ opacity: 1, y: 0 }}
               viewport={{ once: true }}
               transition={{ duration: 0.6 }}
+              className="font-gloock text-3xl md:text-4xl font-bold text-foreground mb-6"
+            >
+              Bcoming adapts to your journey.
+            </motion.h2>
+            <motion.p
+              initial={{ opacity: 0 }}
+              whileInView={{ opacity: 1 }}
+              viewport={{ once: true }}
+              transition={{ delay: 0.15, duration: 0.6 }}
               className="text-lg md:text-xl text-muted-foreground leading-relaxed max-w-2xl mx-auto"
             >
               We all have a different path. And we are all at a different place in it. Bcoming adapts to the phase you are in right now and helps you move forward.
@@ -317,50 +334,63 @@ const Index = () => {
       </section>
 
       {/* Block 4 — Conscious Creators */}
-      <section className="relative py-24 md:py-32 overflow-hidden">
-        <div className="absolute inset-0">
+      <section className="relative overflow-hidden" style={{ background: "#000" }}>
+        {/* Video — natural size, centered, no expansion */}
+        <div className="relative w-full flex items-center justify-center" style={{ minHeight: "420px" }}>
           <video
             autoPlay
             muted
             playsInline
             loop
-            className="absolute inset-0 w-full h-full object-cover"
+            preload="auto"
+            className="relative z-0 w-full max-w-3xl mx-auto"
+            style={{ display: "block", objectFit: "contain" }}
             src="/creators-bg.mp4"
           />
-          <div className="absolute inset-0 bg-background/70" />
+          {/* Gradient fades at top and bottom so section blends */}
+          <div className="absolute inset-x-0 top-0 h-24 bg-gradient-to-b from-background to-transparent z-10" />
+          <div className="absolute inset-x-0 bottom-0 h-24 bg-gradient-to-t from-background to-transparent z-10" />
         </div>
-        <div className="absolute inset-0">
-          <div className="absolute top-0 left-0 right-0 h-px bg-gradient-to-r from-transparent via-border to-transparent" />
-          <FloatingDots count={20} color="167,139,250" minSize={1} maxSize={2} speed={0.35} />
-        </div>
-        <div className="relative z-10 max-w-3xl mx-auto px-6 text-center">
-          <motion.div
-            initial={{ opacity: 0, y: 20 }}
-            whileInView={{ opacity: 1, y: 0 }}
-            viewport={{ once: true }}
-            transition={{ duration: 0.6 }}
-          >
-            <p className="text-lg md:text-xl text-muted-foreground leading-relaxed mb-6">
-              Bcoming is building a network of people who are creating with intention. Not just building for growth. Building for impact.
-            </p>
-            <p className="text-lg md:text-xl text-muted-foreground leading-relaxed mb-6">
-              People who believe the work they put into the world matters. Who want to do it alongside others who feel the same way.
-            </p>
-            <p className="font-gloock text-xl md:text-2xl font-semibold gradient-text">
-              If that's you, you're in the right place. We can change the world together.
-            </p>
-          </motion.div>
+
+        {/* Text content over a dark overlay */}
+        <div className="relative z-20 py-16 md:py-20 -mt-16">
+          <div className="max-w-3xl mx-auto px-6 text-center">
+            <motion.h2
+              initial={{ opacity: 0, y: 20 }}
+              whileInView={{ opacity: 1, y: 0 }}
+              viewport={{ once: true }}
+              transition={{ duration: 0.6 }}
+              className="font-gloock text-3xl md:text-4xl font-bold text-foreground mb-8"
+            >
+              We're building something together.
+            </motion.h2>
+            <motion.div
+              initial={{ opacity: 0, y: 20 }}
+              whileInView={{ opacity: 1, y: 0 }}
+              viewport={{ once: true }}
+              transition={{ delay: 0.1, duration: 0.6 }}
+            >
+              <p className="text-lg md:text-xl text-muted-foreground leading-relaxed mb-6">
+                Bcoming is building a network of people who are creating with intention. Not just building for growth. Building for impact.
+              </p>
+              <p className="text-lg md:text-xl text-muted-foreground leading-relaxed mb-6">
+                People who believe the work they put into the world matters. Who want to do it alongside others who feel the same way.
+              </p>
+              <p className="font-gloock text-xl md:text-2xl font-semibold gradient-text">
+                If that's you, you're in the right place. We can change the world together.
+              </p>
+            </motion.div>
+          </div>
         </div>
       </section>
 
-      {/* Block 5 — What's Inside (with tabs) */}
+      {/* Block 5 — What's Inside (tabs) */}
       <section id="features" className="py-24 md:py-32 relative overflow-hidden">
         <div className="absolute inset-0">
           <div className="absolute top-0 left-0 right-0 h-px bg-gradient-to-r from-transparent via-border to-transparent" />
           <FloatingDots count={45} color="167,139,250" minSize={1} maxSize={3} speed={0.8} />
         </div>
         <div className="max-w-5xl mx-auto px-6 relative z-10">
-          {/* Opening copy */}
           <div className="text-center mb-16">
             <motion.div
               initial={{ opacity: 0, y: 20 }}
@@ -368,6 +398,9 @@ const Index = () => {
               viewport={{ once: true }}
               transition={{ duration: 0.6 }}
             >
+              <h2 className="font-gloock text-3xl md:text-4xl font-bold text-foreground mb-8">
+                We help you to WIN
+              </h2>
               <p className="text-lg md:text-xl text-muted-foreground leading-relaxed max-w-2xl mx-auto mb-6">
                 Within your first ten minutes you will have a clear project to work on. One that is based on who you actually are and the phase you are in right now.
               </p>
@@ -425,25 +458,10 @@ const Index = () => {
               })()}
             </motion.div>
           </div>
-
-          {/* Desktop: orbital */}
-          <motion.div className="hidden md:block" initial={{ opacity: 0 }} whileInView={{ opacity: 1 }} viewport={{ once: true }} transition={{ duration: 0.8 }}>
-            <RadialOrbitalTimeline timelineData={features.map((f, i) => ({
-              id: i + 1,
-              title: f.title,
-              date: "",
-              content: f.description,
-              category: f.title,
-              icon: f.icon,
-              relatedIds: features.map((_, j) => j + 1).filter(j => j !== i + 1),
-              status: "completed" as const,
-              energy: 80,
-            }))} />
-          </motion.div>
         </div>
       </section>
 
-      {/* Block 6 — Belief Section (unchanged) */}
+      {/* Block 6 — Belief (unchanged) */}
       <section className="py-24 md:py-32 relative overflow-hidden">
         <div className="absolute inset-0">
           <div className="absolute top-0 left-0 right-0 h-px bg-gradient-to-r from-transparent via-border to-transparent" />
@@ -483,7 +501,7 @@ const Index = () => {
         </div>
       </section>
 
-      {/* Block 7 — Pricing Section (unchanged) */}
+      {/* Block 7 — Pricing (unchanged) */}
       <section id="pricing" className="py-24 md:py-32 relative overflow-hidden">
         <div className="absolute inset-0">
           <div className="absolute top-0 left-0 right-0 h-px bg-gradient-to-r from-transparent via-border to-transparent" />
@@ -565,12 +583,14 @@ const Index = () => {
             <div className="w-16 h-16 mx-auto mb-8 rounded-2xl bg-accent/10 flex items-center justify-center">
               <Zap className="w-8 h-8 text-accent" />
             </div>
-            <h2 className="font-gloock text-3xl md:text-4xl font-bold text-foreground mb-6">You already have more than you think.</h2>
+            <h2 className="font-gloock text-3xl md:text-4xl font-bold text-foreground mb-6">
+              You already have everything you need to build your dream life. Let's make it real.
+            </h2>
             <p className="text-lg text-muted-foreground leading-relaxed max-w-2xl mx-auto mb-4">
-              Every experience, every obsession, every moment that felt like something. It's all there. You just haven't seen it as a whole picture yet.
+              Yes, it's going to be hard. Yes, it's going to take time. Yes, it's going to test you.
             </p>
             <p className="text-base text-foreground/70 leading-relaxed max-w-xl mx-auto mb-10">
-              That's minute one. And it doesn't leave you.
+              But Bcoming is built to support you through every phase. To find your mission and become who you really are.
             </p>
             <Button size="lg" className="text-lg px-10 py-6 glow-purple gap-2" onClick={scrollToAuth}>
               Start mapping <ArrowRight className="w-5 h-5" />
