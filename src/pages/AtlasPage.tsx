@@ -122,9 +122,6 @@ const AtlasPage = () => {
       // ignore
     }
     setActiveTab("mine");
-    if (completedCount === 0) {
-      navigate("/atlas/quest");
-    }
   };
 
   const councilThreshold = COUNCIL_UNLOCK_THRESHOLDS[entryState] ?? 4;
@@ -145,6 +142,13 @@ const AtlasPage = () => {
       if (p?.entry_state) setEntryState(p.entry_state);
       if (!p?.atlas_onboarding_completed) {
         setAtlasOnboardingPending(true);
+        setActiveTab("founders");
+        try {
+          localStorage.removeItem(FOUNDERS_SEEN_FLAG);
+          localStorage.removeItem("founders_popup_seen");
+        } catch {
+          // ignore
+        }
       }
     };
     checkFlags();
