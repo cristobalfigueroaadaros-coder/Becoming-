@@ -118,9 +118,12 @@ const AtlasPage = () => {
   const handleFoundersCta = () => {
     try {
       localStorage.setItem(FOUNDERS_SEEN_FLAG, "true");
+      sessionStorage.setItem("force_atlas_onboarding_walkthrough", "true");
     } catch {
       // ignore
     }
+    setAtlasOnboardingPending(true);
+    setShowOnboarding(false);
     setActiveTab("mine");
   };
 
@@ -140,7 +143,14 @@ const AtlasPage = () => {
       const p = profile as any;
       setIntakeCompleted(!!p?.console_intake_completed);
       if (p?.entry_state) setEntryState(p.entry_state);
-      if (!p?.atlas_onboarding_completed) {
+      let forceWalkthrough = false;
+      try {
+        forceWalkthrough = sessionStorage.getItem("force_atlas_onboarding_walkthrough") === "true";
+      } catch {
+        forceWalkthrough = false;
+      }
+
+      if (!p?.atlas_onboarding_completed || forceWalkthrough) {
         setAtlasOnboardingPending(true);
         setActiveTab("founders");
         try {
@@ -420,6 +430,12 @@ const AtlasPage = () => {
           <AtlasOnboardingOverlay
             onComplete={async () => {
               setShowOnboarding(false);
+              setAtlasOnboardingPending(false);
+              try {
+                sessionStorage.removeItem("force_atlas_onboarding_walkthrough");
+              } catch {
+                // ignore
+              }
               const { data: { user } } = await supabase.auth.getUser();
               if (user) {
                 await supabase
