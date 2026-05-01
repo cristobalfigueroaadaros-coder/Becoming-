@@ -52,7 +52,7 @@ const Dashboard = () => {
     };
   }, []);
 
-  // Guide users to Atlas if they haven't built enough discovery yet.
+  // Guide users to Cris's Atlas first if they haven't built enough discovery yet.
   // Threshold mirrors useProgressiveUnlock (chat unlock thresholds by entry state).
   const checkAtlasGuidance = async () => {
     try {
@@ -82,11 +82,10 @@ const Dashboard = () => {
       const completed = completedQuestCount || 0;
 
       if (completed < threshold) {
-        toast.info("Continue building your Atlas", {
-          description: `Complete ${threshold - completed} more discovery${threshold - completed === 1 ? "" : " quests"} to unlock your full journey.`,
-          duration: 5000,
-        });
-        navigate("/atlas");
+        const timer = window.setTimeout(() => {
+          navigate("/atlas");
+        }, 5000);
+        return () => window.clearTimeout(timer);
       }
     } catch (error) {
       console.error("Error checking Atlas guidance:", error);
