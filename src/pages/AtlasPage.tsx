@@ -122,9 +122,6 @@ const AtlasPage = () => {
       // ignore
     }
     setActiveTab("mine");
-    if (completedCount === 0) {
-      navigate("/atlas/quest");
-    }
   };
 
   const councilThreshold = COUNCIL_UNLOCK_THRESHOLDS[entryState] ?? 4;
