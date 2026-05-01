@@ -82,10 +82,9 @@ const Dashboard = () => {
       const completed = completedQuestCount || 0;
 
       if (completed < threshold) {
-        const timer = window.setTimeout(() => {
+        window.setTimeout(() => {
           navigate("/atlas");
         }, 5000);
-        return () => window.clearTimeout(timer);
       }
     } catch (error) {
       console.error("Error checking Atlas guidance:", error);
