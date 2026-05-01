@@ -33,9 +33,13 @@ export const FoundersMap = ({ onCtaClick }: FoundersMapProps) => {
   useEffect(() => {
     try {
       const seen = localStorage.getItem(POPUP_FLAG);
-      if (!seen) setShowPopup(true);
+      if (!seen) {
+        const timer = window.setTimeout(() => setShowPopup(true), 2000);
+        return () => window.clearTimeout(timer);
+      }
     } catch {
-      setShowPopup(true);
+      const timer = window.setTimeout(() => setShowPopup(true), 2000);
+      return () => window.clearTimeout(timer);
     }
   }, []);
 
