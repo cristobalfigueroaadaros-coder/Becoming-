@@ -1104,9 +1104,49 @@ const ConsoleThread = ({ embedded = false, onProjectNameChange }: ConsoleThreadP
     let typingCancelled = false;
     // Always read from refs so we get the latest state regardless of which closure called us
     const freshAnswers = intakeAnswersRef.current;
-    const freshMentors = userMentorsRef.current;
+    let freshMentors = userMentorsRef.current;
     const freshEntryState = entryStateRef.current;
     const freshAtlasSignals = atlasSignalsRef.current;
+
+    // SAFETY NET: if userMentors is empty (state not hydrated, race condition,
+    // or assignment failed during onboarding), fetch directly from DB before
+    // calling the council. Without this, the council would only contain
+    // future_self and the user would see almost no perspectives.
+    if (!freshMentors || freshMentors.length === 0) {
+      try {
+        const { data: { user } } = await supabase.auth.getUser();
+        if (user) {
+          const { data: dbMentors } = await supabase
+            .from("user_mentors")
+            .select("mentor_type")
+            .eq("user_id", user.id);
+          if (dbMentors && dbMentors.length > 0) {
+            freshMentors = dbMentors.map((m: any) => m.mentor_type);
+          } else {
+            // No mentors assigned yet — assign defaults based on entry state
+            const defaults: Record<string, string[]> = {
+              DISCOVER: ["creative_visionary", "perspective_mentor", "challenger_mentor", "strategist_mentor", "design_thinking_mentor"],
+              GROW: ["strategist_mentor", "creative_visionary", "business_mentor", "marketing_mentor", "perspective_mentor", "challenger_mentor", "design_thinking_mentor"],
+              BUILD: ["business_mentor", "strategist_mentor", "marketing_mentor", "challenger_mentor", "perspective_mentor", "creative_visionary", "design_thinking_mentor"],
+            };
+            const fallback = defaults[freshEntryState as string] || defaults.DISCOVER;
+            freshMentors = fallback;
+            // Persist so future calls don't have to recompute
+            try {
+              await supabase.from("user_mentors").insert(
+                fallback.map((mt) => ({ user_id: user.id, mentor_type: mt as any }))
+              );
+              setUserMentors(fallback);
+              userMentorsRef.current = fallback;
+            } catch (insertErr) {
+              console.warn("Failed to persist fallback mentors (non-fatal):", insertErr);
+            }
+          }
+        }
+      } catch (e) {
+        console.error("Failed to hydrate mentors before council meeting:", e);
+      }
+    }
 
     const allMentorTypes = [...new Set([...freshMentors, "future_self"])];
     const cycleTypingWhileWaiting = async () => {
@@ -1222,6 +1262,18 @@ const ConsoleThread = ({ embedded = false, onProjectNameChange }: ConsoleThreadP
       typingCancelled = true;
       console.error("Error in council meeting:", error);
       toast.error("Council meeting failed");
+      // Surface a recoverable retry path so the user is not left stuck on a
+      // silent loading screen if the edge function throws (rate-limit, network, etc.)
+      await showTyping("future_self", 600);
+      addSystemMessage(
+        "The council had trouble gathering. Type \"retry\" and I'll bring them in again.",
+        "future_self",
+        "council_accepted"
+      );
+      setCouncilMeetingRan(false);
+      const retryPhase: Phase = "council_accepted";
+      setPhase(retryPhase);
+      persistPhase(retryPhase);
     } finally {
       setLoading(false);
     }
