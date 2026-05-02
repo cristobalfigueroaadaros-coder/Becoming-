@@ -23,25 +23,20 @@ export const FoundersIntroModal = ({ onNext }: FoundersIntroModalProps) => {
         <div className="flex items-center gap-2 mb-4">
           <Sparkles className="w-4 h-4 text-primary" />
           <span className="text-xs font-semibold uppercase tracking-wider text-primary">
-            Founder's Atlas
+            Founder's Letter
           </span>
         </div>
 
-        <h2 className="text-xl sm:text-2xl font-bold text-foreground mb-4">
-          This is my map.
-        </h2>
-
         <p className="text-sm sm:text-base text-muted-foreground leading-relaxed">
-          I left home at 22 with something in me I couldn't name. I cleaned floors in
-          Germany, built a board game across years of construction days and late
-          nights in Australia, broke my leg during COVID, missed the investment,
-          asked God for a sign, and kept moving. Every dot that looked like a failure
-          turned out to be exactly what came next. I built Becoming because I needed
-          it. And I built it for you.
+          I believe we all carry a special gift, and that everything in our lives happens for a reason. When we connect those experiences and shape something from them, we begin to discover our purpose, because happiness is not contained in what you get, it's contained in what you become. But that journey takes time. It feels uncertain, and often like you are moving without a map.
+        </p>
+
+        <p className="text-sm sm:text-base text-muted-foreground leading-relaxed mt-4">
+          I created Bcoming to guide you through that process. This is my Atlas, a real example that with time and effort, everything connects. My hope is that it inspires you to start creating your own path.
         </p>
 
         <p className="text-sm text-foreground/80 mt-4 italic">
-          — Cris, founder of Becoming
+          — Cris, founder of Bcoming
         </p>
 
         <div className="mt-6 flex justify-end">
