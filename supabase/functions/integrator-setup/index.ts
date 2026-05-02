@@ -654,6 +654,74 @@ Return JSON only — no markdown, no extra text:
       }
     }
 
+    // For GROW phase: generate validation/structure blocks using intake answers
+    if (entryState === "GROW" && intakeAnswers && intakeAnswers.length >= 2 && !proposedBlocks) {
+      try {
+        const mk = () => Math.random().toString(36).slice(2, 10);
+        const growPrompt = `You are generating a focused project structure for someone in the GROW phase — they have an emerging idea or early version of something and need to validate, sharpen, and structure it.
+
+PROJECT: ${projectTitle}
+WHAT THEY'RE BUILDING / WORKING ON: ${intakeAnswers[0] || ""}
+CURRENT PROGRESS OR PARTIAL VERSION: ${intakeAnswers[1] || ""}
+WHAT THEY WANT TO REACH NEXT: ${intakeAnswers[2] || ""}
+
+Generate exactly 4 blocks that move them from "partial idea" to "validated, structured concept ready to build". Each block must connect directly to their actual project — no generic advice.
+
+RULES:
+- Block names reflect the CATEGORY of work (e.g. Audience Validation, Concept Sharpening, Offer Definition, First Test, Identity & Story).
+- Activities are concrete and SPECIFIC to their actual project — use action verbs (Talk to, Define, Sketch, Test, Map, Write, Refine).
+- Focus on VALIDATION and STRUCTURE, not execution/scaling — they are not in BUILD yet.
+- Each block has 3 activities.
+
+Return JSON only — no markdown, no extra text:
+{
+  "blocks": [
+    { "title": "Block Name", "activities": ["Activity 1", "Activity 2", "Activity 3"] },
+    { "title": "Block Name", "activities": ["Activity 1", "Activity 2", "Activity 3"] },
+    { "title": "Block Name", "activities": ["Activity 1", "Activity 2", "Activity 3"] },
+    { "title": "Block Name", "activities": ["Activity 1", "Activity 2", "Activity 3"] }
+  ]
+}`;
+
+        const growResponse = await fetch('https://ai.gateway.lovable.dev/v1/chat/completions', {
+          method: 'POST',
+          headers: { 'Authorization': `Bearer ${LOVABLE_API_KEY}`, 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            model: 'google/gemini-2.5-flash-lite',
+            messages: [{ role: 'user', content: growPrompt }],
+          }),
+        });
+
+        if (growResponse.ok) {
+          const growData = await growResponse.json();
+          let growText = growData.choices?.[0]?.message?.content || '';
+          growText = growText.replace(/```json\n?/g, '').replace(/```\n?/g, '').trim();
+          const parsed = JSON.parse(growText);
+          if (parsed.blocks && Array.isArray(parsed.blocks)) {
+            proposedBlocks = parsed.blocks.map((b: any) => ({
+              id: mk(),
+              title: b.title,
+              status: "not_started",
+              importance: "high",
+              children: (b.activities || []).map((a: string) => ({
+                id: mk(),
+                title: a,
+                status: "not_started",
+                importance: "medium",
+                children: [],
+              })),
+            }));
+            console.log("Generated tailored GROW blocks:", parsed.blocks.map((b: any) => b.title).join(", "));
+          }
+        } else {
+          const errBody = await growResponse.text().catch(() => "<unreadable>");
+          console.error(`GROW block generation HTTP error status=${growResponse.status} body=${errBody.substring(0, 200)}`);
+        }
+      } catch (growBlockErr) {
+        console.error("GROW block generation failed (non-fatal):", growBlockErr);
+      }
+    }
+
     // For DISCOVER phase: generate AI-tailored blocks using project context + project type
     if (entryState === "DISCOVER") {
       try {
