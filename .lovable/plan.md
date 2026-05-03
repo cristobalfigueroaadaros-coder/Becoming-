@@ -1,119 +1,161 @@
-# Loading Time Audit — Bcoming
+I understand. The flow keeps breaking because it is currently controlled by several separate flags and local/session storage keys instead of one strict, backend-backed journey state. There are also two different meanings being mixed into `onboarding_quest_completed`: the old 5-question onboarding quest and the Atlas quest journey. That makes the router think the user is further ahead than they actually are.
 
-## What's actually slow (and why)
+I will fix this as one end-to-end flow, not as another isolated button change.
 
-I inspected the bundle, the landing page, the Council page, and the routing layer. Here's what's making things slow:
+```text
+Required flow
 
-### 1. Landing page (bcoming.app) — heavy on first paint
-- `public/hero-bg.mp4` = **1.6 MB**, `public/creators-bg.mp4` = **2.7 MB** → ~**4.3 MB of video** loaded on first visit.
-- Hero video is also `<link rel="preload" as="video">` in `index.html`, forcing the browser to start downloading it before anything else, blocking the critical path.
-- Both videos use `preload="auto"` (download the whole file immediately) instead of lazy-loading the second one.
-- No poster image → the user sees a black box while the video downloads.
+Onboarding complete
+  -> Home
+  -> user presses Atlas button OR auto-redirect after 5 seconds
+  -> Cris's Map
+  -> after 2 seconds Cris founder letter/card appears
+  -> user accepts/continues
+  -> user's Atlas map
+  -> after 2 seconds Atlas onboarding walkthrough appears
+  -> walkthrough explains Atlas -> Chats -> Projects -> Creators step by step
+  -> final Continue starts first Atlas quest
+  -> phase-specific Atlas quests
+     DISCOVER = 4 quests
+     GROW = 3 quests
+     BUILD = 2 quests
+  -> Council / Chats intake loads correct mentors for that phase
+  -> project suggestion card appears
+  -> user accepts project
+  -> project structure opens directly
+```
 
-### 2. Initial JS bundle is massive
-- `src/App.tsx` eagerly `import`s **60+ page components**. Every page (Council, CreationLab, MomentumDashboard, ProjectEngine, Pattern Map, Superpower Map, all the onboarding screens, etc.) ships in the **first JS chunk**, even when the user only needs the landing page.
-- Heavy dependencies always loaded up-front: `recharts`, `jspdf` + `jspdf-autotable`, `@xyflow/react`, `react-simple-maps`, `@tsparticles/*`, `framer-motion`, `embla-carousel-react`, `canvas-confetti`, `dompurify`. Most are only used in 1–2 pages.
-- `vite.config.ts` has **no manualChunks / code-splitting** config → one giant chunk.
+## What I found
 
-### 3. Council "loading to mentor perspective" lag
-- `src/pages/Council.tsx` synchronously imports `CouncilMeeting` (**1,081 lines**), `Chat`, `ConsoleThread`, and `BuilderTeamThread`. Switching mentors mounts the full conversation tree even before any data arrives.
-- Mentor switch refetches last 50 messages + profile + user_mentors on every change instead of caching.
-- The "Unmasked Practice Kit" structure block in `ProjectEngine` / design-thinking blocks renders the entire structure tree at once with framer-motion animations on every node.
+1. `OnboardingRouter` currently sends users directly to `/atlas/quest` when `onboarding_quest_completed` is false. That bypasses the required Home -> Cris Map -> founder card -> Atlas onboarding sequence.
 
-### 4. Bottom-nav tab taps (Home / Atlas / Chats / Projects / Creators) feel slow
-- Each tab routes to a page that does **multiple sequential** Supabase queries on mount (profile, atlas, dots, clusters, mentors, notifications, etc.). No parallelization, no `Promise.all`, no shared cache between tabs.
-- `AtlasPage` does its own `supabase.auth.getUser()` + profile fetch + clusters + dots + opportunity detection + `useAtlasQuests`, all sequentially.
+2. `OnboardingQuest.tsx` sets `onboarding_quest_completed = true` after the old 5-question action-pattern quiz. But `useAtlasQuests.tsx` also uses that same flag to decide whether Atlas onboarding is finished. This is the main reason the Atlas onboarding/quest path is inconsistent.
 
-### 5. Misc
-- `App.tsx` blocks the entire app behind `loading || !authReady` with just "Loading..." text — feels like a dead page for ~300–700ms.
-- `<FloatingDots>` runs on most landing sections (5 instances, 20–45 dots each, 60fps animations) — minor CPU drain on slower devices.
+3. `AtlasPage.tsx` partly depends on `localStorage` and `sessionStorage` to force Cris's Map and the Atlas walkthrough. That can fail across reloads, returning users, and fresh test users because storage flags and profile flags can disagree.
 
----
+4. The project card is ephemeral in `ConsoleThread`: cards are not restored from saved messages. If the project gets created successfully but the user reloads/navigates before clicking the card, the accept/open project card disappears even though the project exists.
 
-## The Plan — what I'll change
+5. The project card copy says `Accept the project` even when the project has already been created. That is confusing. In that state the CTA should open the project structure directly.
 
-### Phase A — Landing page speed (biggest win, fastest)
-1. **Compress the videos** server-side and replace the originals:
-   - hero-bg.mp4: re-encode to ~400–600 KB (h.264, CRF 30, 720p) and add a `.webm` AV1/VP9 sibling.
-   - creators-bg.mp4: same treatment, target ~600–900 KB. Or replace with a static blurred image — it sits below the fold.
-2. Remove `<link rel="preload" as="video" href="/hero-bg.mp4">` from `index.html`. It blocks LCP without helping (the `<video>` element triggers its own request).
-3. Add a `poster` image (small JPEG) on the hero `<video>` so users see the scene immediately.
-4. Change the second video (`creators-bg.mp4`) to `preload="none"` and only load it once it scrolls into view (IntersectionObserver) — or replace with a still frame.
-5. Trim `<FloatingDots>` instances from 5 → 2, lower counts, and pause when off-screen.
+6. `Council.tsx` tries to read `first_project_id` but does not select it in its profile query, so the thread label/project context can fail to hydrate correctly.
 
-### Phase B — Code-split the bundle (huge win for everyone past landing)
-6. Convert every page import in `src/App.tsx` to `React.lazy(() => import(...))` and wrap `<Routes>` in `<Suspense fallback={...}>`. Landing page (`Index`) stays eager. Result: first load drops from one mega-chunk to ~10 small per-route chunks.
-7. Add `manualChunks` in `vite.config.ts` to split heavy vendors into their own chunks so they're only fetched when needed:
-   - `recharts` → its own chunk (only Momentum / Insights pages)
-   - `jspdf` + `jspdf-autotable` → its own chunk (only export/report pages)
-   - `@xyflow/react`, `react-simple-maps` → its own chunks
-   - `@tsparticles/*` → its own chunk
-   - `framer-motion` → shared chunk (used everywhere)
-8. Lazy-load `CouncilMeeting`, `Chat`, `ConsoleThread`, `BuilderTeamThread` inside `Council.tsx` so switching mentors doesn't pay the cost of all four conversation engines up-front.
+## Implementation plan
 
-### Phase C — Faster perceived load on tab taps
-9. Replace the "Loading..." text in `App.tsx` with a lightweight skeleton matching the page shell so taps feel instant.
-10. In `AtlasPage` (and the same pattern in Council, Dashboard, CreationLab): batch the on-mount Supabase calls with `Promise.all` instead of awaiting them sequentially. Lift the `auth.getUser()` result into a tiny shared context so it isn't re-fetched on every navigation.
-11. Bump react-query `staleTime` for atlas / profile / mentors to ~60 s so re-entering a tab uses cached data instantly while it revalidates in the background.
+### 1. Fix the onboarding router so it follows the required entry flow
+Update `src/components/OnboardingRouter.tsx` so after the initial onboarding/profile phase, users go to `/dashboard`, not directly to `/atlas/quest`.
 
-### Phase D — Council mentor-switch latency
-12. When a mentor is selected, render the mentor header + skeleton **immediately**, then fetch messages in the background (today the page waits for the fetch before rendering anything).
-13. Cache the last 50 messages per mentor in react-query keyed by `[mentorType, userId]` so re-opening the same mentor is instant.
-14. Defer the heavy `mentorConfig` icon set and avoid recomputing `userMentors` ordering on every render (memoize).
+The router should only route to pre-home onboarding screens when those are incomplete:
+- gravity orientation
+- profile / phase onboarding
+- then dashboard/home
 
-### Phase E — "Unmasked Practice Kit" structure block (the section you flagged as slow)
-15. Find the component rendering this 7-section structure (likely in `src/components/project-engine/` or `design-thinking-lab/`) and:
-    - Replace per-node `framer-motion` mount animations with a single fade on the container.
-    - Render the section list eagerly but lazy-mount the inner bullet trees only when a section is expanded.
-    - Memoize the structure parser so it doesn't re-run on every keystroke / save.
-16. If the slowness is the AI generation itself (not render), add an immediate skeleton with the section titles and stream the body in.
+The Atlas discovery sequence will be started from Home through the Atlas CTA/auto-redirect, not from the root router.
 
----
+### 2. Make Home reliably send new users to Cris's Map first
+Update `src/pages/Dashboard.tsx` and `src/components/dashboard/AtlasProgressCard.tsx` so the Home path is explicit:
 
-## Technical notes (for the build phase)
+- Show a clear CTA to enter Atlas.
+- For users who have not completed the founder/Atlas intro, clicking the card navigates to `/atlas?intro=founder`.
+- The existing 5-second auto-redirect should also navigate to `/atlas?intro=founder`.
+- Do not depend only on localStorage to decide whether Cris's Map appears.
 
-- Code-splitting pattern:
-  ```tsx
-  const Council = lazy(() => import("./pages/Council"));
-  // ...
-  <Suspense fallback={<PageSkeleton />}>
-    <Routes>...</Routes>
-  </Suspense>
-  ```
-- Vite manualChunks example:
-  ```ts
-  build: {
-    rollupOptions: {
-      output: {
-        manualChunks: {
-          charts: ["recharts"],
-          pdf: ["jspdf", "jspdf-autotable"],
-          flow: ["@xyflow/react", "react-simple-maps"],
-          particles: ["@tsparticles/engine", "@tsparticles/react", "@tsparticles/slim"],
-        },
-      },
-    },
-  }
-  ```
-- Video re-encode (run inside the build container, not committed manually):
-  ```bash
-  ffmpeg -i hero-bg.mp4 -vf scale=1280:-2 -c:v libx264 -crf 30 -preset slow -an hero-bg.mp4
-  ffmpeg -i hero-bg.mp4 -c:v libvpx-vp9 -crf 35 -b:v 0 -an hero-bg.webm
-  ```
+### 3. Separate the old onboarding quiz from Atlas onboarding completion
+Stop using `profiles.onboarding_quest_completed` as the flag for the Atlas quest journey.
 
-## Expected impact (rough)
+Use the existing `profiles.atlas_onboarding_completed` for the visual Atlas walkthrough only, and compute Council readiness from actual completed Atlas quests:
 
-| Area | Before | After |
-|---|---|---|
-| Landing page initial transfer | ~5 MB | ~800 KB |
-| Landing JS chunk | ~2–3 MB | ~400–600 KB |
-| Time to interactive (landing) | 3–6 s | <1.5 s |
-| Tab tap (Home/Atlas/Chats/Projects/Creators) | 800–1500 ms blank | <200 ms (skeleton instant) |
-| Council mentor switch | 1–2 s blank | <300 ms (skeleton + cached) |
+- DISCOVER: 4 completed Atlas quests
+- GROW: 3 completed Atlas quests
+- BUILD: 2 completed Atlas quests
 
-## What I will NOT change
-- Visual design, copy, or any onboarding flow logic.
-- Backend / edge function behavior (only cache durations on the client).
-- Existing routing structure or auth flow.
+This will prevent the old 5-question onboarding quiz from accidentally skipping Atlas onboarding.
 
-Approve and I'll implement Phases A → E in that order, verifying each with the dev-server log and a quick browser check before moving on.
+### 4. Fix Cris's Map and founder card sequencing
+Update `src/pages/AtlasPage.tsx` and `src/components/atlas/founders/FoundersMap.tsx` so the sequence is deterministic:
+
+- `/atlas?intro=founder` always opens Cris's Map.
+- After 2 seconds, show the founder letter/card.
+- The founder letter CTA accepts/continues and moves to `My Map`.
+- Only after switching to `My Map`, wait 2 seconds, then show `AtlasOnboardingOverlay`.
+
+Profile/backend state should be the source of truth, with localStorage only as a non-critical cache.
+
+### 5. Fix the Atlas onboarding overlay final action
+Keep `AtlasOnboardingOverlay.tsx` as the 4-step walkthrough:
+
+- Atlas
+- Chats
+- Projects
+- Creators
+
+The first three `Continue` clicks should advance the explanation. Only the final CTA should navigate to `/atlas/quest`.
+
+I will also make the final CTA text unambiguous: `Start first quest`.
+
+### 6. Fix phase-specific Atlas quest -> Council routing
+Update `src/components/atlas/AtlasQuestFlow.tsx` / `src/hooks/useAtlasQuests.tsx` so after the user reaches their phase threshold:
+
+- Show Council unlock.
+- CTA goes to `/council?view=intake`.
+- Keep exploring remains optional.
+- The threshold is based on actual completed Atlas quests, not the old onboarding flag.
+
+### 7. Harden Council mentor loading for DISCOVER, GROW, BUILD
+In `src/pages/ConsoleThread.tsx`, keep the safety net but make the defaults consistent with onboarding phase mentors:
+
+- DISCOVER: Strategist, Creative Visionary, Inner Clarity, Problem, Perspective, Alignment, Challenger
+- GROW: Strategist, Creative Visionary, Business, Marketing, Perspective, Challenger, Design Thinking
+- BUILD: Strategist, Creative Visionary, Business, Discipline, Marketing, Problem, Design Thinking
+
+If `user_mentors` is missing, persist the correct set before calling the council function, so GROW cannot load an empty or wrong council again.
+
+### 8. Make the project accept card persistent and route directly to project structure
+Update `src/pages/ConsoleThread.tsx` and `src/components/console-thread/ProjectCreationCard.tsx`:
+
+- When a project is created, persist profile fields before rendering the card.
+- If the project already exists, the card CTA should be `Open project structure`, not `Accept the project`.
+- Clicking it should always navigate to `/project/:id`.
+- On return/reload, if the thread is `post_project` and `first_project_id` exists, rebuild the project card from `integrator_projects` so the user is never stranded without the CTA.
+
+### 9. Fix Council project context hydration
+Update `src/pages/Council.tsx` profile select to include `first_project_id`, so the accepted project is correctly recognized and labeled in the Chats sidebar.
+
+### 10. Add guardrails to prevent this from regressing again
+I will add a small shared helper for phase thresholds and mentor defaults so the same values are not duplicated differently across Home, Atlas, Chats, and project creation.
+
+This prevents the recurring issue where one page thinks GROW needs 3 quests, another page thinks onboarding is complete because of the old quiz, and another page loses the project card after reload.
+
+## Files I expect to change
+
+- `src/components/OnboardingRouter.tsx`
+- `src/pages/Dashboard.tsx`
+- `src/components/dashboard/AtlasProgressCard.tsx`
+- `src/pages/AtlasPage.tsx`
+- `src/components/atlas/founders/FoundersMap.tsx`
+- `src/components/atlas/AtlasOnboardingOverlay.tsx` if needed for CTA clarity
+- `src/hooks/useAtlasQuests.tsx`
+- `src/components/atlas/AtlasQuestFlow.tsx`
+- `src/pages/Council.tsx`
+- `src/pages/ConsoleThread.tsx`
+- `src/components/console-thread/ProjectCreationCard.tsx`
+- likely one new shared helper file, e.g. `src/lib/journeyFlow.ts`
+
+## Verification checklist after implementation
+
+I will verify these paths in code:
+
+```text
+DISCOVER
+Home -> Cris Map -> founder card -> My Atlas -> Atlas walkthrough -> 4 quests -> Council intake -> project suggestion -> accept -> /project/:id
+
+GROW
+Home -> Cris Map -> founder card -> My Atlas -> Atlas walkthrough -> 3 quests -> Council intake with GROW mentors -> project suggestion -> accept -> /project/:id
+
+BUILD
+Home -> Cris Map -> founder card -> My Atlas -> Atlas walkthrough -> 2 quests -> Council intake with BUILD mentors -> project suggestion -> accept -> /project/:id
+
+Reload safety
+After project is created but before user clicks card, reload Chats -> project card still appears -> opens project structure
+```
+
+This is the fix I will implement once approved.
