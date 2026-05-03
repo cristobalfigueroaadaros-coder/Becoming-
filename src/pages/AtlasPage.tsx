@@ -103,17 +103,13 @@ const AtlasPage = () => {
   const [opportunityDismissed, setOpportunityDismissed] = useState(false);
   const { data: opportunity } = useOpportunityDetection(totalDots);
   const [atlasOnboardingPending, setAtlasOnboardingPending] = useState(false);
+  const [foundersAccepted, setFoundersAccepted] = useState(false);
 
   // ── Founder's Atlas tab ─────────────────────────────────────────────
   const FOUNDERS_SEEN_FLAG = "atlas_founders_map_seen";
-  const [activeTab, setActiveTab] = useState<"mine" | "founders">(() => {
-    if (typeof window === "undefined") return "founders";
-    try {
-      return localStorage.getItem(FOUNDERS_SEEN_FLAG) ? "mine" : "founders";
-    } catch {
-      return "founders";
-    }
-  });
+  // Default to founders ONLY for users we know haven't completed atlas onboarding.
+  // Final decision is made in checkFlags() below using backend state.
+  const [activeTab, setActiveTab] = useState<"mine" | "founders">("mine");
 
   const handleFoundersCta = () => {
     try {
@@ -122,6 +118,7 @@ const AtlasPage = () => {
     } catch {
       // ignore
     }
+    setFoundersAccepted(true);
     setAtlasOnboardingPending(true);
     setShowOnboarding(false);
     setActiveTab("mine");
@@ -149,29 +146,44 @@ const AtlasPage = () => {
       } catch {
         forceWalkthrough = false;
       }
+      const introQuery = searchParams.get("intro") === "founder";
+      const atlasOnboardingDone = !!p?.atlas_onboarding_completed;
 
-      if (!p?.atlas_onboarding_completed || forceWalkthrough) {
+      // Show Cris's Map first whenever atlas onboarding is not yet completed,
+      // OR when the user explicitly entered via /atlas?intro=founder, OR when
+      // we just forced the walkthrough. Backend flag is the source of truth.
+      if (!atlasOnboardingDone || forceWalkthrough || introQuery) {
         setAtlasOnboardingPending(true);
         setActiveTab("founders");
+        setFoundersAccepted(false);
         try {
           localStorage.removeItem(FOUNDERS_SEEN_FLAG);
           localStorage.removeItem("founders_popup_seen");
         } catch {
           // ignore
         }
+        if (introQuery) {
+          // Clean the URL once consumed
+          const next = new URLSearchParams(searchParams);
+          next.delete("intro");
+          setSearchParams(next, { replace: true });
+        }
       }
     };
     checkFlags();
   }, []);
 
-  // Trigger Atlas onboarding overlay only once the user is on "My Map".
-  // Show it ~2s after they land there so the map can render first.
+  // Trigger Atlas onboarding overlay only AFTER:
+  //  1. The user has accepted the founder card (foundersAccepted), and
+  //  2. They are now on "My Map".
+  // Wait ~2s so the map can render first.
   useEffect(() => {
     if (!atlasOnboardingPending) return;
     if (activeTab !== "mine") return;
+    if (!foundersAccepted) return;
     const timer = setTimeout(() => setShowOnboarding(true), 2000);
     return () => clearTimeout(timer);
-  }, [atlasOnboardingPending, activeTab]);
+  }, [atlasOnboardingPending, activeTab, foundersAccepted]);
 
   useEffect(() => {
     if (highlightSlug) {
