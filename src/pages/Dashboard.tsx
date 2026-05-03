@@ -61,13 +61,15 @@ const Dashboard = () => {
 
       const { data: profile } = await supabase
         .from("profiles")
-        .select("entry_state, atlas_guidance_dismissed" as any)
+        .select("entry_state, atlas_guidance_dismissed, atlas_onboarding_completed" as any)
         .eq("id", user.id)
         .maybeSingle();
 
       const p = profile as any;
       // Once user dismisses or progresses past threshold, never redirect again
       if (p?.atlas_guidance_dismissed) return;
+      // If atlas onboarding is already done, do not auto-redirect.
+      if (p?.atlas_onboarding_completed) return;
 
       const entryState: string = p?.entry_state || "DISCOVER";
       const COUNCIL_THRESHOLDS: Record<string, number> = { DISCOVER: 4, GROW: 3, BUILD: 2 };
@@ -83,7 +85,8 @@ const Dashboard = () => {
 
       if (completed < threshold) {
         window.setTimeout(() => {
-          navigate("/atlas");
+          // Always send first-time users through the founder intro path.
+          navigate("/atlas?intro=founder");
         }, 5000);
       }
     } catch (error) {

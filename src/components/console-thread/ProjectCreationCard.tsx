@@ -107,7 +107,7 @@ const ProjectCreationCard = ({ projectName, projectDescription, onProjectCreated
 
         {alreadyCreatedId ? (
           <Button onClick={handleCreate} className="w-full gap-2" size="sm">
-            <Check className="w-4 h-4" /> Accept the project
+            <ArrowRight className="w-4 h-4" /> Open project structure
           </Button>
         ) : !created ? (
           <Button onClick={handleCreate} disabled={creating} className="w-full gap-2" size="sm">

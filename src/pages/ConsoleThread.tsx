@@ -14,6 +14,7 @@ import StarterQuestWinCard from "@/components/console-thread/StarterQuestWinCard
 import ProjectCreationCard from "@/components/console-thread/ProjectCreationCard";
 import { PaymentModal } from "@/components/PaymentModal";
 import confetti from "canvas-confetti";
+import { defaultMentorsFor } from "@/lib/journeyFlow";
 
 // Mentor config (reused from Council.tsx)
 const mentorConfig: Record<string, { name: string; color: string; icon: string }> = {
@@ -349,10 +350,23 @@ const ConsoleThread = ({ embedded = false, onProjectNameChange }: ConsoleThreadP
       setEntryState(resolvedEntryState);
 
       // Load mentors
-      const { data: mentors } = await supabase
+      let { data: mentors } = await supabase
         .from("user_mentors")
         .select("mentor_type")
         .eq("user_id", user.id);
+      // Self-heal: if no mentors, persist the phase-correct default set so the
+      // Council never loads with empty/wrong mentors (DISCOVER/GROW/BUILD).
+      if (!mentors || mentors.length === 0) {
+        const defaults = defaultMentorsFor(resolvedEntryState);
+        try {
+          await supabase.from("user_mentors").insert(
+            defaults.map(m => ({ user_id: user.id, mentor_type: m as any }))
+          );
+        } catch (e) {
+          console.error("Mentor self-heal insert failed (non-fatal):", e);
+        }
+        mentors = defaults.map(m => ({ mentor_type: m })) as any;
+      }
       if (mentors) setUserMentors(mentors.map(m => m.mentor_type));
 
       // Try to restore existing thread messages
@@ -442,6 +456,50 @@ const ConsoleThread = ({ embedded = false, onProjectNameChange }: ConsoleThreadP
               setTimeout(() => {
                 startReturnFlow(profileName);
               }, 500);
+            }
+            // Re-attach the project "Open project structure" card so the user
+            // never gets stranded after a reload between project creation and
+            // opening the project structure.
+            try {
+              const { data: profileFP } = await supabase
+                .from("profiles")
+                .select("first_project_id")
+                .eq("id", user.id)
+                .maybeSingle();
+              const fpId = (profileFP as any)?.first_project_id;
+              if (fpId) {
+                const { data: proj } = await supabase
+                  .from("integrator_projects")
+                  .select("id, project_title, project_description, project_brief, project_structure")
+                  .eq("id", fpId)
+                  .maybeSingle();
+                if (proj) {
+                  setProjectName((proj as any).project_title || "Project");
+                  onProjectNameChange?.((proj as any).project_title || "Project");
+                  const structure = Array.isArray((proj as any).project_structure)
+                    ? (proj as any).project_structure
+                    : [];
+                  const restoredBlocks = structure.map((b: any) => ({
+                    title: b.title,
+                    activities: (b.children || []).map((c: any) => c.title),
+                  }));
+                  setTimeout(() => {
+                    addCardMessage(
+                      <ProjectCreationCard
+                        projectName={(proj as any).project_title || "Project"}
+                        projectDescription={(proj as any).project_brief || (proj as any).project_description || ""}
+                        alreadyCreatedId={(proj as any).id}
+                        structureBlocks={restoredBlocks}
+                        onProjectCreated={() => navigate(`/project/${(proj as any).id}`)}
+                      />,
+                      undefined,
+                      "post_project"
+                    );
+                  }, 1200);
+                }
+              }
+            } catch (e) {
+              console.error("Failed to restore project card on reload:", e);
             }
           } else {
             setPhase(savedPhase);

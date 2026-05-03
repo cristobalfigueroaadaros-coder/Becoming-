@@ -169,7 +169,7 @@ const Council = () => {
       // Check intake status
       const { data: profile } = await supabase
         .from("profiles")
-        .select("console_intake_completed, onboarding_quest_completed")
+        .select("console_intake_completed, onboarding_quest_completed, first_project_id")
         .eq("id", user.id)
         .single();
 

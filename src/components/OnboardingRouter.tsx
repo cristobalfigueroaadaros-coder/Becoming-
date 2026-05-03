@@ -18,51 +18,27 @@ const OnboardingRouter = () => {
 
         const { data: profile } = await supabase
           .from("profiles")
-          .select("birth_name, gravity_orientation_completed, gravity_transition_completed, council_introduction_completed, first_project_created_at, onboarding_completion_seen, console_intake_completed")
+          .select("birth_name, gravity_orientation_completed, gravity_transition_completed, council_introduction_completed, first_project_created_at, onboarding_completion_seen, console_intake_completed, entry_state")
           .eq("id", user.id)
           .single();
 
-        // Separate query for quest completion (may not be in generated types yet)
-        const { data: questCheck } = await supabase
-          .from("profiles")
-          .select("onboarding_quest_completed" as any)
-          .eq("id", user.id)
-          .single();
-        const questCompleted = (questCheck as any)?.onboarding_quest_completed;
-
-        // Route to the correct step based on completion status
-        // Follow the exact onboarding flow order:
-        // 1. Gravity Orientation (Screen 2)
-        // 2. Onboarding Steps 1-4 (Identity, Direction, Mentors)
-        // 3. Gravity Transition
-        // 4. Council Introduction
-        // 5. First Project
-        // 6. Dashboard
-
+        // Required pre-Home onboarding steps:
+        // 1. Gravity Orientation
+        // 2. Profile / phase onboarding (birth_name + entry_state)
+        // 3. Dashboard (Home) — Atlas + Cris's Map walkthrough is launched FROM Home,
+        //    not from this router, to follow the required flow:
+        //    Home -> Cris Map -> founder card -> My Atlas -> walkthrough -> first quest.
         if (!profile?.gravity_orientation_completed) {
           navigate("/gravity/orientation");
         } else if (!profile?.birth_name) {
           navigate("/onboarding");
-        } else if (!questCompleted && !(profile as any)?.onboarding_quest_completed) {
-          // Route to Atlas onboarding quest flow
-          navigate("/atlas/quest");
+        } else if (!(profile as any)?.entry_state) {
+          // User has profile but never picked their phase — finish step 2
+          navigate("/onboarding/step2");
         } else {
-          // Check if thread unlock conditions are met — route to Atlas to see invitation
-          const { data: dots } = await supabase
-            .from("atlas_dots")
-            .select("id, cluster_id")
-            .eq("user_id", user.id);
-
-          const dotCount = dots?.length || 0;
-          const uniqueClusters = new Set((dots || []).map((d: any) => d.cluster_id).filter(Boolean));
-          const threadUnlockReady = dotCount >= 2 && uniqueClusters.size >= 2;
-          const intakeCompleted = !!(profile as any)?.console_intake_completed;
-
-          if (threadUnlockReady && !intakeCompleted) {
-            navigate("/atlas");
-          } else {
-            navigate("/dashboard");
-          }
+          // Always land on Home — Home decides whether to send the user to
+          // Cris's Map (founder intro) based on backend flags.
+          navigate("/dashboard");
         }
       } catch (error) {
         console.error("Error checking onboarding status:", error);
