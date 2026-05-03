@@ -457,6 +457,50 @@ const ConsoleThread = ({ embedded = false, onProjectNameChange }: ConsoleThreadP
                 startReturnFlow(profileName);
               }, 500);
             }
+            // Re-attach the project "Open project structure" card so the user
+            // never gets stranded after a reload between project creation and
+            // opening the project structure.
+            try {
+              const { data: profileFP } = await supabase
+                .from("profiles")
+                .select("first_project_id")
+                .eq("id", user.id)
+                .maybeSingle();
+              const fpId = (profileFP as any)?.first_project_id;
+              if (fpId) {
+                const { data: proj } = await supabase
+                  .from("integrator_projects")
+                  .select("id, project_title, project_description, project_brief, project_structure")
+                  .eq("id", fpId)
+                  .maybeSingle();
+                if (proj) {
+                  setProjectName((proj as any).project_title || "Project");
+                  onProjectNameChange?.((proj as any).project_title || "Project");
+                  const structure = Array.isArray((proj as any).project_structure)
+                    ? (proj as any).project_structure
+                    : [];
+                  const restoredBlocks = structure.map((b: any) => ({
+                    title: b.title,
+                    activities: (b.children || []).map((c: any) => c.title),
+                  }));
+                  setTimeout(() => {
+                    addCardMessage(
+                      <ProjectCreationCard
+                        projectName={(proj as any).project_title || "Project"}
+                        projectDescription={(proj as any).project_brief || (proj as any).project_description || ""}
+                        alreadyCreatedId={(proj as any).id}
+                        structureBlocks={restoredBlocks}
+                        onProjectCreated={() => navigate(`/project/${(proj as any).id}`)}
+                      />,
+                      undefined,
+                      "post_project"
+                    );
+                  }, 1200);
+                }
+              }
+            } catch (e) {
+              console.error("Failed to restore project card on reload:", e);
+            }
           } else {
             setPhase(savedPhase);
             // Restore answers by phase prefix to avoid mixing starter/intake
