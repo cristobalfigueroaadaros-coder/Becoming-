@@ -14,6 +14,7 @@ import StarterQuestWinCard from "@/components/console-thread/StarterQuestWinCard
 import ProjectCreationCard from "@/components/console-thread/ProjectCreationCard";
 import { PaymentModal } from "@/components/PaymentModal";
 import confetti from "canvas-confetti";
+import { defaultMentorsFor } from "@/lib/journeyFlow";
 
 // Mentor config (reused from Council.tsx)
 const mentorConfig: Record<string, { name: string; color: string; icon: string }> = {
@@ -349,10 +350,23 @@ const ConsoleThread = ({ embedded = false, onProjectNameChange }: ConsoleThreadP
       setEntryState(resolvedEntryState);
 
       // Load mentors
-      const { data: mentors } = await supabase
+      let { data: mentors } = await supabase
         .from("user_mentors")
         .select("mentor_type")
         .eq("user_id", user.id);
+      // Self-heal: if no mentors, persist the phase-correct default set so the
+      // Council never loads with empty/wrong mentors (DISCOVER/GROW/BUILD).
+      if (!mentors || mentors.length === 0) {
+        const defaults = defaultMentorsFor(resolvedEntryState);
+        try {
+          await supabase.from("user_mentors").insert(
+            defaults.map(m => ({ user_id: user.id, mentor_type: m as any }))
+          );
+        } catch (e) {
+          console.error("Mentor self-heal insert failed (non-fatal):", e);
+        }
+        mentors = defaults.map(m => ({ mentor_type: m })) as any;
+      }
       if (mentors) setUserMentors(mentors.map(m => m.mentor_type));
 
       // Try to restore existing thread messages
