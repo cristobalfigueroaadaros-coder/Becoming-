@@ -8,6 +8,7 @@ import { cn } from "@/lib/utils";
 
 interface FounderOriginVideoModalProps {
   onNext: () => void;
+  variant?: "modal" | "embedded";
 }
 
 type OriginMoment = {
@@ -233,8 +234,9 @@ const BECOMING_CONNECTIONS: [string, string][] = FOUNDERS_CLUSTERS.map((cluster)
   CENTER_PROJECT.id,
 ]);
 
-export const FounderOriginVideoModal = ({ onNext }: FounderOriginVideoModalProps) => {
+export const FounderOriginVideoModal = ({ onNext, variant = "modal" }: FounderOriginVideoModalProps) => {
   const shouldReduceMotion = useReducedMotion();
+  const isEmbedded = variant === "embedded";
   const [step, setStep] = useState(0);
   const activeMoment = MOMENTS[Math.min(step, MOMENTS.length - 1)];
   const complete = step >= MOMENTS.length - 1;
@@ -289,13 +291,20 @@ export const FounderOriginVideoModal = ({ onNext }: FounderOriginVideoModalProps
       initial={{ opacity: 0 }}
       animate={{ opacity: 1 }}
       exit={{ opacity: 0 }}
-      className="fixed inset-0 z-50 flex items-center justify-center bg-background/90 p-3 backdrop-blur-md sm:p-5"
+      className={cn(
+        isEmbedded
+          ? "relative w-full px-3 pb-28 pt-4 sm:px-5 sm:pb-32"
+          : "fixed inset-0 z-50 flex items-center justify-center bg-background/90 p-3 backdrop-blur-md sm:p-5",
+      )}
     >
       <motion.div
         initial={{ opacity: 0, scale: 0.97, y: 12 }}
         animate={{ opacity: 1, scale: 1, y: 0 }}
         transition={{ type: "spring", stiffness: 220, damping: 26 }}
-        className="relative h-[92vh] w-full max-w-6xl overflow-hidden rounded-2xl border border-border/60 bg-card/95 shadow-[0_0_70px_hsl(265_90%_62%/0.28)]"
+        className={cn(
+          "relative w-full max-w-6xl overflow-hidden rounded-2xl border border-border/60 bg-card/95 shadow-[0_0_70px_hsl(265_90%_62%/0.28)]",
+          isEmbedded ? "mx-auto h-[min(760px,calc(100vh-7rem))] min-h-[640px]" : "h-[92vh]",
+        )}
       >
         <div className="relative h-full bg-cosmic">
           <div className="absolute inset-0 pointer-events-none">
@@ -310,7 +319,7 @@ export const FounderOriginVideoModal = ({ onNext }: FounderOriginVideoModalProps
             </span>
           </div>
 
-          <div className="absolute inset-x-0 bottom-40 top-14 sm:bottom-36 sm:top-16">
+          <div className="absolute inset-x-0 bottom-[13.5rem] top-14 sm:bottom-36 sm:top-16">
             <svg className="absolute inset-0 h-full w-full pointer-events-none" style={{ zIndex: 0 }}>
               <defs>
                 <filter id="origin-map-gold-glow">
@@ -449,7 +458,7 @@ export const FounderOriginVideoModal = ({ onNext }: FounderOriginVideoModalProps
             )}
           </div>
 
-          <div className="absolute inset-x-4 bottom-4 z-30 sm:inset-x-6">
+          <div className="absolute inset-x-4 bottom-[calc(1rem+env(safe-area-inset-bottom))] z-30 sm:inset-x-6">
             <motion.div
               key={`${activeMoment.tag}-${activeMoment.title}`}
               className="mx-auto max-w-3xl rounded-xl border border-border/60 bg-card/75 p-4 shadow-[0_0_35px_hsl(265_90%_62%/0.18)] backdrop-blur-md"

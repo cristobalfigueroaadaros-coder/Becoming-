@@ -12,7 +12,9 @@ Life events create dots. Dots open deeper meaning. Dots connect across clusters.
 
 - Appears on the first visit to the `Cris's Map` tab on `/atlas`.
 - Uses the existing `founders_popup_seen` localStorage flag so it appears once.
-- After completion or skip, the user sees the full founder Atlas map, timeline, and CTA.
+- After completion or skip, the user sees the full founder Atlas map and timeline.
+- The former `Your map is waiting` CTA card is replaced by the same origin video embedded in the page, so the final call to action lives inside the video experience.
+- The video CTA sends the user to `My Map`, where the Atlas walkthrough and first quest can continue.
 - The full Cris's Map remains accessible from the Atlas tab toggle.
 
 ## Duration

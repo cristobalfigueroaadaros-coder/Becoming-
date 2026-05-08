@@ -1,7 +1,6 @@
 import { useEffect, useMemo, useState } from "react";
 import { AnimatePresence, motion } from "framer-motion";
-import { ArrowRight, Compass, Sparkles } from "lucide-react";
-import { Button } from "@/components/ui/button";
+import { Sparkles } from "lucide-react";
 import {
   FOUNDERS_CLUSTERS,
   GOLD_CONNECTIONS,
@@ -175,25 +174,9 @@ export const FoundersMap = ({ onCtaClick }: FoundersMapProps) => {
       {/* Timeline */}
       <FoundersTimeline />
 
-      {/* CTA */}
-      <section className="px-5 pb-16 pt-2">
-        <div className="max-w-2xl mx-auto rounded-2xl border border-primary/30 bg-card/70 backdrop-blur-sm p-6 sm:p-8 text-center shadow-[0_0_40px_hsl(265_90%_62%/0.18)]">
-          <Compass className="w-6 h-6 text-primary mx-auto mb-3 drop-shadow-[0_0_10px_hsl(265_90%_62%/0.5)]" />
-          <h2 className="text-xl sm:text-2xl font-bold text-foreground">
-            Your map is waiting.
-          </h2>
-          <p className="text-sm text-muted-foreground mt-2">
-            The journey starts the same way mine did — with one dot.
-          </p>
-          <Button
-            onClick={onCtaClick}
-            size="lg"
-            className="mt-5 gap-2 shadow-[0_0_24px_hsl(265_90%_62%/0.45)]"
-          >
-            Start building my map
-            <ArrowRight className="w-4 h-4" />
-          </Button>
-        </div>
+      {/* Origin video CTA */}
+      <section className="pt-2">
+        <FounderOriginVideoModal onNext={onCtaClick} variant="embedded" />
       </section>
 
       {/* Cluster detail sheet */}
