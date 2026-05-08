@@ -66,6 +66,7 @@ const CreatorProfile = lazy(() => import("./pages/CreatorProfile"));
 const LifeAssessment = lazy(() => import("./pages/LifeAssessment"));
 const AtlasPage = lazy(() => import("./pages/AtlasPage"));
 const AtlasQuestPage = lazy(() => import("./pages/AtlasQuestPage"));
+const BcomingSystemVideoPreview = lazy(() => import("./pages/BcomingSystemVideoPreview"));
 const PaymentSuccess = lazy(() => import("./pages/PaymentSuccess"));
 const ProjectEngine = lazy(() => import("./pages/ProjectEngine"));
 const PrivacyPolicy = lazy(() => import("./pages/PrivacyPolicy"));
@@ -286,6 +287,10 @@ const App = () => {
             <Route
               path="/atlas/quest"
               element={session ? <AtlasQuestPage /> : <Navigate to="/" />}
+            />
+            <Route
+              path="/bcoming-system-video"
+              element={session ? <BcomingSystemVideoPreview /> : <Navigate to="/" />}
             />
             <Route
               path="/creators"
