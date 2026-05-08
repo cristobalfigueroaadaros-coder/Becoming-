@@ -7,7 +7,7 @@ import {
   GOLD_CONNECTIONS,
   type FounderCluster,
 } from "@/data/foundersMap";
-import { FoundersIntroModal } from "./FoundersIntroModal";
+import { FounderOriginVideoModal } from "./FounderOriginVideoModal";
 import { FoundersClusterNode } from "./FoundersClusterNode";
 import { FoundersClusterSheet } from "./FoundersClusterSheet";
 import { FoundersTimeline } from "./FoundersTimeline";
@@ -79,7 +79,7 @@ export const FoundersMap = ({ onCtaClick }: FoundersMapProps) => {
     <div className="relative w-full">
       {/* Popup */}
       <AnimatePresence>
-        {showPopup && <FoundersIntroModal onNext={handleDismissPopup} />}
+        {showPopup && <FounderOriginVideoModal onNext={handleDismissPopup} />}
       </AnimatePresence>
 
       {/* Header strip */}
