@@ -290,7 +290,7 @@ const App = () => {
             />
             <Route
               path="/bcoming-system-video"
-              element={session ? <BcomingSystemVideoPreview /> : <Navigate to="/" />}
+              element={<BcomingSystemVideoPreview />}
             />
             <Route
               path="/creators"
