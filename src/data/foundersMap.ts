@@ -178,7 +178,7 @@ export const FOUNDERS_CLUSTERS: FounderCluster[] = [
   {
     id: "vision",
     name: "Visions for a Better World",
-    domain: "Environment",
+    domain: "Product",
     position: { x: 88, y: 44 },
     dots: [
       { id: "vi-1", title: "144,000 conscious creators", insight: "Giving their gifts back to the world." },
@@ -204,7 +204,7 @@ export const FOUNDERS_CLUSTERS: FounderCluster[] = [
   {
     id: "frustrations",
     name: "Personal Frustrations",
-    domain: "Person",
+    domain: "Environment",
     position: { x: 42, y: 62 },
     dots: [
       { id: "fr-1", title: "People with gifts who never use them", insight: "The biggest one." },
@@ -217,7 +217,7 @@ export const FOUNDERS_CLUSTERS: FounderCluster[] = [
   {
     id: "inspirations",
     name: "People I Admire",
-    domain: "Person",
+    domain: "Environment",
     position: { x: 80, y: 62 },
     dots: [
       {
@@ -237,7 +237,7 @@ export const FOUNDERS_CLUSTERS: FounderCluster[] = [
   {
     id: "external-reflections",
     name: "External Reflections",
-    domain: "Person",
+    domain: "Environment",
     position: { x: 35, y: 80 },
     dots: [
       { id: "er-1", title: "'You see things in people they don't see in themselves'", insight: "What others say first." },
@@ -250,7 +250,7 @@ export const FOUNDERS_CLUSTERS: FounderCluster[] = [
   {
     id: "who-i-serve",
     name: "Who I Serve",
-    domain: "Environment",
+    domain: "Product",
     position: { x: 28, y: 92 },
     dots: [
       { id: "ws-1", title: "People who feel something they cannot name", insight: "The unnamed calling." },
