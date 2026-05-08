@@ -4,6 +4,7 @@ import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
 import { Input } from "@/components/ui/input";
 import { Slider } from "@/components/ui/slider";
+import { VoiceRecorder } from "@/components/VoiceRecorder";
 import { cn } from "@/lib/utils";
 import type { QuestInteraction } from "@/data/atlasQuests";
 
@@ -78,6 +79,12 @@ export const AtlasQuestInteraction = ({ interaction, onSubmit }: Props) => {
       [next[idx - 1], next[idx]] = [next[idx], next[idx - 1]];
       return next;
     });
+  };
+
+  const appendTranscription = (current: string, transcript: string) => {
+    const cleaned = transcript.trim();
+    if (!cleaned) return current;
+    return current.trim() ? `${current.trim()}\n\n${cleaned}` : cleaned;
   };
 
   return (
@@ -184,6 +191,9 @@ export const AtlasQuestInteraction = ({ interaction, onSubmit }: Props) => {
               placeholder="Who I was then…"
               className="bg-card"
             />
+            <VoiceRecorder
+              onTranscription={(transcript) => setThenText((current) => appendTranscription(current, transcript))}
+            />
           </div>
           <div className="space-y-1.5">
             <label className="text-sm font-medium text-muted-foreground">{nowLabel || "Now"}</label>
@@ -192,6 +202,9 @@ export const AtlasQuestInteraction = ({ interaction, onSubmit }: Props) => {
               onChange={(e) => setNowText(e.target.value)}
               placeholder="Who I am now…"
               className="bg-card"
+            />
+            <VoiceRecorder
+              onTranscription={(transcript) => setNowText((current) => appendTranscription(current, transcript))}
             />
           </div>
         </div>
@@ -268,6 +281,9 @@ export const AtlasQuestInteraction = ({ interaction, onSubmit }: Props) => {
             placeholder="Type your answer…"
             className="bg-card text-base"
           />
+          <VoiceRecorder
+            onTranscription={(transcript) => setText((current) => appendTranscription(current, transcript))}
+          />
         </div>
       )}
 
@@ -283,17 +299,25 @@ export const AtlasQuestInteraction = ({ interaction, onSubmit }: Props) => {
             placeholder="What comes to mind…"
             className="min-h-[100px] bg-card"
           />
+          <VoiceRecorder
+            onTranscription={(transcript) => setText((current) => appendTranscription(current, transcript))}
+          />
         </div>
       )}
 
       {/* Reflection */}
       {type === "reflection" && (
-        <Textarea
-          value={text}
-          onChange={(e) => setText(e.target.value)}
-          placeholder="Share your thought…"
-          className="min-h-[100px] bg-card"
-        />
+        <div className="space-y-3">
+          <Textarea
+            value={text}
+            onChange={(e) => setText(e.target.value)}
+            placeholder="Share your thought…"
+            className="min-h-[100px] bg-card"
+          />
+          <VoiceRecorder
+            onTranscription={(transcript) => setText((current) => appendTranscription(current, transcript))}
+          />
+        </div>
       )}
 
       <Button onClick={handleSubmit} disabled={!canSubmit} className="w-full mt-2">
