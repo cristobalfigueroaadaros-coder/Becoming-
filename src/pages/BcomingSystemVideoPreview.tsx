@@ -6,7 +6,7 @@ const BcomingSystemVideoPreview = () => {
 
   return (
     <main className="min-h-screen bg-cosmic pb-24 pt-3">
-      <BcomingSystemVideo onNext={() => navigate("/atlas/quest")} />
+      <BcomingSystemVideo onNext={() => navigate("/atlas/quest")} showActions={false} />
     </main>
   );
 };

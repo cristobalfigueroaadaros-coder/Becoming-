@@ -6,30 +6,36 @@ Create a short animated explainer that shows how Bcoming helps a user move from 
 The first founder video proves that life dots can connect. This second video explains the system that helps the user connect their own dots: Atlas, mentors, projects, and creators.
 
 ## Story
-1. A simple cartoon character travels inside their own mind, surrounded by comic bubbles, doubts, ideas, sparks, memories, and unfinished thoughts.
-2. The character discovers Bcoming on a phone, and the phone becomes a calm doorway.
-3. Inside Atlas, the mental chaos becomes dots and clusters that start connecting.
-4. Those connected dots flow into mentor chats, where mentors ask questions and narrow the direction.
-5. The answers, dots, and mentor insights form a project mission note.
-6. The character feels lighter and more inspired because they have something meaningful to build.
-7. The project connects outward to creators and people around the world building related things.
+1. Chaos: the character walks in place while life, dreams, doubts, fears, and unfinished ideas move around them.
+2. Discovery: the character sees Bcoming on the phone and the app becomes a glowing doorway.
+3. Atlas: chaos becomes dots, clusters, and connected patterns.
+4. Mentor Council: mentors read the Atlas pattern and turn insight into direction.
+5. Creation: the project moves from idea to building, testing, launching, and impact.
+6. Connect the dots: Atlas, mentors, and project structure help the user create something meaningful.
+7. Together: the final image lands on the "You were never meant to build alone" idea.
 
 ## Design Direction
-- Comic-like, warm, and symbolic, with a visible but simple character.
-- Use speech bubbles, messy mind symbols, a phone portal, Atlas clusters, mentor cards, a mission note, and global creator nodes.
+- Use the supplied concept frames as the visual foundation, without redesigning the scenes.
+- Keep embedded text in the concept images for this prototype because it helps comprehension and makes the sequence easier to evaluate.
+- Add cinematic motion through slow zooms, pan, light sweeps, particles, dot connections, and glow pulses.
 - Match the Bcoming cosmic visual language: dark background, glass surfaces, violet, cyan, gold, emerald, soft glow.
 - Keep the animation lightweight with React and Framer Motion for the prototype.
 
 ## Duration
-- Target: 20 to 24 seconds.
+- Target: 20 to 30 seconds.
 - Avoid long copy. Use short scene labels and motion to explain the system.
 
 ## Placement
 - First prototype gets a standalone preview route.
+- Add the video to the public website after a short problem/framing section while testing the message.
+- Place the "We help you to WIN" feature explanation directly under the video so visitors see the emotional story first, then the system promise.
 - Later placement recommendation: after `Start my map`, before the first Atlas quest, so the user understands why Atlas, Chats, Projects, and Creators are connected.
 
 ## Acceptance Criteria
 - Shows the full system loop from chaos to Atlas to mentors to project to creators.
+- Uses the seven supplied scene images in the correct emotional sequence.
+- Feels like one transformation: lost to discovery to clarity to guidance to creation to collective impact.
 - Works responsively on mobile and desktop.
+- Includes a centered replay button when the sequence ends so users can watch it again.
 - Does not overlap bottom navigation when embedded in the app.
 - Production build passes.

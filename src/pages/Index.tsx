@@ -9,6 +9,7 @@ import { motion } from "framer-motion";
 import { ArrowRight, Compass, Heart, MessageCircle, Rocket, Sparkles, Users, Zap, Crown } from "lucide-react";
 import bcomingLogo from "@/assets/bcoming-icon.svg";
 import { FloatingDots } from "@/components/ui/floating-dots";
+import { BcomingSystemVideo } from "@/components/onboarding/BcomingSystemVideo";
 
 const fadeUp = {
   hidden: { opacity: 0, y: 30 },
@@ -273,7 +274,7 @@ const Index = () => {
         </div>
       </section>
 
-      {/* Block 2 — Pain and Promise */}
+      {/* Block 2 - Pain and Promise */}
       <section className="py-24 md:py-32 relative overflow-hidden">
         <div className="absolute inset-0">
           <div className="absolute top-0 left-0 right-0 h-px bg-gradient-to-r from-transparent via-border to-transparent" />
@@ -311,106 +312,45 @@ const Index = () => {
         </div>
       </section>
 
-      {/* Block 3 — Three Phases */}
-      <section className="py-24 md:py-32 relative overflow-hidden">
+      {/* Block 3 - System Video */}
+      <section className="py-20 md:py-28 relative overflow-hidden">
         <div className="absolute inset-0">
           <div className="absolute top-0 left-0 right-0 h-px bg-gradient-to-r from-transparent via-border to-transparent" />
-          <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[600px] h-[600px] rounded-full bg-primary/3 blur-[150px]" />
-          <FloatingDots count={25} color="99,102,241" minSize={1} maxSize={2.5} speed={0.5} />
+          <div className="absolute top-1/3 left-1/2 -translate-x-1/2 h-[520px] w-[520px] rounded-full bg-primary/5 blur-[150px]" />
+          <FloatingDots count={28} color="167,139,250" minSize={1} maxSize={2.5} speed={0.45} />
         </div>
-        <div className="max-w-5xl mx-auto px-6 relative z-10">
-          <div className="text-center mb-14">
-            <motion.h2
-              initial={{ opacity: 0, y: 20 }}
-              whileInView={{ opacity: 1, y: 0 }}
-              viewport={{ once: true }}
-              transition={{ duration: 0.6 }}
-              className="font-gloock text-3xl md:text-4xl font-bold text-foreground mb-6"
-            >
-              Bcoming adapts{" "}
-              <span className="gradient-text">to your journey.</span>
-            </motion.h2>
-            <motion.p
-              initial={{ opacity: 0 }}
-              whileInView={{ opacity: 1 }}
-              viewport={{ once: true }}
-              transition={{ delay: 0.15, duration: 0.6 }}
-              className="text-lg md:text-xl text-muted-foreground leading-relaxed max-w-2xl mx-auto"
-            >
-              We all have a different path. And we are all at a different place in it. Bcoming adapts to the phase you are in right now and helps you move forward.
-            </motion.p>
-          </div>
-          <div className="grid md:grid-cols-3 gap-6">
-            {phases.map((phase, i) => (
-              <motion.div
-                key={phase.title}
-                initial={{ opacity: 0, y: 30, scale: 0.95 }}
-                whileInView={{ opacity: 1, y: 0, scale: 1 }}
-                viewport={{ once: true }}
-                transition={{ delay: i * 0.15, duration: 0.5 }}
-                whileHover={{ y: -4, borderColor: "rgba(167,139,250,0.4)" }}
-                className="p-8 rounded-2xl border border-border/50 bg-card/50 transition-colors duration-300"
-              >
-                <h3 className="font-gloock text-xl font-bold text-foreground mb-4">{phase.title}</h3>
-                <p className="text-muted-foreground leading-relaxed">{phase.body}</p>
-              </motion.div>
-            ))}
-          </div>
-        </div>
-      </section>
-
-      {/* Block 4 — Conscious Creators */}
-      <section ref={creatorsSectionRef} className="relative py-24 md:py-32 overflow-hidden bg-black">
-        <div className="absolute inset-0">
-          {creatorsVideoVisible && (
-            <video
-              ref={creatorsVideoRef}
-              autoPlay
-              muted
-              playsInline
-              loop
-              preload="metadata"
-              className="absolute inset-0 w-full h-full object-cover opacity-50"
-              src="/creators-bg.mp4"
-            />
-          )}
-          <div className="absolute inset-0 bg-background/60" />
-        </div>
-        <div className="absolute inset-0">
-          <div className="absolute top-0 left-0 right-0 h-px bg-gradient-to-r from-transparent via-border to-transparent" />
-          <FloatingDots count={20} color="167,139,250" minSize={1} maxSize={2} speed={0.35} />
-        </div>
-        <div className="relative z-10 max-w-3xl mx-auto px-6 text-center">
-          <motion.h2
-            initial={{ opacity: 0, y: 20 }}
-            whileInView={{ opacity: 1, y: 0 }}
-            viewport={{ once: true }}
-            transition={{ duration: 0.6 }}
-            className="font-gloock text-3xl md:text-4xl font-bold text-foreground mb-8"
-          >
-            We're building{" "}
-            <span className="gradient-text">something together.</span>
-          </motion.h2>
+        <div className="relative z-10 mx-auto max-w-6xl px-4 sm:px-6">
           <motion.div
             initial={{ opacity: 0, y: 20 }}
             whileInView={{ opacity: 1, y: 0 }}
             viewport={{ once: true }}
-            transition={{ delay: 0.1, duration: 0.6 }}
+            transition={{ duration: 0.6 }}
+            className="mx-auto mb-10 max-w-3xl text-center"
           >
-            <p className="text-lg md:text-xl text-muted-foreground leading-relaxed mb-6">
-              Bcoming is building a network of people who are creating with intention. Not just building for growth. Building for impact.
+            <span className="mb-4 inline-flex items-center gap-2 rounded-full border border-primary/20 bg-primary/5 px-4 py-1.5 text-sm text-primary">
+              <Sparkles className="h-3.5 w-3.5" />
+              How Bcoming works
+            </span>
+            <h2 className="font-gloock text-3xl font-bold text-foreground md:text-4xl">
+              From inner chaos to <span className="gradient-text">meaningful creation.</span>
+            </h2>
+            <p className="mx-auto mt-5 max-w-2xl text-base leading-relaxed text-muted-foreground md:text-lg">
+              See how your dots become a map, your map becomes direction, and direction becomes something real you can build with others.
             </p>
-            <p className="text-lg md:text-xl text-muted-foreground leading-relaxed mb-6">
-              People who believe the work they put into the world matters. Who want to do it alongside others who feel the same way.
-            </p>
-            <p className="font-gloock text-xl md:text-2xl font-semibold gradient-text">
-              If that's you, you're in the right place. We can change the world together.
-            </p>
+          </motion.div>
+
+          <motion.div
+            initial={{ opacity: 0, y: 28 }}
+            whileInView={{ opacity: 1, y: 0 }}
+            viewport={{ once: true, amount: 0.25 }}
+            transition={{ delay: 0.1, duration: 0.7 }}
+          >
+            <BcomingSystemVideo showActions={false} className="px-0 py-0" />
           </motion.div>
         </div>
       </section>
 
-      {/* Block 5 — What's Inside (tabs) */}
+      {/* Block 4 - What's Inside (tabs) */}
       <section id="features" className="py-24 md:py-32 relative overflow-hidden">
         <div className="absolute inset-0">
           <div className="absolute top-0 left-0 right-0 h-px bg-gradient-to-r from-transparent via-border to-transparent" />
@@ -487,7 +427,106 @@ const Index = () => {
         </div>
       </section>
 
-      {/* Block 6 — Belief (unchanged) */}
+      {/* Block 5 - Three Phases */}
+      <section className="py-24 md:py-32 relative overflow-hidden">
+        <div className="absolute inset-0">
+          <div className="absolute top-0 left-0 right-0 h-px bg-gradient-to-r from-transparent via-border to-transparent" />
+          <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[600px] h-[600px] rounded-full bg-primary/3 blur-[150px]" />
+          <FloatingDots count={25} color="99,102,241" minSize={1} maxSize={2.5} speed={0.5} />
+        </div>
+        <div className="max-w-5xl mx-auto px-6 relative z-10">
+          <div className="text-center mb-14">
+            <motion.h2
+              initial={{ opacity: 0, y: 20 }}
+              whileInView={{ opacity: 1, y: 0 }}
+              viewport={{ once: true }}
+              transition={{ duration: 0.6 }}
+              className="font-gloock text-3xl md:text-4xl font-bold text-foreground mb-6"
+            >
+              Bcoming adapts{" "}
+              <span className="gradient-text">to your journey.</span>
+            </motion.h2>
+            <motion.p
+              initial={{ opacity: 0 }}
+              whileInView={{ opacity: 1 }}
+              viewport={{ once: true }}
+              transition={{ delay: 0.15, duration: 0.6 }}
+              className="text-lg md:text-xl text-muted-foreground leading-relaxed max-w-2xl mx-auto"
+            >
+              We all have a different path. And we are all at a different place in it. Bcoming adapts to the phase you are in right now and helps you move forward.
+            </motion.p>
+          </div>
+          <div className="grid md:grid-cols-3 gap-6">
+            {phases.map((phase, i) => (
+              <motion.div
+                key={phase.title}
+                initial={{ opacity: 0, y: 30, scale: 0.95 }}
+                whileInView={{ opacity: 1, y: 0, scale: 1 }}
+                viewport={{ once: true }}
+                transition={{ delay: i * 0.15, duration: 0.5 }}
+                whileHover={{ y: -4, borderColor: "rgba(167,139,250,0.4)" }}
+                className="p-8 rounded-2xl border border-border/50 bg-card/50 transition-colors duration-300"
+              >
+                <h3 className="font-gloock text-xl font-bold text-foreground mb-4">{phase.title}</h3>
+                <p className="text-muted-foreground leading-relaxed">{phase.body}</p>
+              </motion.div>
+            ))}
+          </div>
+        </div>
+      </section>
+
+      {/* Block 6 - Conscious Creators */}
+      <section ref={creatorsSectionRef} className="relative py-24 md:py-32 overflow-hidden bg-black">
+        <div className="absolute inset-0">
+          {creatorsVideoVisible && (
+            <video
+              ref={creatorsVideoRef}
+              autoPlay
+              muted
+              playsInline
+              loop
+              preload="metadata"
+              className="absolute inset-0 w-full h-full object-cover opacity-50"
+              src="/creators-bg.mp4"
+            />
+          )}
+          <div className="absolute inset-0 bg-background/60" />
+        </div>
+        <div className="absolute inset-0">
+          <div className="absolute top-0 left-0 right-0 h-px bg-gradient-to-r from-transparent via-border to-transparent" />
+          <FloatingDots count={20} color="167,139,250" minSize={1} maxSize={2} speed={0.35} />
+        </div>
+        <div className="relative z-10 max-w-3xl mx-auto px-6 text-center">
+          <motion.h2
+            initial={{ opacity: 0, y: 20 }}
+            whileInView={{ opacity: 1, y: 0 }}
+            viewport={{ once: true }}
+            transition={{ duration: 0.6 }}
+            className="font-gloock text-3xl md:text-4xl font-bold text-foreground mb-8"
+          >
+            We're building{" "}
+            <span className="gradient-text">something together.</span>
+          </motion.h2>
+          <motion.div
+            initial={{ opacity: 0, y: 20 }}
+            whileInView={{ opacity: 1, y: 0 }}
+            viewport={{ once: true }}
+            transition={{ delay: 0.1, duration: 0.6 }}
+          >
+            <p className="text-lg md:text-xl text-muted-foreground leading-relaxed mb-6">
+              Bcoming is building a network of people who are creating with intention. Not just building for growth. Building for impact.
+            </p>
+            <p className="text-lg md:text-xl text-muted-foreground leading-relaxed mb-6">
+              People who believe the work they put into the world matters. Who want to do it alongside others who feel the same way.
+            </p>
+            <p className="font-gloock text-xl md:text-2xl font-semibold gradient-text">
+              If that's you, you're in the right place. We can change the world together.
+            </p>
+          </motion.div>
+        </div>
+      </section>
+
+      {/* Block 7 - Belief (unchanged) */}
       <section className="py-24 md:py-32 relative overflow-hidden">
         <div className="absolute inset-0">
           <div className="absolute top-0 left-0 right-0 h-px bg-gradient-to-r from-transparent via-border to-transparent" />

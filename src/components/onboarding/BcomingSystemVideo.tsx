@@ -1,7 +1,6 @@
-import { useEffect, useState } from "react";
-import type { ReactNode } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { motion, useReducedMotion } from "framer-motion";
-import { ArrowRight, ClipboardList, Compass, Globe2, MessageCircle, Sparkles } from "lucide-react";
+import { ArrowRight, Pause, Play, RotateCcw, Sparkles } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
 
@@ -11,440 +10,300 @@ interface BcomingSystemVideoProps {
   className?: string;
 }
 
-const SCENES = [
-  {
-    key: "mind",
-    label: "Inside the mind",
-    text: "So much is happening inside: ideas, questions, doubts, gifts, and things the user cannot organize yet.",
-  },
-  {
-    key: "phone",
-    label: "They discover Bcoming",
-    text: "The app becomes a calm doorway. The messy thoughts start to move toward something they can interact with.",
-  },
-  {
-    key: "atlas",
-    label: "Atlas turns chaos into dots",
-    text: "What felt random becomes clusters: life events, values, skills, passions, patterns, and signals.",
-  },
-  {
-    key: "mentors",
-    label: "Mentors help narrow it down",
-    text: "The connected dots feed the chats, and the mentors ask better questions until direction becomes clearer.",
-  },
-  {
-    key: "project",
-    label: "A project is born",
-    text: "The dots, answers, and mentor insights connect into a mission the user can actually build.",
-  },
-  {
-    key: "creators",
-    label: "The work meets the world",
-    text: "With structure and momentum, the user connects with creators building related things around the world.",
-  },
-] as const;
+interface SceneConfig {
+  id: string;
+  title: string;
+  line: string;
+  image: string;
+  duration: number;
+  focus: string;
+  zoom: [number, number];
+  pan: [string, string];
+  glow: string;
+  particles: "chaos" | "portal" | "atlas" | "mentors" | "blueprint" | "impact";
+}
 
-const MIND_SYMBOLS = [
-  { text: "?", x: 14, y: 20, color: "text-fuchsia-300", delay: 0 },
-  { text: "idea", x: 32, y: 16, color: "text-amber-200", delay: 0.08 },
-  { text: "*", x: 52, y: 20, color: "text-cyan-300", delay: 0.16 },
-  { text: "what if", x: 70, y: 18, color: "text-primary", delay: 0.24 },
-  { text: "!", x: 22, y: 46, color: "text-orange-300", delay: 0.12 },
-  { text: "talent", x: 74, y: 48, color: "text-emerald-300", delay: 0.28 },
-  { text: "fear", x: 44, y: 58, color: "text-rose-300", delay: 0.2 },
-  { text: "dream", x: 60, y: 70, color: "text-violet-200", delay: 0.36 },
-  { text: "memory", x: 16, y: 70, color: "text-sky-200", delay: 0.32 },
+const SCENES: SceneConfig[] = [
+  {
+    id: "chaos",
+    title: "Lost in the noise",
+    line: "Most people do not lack potential. They lack clarity.",
+    image: "/bcoming-system-video/scene1.png",
+    duration: 3600,
+    focus: "Lost",
+    zoom: [1.08, 1.16],
+    pan: ["50% 48%", "51% 46%"],
+    glow: "radial-gradient(circle at 48% 34%, hsl(320 90% 62% / 0.22), hsl(265 90% 62% / 0.12) 34%, transparent 62%)",
+    particles: "chaos",
+  },
+  {
+    id: "discovery",
+    title: "Bcoming appears",
+    line: "A doorway opens: your map, your purpose, your becoming.",
+    image: "/bcoming-system-video/scene2.png",
+    duration: 3200,
+    focus: "Discovery",
+    zoom: [1.06, 1.13],
+    pan: ["52% 50%", "56% 47%"],
+    glow: "radial-gradient(circle at 59% 42%, hsl(265 90% 62% / 0.28), hsl(320 90% 62% / 0.14) 34%, transparent 65%)",
+    particles: "portal",
+  },
+  {
+    id: "atlas",
+    title: "Chaos becomes dots",
+    line: "Atlas connects your life, passions, gifts, and patterns.",
+    image: "/bcoming-system-video/scene3.png",
+    duration: 4000,
+    focus: "Clarity",
+    zoom: [1.05, 1.12],
+    pan: ["49% 50%", "52% 49%"],
+    glow: "radial-gradient(circle at 54% 45%, hsl(190 95% 56% / 0.2), hsl(265 90% 62% / 0.15) 38%, transparent 68%)",
+    particles: "atlas",
+  },
+  {
+    id: "mentors",
+    title: "Guidance finds the path",
+    line: "Mentors help turn insight into direction.",
+    image: "/bcoming-system-video/scene4.png",
+    duration: 3600,
+    focus: "Guidance",
+    zoom: [1.05, 1.11],
+    pan: ["50% 50%", "48% 48%"],
+    glow: "radial-gradient(circle at 50% 52%, hsl(265 90% 62% / 0.24), hsl(190 95% 56% / 0.12) 36%, transparent 66%)",
+    particles: "mentors",
+  },
+  {
+    id: "creation",
+    title: "From purpose to impact",
+    line: "Clarity becomes purpose. Purpose becomes something real you can build.",
+    image: "/bcoming-system-video/scene5.png",
+    duration: 4000,
+    focus: "Creation",
+    zoom: [1.03, 1.09],
+    pan: ["50% 50%", "52% 48%"],
+    glow: "radial-gradient(circle at 58% 46%, hsl(42 100% 62% / 0.22), hsl(30 95% 57% / 0.13) 36%, transparent 68%)",
+    particles: "blueprint",
+  },
+  {
+    id: "impact",
+    title: "Connect the dots",
+    line: "Your Atlas, mentors, and project turn your patterns into something meaningful.",
+    image: "/bcoming-system-video/scene6.png",
+    duration: 4600,
+    focus: "Impact",
+    zoom: [1.02, 1.08],
+    pan: ["50% 50%", "50% 47%"],
+    glow: "radial-gradient(circle at 50% 47%, hsl(42 100% 62% / 0.24), hsl(142 78% 54% / 0.14) 38%, transparent 72%)",
+    particles: "impact",
+  },
+  {
+    id: "together",
+    title: "You were never meant to build alone",
+    line: "Real people. Real projects. Real impact.",
+    image: "/bcoming-system-video/scene7.png",
+    duration: 4000,
+    focus: "Creation",
+    zoom: [1.03, 1.09],
+    pan: ["50% 50%", "52% 48%"],
+    glow: "radial-gradient(circle at 58% 46%, hsl(42 100% 62% / 0.22), hsl(30 95% 57% / 0.13) 36%, transparent 68%)",
+    particles: "blueprint",
+  },
 ];
 
-const DOTS = [
-  { label: "Values", x: 23, y: 24, color: "hsl(320 90% 62%)" },
-  { label: "Skills", x: 43, y: 18, color: "hsl(190 95% 56%)" },
-  { label: "Passions", x: 62, y: 28, color: "hsl(265 90% 66%)" },
-  { label: "Life", x: 25, y: 57, color: "hsl(42 100% 62%)" },
-  { label: "Aha", x: 50, y: 49, color: "hsl(142 78% 54%)" },
-  { label: "Needs", x: 73, y: 62, color: "hsl(30 95% 57%)" },
+const PARTICLE_POSITIONS = [
+  { x: 9, y: 20, size: 5, delay: 0 },
+  { x: 18, y: 72, size: 8, delay: 0.3 },
+  { x: 28, y: 38, size: 4, delay: 0.6 },
+  { x: 39, y: 17, size: 7, delay: 0.1 },
+  { x: 48, y: 64, size: 5, delay: 0.8 },
+  { x: 61, y: 27, size: 9, delay: 0.2 },
+  { x: 70, y: 54, size: 4, delay: 1 },
+  { x: 84, y: 21, size: 6, delay: 0.45 },
+  { x: 91, y: 78, size: 8, delay: 0.7 },
+  { x: 76, y: 83, size: 5, delay: 1.1 },
+  { x: 52, y: 39, size: 4, delay: 1.3 },
+  { x: 34, y: 82, size: 6, delay: 1.45 },
 ];
 
-const MENTOR_CARDS = [
-  { title: "Pattern", line: "This keeps showing up." },
-  { title: "Builder", line: "Make it smaller." },
-  { title: "Vision", line: "Who does it serve?" },
-];
+const getParticleColor = (kind: SceneConfig["particles"]) => {
+  if (kind === "impact") return "bg-emerald-300 shadow-[0_0_18px_hsl(142_78%_54%/0.75)]";
+  if (kind === "blueprint") return "bg-amber-300 shadow-[0_0_18px_hsl(42_100%_62%/0.78)]";
+  if (kind === "atlas") return "bg-cyan-300 shadow-[0_0_18px_hsl(190_95%_56%/0.78)]";
+  if (kind === "portal") return "bg-fuchsia-300 shadow-[0_0_18px_hsl(320_90%_62%/0.75)]";
+  return "bg-primary shadow-[0_0_18px_hsl(265_90%_62%/0.75)]";
+};
 
-const CREATOR_NODES = [
-  { x: 18, y: 25 },
-  { x: 36, y: 16 },
-  { x: 62, y: 20 },
-  { x: 80, y: 34 },
-  { x: 72, y: 65 },
-  { x: 46, y: 72 },
-  { x: 24, y: 62 },
-];
+const SceneParticles = ({ kind }: { kind: SceneConfig["particles"] }) => {
+  const particleColor = getParticleColor(kind);
 
-const sceneDuration = 3900;
-
-const SpeechBubble = ({ children, className }: { children: ReactNode; className?: string }) => (
-  <div
-    className={cn(
-      "relative rounded-2xl border border-white/25 bg-white/90 px-4 py-2 text-sm font-semibold leading-tight text-slate-950 shadow-[0_12px_30px_hsl(265_90%_20%/0.24)]",
-      "after:absolute after:-bottom-2 after:left-8 after:h-4 after:w-4 after:rotate-45 after:border-b after:border-r after:border-white/25 after:bg-white/90",
-      className,
-    )}
-  >
-    {children}
-  </div>
-);
-
-const Character = ({ happy = false }: { happy?: boolean }) => (
-  <motion.div
-    className="relative h-40 w-28 sm:h-48 sm:w-32"
-    animate={{ y: [0, -5, 0] }}
-    transition={{ duration: 2.1, repeat: Infinity, ease: "easeInOut" }}
-  >
-    <div className="absolute left-1/2 top-4 h-16 w-16 -translate-x-1/2 rounded-full border border-primary/30 bg-gradient-to-br from-slate-100 to-violet-100 shadow-[0_0_32px_hsl(265_90%_62%/0.35)]">
-      <span className="absolute left-4 top-6 h-1.5 w-1.5 rounded-full bg-slate-950" />
-      <span className="absolute right-4 top-6 h-1.5 w-1.5 rounded-full bg-slate-950" />
-      <span className={cn("absolute left-1/2 top-10 h-2 w-6 -translate-x-1/2 border-b-2 border-slate-950", happy ? "rounded-b-full" : "rounded-t-full")} />
-    </div>
-    <div className="absolute left-1/2 top-[4.6rem] h-20 w-16 -translate-x-1/2 rounded-[2rem] border border-primary/30 bg-primary/70 shadow-[0_0_30px_hsl(265_90%_62%/0.28)]" />
-    <div className="absolute left-4 top-24 h-12 w-4 rotate-12 rounded-full bg-violet-200" />
-    <div className="absolute right-4 top-24 h-12 w-4 -rotate-12 rounded-full bg-violet-200" />
-    <div className="absolute bottom-0 left-9 h-14 w-4 rounded-full bg-slate-200" />
-    <div className="absolute bottom-0 right-9 h-14 w-4 rounded-full bg-slate-200" />
-  </motion.div>
-);
-
-const MindChaos = () => (
-  <div className="absolute inset-0">
-    <div className="absolute left-[8%] top-[14%] h-[70%] w-[84%] rounded-[42%] border border-fuchsia-300/20 bg-fuchsia-400/5 shadow-[inset_0_0_70px_hsl(320_90%_62%/0.13)]" />
-    {MIND_SYMBOLS.map((symbol) => (
-      <motion.div
-        key={`${symbol.text}-${symbol.x}`}
-        className={cn("absolute rounded-full border border-white/15 bg-card/55 px-3 py-1.5 text-xs font-bold backdrop-blur-sm", symbol.color)}
-        style={{ left: `${symbol.x}%`, top: `${symbol.y}%` }}
-        initial={{ opacity: 0, scale: 0.6, rotate: -10 }}
-        animate={{ opacity: [0.45, 1, 0.45], scale: [0.9, 1.12, 0.9], rotate: [0, 4, -4, 0] }}
-        transition={{ duration: 2.1, repeat: Infinity, delay: symbol.delay }}
-      >
-        {symbol.text}
-      </motion.div>
-    ))}
-    <svg className="absolute inset-0 h-full w-full opacity-70">
-      {MIND_SYMBOLS.slice(0, 7).map((symbol, index) => {
-        const next = MIND_SYMBOLS[(index + 2) % MIND_SYMBOLS.length];
-        return (
-          <motion.line
-            key={`${symbol.text}-${next.text}`}
-            x1={`${symbol.x + 3}%`}
-            y1={`${symbol.y + 3}%`}
-            x2={`${next.x + 3}%`}
-            y2={`${next.y + 3}%`}
-            stroke="hsl(320 90% 62% / 0.35)"
-            strokeWidth="1.5"
-            strokeDasharray="4 8"
-            animate={{ opacity: [0.2, 0.8, 0.2] }}
-            transition={{ duration: 1.8, repeat: Infinity, delay: index * 0.1 }}
-          />
-        );
-      })}
-    </svg>
-  </div>
-);
-
-const PhonePortal = () => (
-  <motion.div
-    className="absolute left-1/2 top-1/2 z-20 h-56 w-32 -translate-x-1/2 -translate-y-1/2 rounded-[2rem] border border-white/25 bg-slate-950 p-2 shadow-[0_0_60px_hsl(265_90%_62%/0.55)]"
-    initial={{ opacity: 0, scale: 0.75, rotate: -8 }}
-    animate={{ opacity: 1, scale: 1, rotate: 0 }}
-    transition={{ type: "spring", stiffness: 220, damping: 20 }}
-  >
-    <div className="relative h-full overflow-hidden rounded-[1.45rem] bg-gradient-to-b from-violet-950 via-slate-950 to-cyan-950">
-      <div className="absolute inset-0 bg-[radial-gradient(circle_at_50%_36%,hsl(265_90%_62%/0.42),transparent_42%)]" />
-      <Sparkles className="absolute left-1/2 top-12 h-9 w-9 -translate-x-1/2 text-primary drop-shadow-[0_0_18px_hsl(265_90%_62%/0.8)]" />
-      <div className="absolute inset-x-4 top-28 rounded-full border border-primary/30 bg-primary/15 py-2 text-center text-sm font-bold text-white">
-        Bcoming
-      </div>
-      <div className="absolute inset-x-5 bottom-8 h-2 rounded-full bg-white/20" />
-    </div>
-  </motion.div>
-);
-
-const AtlasMind = () => (
-  <div className="absolute inset-0">
-    <svg className="absolute inset-0 h-full w-full">
-      <defs>
-        <filter id="comic-gold-glow">
-          <feGaussianBlur stdDeviation="3" result="blur" />
-          <feMerge>
-            <feMergeNode in="blur" />
-            <feMergeNode in="SourceGraphic" />
-          </feMerge>
-        </filter>
-      </defs>
-      {DOTS.map((dot, index) => {
-        const next = DOTS[(index + 2) % DOTS.length];
-        return (
-          <motion.line
-            key={`${dot.label}-${next.label}`}
-            x1={`${dot.x}%`}
-            y1={`${dot.y}%`}
-            x2={`${next.x}%`}
-            y2={`${next.y}%`}
-            stroke="hsl(42 100% 62% / 0.82)"
-            strokeWidth={2.5}
-            filter="url(#comic-gold-glow)"
-            initial={{ pathLength: 0, opacity: 0 }}
-            animate={{ pathLength: 1, opacity: 0.86 }}
-            transition={{ duration: 0.8, delay: index * 0.1 }}
-          />
-        );
-      })}
-    </svg>
-    {DOTS.map((dot, index) => (
-      <motion.div
-        key={dot.label}
-        className="absolute flex -translate-x-1/2 -translate-y-1/2 flex-col items-center gap-1"
-        style={{ left: `${dot.x}%`, top: `${dot.y}%` }}
-        initial={{ opacity: 0, scale: 0 }}
-        animate={{ opacity: 1, scale: 1 }}
-        transition={{ type: "spring", stiffness: 220, damping: 18, delay: index * 0.08 }}
-      >
-        <span
-          className="h-12 w-12 rounded-full border bg-card/70 backdrop-blur-md"
+  return (
+    <div className="pointer-events-none absolute inset-0">
+      {PARTICLE_POSITIONS.map((particle, index) => (
+        <motion.span
+          key={`${kind}-${particle.x}-${particle.y}`}
+          className={cn("absolute rounded-full", particleColor)}
           style={{
-            borderColor: dot.color,
-            background: `radial-gradient(circle, ${dot.color}55, hsl(262 55% 8% / 0.75))`,
-            boxShadow: `0 0 30px ${dot.color}80`,
+            left: `${particle.x}%`,
+            top: `${particle.y}%`,
+            width: particle.size,
+            height: particle.size,
           }}
+          initial={{ opacity: 0, scale: 0.4 }}
+          animate={{
+            opacity: [0, 0.9, 0.45, 0.9],
+            scale: kind === "chaos" ? [0.7, 1.4, 0.85] : [0.75, 1.15, 0.95],
+            x: kind === "chaos" ? [0, index % 2 ? -12 : 14, 0] : [0, index % 2 ? 6 : -6, 0],
+            y: kind === "chaos" ? [0, index % 2 ? 10 : -12, 0] : [0, index % 2 ? -5 : 7, 0],
+          }}
+          transition={{ duration: kind === "chaos" ? 2.2 : 3.2, delay: particle.delay, repeat: Infinity }}
         />
-        <span className="rounded-full border border-white/15 bg-card/80 px-2 py-0.5 text-[10px] font-semibold text-foreground">
-          {dot.label}
-        </span>
-      </motion.div>
-    ))}
-  </div>
-);
-
-const MentorsScene = () => (
-  <div className="absolute inset-0">
-    <AtlasMind />
-    <div className="absolute right-[7%] top-[12%] grid w-56 gap-3">
-      {MENTOR_CARDS.map((card, index) => (
-        <motion.div
-          key={card.title}
-          className="rounded-2xl border border-cyan-300/25 bg-card/80 p-3 shadow-[0_0_24px_hsl(190_95%_56%/0.22)] backdrop-blur-md"
-          initial={{ opacity: 0, x: 24 }}
-          animate={{ opacity: 1, x: 0 }}
-          transition={{ delay: index * 0.12, type: "spring", stiffness: 220, damping: 22 }}
-        >
-          <div className="mb-1 flex items-center gap-2 text-cyan-200">
-            <MessageCircle className="h-3.5 w-3.5" />
-            <span className="text-xs font-bold">{card.title}</span>
-          </div>
-          <p className="text-xs leading-snug text-muted-foreground">{card.line}</p>
-        </motion.div>
       ))}
     </div>
-  </div>
-);
-
-const ProjectScene = () => (
-  <div className="absolute inset-0">
-    <AtlasMind />
-    <motion.div
-      className="absolute left-1/2 top-1/2 z-20 w-60 -translate-x-1/2 -translate-y-1/2 rotate-[-2deg] rounded-2xl border border-amber-300/50 bg-amber-100 p-5 text-slate-950 shadow-[0_0_45px_hsl(42_100%_62%/0.44)]"
-      initial={{ opacity: 0, y: 24, rotate: -9 }}
-      animate={{ opacity: 1, y: 0, rotate: -2 }}
-      transition={{ type: "spring", stiffness: 220, damping: 20 }}
-    >
-      <div className="mb-3 flex items-center gap-2">
-        <ClipboardList className="h-5 w-5 text-amber-700" />
-        <span className="text-xs font-black uppercase tracking-widest text-amber-700">Mission</span>
-      </div>
-      <p className="text-lg font-black leading-tight">Build the thing your dots have been pointing toward.</p>
-      <div className="mt-4 space-y-1 text-xs font-bold text-slate-700">
-        <p>[x] First action</p>
-        <p>[ ] Skill to learn</p>
-        <p>[ ] Person to help</p>
-      </div>
-    </motion.div>
-  </div>
-);
-
-const CreatorsScene = () => (
-  <div className="absolute inset-0">
-    <div className="absolute left-1/2 top-1/2 h-64 w-64 -translate-x-1/2 -translate-y-1/2 rounded-full border border-emerald-300/25 bg-emerald-300/5 shadow-[inset_0_0_60px_hsl(142_78%_54%/0.12)]" />
-    <svg className="absolute inset-0 h-full w-full">
-      {CREATOR_NODES.map((node, index) => (
-        <motion.line
-          key={`creator-line-${index}`}
-          x1="50%"
-          y1="50%"
-          x2={`${node.x}%`}
-          y2={`${node.y}%`}
-          stroke="hsl(142 78% 54% / 0.58)"
-          strokeWidth={2}
-          initial={{ pathLength: 0, opacity: 0 }}
-          animate={{ pathLength: 1, opacity: 0.8 }}
-          transition={{ delay: index * 0.08 }}
-        />
-      ))}
-    </svg>
-    <motion.div
-      className="absolute left-1/2 top-1/2 z-20 flex h-24 w-24 -translate-x-1/2 -translate-y-1/2 items-center justify-center rounded-full border border-amber-300/60 bg-amber-300/20 shadow-[0_0_48px_hsl(42_100%_62%/0.55)] backdrop-blur-md"
-      initial={{ scale: 0.7, opacity: 0 }}
-      animate={{ scale: 1, opacity: 1 }}
-    >
-      <Globe2 className="h-9 w-9 text-amber-200" />
-    </motion.div>
-    {CREATOR_NODES.map((node, index) => (
-      <motion.div
-        key={`${node.x}-${node.y}`}
-        className="absolute z-20 h-12 w-12 -translate-x-1/2 -translate-y-1/2 rounded-full border border-emerald-200/40 bg-emerald-300/30 shadow-[0_0_26px_hsl(142_78%_54%/0.55)] backdrop-blur-md"
-        style={{ left: `${node.x}%`, top: `${node.y}%` }}
-        initial={{ opacity: 0, scale: 0 }}
-        animate={{ opacity: 1, scale: [1, 1.08, 1] }}
-        transition={{ delay: index * 0.09, duration: 1.8, repeat: Infinity }}
-      />
-    ))}
-  </div>
-);
+  );
+};
 
 export const BcomingSystemVideo = ({ onNext, showActions = true, className }: BcomingSystemVideoProps) => {
   const shouldReduceMotion = useReducedMotion();
-  const [scene, setScene] = useState(0);
-  const currentScene = SCENES[Math.min(scene, SCENES.length - 1)];
-  const complete = scene >= SCENES.length - 1;
+  const [sceneIndex, setSceneIndex] = useState(0);
+  const [isPlaying, setIsPlaying] = useState(true);
+  const currentScene = SCENES[sceneIndex];
+  const isComplete = sceneIndex === SCENES.length - 1;
 
   useEffect(() => {
-    if (shouldReduceMotion || complete) return;
-    const timer = window.setTimeout(() => setScene((current) => current + 1), sceneDuration);
-    return () => window.clearTimeout(timer);
-  }, [complete, scene, shouldReduceMotion]);
+    if (shouldReduceMotion || !isPlaying || isComplete) return;
 
-  const renderScene = () => {
-    switch (currentScene.key) {
-      case "mind":
-        return <MindChaos />;
-      case "phone":
-        return (
-          <>
-            <MindChaos />
-            <PhonePortal />
-          </>
-        );
-      case "atlas":
-        return <AtlasMind />;
-      case "mentors":
-        return <MentorsScene />;
-      case "project":
-        return <ProjectScene />;
-      case "creators":
-        return <CreatorsScene />;
-      default:
-        return null;
-    }
+    const timer = window.setTimeout(() => {
+      setSceneIndex((current) => Math.min(current + 1, SCENES.length - 1));
+    }, currentScene.duration);
+
+    return () => window.clearTimeout(timer);
+  }, [currentScene.duration, isComplete, isPlaying, sceneIndex, shouldReduceMotion]);
+
+  const totalDuration = useMemo(() => SCENES.reduce((sum, scene) => sum + scene.duration, 0), []);
+  const elapsedBeforeScene = useMemo(
+    () => SCENES.slice(0, sceneIndex).reduce((sum, scene) => sum + scene.duration, 0),
+    [sceneIndex],
+  );
+  const progress = isComplete ? 100 : (elapsedBeforeScene / totalDuration) * 100;
+
+  const restart = () => {
+    setSceneIndex(0);
+    setIsPlaying(true);
   };
 
-  const characterLeft = ["18%", "23%", "14%", "12%", "14%", "50%"][scene] || "18%";
-  const characterTop = ["64%", "66%", "65%", "66%", "70%", "76%"][scene] || "64%";
-  const happy = scene >= 4;
-
   return (
-    <div className={cn("relative w-full px-3 py-4 sm:px-5", className)}>
-      <div className="relative mx-auto h-[min(780px,calc(100vh-6rem))] min-h-[660px] w-full max-w-6xl overflow-hidden rounded-2xl border border-border/60 bg-card/95 shadow-[0_0_70px_hsl(265_90%_62%/0.28)]">
-        <div className="relative h-full bg-cosmic">
-          <div className="absolute inset-0 pointer-events-none">
-            <div className="absolute inset-0 bg-[radial-gradient(ellipse_at_50%_36%,hsl(265_90%_62%/0.16),transparent_46%)]" />
-            <div className="absolute left-6 top-6 h-40 w-40 rounded-full bg-primary/10 blur-3xl" />
-            <div className="absolute bottom-10 right-10 h-48 w-48 rounded-full bg-emerald-400/10 blur-3xl" />
-          </div>
+    <div className={cn("relative w-full px-3 py-3 sm:px-5", className)}>
+      <div className="relative mx-auto aspect-[16/9] min-h-[420px] w-full max-w-6xl overflow-hidden rounded-2xl border border-white/15 bg-slate-950 shadow-[0_0_70px_hsl(265_90%_62%/0.34)] sm:min-h-[620px]">
+        <motion.div
+          key={currentScene.id}
+          className="absolute inset-0"
+          initial={{ opacity: 0, scale: currentScene.zoom[0] - 0.02 }}
+          animate={{ opacity: 1, scale: currentScene.zoom[1], backgroundPosition: currentScene.pan[1] }}
+          transition={{ opacity: { duration: 0.65 }, scale: { duration: currentScene.duration / 1000, ease: "easeOut" } }}
+          style={{
+            backgroundImage: `url(${currentScene.image})`,
+            backgroundSize: "cover",
+            backgroundPosition: currentScene.pan[0],
+          }}
+        />
 
-          <div className="absolute left-4 top-4 z-40 flex items-center gap-2 sm:left-6 sm:top-5">
-            <Sparkles className="h-4 w-4 text-primary" />
-            <span className="text-xs font-semibold uppercase tracking-[0.18em] text-primary">
-              How Bcoming Works
+        <div className="absolute inset-0 bg-[linear-gradient(180deg,hsl(262_55%_8%/0.08),hsl(262_55%_8%/0.24)_54%,hsl(262_55%_8%/0.82))]" />
+        <div className="absolute inset-0" style={{ background: currentScene.glow }} />
+        <SceneParticles kind={currentScene.particles} />
+
+        <motion.div
+          key={`${currentScene.id}-light`}
+          className="pointer-events-none absolute inset-y-0 -left-1/3 w-1/2 rotate-12 bg-gradient-to-r from-transparent via-white/14 to-transparent blur-md"
+          initial={{ x: "-30%", opacity: 0 }}
+          animate={{ x: "260%", opacity: [0, 0.45, 0] }}
+          transition={{ duration: 2.6, ease: "easeInOut" }}
+        />
+
+        {isComplete && (
+          <motion.button
+            type="button"
+            onClick={restart}
+            className="absolute left-1/2 top-1/2 z-40 flex -translate-x-1/2 -translate-y-1/2 items-center gap-3 rounded-full border border-white/20 bg-slate-950/62 px-6 py-4 text-sm font-semibold text-white shadow-[0_0_42px_hsl(265_90%_62%/0.38)] backdrop-blur-md transition hover:border-primary/55 hover:bg-slate-950/78 sm:text-base"
+            initial={{ opacity: 0, scale: 0.82 }}
+            animate={{ opacity: 1, scale: 1 }}
+            transition={{ type: "spring", stiffness: 260, damping: 20 }}
+            aria-label="Watch video again"
+          >
+            <RotateCcw className="h-5 w-5 text-primary" />
+            Watch again
+          </motion.button>
+        )}
+
+        <div className="absolute left-4 right-4 top-4 z-30 flex items-start justify-between gap-3 sm:left-6 sm:right-6 sm:top-5">
+          <div className="flex min-w-0 items-center gap-2 rounded-full border border-white/15 bg-slate-950/45 px-3 py-2 text-white shadow-[0_0_28px_hsl(265_90%_62%/0.2)] backdrop-blur-md">
+            <Sparkles className="h-4 w-4 shrink-0 text-primary" />
+            <span className="truncate text-xs font-semibold uppercase tracking-[0.16em] text-primary sm:text-sm">
+              Bcoming System
             </span>
           </div>
 
-          <div className="absolute inset-x-0 bottom-[14.5rem] top-14 overflow-hidden sm:bottom-40 sm:top-16">
-            <motion.div
-              key={currentScene.key}
-              className="absolute inset-0"
-              initial={{ opacity: 0, x: 20 }}
-              animate={{ opacity: 1, x: 0 }}
-              exit={{ opacity: 0 }}
-              transition={{ duration: 0.45 }}
+          <div className="flex shrink-0 items-center gap-2">
+            <button
+              type="button"
+              aria-label={isPlaying ? "Pause video" : "Play video"}
+              onClick={() => setIsPlaying((current) => !current)}
+              className="flex h-10 w-10 items-center justify-center rounded-full border border-white/15 bg-slate-950/45 text-white backdrop-blur-md transition hover:bg-white/10"
             >
-              {renderScene()}
-            </motion.div>
-
-            <motion.div
-              className="absolute z-30 -translate-x-1/2 -translate-y-1/2"
-              animate={{ left: characterLeft, top: characterTop }}
-              transition={{ type: "spring", stiffness: 70, damping: 18 }}
+              {isPlaying ? <Pause className="h-4 w-4" /> : <Play className="h-4 w-4" />}
+            </button>
+            <button
+              type="button"
+              aria-label="Restart video"
+              onClick={restart}
+              className="flex h-10 w-10 items-center justify-center rounded-full border border-white/15 bg-slate-950/45 text-white backdrop-blur-md transition hover:bg-white/10"
             >
-              {scene <= 4 && <Character happy={happy} />}
-            </motion.div>
-
-            {scene === 0 && (
-              <motion.div className="absolute left-[22%] top-[18%] z-30 max-w-[14rem]" initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }}>
-                <SpeechBubble>I have all these thoughts... but what do I do with them?</SpeechBubble>
-              </motion.div>
-            )}
-
-            {scene === 1 && (
-              <motion.div className="absolute right-[14%] top-[18%] z-30 max-w-[13rem]" initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }}>
-                <SpeechBubble>This feels like a doorway.</SpeechBubble>
-              </motion.div>
-            )}
-
-            {scene === 4 && (
-              <motion.div className="absolute left-[28%] top-[18%] z-30 max-w-[13rem]" initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }}>
-                <SpeechBubble>Now I know what to build next.</SpeechBubble>
-              </motion.div>
-            )}
+              <RotateCcw className="h-4 w-4" />
+            </button>
           </div>
+        </div>
 
-          <div className="absolute inset-x-4 bottom-[calc(1rem+env(safe-area-inset-bottom))] z-40 sm:inset-x-6">
+        <div className="absolute bottom-[calc(1rem+env(safe-area-inset-bottom))] left-4 right-4 z-30 sm:left-6 sm:right-6">
+          <motion.div
+            key={`${currentScene.id}-caption`}
+            className="max-w-2xl rounded-xl border border-white/16 bg-slate-950/58 p-4 text-white shadow-[0_0_35px_hsl(265_90%_62%/0.24)] backdrop-blur-md sm:p-5"
+            initial={{ opacity: 0, y: 16 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ type: "spring", stiffness: 220, damping: 24 }}
+          >
+            <div className="mb-2 flex items-center justify-between gap-3">
+              <span className="text-xs font-mono text-white/60">
+                {String(sceneIndex + 1).padStart(2, "0")} / {String(SCENES.length).padStart(2, "0")}
+              </span>
+              <span className="rounded-full border border-primary/35 bg-primary/20 px-2 py-0.5 text-[10px] font-semibold uppercase tracking-[0.14em] text-primary">
+                {currentScene.focus}
+              </span>
+            </div>
+            <h2 className="text-lg font-semibold leading-tight sm:text-2xl">{currentScene.title}</h2>
+            <p className="mt-2 max-w-xl text-sm leading-relaxed text-white/76 sm:text-base">{currentScene.line}</p>
+
+            {showActions && (isComplete || shouldReduceMotion) && (
+              <motion.div
+                className="mt-4 flex gap-2 rounded-full border border-white/16 bg-white/7 p-2 backdrop-blur-md"
+                initial={{ opacity: 0, y: 10 }}
+                animate={{ opacity: 1, y: 0 }}
+              >
+                <Button onClick={onNext} size="lg" className="h-11 flex-1 rounded-full gap-2">
+                  Start my quest
+                  <ArrowRight className="h-4 w-4" />
+                </Button>
+                <Button onClick={onNext} variant="ghost" className="h-11 rounded-full px-5 text-white/68 hover:text-white">
+                  Skip
+                </Button>
+              </motion.div>
+            )}
+          </motion.div>
+
+          <div className="mt-3 h-1.5 overflow-hidden rounded-full bg-white/12">
             <motion.div
-              key={currentScene.key}
-              className="mx-auto max-w-3xl rounded-xl border border-border/60 bg-card/80 p-4 shadow-[0_0_35px_hsl(265_90%_62%/0.18)] backdrop-blur-md"
-              initial={{ opacity: 0, y: 12, scale: 0.98 }}
-              animate={{ opacity: 1, y: 0, scale: 1 }}
-              transition={{ type: "spring", stiffness: 240, damping: 24 }}
-            >
-              <div className="mb-2 flex items-center justify-between gap-3">
-                <span className="text-xs font-mono text-muted-foreground">
-                  {String(Math.min(scene + 1, SCENES.length)).padStart(2, "0")} / {String(SCENES.length).padStart(2, "0")}
-                </span>
-                <span className="rounded-full border border-primary/30 bg-primary/15 px-2 py-0.5 text-[10px] uppercase tracking-wider text-primary">
-                  System
-                </span>
-              </div>
-              <h2 className="text-sm font-semibold leading-snug text-foreground sm:text-base">
-                {currentScene.label}
-              </h2>
-              <p className="mt-1.5 text-xs leading-relaxed text-muted-foreground sm:text-sm">
-                {currentScene.text}
-              </p>
-
-              {showActions && (complete || shouldReduceMotion) && (
-                <motion.div
-                  className="mt-4 flex gap-2 rounded-full border border-border/50 bg-background/55 p-2 backdrop-blur-md"
-                  initial={{ opacity: 0, y: 10 }}
-                  animate={{ opacity: 1, y: 0 }}
-                >
-                  <Button onClick={onNext} size="lg" className="h-11 flex-1 rounded-full gap-2">
-                    Start my quest
-                    <ArrowRight className="h-4 w-4" />
-                  </Button>
-                  <Button onClick={onNext} variant="ghost" className="h-11 rounded-full px-5 text-muted-foreground">
-                    Skip
-                  </Button>
-                </motion.div>
-              )}
-            </motion.div>
+              className="h-full rounded-full bg-gradient-to-r from-primary via-fuchsia-300 to-amber-300 shadow-[0_0_18px_hsl(42_100%_62%/0.5)]"
+              animate={{ width: `${progress}%` }}
+              transition={{ duration: 0.45, ease: "easeOut" }}
+            />
           </div>
         </div>
       </div>
