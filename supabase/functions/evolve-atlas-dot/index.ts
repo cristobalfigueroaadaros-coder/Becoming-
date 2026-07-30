@@ -1,15 +1,30 @@
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
+import { authErrorResponse, checkRateLimit, getCorsHeaders, rateLimitResponse, validateAuth } from "../_shared/security.ts";
 
-const corsHeaders = {
-  "Access-Control-Allow-Origin": "*",
-  "Access-Control-Allow-Headers": "authorization, x-client-info, apikey, content-type, x-supabase-client-platform, x-supabase-client-platform-version, x-supabase-client-runtime, x-supabase-client-runtime-version",
-};
+interface AtlasDotInput {
+  id?: string;
+  title?: string;
+  short_description?: string;
+  cluster_id?: string;
+  signal_sources?: string[];
+  confidence_score?: number;
+}
 
 serve(async (req) => {
+  const corsHeaders = getCorsHeaders(req);
   if (req.method === "OPTIONS") return new Response(null, { headers: corsHeaders });
 
   try {
-    const { newDot, allDots } = await req.json();
+    const auth = await validateAuth(req);
+    if (auth.error) return authErrorResponse(corsHeaders);
+
+    const rl = await checkRateLimit(auth.userId, "evolve-atlas-dot");
+    if (!rl.allowed) return rateLimitResponse(corsHeaders, rl.retryAfterMs);
+
+    const { newDot, allDots } = await req.json() as {
+      newDot?: AtlasDotInput;
+      allDots?: AtlasDotInput[];
+    };
     const LOVABLE_API_KEY = Deno.env.get("LOVABLE_API_KEY");
     if (!LOVABLE_API_KEY) throw new Error("LOVABLE_API_KEY is not configured");
 
@@ -20,7 +35,7 @@ serve(async (req) => {
     }
 
     // Count dots in the same cluster as the new dot
-    const sameClusterDots = allDots.filter((d: any) => d.cluster_id === newDot.cluster_id);
+    const sameClusterDots = allDots.filter((d: AtlasDotInput) => d.cluster_id === newDot.cluster_id);
     const clusterDotCount = sameClusterDots.length;
 
     let evolutionType: string | null = null;
@@ -39,7 +54,7 @@ serve(async (req) => {
       if (newSignals.size > 0) {
         for (const otherDot of allDots) {
           if (otherDot.id === newDot.id || otherDot.cluster_id === newDot.cluster_id) continue;
-          const otherClusterDots = allDots.filter((d: any) => d.cluster_id === otherDot.cluster_id);
+          const otherClusterDots = allDots.filter((d: AtlasDotInput) => d.cluster_id === otherDot.cluster_id);
           if (otherClusterDots.length < 3) continue; // other cluster too small
           if (clusterDotCount < 3) continue; // this cluster too small
           const otherSignals = Array.isArray(otherDot.signal_sources) ? otherDot.signal_sources : [];

@@ -44,7 +44,7 @@ project_id = "vfrocfbbcvpfqehzntbc"
   [functions.detect-value-map-insights]
     verify_jwt = true
   [functions.evolve-atlas-dot]
-    verify_jwt = false
+    verify_jwt = true
   [functions.evolve-purpose]
     verify_jwt = true
   [functions.extract-atlas-signals]

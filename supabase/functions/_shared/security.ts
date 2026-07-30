@@ -67,6 +67,7 @@ const DEFAULT_LIMITS: Record<string, { max: number; windowMs: number }> = {
   "generate-narrative-bridge":{ max: 20, windowMs: 60 * 60 * 1000 },
   "integrator-setup":         { max: 15, windowMs: 60 * 60 * 1000 },
   "council-unlock":           { max: 10, windowMs: 60 * 60 * 1000 },
+  "evolve-atlas-dot":         { max: 20, windowMs: 60 * 60 * 1000 },
 };
 const FALLBACK_LIMIT = { max: 30, windowMs: 60 * 60 * 1000 };
 
