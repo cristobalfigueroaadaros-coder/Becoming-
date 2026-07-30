@@ -1,5 +1,6 @@
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
+import { callChatCompletion, hasAiProvider } from "../_shared/ai-client.ts";
 
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
@@ -16,7 +17,9 @@ const FALLBACKS: Record<string, string> = {
     "You're already executing.\nThis is not about searching — it's about scaling.\nNow we'll focus on structured momentum.",
 };
 
-async function fetchProfile(supabase: any, userId: string) {
+type SupabaseClient = ReturnType<typeof createClient>;
+
+async function fetchProfile(supabase: SupabaseClient, userId: string) {
   const { data } = await supabase
     .from("profiles")
     .select("entry_state, work_context, user_foundation_summary, action_patterns, birth_name")
@@ -69,16 +72,15 @@ serve(async (req) => {
     const name = profile?.birth_name || "there";
 
     // Parse foundation summary
-    let foundation: any = {};
+    let foundation: Record<string, unknown> = {};
     try {
       foundation = typeof profile?.user_foundation_summary === "string"
         ? JSON.parse(profile.user_foundation_summary)
         : profile?.user_foundation_summary || {};
     } catch { /* ignore */ }
 
-    const LOVABLE_API_KEY = Deno.env.get("LOVABLE_API_KEY");
-    if (!LOVABLE_API_KEY) {
-      console.log("No LOVABLE_API_KEY, returning fallback");
+    if (!hasAiProvider()) {
+      console.log("No AI provider configured, returning fallback");
       return new Response(
         JSON.stringify({ summary: FALLBACKS[stage] || FALLBACKS.DISCOVER, stage }),
         { headers: { ...corsHeaders, "Content-Type": "application/json" } }
@@ -107,19 +109,14 @@ Rules:
     const timeout = setTimeout(() => controller.abort(), 10000);
 
     try {
-      const aiResp = await fetch("https://ai.gateway.lovable.dev/v1/chat/completions", {
-        method: "POST",
-        headers: {
-          Authorization: `Bearer ${LOVABLE_API_KEY}`,
-          "Content-Type": "application/json",
-        },
-        body: JSON.stringify({
+      const aiResp = await callChatCompletion(
+        {
           model: "google/gemini-3-flash-preview",
           messages: [{ role: "user", content: prompt }],
           stream: false,
-        }),
-        signal: controller.signal,
-      });
+        },
+        { signal: controller.signal },
+      );
 
       clearTimeout(timeout);
 
