@@ -456,7 +456,10 @@ const Council = () => {
     checkChatLock();
   }, []);
 
-  const SidebarContent = () => (
+  // Keep this as a render helper rather than a nested component. A nested component
+  // gets a new identity on each Council update, which remounts ScrollArea and sends
+  // the mentor list back to the top whenever a notification or selection changes.
+  const renderSidebarContent = () => (
     <div className="flex flex-col h-full">
       <div className="p-4 border-b border-border">
         <h2 className="text-lg font-semibold">Council</h2>
@@ -769,7 +772,7 @@ const Council = () => {
       <div className="hidden md:flex w-full h-full">
         {/* Left Sidebar */}
         <div className="w-80 border-r border-border bg-card/50 flex-shrink-0 h-full">
-          <SidebarContent />
+          {renderSidebarContent()}
         </div>
         
         {/* Right Content Area */}
@@ -801,7 +804,7 @@ const Council = () => {
       {/* Mobile Layout: List or Conversation */}
       <div className="md:hidden w-full h-full">
         {showMobileList ? (
-          <SidebarContent />
+          renderSidebarContent()
         ) : (
           <div className="h-full flex flex-col">
             <MobileBackHeader />
