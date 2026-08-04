@@ -50,7 +50,7 @@ export const JourneyCompassCard = ({ open, onAction }: JourneyCompassCardProps) 
         </div>
         <div className="flex-1">
           <p className="text-[11px] font-semibold text-primary uppercase tracking-wider">
-            Your next move
+            A note from Future Self
           </p>
         </div>
         {guidance && !loading && (
@@ -128,6 +128,23 @@ export const JourneyCompassCard = ({ open, onAction }: JourneyCompassCardProps) 
                   <p className="text-[11.5px] text-muted-foreground mt-1 leading-relaxed">
                     {guidance.primarySuggestion.why}
                   </p>
+                  {guidance.primarySuggestion.evidence && guidance.primarySuggestion.evidence.length > 0 && (
+                    <div className="mt-2 space-y-1">
+                      <p className="text-[9.5px] uppercase tracking-wider text-muted-foreground/65 font-semibold">
+                        I noticed
+                      </p>
+                      <div className="flex flex-wrap gap-1">
+                        {guidance.primarySuggestion.evidence.slice(0, 3).map((item) => (
+                          <span
+                            key={item}
+                            className="rounded-full border border-primary/15 bg-primary/5 px-1.5 py-0.5 text-[9.5px] text-primary/80"
+                          >
+                            {item}
+                          </span>
+                        ))}
+                      </div>
+                    </div>
+                  )}
                   {guidance.primarySuggestion.leverageInsight && (
                     <p className="text-[10.5px] text-primary/70 mt-1.5 italic leading-snug">
                       {guidance.primarySuggestion.leverageInsight}

@@ -17,6 +17,7 @@ export interface CompassSuggestion {
   targetId: string;
   title: string;
   why: string;
+  evidence?: string[];
   leverageInsight?: string;
   ctaLabel: string;
   handoffContext?: string;
