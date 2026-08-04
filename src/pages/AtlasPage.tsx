@@ -124,6 +124,17 @@ const AtlasPage = () => {
     setActiveTab("mine");
   };
 
+  const handleSelectMyMap = () => {
+    // Choosing a personal map is a deliberate handoff away from the founder
+    // example. Keep that choice across later quest returns.
+    try {
+      localStorage.setItem(FOUNDERS_SEEN_FLAG, "true");
+    } catch {
+      // ignore
+    }
+    setActiveTab("mine");
+  };
+
   const councilThreshold = COUNCIL_UNLOCK_THRESHOLDS[entryState] ?? 4;
 
   const connections = useMemo(() => generateConnections(clusters), [clusters]);
@@ -141,37 +152,45 @@ const AtlasPage = () => {
       setIntakeCompleted(!!p?.console_intake_completed);
       if (p?.entry_state) setEntryState(p.entry_state);
       let forceWalkthrough = false;
+      let foundersSeen = false;
       try {
         forceWalkthrough = sessionStorage.getItem("force_atlas_onboarding_walkthrough") === "true";
+        foundersSeen = localStorage.getItem(FOUNDERS_SEEN_FLAG) === "true";
       } catch {
         forceWalkthrough = false;
+        foundersSeen = false;
       }
       const introQuery = searchParams.get("intro") === "founder";
       const atlasOnboardingDone = !!p?.atlas_onboarding_completed;
 
-      // Show Cris's Map first whenever atlas onboarding is not yet completed,
-      // OR when the user explicitly entered via /atlas?intro=founder, OR when
-      // we just forced the walkthrough. Backend flag is the source of truth.
-      if (!atlasOnboardingDone || forceWalkthrough || introQuery) {
+      // Founder Origin is an optional first-time reference, not a destination
+      // after every quest. Users with any Atlas progress should always return
+      // to their own map unless they explicitly request the founder example.
+      const shouldShowFounder = introQuery || (
+        !atlasOnboardingDone &&
+        !forceWalkthrough &&
+        !foundersSeen &&
+        totalDots === 0
+      );
+
+      if (shouldShowFounder) {
         setAtlasOnboardingPending(true);
         setActiveTab("founders");
         setFoundersAccepted(false);
-        try {
-          localStorage.removeItem(FOUNDERS_SEEN_FLAG);
-          localStorage.removeItem("founders_popup_seen");
-        } catch {
-          // ignore
-        }
         if (introQuery) {
           // Clean the URL once consumed
           const next = new URLSearchParams(searchParams);
           next.delete("intro");
           setSearchParams(next, { replace: true });
         }
+      } else {
+        setActiveTab("mine");
+        setAtlasOnboardingPending(forceWalkthrough);
+        setFoundersAccepted(forceWalkthrough);
       }
     };
-    checkFlags();
-  }, []);
+    if (!isLoading) checkFlags();
+  }, [isLoading, totalDots, searchParams, setSearchParams]);
 
   // Trigger Atlas onboarding overlay only AFTER:
   //  1. The user has accepted the founder card (foundersAccepted), and
@@ -261,7 +280,7 @@ const AtlasPage = () => {
       <div className="relative z-30 px-5 pt-4">
         <div className="inline-flex rounded-full border border-border/60 bg-card/70 backdrop-blur-md p-1 shadow-sm">
           <button
-            onClick={() => setActiveTab("mine")}
+            onClick={handleSelectMyMap}
             className={cn(
               "px-4 py-1.5 text-xs font-semibold rounded-full transition-all",
               activeTab === "mine"
