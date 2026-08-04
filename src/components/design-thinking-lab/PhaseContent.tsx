@@ -10,6 +10,8 @@ import { PhaseType, PhaseContentData, PhaseNote } from './types';
 import { PHASE_CONFIG, PHASE_PLACEHOLDERS } from './constants';
 import { DefinePhaseClarificationPrompt } from './DefinePhaseClarificationPrompt';
 import { useNavigate } from 'react-router-dom';
+import { supabase } from '@/integrations/supabase/client';
+import { canonicalizeMentorType } from '@/lib/mentorTypes';
 
 interface PhaseContentProps {
   phase: PhaseType;
@@ -128,8 +130,48 @@ export const PhaseContent: React.FC<PhaseContentProps> = ({
     setIsSavingReflection(false);
   };
 
-  const handleMentorClick = () => {
-    navigate(`/council?view=${config.mentorType}`);
+  const handleMentorClick = async () => {
+    const mentorType = canonicalizeMentorType(config.mentorType);
+    if (!mentorType) return;
+
+    const handoffContext = [
+      `The user is working in the ${phase} phase of their project${projectName ? `, ${projectName}` : ''}.`,
+      `The current question is: ${config.coreQuestion}`,
+      reflection.trim() ? `Their reflection so far: ${reflection.trim()}` : null,
+      allNotes.length > 0 ? `Relevant working notes: ${allNotes.slice(0, 3).map((note) => note.text).join(' | ')}` : null,
+    ].filter(Boolean).join('\n');
+
+    try {
+      const { data: { user } } = await supabase.auth.getUser();
+      if (!user) throw new Error('No signed-in user');
+
+      const { data: handoff, error } = await supabase
+        .from('conversation_handoffs')
+        .insert({
+          user_id: user.id,
+          source_mentor_type: 'design_thinking_lab',
+          target_mentor_type: mentorType,
+          source_messages: [],
+          voice_context: {
+            source: 'design_thinking_lab',
+            phase,
+            projectId,
+            projectName,
+            handoffContext,
+          },
+          initiated_by: 'design_thinking_lab',
+        })
+        .select()
+        .single();
+      if (error) throw error;
+
+      navigate(`/council?view=${mentorType}`, {
+        state: { voiceHandoffId: handoff.id, voiceContext: handoffContext },
+      });
+    } catch (error) {
+      console.error('[design-thinking mentor handoff]', error);
+      navigate(`/council?view=${mentorType}`);
+    }
     onClose();
   };
 
