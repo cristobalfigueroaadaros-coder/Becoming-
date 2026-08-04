@@ -1,7 +1,6 @@
 import { useState, useEffect, useMemo } from "react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { Button } from "@/components/ui/button";
-import { Check, RefreshCw, Sparkles, Target } from "lucide-react";
+import { Check, Sparkles, Target } from "lucide-react";
 import { cn } from "@/lib/utils";
 
 interface StructureNode {
@@ -129,14 +128,13 @@ export function DailyGoals({ structure, projectTitle, onActivityStatusChange }: 
         {goals.map(goal => {
           const isDone = completedIds.has(goal.id);
           return (
-            <button
+            <div
               key={goal.id}
-              onClick={() => toggleGoal(goal)}
               className={cn(
                 "w-full flex items-start gap-3 p-3 rounded-lg border text-left transition-all",
                 isDone
                   ? "border-green-500/20 bg-green-500/5"
-                  : "border-border/30 hover:border-border/60"
+                  : "border-border/30"
               )}
             >
               <div
@@ -155,7 +153,20 @@ export function DailyGoals({ structure, projectTitle, onActivityStatusChange }: 
                   from: {goal.blockTitle}
                 </p>
               </div>
-            </button>
+              <button
+                type="button"
+                onClick={() => toggleGoal(goal)}
+                className={cn(
+                  "shrink-0 rounded-md border px-2 py-1 text-[11px] font-medium transition-colors",
+                  isDone
+                    ? "border-green-500/30 text-green-700 hover:bg-green-500/10 dark:text-green-300"
+                    : "border-primary/30 text-primary hover:bg-primary/10"
+                )}
+                aria-label={isDone ? `Mark ${goal.text} as not done` : `Mark ${goal.text} complete`}
+              >
+                {isDone ? "Undo" : "Mark complete"}
+              </button>
+            </div>
           );
         })}
       </CardContent>
