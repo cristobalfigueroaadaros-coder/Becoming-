@@ -96,7 +96,9 @@ const AtlasPage = () => {
   }, []);
   const prevUnlockedRef = useRef<Set<string>>(new Set());
   const highlightSlug = searchParams.get("highlight");
+  const newDotTitle = searchParams.get("newDot");
   const [highlightedSlug, setHighlightedSlug] = useState<string | null>(null);
+  const [recentDotTitle, setRecentDotTitle] = useState<string | null>(null);
   const [intakeCompleted, setIntakeCompleted] = useState<boolean | null>(null);
   const [entryState, setEntryState] = useState<string>("DISCOVER");
   const [showOnboarding, setShowOnboarding] = useState(false);
@@ -205,13 +207,17 @@ const AtlasPage = () => {
   }, [atlasOnboardingPending, activeTab, foundersAccepted]);
 
   useEffect(() => {
-    if (highlightSlug) {
+    if (highlightSlug || newDotTitle) {
       setHighlightedSlug(highlightSlug);
+      setRecentDotTitle(newDotTitle);
       setSearchParams({}, { replace: true });
-      const timer = setTimeout(() => setHighlightedSlug(null), 3000);
+      const timer = setTimeout(() => {
+        setHighlightedSlug(null);
+        setRecentDotTitle(null);
+      }, 5000);
       return () => clearTimeout(timer);
     }
-  }, [highlightSlug, setSearchParams]);
+  }, [highlightSlug, newDotTitle, setSearchParams]);
 
   useEffect(() => {
     if (isLoading || clusters.length === 0) return;
@@ -304,6 +310,32 @@ const AtlasPage = () => {
           </button>
         </div>
       </div>
+
+      <AnimatePresence>
+        {recentDotTitle && activeTab === "mine" && (
+          <motion.div
+            initial={{ opacity: 0, y: -12, scale: 0.96 }}
+            animate={{ opacity: 1, y: 0, scale: 1 }}
+            exit={{ opacity: 0, y: -12, scale: 0.96 }}
+            className="fixed top-20 left-1/2 z-40 w-[min(92vw,24rem)] -translate-x-1/2 rounded-2xl border border-primary/40 bg-card/95 p-4 shadow-[0_0_32px_hsl(265_90%_62%/0.25)] backdrop-blur-md"
+          >
+            <p className="text-xs font-semibold uppercase tracking-[0.16em] text-primary">Your Atlas grew</p>
+            <p className="mt-1 text-sm font-semibold text-foreground">{recentDotTitle}</p>
+            <p className="mt-1 text-xs leading-relaxed text-muted-foreground">A new part of your story is now connected to your map.</p>
+            {highlightedSlug && (
+              <button
+                onClick={() => {
+                  const cluster = clusters.find(c => c.slug === highlightedSlug);
+                  if (cluster) setSelectedCluster(cluster);
+                }}
+                className="mt-3 text-xs font-semibold text-primary transition-opacity hover:opacity-75"
+              >
+                See what changed →
+              </button>
+            )}
+          </motion.div>
+        )}
+      </AnimatePresence>
 
       {activeTab === "founders" ? (
         <FoundersMap onCtaClick={handleFoundersCta} />

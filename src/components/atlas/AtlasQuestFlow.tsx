@@ -490,7 +490,10 @@ export const AtlasQuestFlow = ({ quest, clusterId, onboardingIndex }: Props) => 
         navigate("/atlas/quest", { state: { ts: Date.now() } });
       } else {
         const targetSlug = clusters.find(c => c.id === dotClusterId)?.slug;
-        navigate(targetSlug ? `/atlas?highlight=${targetSlug}` : "/atlas");
+        const params = new URLSearchParams();
+        if (targetSlug) params.set("highlight", targetSlug);
+        params.set("newDot", finalDot.title);
+        navigate(`/atlas?${params.toString()}`);
       }
     } catch (err: any) {
       console.error(err);
