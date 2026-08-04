@@ -1,7 +1,7 @@
 import { useState, useRef, useEffect, useMemo } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import { useNavigate, useSearchParams } from "react-router-dom";
-import { Compass, Sparkles, Lock } from "lucide-react";
+import { Compass, Sparkles, Lock, ArrowRight } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { useAtlas, ClusterWithState, DOMAIN_COLORS, getCurrentPhase, getNextPhaseThreshold } from "@/hooks/useAtlas";
 import { useAtlasQuests } from "@/hooks/useAtlasQuests";
@@ -135,6 +135,12 @@ const AtlasPage = () => {
       // ignore
     }
     setActiveTab("mine");
+  };
+
+  const handleFutureSelfNextStep = () => {
+    const params = new URLSearchParams({ source: "atlas_growth" });
+    if (recentDotTitle) params.set("dot", recentDotTitle);
+    navigate(`/council?view=future_self&${params.toString()}`);
   };
 
   const councilThreshold = COUNCIL_UNLOCK_THRESHOLDS[entryState] ?? 4;
@@ -322,13 +328,20 @@ const AtlasPage = () => {
             <p className="text-xs font-semibold uppercase tracking-[0.16em] text-primary">Your Atlas grew</p>
             <p className="mt-1 text-sm font-semibold text-foreground">{recentDotTitle}</p>
             <p className="mt-1 text-xs leading-relaxed text-muted-foreground">A new part of your story is now connected to your map.</p>
+            <button
+              onClick={handleFutureSelfNextStep}
+              className="mt-3 flex w-full items-center justify-center gap-1.5 rounded-lg bg-primary px-3 py-2 text-xs font-semibold text-primary-foreground transition-colors hover:bg-primary/90"
+            >
+              Ask Future Self what comes next
+              <ArrowRight className="h-3.5 w-3.5" />
+            </button>
             {highlightedSlug && (
               <button
                 onClick={() => {
                   const cluster = clusters.find(c => c.slug === highlightedSlug);
                   if (cluster) setSelectedCluster(cluster);
                 }}
-                className="mt-3 text-xs font-semibold text-primary transition-opacity hover:opacity-75"
+                className="mt-3 w-full text-center text-xs font-semibold text-primary transition-opacity hover:opacity-75"
               >
                 See what changed →
               </button>
