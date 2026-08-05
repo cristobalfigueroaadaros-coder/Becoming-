@@ -6,7 +6,7 @@ import { Label } from "@/components/ui/label";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
 import { motion } from "framer-motion";
-import { ArrowRight, Compass, Heart, MessageCircle, Rocket, Sparkles, Users, Zap, Crown } from "lucide-react";
+import { ArrowRight, Compass, Heart, MessageCircle, Rocket, Sparkles, Users, Zap, Crown, TestTube2 } from "lucide-react";
 import bcomingLogo from "@/assets/bcoming-icon.svg";
 import { FloatingDots } from "@/components/ui/floating-dots";
 import { BcomingSystemVideo } from "@/components/onboarding/BcomingSystemVideo";
@@ -31,6 +31,7 @@ const Index = () => {
   const creatorsVideoRef = useRef<HTMLVideoElement | null>(null);
   const creatorsSectionRef = useRef<HTMLDivElement | null>(null);
   const [creatorsVideoVisible, setCreatorsVideoVisible] = useState(false);
+  const testModeEnabled = import.meta.env.VITE_ENABLE_TEST_SESSION === "true";
 
   useEffect(() => {
     const el = creatorsSectionRef.current;
@@ -85,6 +86,21 @@ const Index = () => {
       }
     } catch (error: any) {
       toast.error(error.message);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const handleTestSession = async () => {
+    setLoading(true);
+    try {
+      const { error } = await supabase.auth.signInAnonymously();
+      if (error) throw error;
+
+      toast.success("Test session ready — let’s build your profile.");
+      navigate("/onboarding");
+    } catch (error: any) {
+      toast.error(error.message || "Unable to start a test session.");
     } finally {
       setLoading(false);
     }
@@ -733,6 +749,24 @@ const Index = () => {
                   {isSignUp ? "Already have an account? Sign in" : "Don't have an account? Sign up"}
                 </button>
               </div>
+
+              {testModeEnabled && (
+                <div className="mt-6 pt-5 border-t border-border/50">
+                  <Button
+                    type="button"
+                    variant="outline"
+                    className="w-full gap-2"
+                    onClick={handleTestSession}
+                    disabled={loading}
+                  >
+                    <TestTube2 className="w-4 h-4" />
+                    Start a test session
+                  </Button>
+                  <p className="mt-3 text-center text-xs text-muted-foreground">
+                    Internal testing only. Start at your profile without an email; this test journey stays private to this browser.
+                  </p>
+                </div>
+              )}
             </div>
           </motion.div>
         </div>
