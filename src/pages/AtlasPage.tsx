@@ -182,6 +182,14 @@ const AtlasPage = () => {
       );
 
       if (shouldShowFounder) {
+        // This is an optional reference, not a gate. Mark the automatic
+        // introduction as seen as soon as it is shown so a refresh cannot
+        // trap someone in Founder Origin before they reach their own map.
+        try {
+          localStorage.setItem(FOUNDERS_SEEN_FLAG, "true");
+        } catch {
+          // Ignore unavailable browser storage; My Map remains the safe default.
+        }
         setAtlasOnboardingPending(true);
         setActiveTab("founders");
         setFoundersAccepted(false);
