@@ -1,7 +1,7 @@
 import { useState, useRef, useEffect, useMemo } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import { useNavigate, useSearchParams } from "react-router-dom";
-import { Compass, Sparkles, Lock, ArrowRight } from "lucide-react";
+import { BookOpen, Compass, Sparkles, Lock, ArrowRight } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { useAtlas, ClusterWithState, DOMAIN_COLORS, getCurrentPhase, getNextPhaseThreshold } from "@/hooks/useAtlas";
 import { useAtlasQuests } from "@/hooks/useAtlasQuests";
@@ -396,6 +396,14 @@ const AtlasPage = () => {
         <p className="text-xs text-muted-foreground mt-1">
           {totalDots} {totalDots === 1 ? "discovery" : "discoveries"} · {unlockedCount} areas unlocked
         </p>
+
+        <button
+          onClick={() => navigate("/life-timeline")}
+          className="mt-3 inline-flex items-center gap-2 rounded-full border border-primary/25 bg-primary/5 px-3 py-1.5 text-xs font-semibold text-primary transition-colors hover:bg-primary/10"
+        >
+          <BookOpen className="h-3.5 w-3.5" />
+          Open your Life Timeline
+        </button>
 
         {nextThreshold && (
           <div className="flex items-center gap-2 mt-2 px-3 py-1.5 rounded-full glass w-fit">

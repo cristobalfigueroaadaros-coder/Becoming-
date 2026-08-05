@@ -24,6 +24,7 @@ interface LifetimeEventEditModalProps {
   onClose: () => void;
   event?: LifetimeEvent | null;
   defaultTimePeriod?: TimePeriod;
+  defaultEventType?: EventType;
   onSave: (data: LifetimeEventInput) => Promise<void>;
   onDelete?: () => Promise<void>;
 }
@@ -44,6 +45,7 @@ export const LifetimeEventEditModal = ({
   onClose,
   event,
   defaultTimePeriod = 'current',
+  defaultEventType,
   onSave,
   onDelete,
 }: LifetimeEventEditModalProps) => {
@@ -68,10 +70,10 @@ export const LifetimeEventEditModal = ({
       setTimePeriod(defaultTimePeriod);
       setEventLabel("");
       setEventDescription("");
-      setEventType(null);
+      setEventType(defaultEventType || null);
     }
     setShowDeleteConfirm(false);
-  }, [event, defaultTimePeriod, open]);
+  }, [event, defaultTimePeriod, defaultEventType, open]);
 
   const handleSave = async () => {
     if (!eventLabel.trim()) return;
