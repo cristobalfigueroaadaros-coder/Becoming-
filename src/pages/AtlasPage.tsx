@@ -160,26 +160,19 @@ const AtlasPage = () => {
       setIntakeCompleted(!!p?.console_intake_completed);
       if (p?.entry_state) setEntryState(p.entry_state);
       let forceWalkthrough = false;
-      let foundersSeen = false;
       try {
         forceWalkthrough = sessionStorage.getItem("force_atlas_onboarding_walkthrough") === "true";
-        foundersSeen = localStorage.getItem(FOUNDERS_SEEN_FLAG) === "true";
       } catch {
         forceWalkthrough = false;
-        foundersSeen = false;
       }
-      const introQuery = searchParams.get("intro") === "founder";
-      const atlasOnboardingDone = !!p?.atlas_onboarding_completed;
+      const introMode = searchParams.get("intro");
+      const introQuery = introMode === "founder";
+      const shouldShowGuide = introMode === "guide";
 
       // Founder Origin is an optional first-time reference, not a destination
       // after every quest. Users with any Atlas progress should always return
       // to their own map unless they explicitly request the founder example.
-      const shouldShowFounder = introQuery || (
-        !atlasOnboardingDone &&
-        !forceWalkthrough &&
-        !foundersSeen &&
-        totalDots === 0
-      );
+      const shouldShowFounder = introQuery;
 
       if (shouldShowFounder) {
         // This is an optional reference, not a gate. Mark the automatic
@@ -201,8 +194,13 @@ const AtlasPage = () => {
         }
       } else {
         setActiveTab("mine");
-        setAtlasOnboardingPending(forceWalkthrough);
-        setFoundersAccepted(forceWalkthrough);
+        setAtlasOnboardingPending(forceWalkthrough || shouldShowGuide);
+        setFoundersAccepted(forceWalkthrough || shouldShowGuide);
+        if (shouldShowGuide) {
+          const next = new URLSearchParams(searchParams);
+          next.delete("intro");
+          setSearchParams(next, { replace: true });
+        }
       }
     };
     if (!isLoading) checkFlags();

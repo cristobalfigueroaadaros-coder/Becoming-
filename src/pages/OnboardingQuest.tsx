@@ -221,14 +221,11 @@ const OnboardingQuest = () => {
         })
         .eq("id", user.id);
 
-      // Mark quest completed (new column not in generated types yet)
-      await (supabase
-        .from("profiles") as any)
-        .update({ onboarding_quest_completed: true })
-        .eq("id", user.id);
-
-      toast.success("You're in! Let's set up your Council.");
-      navigate("/dashboard");
+      // These quick questions tailor the Atlas and mentor guidance. They are
+      // not the Atlas onboarding itself: Council unlocks after the user has
+      // created enough personal discoveries in the Atlas.
+      toast.success("Your Atlas is ready to begin.");
+      navigate("/atlas?intro=guide");
     } catch (error: any) {
       console.error("Error completing quest:", error);
       toast.error("Failed to save progress");
