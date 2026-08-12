@@ -1,10 +1,12 @@
 import { useState } from "react";
 import { useNavigate } from "react-router-dom";
+import { useQueryClient } from "@tanstack/react-query";
 import { ArrowLeft, BookOpen, Lightbulb, Plus, Sparkles } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import { LifetimeEventDetailView, LifetimeEventEditModal, LifetimeMapTimeline } from "@/components/lifetime-map";
 import { useLifetimeEvents, type EventType, type LifetimeEvent, type LifetimeEventInput, type TimePeriod } from "@/hooks/useLifetimeEvents";
+import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
 
 const QUICK_ADDS: Array<{ label: string; description: string; type: EventType; icon: typeof Plus }> = [
@@ -15,6 +17,7 @@ const QUICK_ADDS: Array<{ label: string; description: string; type: EventType; i
 
 const LifeTimeline = () => {
   const navigate = useNavigate();
+  const queryClient = useQueryClient();
   const { events, loading, createEvent, updateEvent, deleteEvent, getEventsByPeriod } = useLifetimeEvents();
   const [editingEvent, setEditingEvent] = useState<LifetimeEvent | null>(null);
   const [selectedEvent, setSelectedEvent] = useState<LifetimeEvent | null>(null);
@@ -30,12 +33,75 @@ const LifeTimeline = () => {
     setIsEditorOpen(true);
   };
 
+  const syncAtlasDot = async (timelineEvent: LifetimeEvent) => {
+    const { data: { user } } = await supabase.auth.getUser();
+    if (!user) return;
+
+    const { data: cluster } = await supabase
+      .from("atlas_clusters")
+      .select("id")
+      .eq("slug", "life-events")
+      .maybeSingle();
+    if (!cluster) return;
+
+    const dot = {
+      cluster_id: cluster.id,
+      title: timelineEvent.event_label,
+      original_title: timelineEvent.event_label,
+      short_description: timelineEvent.event_description || "Added from your Life Timeline.",
+      original_description: timelineEvent.event_description || "Added from your Life Timeline.",
+      dot_type: "timeline_moment",
+      dot_category: "life_imprint",
+      source_system: "life_timeline",
+      origin: "user",
+      confidence_score: 1,
+      signal_strength: 1,
+      user_validated: true,
+      user_edited: false,
+      signal_tags: { timeline_event_id: timelineEvent.id, event_type: timelineEvent.event_type },
+    };
+
+    const { data: existingDot } = await supabase
+      .from("atlas_dots")
+      .select("id")
+      .eq("user_id", user.id)
+      .eq("source_system", "life_timeline")
+      .contains("signal_tags", { timeline_event_id: timelineEvent.id })
+      .maybeSingle();
+
+    if (existingDot) {
+      await supabase.from("atlas_dots").update(dot as any).eq("id", existingDot.id);
+    } else {
+      await supabase.from("atlas_dots").insert({ ...dot, user_id: user.id } as any);
+    }
+    queryClient.invalidateQueries({ queryKey: ["atlas-dots"] });
+  };
+
+  const removeAtlasDot = async (timelineEventId: string) => {
+    const { data: { user } } = await supabase.auth.getUser();
+    if (!user) return;
+    await supabase
+      .from("atlas_dots")
+      .delete()
+      .eq("user_id", user.id)
+      .eq("source_system", "life_timeline")
+      .contains("signal_tags", { timeline_event_id: timelineEventId });
+    queryClient.invalidateQueries({ queryKey: ["atlas-dots"] });
+  };
+
   const saveEvent = async (data: LifetimeEventInput) => {
     if (editingEvent) {
-      if (await updateEvent(editingEvent.id, data)) toast.success("Timeline moment updated");
+      if (await updateEvent(editingEvent.id, data)) {
+        await syncAtlasDot({ ...editingEvent, ...data, updated_at: new Date().toISOString() });
+        toast.success("Timeline moment updated in your Atlas");
+      }
       return;
     }
-    if (await createEvent(data)) toast.success("Added to your Life Timeline");
+    const newEvent = await createEvent(data);
+    if (newEvent) {
+      await syncAtlasDot(newEvent);
+      toast.success("Added to your Life Timeline and Atlas");
+    }
   };
 
   if (loading) return <div className="min-h-screen bg-cosmic flex items-center justify-center text-sm text-muted-foreground">Loading your Life Timeline…</div>;
@@ -88,7 +154,12 @@ const LifeTimeline = () => {
         defaultTimePeriod={defaultTimePeriod}
         defaultEventType={defaultEventType}
         onSave={saveEvent}
-        onDelete={editingEvent ? async () => { if (await deleteEvent(editingEvent.id)) toast.success("Timeline moment removed"); } : undefined}
+        onDelete={editingEvent ? async () => {
+          if (await deleteEvent(editingEvent.id)) {
+            await removeAtlasDot(editingEvent.id);
+            toast.success("Timeline moment removed from your Atlas");
+          }
+        } : undefined}
       />
       <LifetimeEventDetailView
         event={selectedEvent}

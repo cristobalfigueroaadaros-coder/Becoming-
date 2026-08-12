@@ -40,6 +40,36 @@ const PLACEHOLDER_EXAMPLES = [
   "I lost trust in someone",
 ];
 
+const MOMENT_COPY: Record<"event" | "skill" | "realization", {
+  title: string;
+  question: string;
+  helper: string;
+  placeholder: string;
+  submit: string;
+}> = {
+  event: {
+    title: "Life Event",
+    question: "What happened?",
+    helper: "A brief label for this life event",
+    placeholder: "I moved to a new country alone",
+    submit: "Add Event",
+  },
+  skill: {
+    title: "Skill Earned",
+    question: "What did you learn to do?",
+    helper: "Name a capability you built through practice or experience",
+    placeholder: "Learned to turn complex ideas into clear workshops",
+    submit: "Add Skill",
+  },
+  realization: {
+    title: "Realization",
+    question: "What do you understand now?",
+    helper: "Capture the insight in your own words",
+    placeholder: "People often need words before they can name what they feel",
+    submit: "Add Realization",
+  },
+};
+
 export const LifetimeEventEditModal = ({
   open,
   onClose,
@@ -59,6 +89,8 @@ export const LifetimeEventEditModal = ({
 
   const isEditing = !!event;
   const randomPlaceholder = PLACEHOLDER_EXAMPLES[Math.floor(Math.random() * PLACEHOLDER_EXAMPLES.length)];
+  const momentKind = defaultEventType === "work" ? "skill" : defaultEventType === "identity" ? "realization" : "event";
+  const momentCopy = MOMENT_COPY[momentKind];
 
   useEffect(() => {
     if (event) {
@@ -109,7 +141,7 @@ export const LifetimeEventEditModal = ({
       <DialogContent className="sm:max-w-md">
         <DialogHeader>
           <DialogTitle>
-            {isEditing ? "Edit Life Event" : "Add Life Event"}
+            {isEditing ? `Edit ${event?.event_type === "work" ? "Skill" : event?.event_type === "identity" ? "Realization" : "Life Event"}` : `Add ${momentCopy.title}`}
           </DialogTitle>
         </DialogHeader>
 
@@ -139,17 +171,17 @@ export const LifetimeEventEditModal = ({
           {/* Event Label */}
           <div className="space-y-2">
             <Label htmlFor="event-label" className="text-sm font-medium">
-              What happened?
+              {momentCopy.question}
             </Label>
             <Input
               id="event-label"
               value={eventLabel}
               onChange={(e) => setEventLabel(e.target.value)}
-              placeholder={randomPlaceholder}
+              placeholder={momentKind === "event" ? randomPlaceholder : momentCopy.placeholder}
               className="text-sm"
             />
             <p className="text-xs text-muted-foreground">
-              A brief label for this life event
+              {momentCopy.helper}
             </p>
           </div>
 
@@ -270,7 +302,7 @@ export const LifetimeEventEditModal = ({
               ) : isEditing ? (
                 "Save"
               ) : (
-                "Add Event"
+                momentCopy.submit
               )}
             </Button>
           </div>
