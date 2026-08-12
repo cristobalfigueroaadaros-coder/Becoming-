@@ -1,5 +1,18 @@
 import { createClient } from "npm:@supabase/supabase-js@^2";
 import { getCorsHeaders, checkRateLimit, rateLimitResponse } from "../_shared/security.ts";
+import { callChatCompletion } from "../_shared/ai-client.ts";
+
+const LOVABLE_GATEWAY_URL = "https://ai.gateway.lovable.dev/v1/chat/completions";
+const nativeFetch = globalThis.fetch.bind(globalThis);
+
+// Council has specialised AI calls. Route those through one provider adapter,
+// so the standalone Supabase project can use OpenAI without duplicating keys.
+async function fetch(input: RequestInfo | URL, init?: RequestInit): Promise<Response> {
+  if (input === LOVABLE_GATEWAY_URL && init?.body) {
+    return callChatCompletion(JSON.parse(String(init.body)));
+  }
+  return nativeFetch(input, init);
+}
 
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
@@ -456,6 +469,20 @@ Deno.serve(async (req) => {
       .eq("id", user.id)
       .maybeSingle();
 
+    const { data: timelineMoments } = await supabaseClient
+      .from("lifetime_events")
+      .select("event_label, event_description, time_period, event_type, created_at")
+      .eq("user_id", user.id)
+      .order("created_at", { ascending: false })
+      .limit(5);
+
+    const timelineContext = timelineMoments?.length ? `
+=== LIFE TIMELINE MEMORIES (INVISIBLE CONTEXT) ===
+${timelineMoments.map((m: any) => `- ${m.time_period}: "${m.event_label}"${m.event_description ? ` — ${m.event_description}` : ""}`).join("\n")}
+Use a memory only when it directly helps. Refer to the user's words naturally; never say this came from a timeline, profile, or data source.
+=== END LIFE TIMELINE MEMORIES ===
+` : "";
+
     // Fetch Life Domains for silent context
     let lifeDomainContext = "";
     try {
@@ -750,7 +777,7 @@ Use these signals to personalize your response. Show that you understand who thi
     }
 
     // Combine foundation + numerology + entry state + life domains + atlas signals context
-    const fullUserContext = numerologyContext + userFoundationContext + entryStateContext + lifeDomainContext + atlasSignalContext;
+    const fullUserContext = numerologyContext + userFoundationContext + entryStateContext + lifeDomainContext + atlasSignalContext + timelineContext;
 
     // === Q2 CLARITY SEEKING REMOVED — Max 2 questions rule ===
     // Q2 now goes straight to full council response (acts as final round)

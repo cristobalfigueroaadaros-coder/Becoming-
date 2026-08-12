@@ -1,4 +1,5 @@
 import { createClient } from "npm:@supabase/supabase-js@^2";
+import { callChatCompletion } from "../_shared/ai-client.ts";
 
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
@@ -97,6 +98,13 @@ Deno.serve(async (req) => {
       .eq("user_id", user.id)
       .order("created_at", { ascending: false })
       .limit(10);
+
+    const { data: timelineMoments } = await supabaseClient
+      .from("lifetime_events")
+      .select("event_label, event_description, time_period, event_type, created_at")
+      .eq("user_id", user.id)
+      .order("created_at", { ascending: false })
+      .limit(5);
 
     // Get life domains
     const { data: lifeDomains } = await supabaseClient
@@ -311,6 +319,9 @@ ${recentTaskInsights?.map((t: any) => `- Task: "${t.step_title}" → Insight: "$
 BECOMING DISCOVERIES (values, Ikigai, strengths):
 ${becomingDiscoveries?.map((d: any) => `- ${d.discovery_type}/${d.element_key}: "${d.element_value}"`).join("\n") || "None discovered yet"}
 
+LIFE TIMELINE MEMORIES (their own words — use only when clearly relevant):
+${timelineMoments?.map((m: any) => `- ${m.time_period}: "${m.event_label}"${m.event_description ? ` — ${m.event_description}` : ""}`).join("\n") || "No timeline moments yet"}
+
 ACTIONABLE HINTS YOU CAN WEAVE IN:
 ${actionableHints.map(h => `- [${h.type}]: ${h.hint}`).join("\n") || "None identified"}
 
@@ -351,22 +362,12 @@ YOUR MESSAGE MUST:
 
 ${KEYWORD_HIGHLIGHTING_RULES}`;
 
-    const LOVABLE_API_KEY = Deno.env.get("LOVABLE_API_KEY");
-    if (!LOVABLE_API_KEY) throw new Error("LOVABLE_API_KEY not configured");
-
-    const aiResponse = await fetch("https://ai.gateway.lovable.dev/v1/chat/completions", {
-      method: "POST",
-      headers: {
-        "Authorization": `Bearer ${LOVABLE_API_KEY}`,
-        "Content-Type": "application/json",
-      },
-      body: JSON.stringify({
-        model: "google/gemini-2.5-flash",
-        messages: [
-          { role: "system", content: systemPrompt },
-          { role: "user", content: `Generate Future Self guidance for: ${triggerReason}. Use the ${chosenArchetype.name} archetype.` }
-        ],
-      }),
+    const aiResponse = await callChatCompletion({
+      model: "google/gemini-2.5-flash",
+      messages: [
+        { role: "system", content: systemPrompt },
+        { role: "user", content: `Generate Future Self guidance for: ${triggerReason}. Use the ${chosenArchetype.name} archetype.` }
+      ],
     });
 
     if (!aiResponse.ok) {
