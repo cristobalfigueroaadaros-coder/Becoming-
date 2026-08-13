@@ -61,31 +61,41 @@ Respond ONLY with valid JSON in this exact format:
       ],
     });
 
-    if (!aiResponse.ok) {
-      const errorText = await aiResponse.text();
-      console.error("AI provider error:", errorText);
-      throw new Error("Failed to analyze story");
-    }
-
-    const aiData = await aiResponse.json();
-    let summaryText = aiData.choices?.[0]?.message?.content?.trim() || "{}";
-    
-    // Clean up the response - remove markdown code blocks if present
-    summaryText = summaryText.replace(/```json\n?/g, '').replace(/```\n?/g, '').trim();
-    
     let summary;
-    try {
-      summary = JSON.parse(summaryText);
-    } catch (e) {
-      console.error("Failed to parse AI response:", summaryText);
+    if (!aiResponse.ok) {
+      // A temporary provider or billing limit should never prevent someone from
+      // beginning their journey. Preserve the story and let later AI responses
+      // enrich it when the provider is available again.
+      const errorText = await aiResponse.text();
+      console.error("AI provider error; saving foundation with a safe fallback:", errorText);
       summary = {
-        who_they_are: "User shared their story",
-        background: "Background provided",
+        who_they_are: "You shared the beginning of your story.",
+        background: story?.slice(0, 500) || "Background provided",
         struggles: [],
         aspirations: [],
         emotional_tone: "reflective",
-        key_themes: []
+        key_themes: ["discovery"],
       };
+    } else {
+      const aiData = await aiResponse.json();
+      let summaryText = aiData.choices?.[0]?.message?.content?.trim() || "{}";
+      
+      // Clean up the response - remove markdown code blocks if present
+      summaryText = summaryText.replace(/```json\n?/g, '').replace(/```\n?/g, '').trim();
+      
+      try {
+        summary = JSON.parse(summaryText);
+      } catch (e) {
+        console.error("Failed to parse AI response:", summaryText);
+        summary = {
+          who_they_are: "User shared their story",
+          background: "Background provided",
+          struggles: [],
+          aspirations: [],
+          emotional_tone: "reflective",
+          key_themes: []
+        };
+      }
     }
 
     console.log("Extracted summary:", summary);
