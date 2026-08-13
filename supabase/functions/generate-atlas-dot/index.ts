@@ -507,7 +507,7 @@ TONE: Sound like a thoughtful friend noticing something, not an AI generating a 
         ],
         tools,
         tool_choice: toolChoice,
-      });
+      }, { usage: { feature: "atlas" } });
 
       if (!response.ok) {
         if (response.status === 429) {

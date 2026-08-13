@@ -368,7 +368,7 @@ ${KEYWORD_HIGHLIGHTING_RULES}`;
         { role: "system", content: systemPrompt },
         { role: "user", content: `Generate Future Self guidance for: ${triggerReason}. Use the ${chosenArchetype.name} archetype.` }
       ],
-    });
+    }, { usage: { userId: user.id, feature: "future_self" } });
 
     if (!aiResponse.ok) {
       const errorText = await aiResponse.text();

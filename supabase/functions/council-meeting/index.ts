@@ -9,7 +9,7 @@ const nativeFetch = globalThis.fetch.bind(globalThis);
 // so the standalone Supabase project can use OpenAI without duplicating keys.
 async function fetch(input: RequestInfo | URL, init?: RequestInit): Promise<Response> {
   if (input === LOVABLE_GATEWAY_URL && init?.body) {
-    return callChatCompletion(JSON.parse(String(init.body)));
+    return callChatCompletion(JSON.parse(String(init.body)), { usage: { feature: "council" } });
   }
   return nativeFetch(input, init);
 }

@@ -59,7 +59,7 @@ Respond ONLY with valid JSON in this exact format:
         { role: "system", content: "You extract structured insights from personal stories. Always respond with valid JSON only, no markdown." },
         { role: "user", content: extractionPrompt }
       ],
-    });
+    }, { usage: { userId: user.id, feature: "foundation" } });
 
     let summary;
     if (!aiResponse.ok) {
