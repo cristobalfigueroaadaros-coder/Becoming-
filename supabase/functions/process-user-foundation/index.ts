@@ -1,4 +1,5 @@
 import { createClient } from "npm:@supabase/supabase-js@^2";
+import { callChatCompletion } from "../_shared/ai-client.ts";
 
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
@@ -27,10 +28,7 @@ Deno.serve(async (req) => {
     console.log("Processing user foundation story for:", user.id);
     console.log("Story length:", story?.length || 0);
 
-    // Use AI to extract structured themes from the story
-    const LOVABLE_API_KEY = Deno.env.get("LOVABLE_API_KEY");
-    if (!LOVABLE_API_KEY) throw new Error("LOVABLE_API_KEY not configured");
-
+    // Use the shared provider so Bcoming's private Supabase project can use OpenAI.
     const extractionPrompt = `You are an expert at understanding people's life stories. Analyze this introduction and extract structured insights.
 
 USER'S STORY:
@@ -55,24 +53,17 @@ Respond ONLY with valid JSON in this exact format:
   "key_themes": ["...", "..."]
 }`;
 
-    const aiResponse = await fetch("https://ai.gateway.lovable.dev/v1/chat/completions", {
-      method: "POST",
-      headers: {
-        "Authorization": `Bearer ${LOVABLE_API_KEY}`,
-        "Content-Type": "application/json",
-      },
-      body: JSON.stringify({
-        model: "google/gemini-2.5-flash",
-        messages: [
-          { role: "system", content: "You extract structured insights from personal stories. Always respond with valid JSON only, no markdown." },
-          { role: "user", content: extractionPrompt }
-        ],
-      }),
+    const aiResponse = await callChatCompletion({
+      model: "gpt-4o-mini",
+      messages: [
+        { role: "system", content: "You extract structured insights from personal stories. Always respond with valid JSON only, no markdown." },
+        { role: "user", content: extractionPrompt }
+      ],
     });
 
     if (!aiResponse.ok) {
       const errorText = await aiResponse.text();
-      console.error("AI gateway error:", errorText);
+      console.error("AI provider error:", errorText);
       throw new Error("Failed to analyze story");
     }
 

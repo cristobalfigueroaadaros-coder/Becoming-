@@ -20,6 +20,7 @@ export const LifetimeEventCard = ({ event, onClick, delay = 0 }: LifetimeEventCa
   const eventTypeConfig = event.event_type 
     ? EVENT_TYPE_CONFIG[event.event_type] 
     : null;
+  const momentKind = event.event_type === "work" ? "Skill Earned" : event.event_type === "identity" ? "Realization" : "Life Event";
 
   // Color based on state
   const getCardStyle = () => {
@@ -76,7 +77,7 @@ export const LifetimeEventCard = ({ event, onClick, delay = 0 }: LifetimeEventCa
         ) : (
           <div className="flex items-center gap-1">
             <Leaf className="w-3 h-3 text-muted-foreground" />
-            <span className="text-[10px] text-muted-foreground">Event</span>
+            <span className="text-[10px] text-muted-foreground">{momentKind}</span>
           </div>
         )}
       </div>

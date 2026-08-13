@@ -115,7 +115,7 @@ export const LifetimeMapTimeline = ({
                           onClick={() => onAddEvent(period)}
                         >
                           <Plus className="w-3 h-3 mr-1" />
-                          Add Event
+                          Add Moment
                         </Button>
                       </motion.div>
                     </div>

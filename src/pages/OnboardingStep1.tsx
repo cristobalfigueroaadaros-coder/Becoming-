@@ -89,7 +89,7 @@ const OnboardingStep1 = () => {
           user_id: user.id,
           evolution_level: 1,
           global_xp: 0,
-        });
+        }, { onConflict: "user_id", ignoreDuplicates: true });
 
       if (progressError) throw progressError;
 

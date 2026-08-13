@@ -1,5 +1,16 @@
 import { createClient } from "npm:@supabase/supabase-js@^2";
 import { getCorsHeaders, checkRateLimit, rateLimitResponse } from "../_shared/security.ts";
+import { callChatCompletion } from "../_shared/ai-client.ts";
+
+const LOVABLE_GATEWAY_URL = "https://ai.gateway.lovable.dev/v1/chat/completions";
+const nativeFetch = globalThis.fetch.bind(globalThis);
+
+async function fetch(input: RequestInfo | URL, init?: RequestInit): Promise<Response> {
+  if (input === LOVABLE_GATEWAY_URL && init?.body) {
+    return callChatCompletion(JSON.parse(String(init.body)));
+  }
+  return nativeFetch(input, init);
+}
 
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
