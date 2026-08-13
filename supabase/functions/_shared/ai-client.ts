@@ -82,7 +82,9 @@ export async function callChatCompletion(
   });
 
   if (!response.ok) {
-    const body = await response.text();
+    // Preserve the original response for callers that need to inspect its body
+    // (for example to decide whether to use a safe local fallback).
+    const body = await response.clone().text();
     console.error("AI provider error:", config.provider, response.status, body);
   }
 
