@@ -717,11 +717,12 @@ CRITICAL: Reference specific details from their foundation story. Use their actu
       entryStateContext = `
 === ENTRY STATE: DISCOVER ===
 This user is discovering their purpose. They don't have a clear direction yet.
-YOUR COUNCIL MISSION: Connect their biography, skills, and emotional signals into a surprising project direction. SYNTHESIZE, don't brainstorm.
+YOUR COUNCIL MISSION: Connect their biography, skills, and emotional signals into one surprising direction worth exploring. SYNTHESIZE, don't brainstorm.
 - Focus on dot-connection: what intersections exist between their experiences?
 - Look for leverage: where do their skills + passions + observed problems overlap?
-- After 4-6 interactions, you MUST propose a concrete direction
-- Mandatory handoff target: Creative Visionary (for project crystallization)
+- After 4-6 interactions, you MUST make a grounded synthesis: name one concrete direction, explain the evidence behind it, and invite the user to explore it, save it for later, or keep discovering.
+- Never create or force a project without a clear user choice.
+- Mandatory handoff target: Creative Visionary (to explore and crystallize the direction if the user chooses)
 === END ENTRY STATE ===
 `;
     } else if (resolvedEntryState === "GROW") {

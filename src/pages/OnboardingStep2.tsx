@@ -7,34 +7,31 @@ import { cn } from "@/lib/utils";
 import confetti from "canvas-confetti";
 
 type Phase = "DISCOVER" | "GROW" | "BUILD";
-type Step = "q1" | "q2" | "q3" | "detecting" | "reveal" | "manual" | "phase_card";
+type Step = "q1" | "detecting" | "reveal" | "manual" | "phase_card";
 
-const QUESTIONS = [
-  {
-    prompt: "Which one feels closest to where you are right now?",
-    options: [
-      { label: "I feel lost, I don't know what to build yet", phase: "DISCOVER" as Phase, emoji: "🔍" },
-      { label: "I have an idea or something I'm working on", phase: "GROW" as Phase, emoji: "🌱" },
-      { label: "I already built something and now I want to grow it", phase: "BUILD" as Phase, emoji: "🛠️" },
-    ],
-  },
-  {
-    prompt: "What have you already done?",
-    options: [
-      { label: "Mostly thinking, exploring", phase: "DISCOVER" as Phase, emoji: "💭" },
-      { label: "Started building or shaping an idea", phase: "GROW" as Phase, emoji: "🔨" },
-      { label: "Built and tested something in real life", phase: "BUILD" as Phase, emoji: "✅" },
-    ],
-  },
-  {
-    prompt: "What do you need most right now?",
-    options: [
-      { label: "Clarity and direction", phase: "DISCOVER" as Phase, emoji: "🧭" },
-      { label: "Structure and validation", phase: "GROW" as Phase, emoji: "📐" },
-      { label: "Help to sell, grow, or scale", phase: "BUILD" as Phase, emoji: "🚀" },
-    ],
-  },
-];
+const QUESTIONS = [{
+  prompt: "Where would you like to begin?",
+  options: [
+    {
+      label: "I know I want to build something, but I don't know what yet",
+      description: "We'll help you notice your strengths, patterns, and what matters to you—then find a direction worth exploring.",
+      phase: "DISCOVER" as Phase,
+      emoji: "🔍",
+    },
+    {
+      label: "I have an idea or early project I want to make real",
+      description: "We'll help you understand who it is for, test a small version, and learn from real feedback.",
+      phase: "GROW" as Phase,
+      emoji: "🌱",
+    },
+    {
+      label: "I'm already building something and want to take it further",
+      description: "We'll help you find the next valuable move: clearer direction, stronger systems, and sustainable growth.",
+      phase: "BUILD" as Phase,
+      emoji: "🛠️",
+    },
+  ],
+}];
 
 const PHASE_DATA: Record<Phase, {
   title: string;
@@ -50,11 +47,11 @@ const PHASE_DATA: Record<Phase, {
     borderColor: "border-primary/40",
     bgColor: "bg-primary/8",
     lines: [
-      "I see where you are 👀",
-      "You're in the Discovery phase.",
-      "You're looking to create something meaningful, and we're going to help you find clarity and direction.",
+      "You are starting with discovery.",
+      "There is no need to force an idea yet.",
+      "We'll help you notice what is already meaningful in your story and explore directions that could help other people.",
     ],
-    cardDescription: "You're exploring your direction. We'll help you connect the dots and find what truly matters to you.",
+    cardDescription: "Explore your strengths, patterns, and life experiences. A meaningful direction can emerge from what is already true about you.",
   },
   GROW: {
     title: "Growth",
@@ -62,11 +59,11 @@ const PHASE_DATA: Record<Phase, {
     borderColor: "border-cyan-500/40",
     bgColor: "bg-cyan-500/8",
     lines: [
-      "I see where you are 👀",
-      "You're in the Growth phase.",
-      "You already have an idea, and now we're going to help you structure it and move it forward.",
+      "You have something worth shaping.",
+      "Now we make it clearer and more real.",
+      "We'll help you understand the people it serves, test a small version, and learn from feedback.",
     ],
-    cardDescription: "You have direction. We'll help you structure your idea and move it forward with confidence.",
+    cardDescription: "Turn your early idea into something people can try, respond to, and help you improve.",
   },
   BUILD: {
     title: "Build",
@@ -74,11 +71,11 @@ const PHASE_DATA: Record<Phase, {
     borderColor: "border-orange-500/40",
     bgColor: "bg-orange-500/8",
     lines: [
-      "I see where you are 👀",
-      "You're in the Build phase.",
-      "You've already created something real, and now we're going to help you take it to the next stage.",
+      "You already have something in motion.",
+      "Now we find the move that matters most.",
+      "We'll help you strengthen what works, reach more people, and build a sustainable next chapter.",
     ],
-    cardDescription: "You've built something real. We'll help you grow it, reach more people, and scale.",
+    cardDescription: "Build on what is already real—with clearer priorities, stronger user connection, and sustainable growth.",
   },
 };
 
@@ -88,26 +85,16 @@ const STAGE_MENTORS: Record<Phase, string[]> = {
   BUILD: ["strategist_mentor", "creative_visionary", "business_mentor", "discipline_mentor", "marketing_mentor", "problem_mentor", "design_thinking_mentor"],
 };
 
-function detectPhase(answers: Phase[]): Phase {
-  const scores: Record<Phase, number> = { DISCOVER: 0, GROW: 0, BUILD: 0 };
-  answers.forEach(p => { scores[p]++; });
-  // Tie → prefer higher phase (BUILD > GROW > DISCOVER) to avoid under-promising
-  if (scores.BUILD >= scores.GROW && scores.BUILD >= scores.DISCOVER) return "BUILD";
-  if (scores.GROW >= scores.DISCOVER) return "GROW";
-  return "DISCOVER";
-}
-
 const OnboardingStep2 = () => {
   const navigate = useNavigate();
   const [step, setStep] = useState<Step>("q1");
-  const [answers, setAnswers] = useState<Phase[]>([]);
   const [detectedPhase, setDetectedPhase] = useState<Phase>("DISCOVER");
   const [revealedLines, setRevealedLines] = useState(0);
   const [showConfirmButtons, setShowConfirmButtons] = useState(false);
   const [manualSelected, setManualSelected] = useState<Phase | null>(null);
   const [saving, setSaving] = useState(false);
 
-  const questionIndex = step === "q1" ? 0 : step === "q2" ? 1 : step === "q3" ? 2 : -1;
+  const questionIndex = step === "q1" ? 0 : -1;
 
   // Animate phase reveal lines one by one, then show confirm buttons
   useEffect(() => {
@@ -125,18 +112,10 @@ const OnboardingStep2 = () => {
     return () => timers.forEach(clearTimeout);
   }, [step, detectedPhase]);
 
-  const handleAnswer = (qIndex: number, phase: Phase) => {
-    const newAnswers = [...answers, phase];
-    setAnswers(newAnswers);
-
-    if (qIndex < 2) {
-      setStep(qIndex === 0 ? "q2" : "q3");
-    } else {
-      setStep("detecting");
-      const detected = detectPhase(newAnswers);
-      setDetectedPhase(detected);
-      setTimeout(() => setStep("reveal"), 1600);
-    }
+  const handleAnswer = (phase: Phase) => {
+    setStep("detecting");
+    setDetectedPhase(phase);
+    setTimeout(() => setStep("reveal"), 900);
   };
 
   const savePhase = async (phase: Phase) => {
@@ -190,7 +169,7 @@ const OnboardingStep2 = () => {
             >
               {/* Progress bar */}
               <div className="flex gap-1.5 justify-center">
-                {[0, 1, 2].map(i => (
+                {[0].map(i => (
                   <div
                     key={i}
                     className={cn(
@@ -203,7 +182,7 @@ const OnboardingStep2 = () => {
 
               <div className="text-center space-y-1">
                 <p className="text-xs text-muted-foreground uppercase tracking-widest">
-                  {questionIndex + 1} of 3
+                  Your starting point
                 </p>
                 <h2 className="text-xl font-semibold text-foreground leading-snug">
                   {QUESTIONS[questionIndex].prompt}
@@ -214,12 +193,17 @@ const OnboardingStep2 = () => {
                 {QUESTIONS[questionIndex].options.map(opt => (
                   <button
                     key={opt.phase}
-                    onClick={() => handleAnswer(questionIndex, opt.phase)}
+                    onClick={() => handleAnswer(opt.phase)}
                     className="w-full text-left rounded-xl border border-border/50 bg-card/70 hover:border-primary/60 hover:bg-card transition-all p-4 flex items-center gap-4 group active:scale-[0.98]"
                   >
                     <span className="text-2xl leading-none">{opt.emoji}</span>
-                    <span className="text-sm text-foreground group-hover:text-primary transition-colors leading-snug">
-                      {opt.label}
+                    <span className="space-y-1">
+                      <span className="block text-sm text-foreground group-hover:text-primary transition-colors leading-snug">
+                        {opt.label}
+                      </span>
+                      <span className="block text-xs text-muted-foreground leading-snug">
+                        {opt.description}
+                      </span>
                     </span>
                   </button>
                 ))}

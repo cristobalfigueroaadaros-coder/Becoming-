@@ -67,7 +67,7 @@ const STAGES: Stage[] = [
 // ─── Goal lines by phase ──────────────────────────────────────────────────────
 
 const GOAL_LINE: Record<string, string> = {
-  DISCOVER: "Your goal: build a project that reflects who you are",
+  DISCOVER: "Your goal: find a direction that grows from who you are",
   GROW: "Your goal: test and validate your MVP",
   BUILD: "Your goal: land a meaningful win in the next 30 days",
 };
