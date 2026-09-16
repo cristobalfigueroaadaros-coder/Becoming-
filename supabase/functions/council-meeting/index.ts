@@ -1105,6 +1105,15 @@ Add NEW perspective only. Just your perspective, no labels or format.
 ${KEYWORD_HIGHLIGHTING_RULES}`;
       }
 
+      // EVERY mentor speaks with the user's real history in hand — foundation story,
+      // life context and the concrete materials from their Atlas. Without this the
+      // voices drift into generic advice that ignores what the person actually has.
+      if (fullUserContext) {
+        systemPrompt += `\n\n${fullUserContext}`;
+      }
+
+
+
       if (mentorType === "future_self" && profile) {
         systemPrompt += `\n\nFuture Self Profile:
 Age: ${profile.future_age}
