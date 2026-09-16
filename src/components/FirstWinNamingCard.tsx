@@ -83,6 +83,7 @@ export const FirstWinNamingCard = ({
   const copy = copyVariants[effectiveType];
 
   const handleAccept = async () => {
+    if (celebrating) return;
     setCelebrating(true);
     
     // Only show confetti for new core projects
@@ -106,7 +107,11 @@ export const FirstWinNamingCard = ({
     }
 
     await new Promise(resolve => setTimeout(resolve, 800));
-    onAccept(editedName);
+    try {
+      await onAccept(editedName);
+    } catch {
+      setCelebrating(false);
+    }
   };
 
   // Custom subheader based on context

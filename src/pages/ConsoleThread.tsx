@@ -264,6 +264,11 @@ const ConsoleThread = ({ embedded = false, onProjectNameChange }: ConsoleThreadP
   const [atlasSignals, setAtlasSignals] = useState<any>(null);
   const [showPayment, setShowPayment] = useState(false);
   const [isRecording, setIsRecording] = useState(false);
+  const [pendingProjectProposal, setPendingProjectProposal] = useState<{
+    name: string;
+    description: string;
+    projectType: string;
+  } | null>(null);
   const recognitionRef = useRef<any>(null);
   const scrollRef = useRef<HTMLDivElement>(null);
   const inputRef = useRef<HTMLInputElement>(null);
@@ -455,20 +460,32 @@ const ConsoleThread = ({ embedded = false, onProjectNameChange }: ConsoleThreadP
               const pendingDescription = String(pendingCard.card_data.projectDescription || "");
               const pendingProjectType = String(pendingCard.card_data.projectType || "experience");
               discoveredProjectTypeRef.current = pendingProjectType;
+              setPendingProjectProposal({
+                name: pendingName,
+                description: pendingDescription,
+                projectType: pendingProjectType,
+              });
               setTimeout(() => {
-                addCardMessage(
-                  <FirstWinNamingCard
-                    proposedName={pendingName}
-                    description={pendingDescription}
-                    onAccept={(name) => handleFirstWinAccept(name, pendingDescription)}
-                    onKeepExploring={() => {
-                      setPhase("user_reply");
-                      persistPhase("user_reply");
-                    }}
-                  />,
-                  undefined,
-                  "project_detected"
-                );
+                const restoredCard: ChatMessage = {
+                  id: crypto.randomUUID(),
+                  role: "system",
+                  content: "",
+                  cardType: "project_proposal",
+                  cardData: pendingCard.card_data,
+                  card: (
+                    <FirstWinNamingCard
+                      proposedName={pendingName}
+                      description={pendingDescription}
+                      onAccept={(name) => handleFirstWinAccept(name, pendingDescription)}
+                      onKeepExploring={() => {
+                        setPendingProjectProposal(null);
+                        setPhase("user_reply");
+                        persistPhase("user_reply");
+                      }}
+                    />
+                  ),
+                };
+                setMessages(prev => [...prev, restoredCard]);
               }, 300);
             } else {
               setPhase("mentor_1to1");
@@ -923,6 +940,16 @@ const ConsoleThread = ({ embedded = false, onProjectNameChange }: ConsoleThreadP
       await handleHandoffResponse(text);
     } else if (phase === "mentor_1to1") {
       await handleMentor1to1(text);
+    } else if (phase === "project_detected" && pendingProjectProposal) {
+      const acceptsProposal = /\b(accept|yes|yeah|yep|sure|okay|ok|perfect|love it|let['’]?s build|let['’]?s do it|i['’]?m in)\b/i.test(text);
+      if (acceptsProposal) {
+        await handleFirstWinAccept(pendingProjectProposal.name, pendingProjectProposal.description);
+      } else {
+        setPendingProjectProposal(null);
+        setPhase("mentor_1to1");
+        persistPhase("mentor_1to1");
+        await handleMentor1to1(text);
+      }
     } else if (phase === "return_greeting") {
       setLoading(true);
       try {
@@ -1491,6 +1518,9 @@ const ConsoleThread = ({ embedded = false, onProjectNameChange }: ConsoleThreadP
             const idea = intakeAnswers[2] || "";
             finalProjectName = idea.length > 5 && idea.length < 60 ? idea : "My First Project";
           }
+          const proposalDescription = coherenceResult.projectDescription || "";
+          const proposalType = coherenceResult.projectType || "experience";
+          setPendingProjectProposal({ name: finalProjectName, description: proposalDescription, projectType: proposalType });
 
           setPhase("project_detected");
           persistPhase("project_detected");
@@ -1499,15 +1529,18 @@ const ConsoleThread = ({ embedded = false, onProjectNameChange }: ConsoleThreadP
           addCardMessage(
             <FirstWinNamingCard
               proposedName={finalProjectName}
-              description={coherenceResult.projectDescription}
-              onAccept={(name) => handleFirstWinAccept(name, coherenceResult.projectDescription)}
+              description={proposalDescription}
+              onAccept={(name) => handleFirstWinAccept(name, proposalDescription)}
               onKeepExploring={() => {
+                setPendingProjectProposal(null);
                 setPhase("user_reply");
                 persistPhase("user_reply");
               }}
             />,
             undefined,
-            "project_detected"
+            "project_detected",
+            "project_proposal",
+            { projectName: finalProjectName, projectDescription: proposalDescription, projectType: proposalType }
           );
         } else {
           const nextQ = data.clarityQuestion || data.suggestedNextQuestion;
@@ -1670,6 +1703,12 @@ const ConsoleThread = ({ embedded = false, onProjectNameChange }: ConsoleThreadP
         if (data.projectCoherence.projectType) {
           discoveredProjectTypeRef.current = data.projectCoherence.projectType;
         }
+        const proposal = {
+          name: data.projectCoherence.projectName,
+          description: data.projectCoherence.projectDescription || "",
+          projectType: data.projectCoherence.projectType || "experience",
+        };
+        setPendingProjectProposal(proposal);
 
         await supabase.from("chats").insert({
           user_id: user.id,
@@ -1691,6 +1730,7 @@ const ConsoleThread = ({ embedded = false, onProjectNameChange }: ConsoleThreadP
             description={data.projectCoherence.projectDescription}
             onAccept={(name) => handleFirstWinAccept(name, data.projectCoherence.projectDescription)}
             onKeepExploring={() => {
+              setPendingProjectProposal(null);
               setPhase("user_reply");
               persistPhase("user_reply");
             }}
@@ -1700,8 +1740,8 @@ const ConsoleThread = ({ embedded = false, onProjectNameChange }: ConsoleThreadP
           "project_proposal",
           {
             projectName: data.projectCoherence.projectName,
-            projectDescription: data.projectCoherence.projectDescription,
-            projectType: data.projectCoherence.projectType || "experience",
+            projectDescription: proposal.description,
+            projectType: proposal.projectType,
           }
         );
       } else {
@@ -1756,6 +1796,7 @@ const ConsoleThread = ({ embedded = false, onProjectNameChange }: ConsoleThreadP
 
         if (projectError || !projectData) {
           toast.error("Failed to create project");
+          projectAcceptanceInFlightRef.current = false;
           setLoading(false);
           return;
         }
@@ -1799,6 +1840,7 @@ const ConsoleThread = ({ embedded = false, onProjectNameChange }: ConsoleThreadP
         if (!projectId) {
           setTyping(null);
           toast.error("Failed to create project");
+          projectAcceptanceInFlightRef.current = false;
           setLoading(false);
           return;
         }
@@ -1902,6 +1944,7 @@ const ConsoleThread = ({ embedded = false, onProjectNameChange }: ConsoleThreadP
 
         if (projectError || !projectData) {
           toast.error("Failed to create project");
+          projectAcceptanceInFlightRef.current = false;
           setLoading(false);
           return;
         }
@@ -1914,6 +1957,7 @@ const ConsoleThread = ({ embedded = false, onProjectNameChange }: ConsoleThreadP
         const projectId = projectData?.project?.id || projectData?.projectId;
         if (!projectId) {
           toast.error("Failed to create project");
+          projectAcceptanceInFlightRef.current = false;
           setLoading(false);
           return;
         }
@@ -2007,6 +2051,7 @@ const ConsoleThread = ({ embedded = false, onProjectNameChange }: ConsoleThreadP
         setTyping(null);
         console.error("Project creation failed:", projectError);
         toast.error("Failed to create project");
+        projectAcceptanceInFlightRef.current = false;
         setLoading(false);
         return;
       }
