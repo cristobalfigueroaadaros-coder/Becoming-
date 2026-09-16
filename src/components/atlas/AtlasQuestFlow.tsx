@@ -484,7 +484,7 @@ export const AtlasQuestFlow = ({ quest, clusterId, onboardingIndex }: Props) => 
 
       // If the final onboarding quest just completed, mark onboarding as done
       if (isOnboarding && onboardingIndex === 12) {
-        await supabase.from("profiles").update({ onboarding_quest_completed: true } as any).eq("id", user.id);
+        await supabase.from("profiles").update({ onboarding_quest_completed: true, atlas_journey_stage: "complete" } as any).eq("id", user.id);
         queryClient.invalidateQueries({ queryKey: ["profile-onboarding-status"] });
         setShowConnectionMoment(true);
         return;

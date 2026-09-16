@@ -7,6 +7,7 @@ import { useAtlas, ClusterWithState, DOMAIN_COLORS, getCurrentPhase, getNextPhas
 import { useAtlasQuests } from "@/hooks/useAtlasQuests";
 import { AtlasClusterNode, AtlasClusterDetail } from "@/components/atlas";
 import { AtlasOnboardingOverlay } from "@/components/atlas/AtlasOnboardingOverlay";
+import { AtlasJourneyPrompt } from "@/components/atlas/AtlasJourneyPrompt";
 import { AtlasUnlockProgress } from "@/components/atlas/AtlasUnlockProgress";
 import { ThinkOutOfBoxCard } from "@/components/atlas/ThinkOutOfBoxCard";
 import { YourPatternsCard } from "@/components/atlas/YourPatternsCard";
@@ -81,6 +82,8 @@ const COUNCIL_UNLOCK_THRESHOLDS: Record<string, number> = {
   BUILD: 2,
 };
 
+type AtlasJourneyStage = "atlas_intro" | "quest_one" | "quest_two" | "lifetime_event" | "founder_journey" | "continue_quests" | "complete";
+
 const AtlasPage = () => {
   const navigate = useNavigate();
   const [searchParams, setSearchParams] = useSearchParams();
@@ -105,36 +108,31 @@ const AtlasPage = () => {
   const [opportunityDismissed, setOpportunityDismissed] = useState(false);
   const { data: opportunity } = useOpportunityDetection(totalDots);
   const [atlasOnboardingPending, setAtlasOnboardingPending] = useState(false);
-  const [foundersAccepted, setFoundersAccepted] = useState(false);
+  const [journeyStage, setJourneyStage] = useState<AtlasJourneyStage | null>(null);
+  const [showJourneyPrompt, setShowJourneyPrompt] = useState<"lifetime_event" | "founder_journey" | null>(null);
 
   // ── Founder's Atlas tab ─────────────────────────────────────────────
-  const FOUNDERS_SEEN_FLAG = "atlas_founders_map_seen";
-  // Default to founders ONLY for users we know haven't completed atlas onboarding.
-  // Final decision is made in checkFlags() below using backend state.
   const [activeTab, setActiveTab] = useState<"mine" | "founders">("mine");
 
-  const handleFoundersCta = () => {
-    try {
-      localStorage.setItem(FOUNDERS_SEEN_FLAG, "true");
-      sessionStorage.setItem("force_atlas_onboarding_walkthrough", "true");
-    } catch {
-      // ignore
+  const handleFoundersCta = async () => {
+    const { data: { user } } = await supabase.auth.getUser();
+    if (user && journeyStage === "founder_journey") {
+      await supabase.from("profiles").update({ atlas_journey_stage: "continue_quests" }).eq("id", user.id);
+      setJourneyStage("continue_quests");
     }
-    setFoundersAccepted(true);
-    setAtlasOnboardingPending(true);
-    setShowOnboarding(false);
-    setActiveTab("mine");
+    navigate("/atlas/quest");
   };
 
   const handleSelectMyMap = () => {
-    // Choosing a personal map is a deliberate handoff away from the founder
-    // example. Keep that choice across later quest returns.
-    try {
-      localStorage.setItem(FOUNDERS_SEEN_FLAG, "true");
-    } catch {
-      // ignore
-    }
     setActiveTab("mine");
+  };
+
+  const handleFounderTab = () => {
+    if (journeyStage === "founder_journey") {
+      setShowJourneyPrompt("founder_journey");
+      return;
+    }
+    setActiveTab("founders");
   };
 
   const handleFutureSelfNextStep = () => {
@@ -153,70 +151,28 @@ const AtlasPage = () => {
       if (!user) return;
       const { data: profile } = await supabase
         .from("profiles")
-        .select("console_intake_completed, atlas_onboarding_completed, entry_state" as any)
+        .select("console_intake_completed, atlas_onboarding_completed, atlas_journey_stage, entry_state" as any)
         .eq("id", user.id)
         .single();
       const p = profile as any;
       setIntakeCompleted(!!p?.console_intake_completed);
       if (p?.entry_state) setEntryState(p.entry_state);
-      let forceWalkthrough = false;
-      try {
-        forceWalkthrough = sessionStorage.getItem("force_atlas_onboarding_walkthrough") === "true";
-      } catch {
-        forceWalkthrough = false;
-      }
-      const introMode = searchParams.get("intro");
-      const introQuery = introMode === "founder";
-      const shouldShowGuide = introMode === "guide";
-
-      // Founder Origin is an optional first-time reference, not a destination
-      // after every quest. Users with any Atlas progress should always return
-      // to their own map unless they explicitly request the founder example.
-      const shouldShowFounder = introQuery;
-
-      if (shouldShowFounder) {
-        // This is an optional reference, not a gate. Mark the automatic
-        // introduction as seen as soon as it is shown so a refresh cannot
-        // trap someone in Founder Origin before they reach their own map.
-        try {
-          localStorage.setItem(FOUNDERS_SEEN_FLAG, "true");
-        } catch {
-          // Ignore unavailable browser storage; My Map remains the safe default.
-        }
-        setAtlasOnboardingPending(true);
-        setActiveTab("founders");
-        setFoundersAccepted(false);
-        if (introQuery) {
-          // Clean the URL once consumed
-          const next = new URLSearchParams(searchParams);
-          next.delete("intro");
-          setSearchParams(next, { replace: true });
-        }
-      } else {
-        setActiveTab("mine");
-        setAtlasOnboardingPending(forceWalkthrough || shouldShowGuide);
-        setFoundersAccepted(forceWalkthrough || shouldShowGuide);
-        if (shouldShowGuide) {
-          const next = new URLSearchParams(searchParams);
-          next.delete("intro");
-          setSearchParams(next, { replace: true });
-        }
-      }
+      const stage = (p?.atlas_journey_stage || (p?.atlas_onboarding_completed ? "quest_one" : "atlas_intro")) as AtlasJourneyStage;
+      setJourneyStage(stage);
+      setActiveTab("mine");
+      setAtlasOnboardingPending(stage === "atlas_intro");
+      if (stage === "lifetime_event") setShowJourneyPrompt("lifetime_event");
     };
     if (!isLoading) checkFlags();
-  }, [isLoading, totalDots, searchParams, setSearchParams]);
+  }, [isLoading, totalDots]);
 
-  // Trigger Atlas onboarding overlay only AFTER:
-  //  1. The user has accepted the founder card (foundersAccepted), and
-  //  2. They are now on "My Map".
-  // Wait ~2s so the map can render first.
+  // Let the user see their Atlas before the introduction appears.
   useEffect(() => {
     if (!atlasOnboardingPending) return;
     if (activeTab !== "mine") return;
-    if (!foundersAccepted) return;
-    const timer = setTimeout(() => setShowOnboarding(true), 2000);
+    const timer = setTimeout(() => setShowOnboarding(true), 4000);
     return () => clearTimeout(timer);
-  }, [atlasOnboardingPending, activeTab, foundersAccepted]);
+  }, [atlasOnboardingPending, activeTab]);
 
   useEffect(() => {
     if (highlightSlug || newDotTitle) {
@@ -309,12 +265,13 @@ const AtlasPage = () => {
             My Map
           </button>
           <button
-            onClick={() => setActiveTab("founders")}
+            onClick={handleFounderTab}
             className={cn(
               "px-4 py-1.5 text-xs font-semibold rounded-full transition-all flex items-center gap-1.5",
               activeTab === "founders"
                 ? "bg-primary text-primary-foreground shadow-[0_0_16px_hsl(265_90%_62%/0.4)]"
-                : "text-muted-foreground hover:text-foreground"
+                : "text-muted-foreground hover:text-foreground",
+              journeyStage === "founder_journey" && "animate-pulse border border-primary/60 shadow-[0_0_22px_hsl(265_90%_62%/0.55)]"
             )}
           >
             <Sparkles className="w-3 h-3" />
@@ -353,6 +310,23 @@ const AtlasPage = () => {
               </button>
             )}
           </motion.div>
+        )}
+      </AnimatePresence>
+
+      <AnimatePresence>
+        {showJourneyPrompt && (
+          <AtlasJourneyPrompt
+            type={showJourneyPrompt}
+            onAccept={() => {
+              const prompt = showJourneyPrompt;
+              setShowJourneyPrompt(null);
+              if (prompt === "lifetime_event") {
+                navigate("/life-timeline?onboarding=true");
+              } else {
+                setActiveTab("founders");
+              }
+            }}
+          />
         )}
       </AnimatePresence>
 
@@ -502,7 +476,7 @@ const AtlasPage = () => {
             size="lg"
           >
             <Sparkles className="w-4 h-4" />
-            Start Quest
+            {journeyStage === "quest_two" ? "Start second quest" : journeyStage === "continue_quests" ? "Continue quest" : "Start Quest"}
           </Button>
         </motion.div>
       </div>
@@ -521,18 +495,14 @@ const AtlasPage = () => {
             onComplete={async () => {
               setShowOnboarding(false);
               setAtlasOnboardingPending(false);
-              try {
-                sessionStorage.removeItem("force_atlas_onboarding_walkthrough");
-              } catch {
-                // ignore
-              }
               const { data: { user } } = await supabase.auth.getUser();
               if (user) {
                 await supabase
                   .from("profiles")
-                  .update({ atlas_onboarding_completed: true } as any)
+                  .update({ atlas_onboarding_completed: true, atlas_journey_stage: "quest_one" } as any)
                   .eq("id", user.id);
               }
+              setJourneyStage("quest_one");
               navigate("/atlas/quest");
             }}
           />
