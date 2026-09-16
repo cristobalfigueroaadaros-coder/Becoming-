@@ -798,7 +798,7 @@ Use these signals to personalize your response. Show that you understand who thi
     }
 
     // Combine foundation + numerology + entry state + life domains + atlas signals context
-    const fullUserContext = numerologyContext + userFoundationContext + entryStateContext + lifeDomainContext + atlasSignalContext + timelineContext;
+    const fullUserContext = numerologyContext + userFoundationContext + entryStateContext + lifeDomainContext + atlasSignalContext + atlasMaterialContext + timelineContext;
 
     // === Q2 CLARITY SEEKING REMOVED — Max 2 questions rule ===
     // Q2 now goes straight to full council response (acts as final round)
