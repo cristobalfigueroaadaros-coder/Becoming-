@@ -1262,29 +1262,32 @@ Generate 4-5 lines. No two lines make the same kind of point.`;
       banter = banterData.choices[0].message.content;
       
       // Parse banter into structured format with colors
+      const resolveMentorKey = (rawName: string): string | undefined => {
+        const incoming = rawName.toLowerCase().replace(/^the\s+/, '').replace(/[*[\]]/g, '').trim();
+        return Object.keys(mentorNames).find(k => {
+          const full = mentorNames[k].toLowerCase().replace(/^the\s+/, '');
+          return full === incoming || full.startsWith(incoming + " ") || incoming.startsWith(full) || full.split(" ")[0] === incoming;
+        });
+      };
+
       const lines = banter.split('\n').filter(line => line.trim());
       for (const line of lines) {
-        // Handle multiple formats: **Name:** text, [Name]: "text", Name: text
+        // Handle multiple formats: **Name:** text, [Name]: "text", Name: text (incl. "The X Mentor")
         let match = line.match(/\*\*(.+?)\*\*:\s*"?(.+?)"?\s*$/);
         if (!match) {
           match = line.match(/\[(.+?)\]:\s*"?(.+?)"?\s*$/);
         }
         if (!match) {
-          match = line.match(/^([A-Z][a-z]+(?:\s[A-Z][a-z]+)?):\s*"?(.+?)"?\s*$/);
+          match = line.match(/^[-*\d.\s]*((?:The\s+)?[A-Z][A-Za-z]+(?:\s+[A-Z][A-Za-z]+){0,2}):\s*"?(.+?)"?\s*$/);
         }
-        
+
         if (match) {
           const mentorName = match[1];
-          const text = match[2].replace(/"+$/g, '').trim(); // Remove trailing quotes and trim
-          
+          const text = match[2].replace(/^"+|"+$/g, '').trim();
+
           // VALIDATE: Only allow known mentor names to prevent hallucinations like "MVP"
-          // Use case-insensitive full match OR first-word match so abbreviated names still map correctly.
-          const mentorKey = Object.keys(mentorNames).find(k => {
-            const full = mentorNames[k].toLowerCase();
-            const incoming = mentorName.toLowerCase();
-            return full === incoming || full.startsWith(incoming + " ") || full.split(" ")[0] === incoming;
-          });
-          if (mentorKey) {
+          const mentorKey = resolveMentorKey(mentorName);
+          if (mentorKey && text.length > 2) {
             const color = mentorColors[mentorKey] || '#6B7280';
             banterLines.push({ mentor: mentorKey, text, color });
           } else {
@@ -1292,7 +1295,28 @@ Generate 4-5 lines. No two lines make the same kind of point.`;
           }
         }
       }
+
+      // FALLBACK: the room must never go silent. If the model ignored the format,
+      // attribute the usable sentences to the mentors that are actually in the room.
+      if (banterLines.length === 0) {
+        const sentences = banter
+          .split(/\n+|(?<=[.!?])\s+/)
+          .map(s => s.replace(/^[-*\d.\s"]+|["]+$/g, '').trim())
+          .filter(s => s.length > 20 && !/^[A-Z\s]+:$/.test(s))
+          .slice(0, 4);
+        const roomMentors = (mentorTypes as string[]).filter(t => mentorNames[t] && t !== "future_self");
+        sentences.forEach((text, i) => {
+          const mentorKey = roomMentors[i % Math.max(roomMentors.length, 1)];
+          if (mentorKey) {
+            banterLines.push({ mentor: mentorKey, text, color: mentorColors[mentorKey] || '#6B7280' });
+          }
+        });
+        console.warn(`Banter parsing fallback used — recovered ${banterLines.length} lines`);
+      }
+    } else if (shouldGenerateBanter) {
+      console.error("Banter generation failed:", banterResponse?.status);
     }
+
 
     // === EMOTIONAL REFLECTION (1-2 lines, after banter) ===
     const emotionalReflectionPrompt = `You are the Council. Provide a soft, grounding emotional reflection.
