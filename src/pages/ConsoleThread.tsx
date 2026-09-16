@@ -269,6 +269,7 @@ const ConsoleThread = ({ embedded = false, onProjectNameChange }: ConsoleThreadP
   const inputRef = useRef<HTMLInputElement>(null);
   const returnFlowStartedRef = useRef(false); // guard against double startReturnFlow call
   const discoveredProjectTypeRef = useRef<string>("experience"); // set when DISCOVER project is detected
+  const projectAcceptanceInFlightRef = useRef(false);
   // Refs so runCouncilMeeting always reads the latest values regardless of which render's closure calls it
   const intakeAnswersRef = useRef<string[]>([]);
   const userMentorsRef = useRef<string[]>([]);
@@ -310,7 +311,8 @@ const ConsoleThread = ({ embedded = false, onProjectNameChange }: ConsoleThreadP
         mentor_name: msg.mentorName || null,
         mentor_icon: msg.mentorIcon || null,
         mentor_color: msg.mentorColor || null,
-        card_type: msg.card ? "card" : null,
+        card_type: msg.cardType || (msg.card ? "card" : null),
+        card_data: msg.cardData || null,
         phase: currentPhase,
       } as any);
     } catch (e) {
@@ -408,6 +410,8 @@ const ConsoleThread = ({ embedded = false, onProjectNameChange }: ConsoleThreadP
           mentorIcon: m.mentor_icon || undefined,
           mentorColor: m.mentor_color || undefined,
           card: undefined, // cards are ephemeral UI — they don't restore from DB
+          cardType: m.card_type || undefined,
+          cardData: m.card_data || undefined,
         }));
         setMessages(restored);
 
@@ -440,6 +444,35 @@ const ConsoleThread = ({ embedded = false, onProjectNameChange }: ConsoleThreadP
                   "handoff_offer"
                 );
               }, 1500);
+            }
+          } else if (savedPhase === "project_detected") {
+            setPhase("project_detected");
+            const pendingCard = [...savedMessages].reverse().find(
+              (m: any) => m.card_type === "project_proposal" && m.card_data?.projectName
+            ) as any;
+            if (pendingCard?.card_data) {
+              const pendingName = String(pendingCard.card_data.projectName);
+              const pendingDescription = String(pendingCard.card_data.projectDescription || "");
+              const pendingProjectType = String(pendingCard.card_data.projectType || "experience");
+              discoveredProjectTypeRef.current = pendingProjectType;
+              setTimeout(() => {
+                addCardMessage(
+                  <FirstWinNamingCard
+                    proposedName={pendingName}
+                    description={pendingDescription}
+                    onAccept={(name) => handleFirstWinAccept(name, pendingDescription)}
+                    onKeepExploring={() => {
+                      setPhase("user_reply");
+                      persistPhase("user_reply");
+                    }}
+                  />,
+                  undefined,
+                  "project_detected"
+                );
+              }, 300);
+            } else {
+              setPhase("mentor_1to1");
+              persistPhase("mentor_1to1");
             }
           } else if (
             savedPhase === "post_project" ||
@@ -726,7 +759,13 @@ const ConsoleThread = ({ embedded = false, onProjectNameChange }: ConsoleThreadP
     persistMessage(msg, phaseForPersist || phase);
   };
 
-  const addCardMessage = (card: React.ReactNode, mentorType?: string, phaseForPersist?: Phase) => {
+  const addCardMessage = (
+    card: React.ReactNode,
+    mentorType?: string,
+    phaseForPersist?: Phase,
+    cardType?: string,
+    cardData?: Record<string, unknown>,
+  ) => {
     const config = mentorType ? mentorConfig[mentorType] : undefined;
     const msg: ChatMessage = {
       id: crypto.randomUUID(),
@@ -736,6 +775,8 @@ const ConsoleThread = ({ embedded = false, onProjectNameChange }: ConsoleThreadP
       mentorIcon: config?.icon,
       mentorColor: config?.color,
       card,
+      cardType,
+      cardData,
     };
     setMessages(prev => [...prev, msg]);
     persistMessage(msg, phaseForPersist || phase);
@@ -1637,6 +1678,9 @@ const ConsoleThread = ({ embedded = false, onProjectNameChange }: ConsoleThreadP
           content: data.response,
         });
 
+        await showTyping(handoffMentor, 500);
+        addSystemMessage(data.response, handoffMentor, "project_detected");
+
         setPhase("project_detected");
         persistPhase("project_detected");
         await showTyping("future_self", 1000);
@@ -1652,7 +1696,13 @@ const ConsoleThread = ({ embedded = false, onProjectNameChange }: ConsoleThreadP
             }}
           />,
           undefined,
-          "project_detected"
+          "project_detected",
+          "project_proposal",
+          {
+            projectName: data.projectCoherence.projectName,
+            projectDescription: data.projectCoherence.projectDescription,
+            projectType: data.projectCoherence.projectType || "experience",
+          }
         );
       } else {
         await supabase.from("chats").insert({
@@ -1675,6 +1725,8 @@ const ConsoleThread = ({ embedded = false, onProjectNameChange }: ConsoleThreadP
   };
 
   const handleFirstWinAccept = async (name: string, description: string) => {
+    if (projectAcceptanceInFlightRef.current) return;
+    projectAcceptanceInFlightRef.current = true;
     setLoading(true);
     try {
       const { data: { user } } = await supabase.auth.getUser();
@@ -2050,6 +2102,7 @@ const ConsoleThread = ({ embedded = false, onProjectNameChange }: ConsoleThreadP
     } catch (error: any) {
       console.error("Error in project structuring:", error);
       toast.error("Something went wrong");
+      projectAcceptanceInFlightRef.current = false;
     } finally {
       setLoading(false);
     }
