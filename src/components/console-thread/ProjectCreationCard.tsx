@@ -58,7 +58,7 @@ const ProjectCreationCard = ({ projectName, projectDescription, onProjectCreated
       setCreated(true);
       toast.success("Project created!");
       onProjectCreated(projectId, projectName);
-    } catch (error: any) {
+    } catch (error: unknown) {
       console.error("Error creating project:", error);
       toast.error("Failed to create project");
     } finally {

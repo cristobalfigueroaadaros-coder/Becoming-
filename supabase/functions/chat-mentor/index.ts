@@ -3901,6 +3901,7 @@ The user has explicitly asked to create a project. You MUST:
     let extractedMentorProjectName: string | null = null;
     let mentorProposedProject = false;
     let userAgreesWithProject = false;
+    let explicitProposalDetected = false;
     
     // Helper function to strip markdown formatting for extraction
     function stripMarkdown(text: string): string {
@@ -3923,7 +3924,7 @@ The user has explicitly asked to create a project. You MUST:
       
       // Block obvious extraction failures
       const invalidPatterns = [
-        /^(s|it|and|the|a|an|this|my|within|how|would|should|could)\s+/i,
+        /^(s|it|and|within|how|would|should|could)\s+/i,
         /^(log\s+in|sign\s+in|log\s+out|sign\s+up)/i, // Common UI phrases
         /\b(within|designing|work|would|could|should|actually|then|because|since|although)\b/i,
         /^(project|titled|untitled)$/i,
@@ -3955,6 +3956,28 @@ The user has explicitly asked to create a project. You MUST:
     // === PRE-PROCESS: Strip markdown from response for name extraction ===
     const cleanedResponse = stripMarkdown(response);
     console.log("Cleaned response (first 200 chars):", cleanedResponse.substring(0, 200));
+
+    // The mentor prompt explicitly asks for: 👉 "Project Name" followed by
+    // "press Accept". Detect that contract first so the UI can render the
+    // acceptance card on the proposal turn (the card itself captures consent).
+    const markedProposalPatterns = [
+      /👉\s*“([^”\n]{3,60})”/u,
+      /👉\s*"([^"\n]{3,60})"/u,
+      /👉\s*‘([^’\n]{3,60})’/u,
+      /👉\s*'([^'\n]{3,60})'/u,
+    ];
+    if (/press\s+accept/i.test(cleanedResponse)) {
+      for (const pattern of markedProposalPatterns) {
+        const match = cleanedResponse.match(pattern);
+        if (match?.[1] && isValidProjectName(match[1].trim())) {
+          extractedMentorProjectName = match[1].trim();
+          mentorProposedProject = true;
+          explicitProposalDetected = true;
+          console.log("Explicit project proposal detected:", extractedMentorProjectName);
+          break;
+        }
+      }
+    }
     
     // === CONTEXT-AWARE PROJECT NAME EXTRACTION ===
     // Only capture quoted phrases that appear AFTER naming phrases
@@ -4011,10 +4034,16 @@ The user has explicitly asked to create a project. You MUST:
     
     // Secondary fallback: Look for any quoted phrase that looks like a title
     if (!extractedMentorProjectName) {
-      const quotedPattern = /["'""']([A-Z][^"'""']{5,49})["'""']/g;
-      const matches = [...cleanedResponse.matchAll(quotedPattern)];
+      const quotedPatterns = [
+        /"([A-Z][^"\n]{5,49})"/g,
+        /“([A-Z][^”\n]{5,49})”/g,
+        /‘([A-Z][^’\n]{5,49})’/g,
+        /'([A-Z][^'\n]{5,49})'/g,
+      ];
+      const matches = quotedPatterns.flatMap(pattern => [...cleanedResponse.matchAll(pattern)]);
       for (const match of matches) {
-        const candidate = match[1].trim();
+        const candidate = match[1]?.trim();
+        if (!candidate) continue;
         if (isValidProjectName(candidate)) {
           extractedMentorProjectName = candidate;
           mentorProposedProject = true;
@@ -4059,10 +4088,16 @@ The user has explicitly asked to create a project. You MUST:
           }
           // Also check for quoted names in previous message
           if (!previousProposedName) {
-            const quotedPattern = /["'""']([A-Z][^"'""']{5,49})["'""']/g;
-            const matches = [...cleanedPrevContent.matchAll(quotedPattern)];
+            const quotedPatterns = [
+              /"([A-Z][^"\n]{5,49})"/g,
+              /“([A-Z][^”\n]{5,49})”/g,
+              /‘([A-Z][^’\n]{5,49})’/g,
+              /'([A-Z][^'\n]{5,49})'/g,
+            ];
+            const matches = quotedPatterns.flatMap(pattern => [...cleanedPrevContent.matchAll(pattern)]);
             for (const match of matches) {
-              const candidate = match[1].trim();
+              const candidate = match[1]?.trim();
+              if (!candidate) continue;
               if (isValidProjectName(candidate)) {
                 previousProposedName = candidate;
                 console.log("Quoted name in previous AI message:", previousProposedName);
@@ -4258,8 +4293,15 @@ The user has explicitly asked to create a project. You MUST:
     const fastPathDepthThreshold =
       (entryState === "BUILD" && mentorType === "business_mentor") ? 3 :
       (entryState === "DISCOVER" && (mentorType === "creative_visionary" || mentorType === "creator_mentor")) ? 3 : 4;
-    if (mentorProposedProject && extractedMentorProjectName && conversationDepth >= fastPathDepthThreshold && !hasActiveSpine && userAgreesWithProject) {
-      console.log("FAST PATH TRIGGERED: Mentor proposed name + User agrees");
+    const shouldShowProposalCard = explicitProposalDetected || (
+      mentorProposedProject &&
+      conversationDepth >= fastPathDepthThreshold &&
+      userAgreesWithProject
+    );
+    if (shouldShowProposalCard && extractedMentorProjectName && !hasActiveSpine) {
+      console.log(explicitProposalDetected
+        ? "PROPOSAL CARD TRIGGERED: explicit mentor proposal"
+        : "FAST PATH TRIGGERED: Mentor proposed name + User agrees");
       {
         // Check if name passes our stricter validation
         const isWeakName = !isValidProjectName(extractedMentorProjectName);

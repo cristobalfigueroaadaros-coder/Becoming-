@@ -41,6 +41,8 @@ export interface ChatMessage {
   mentorIcon?: string;
   mentorColor?: string;
   card?: ReactNode;
+  cardType?: string;
+  cardData?: Record<string, unknown>;
   timestamp?: string;
   messageType?: "perspective" | "banter" | "standard" | "notification";
 }
