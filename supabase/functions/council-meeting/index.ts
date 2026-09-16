@@ -1220,7 +1220,7 @@ DETECTED THEMES: ${extractedTags.length > 0 ? extractedTags.join(', ') : 'genera
 
 BANTER RULES (non-negotiable):
 1. Third person only — mentors discuss the user as if they stepped out: "They want X but I'm not sure they've thought about Y"
-2. REAL DISAGREEMENT REQUIRED: At least 2 lines must directly clash — not just add a different angle, but actually push back on another mentor's priority. Use: "That's not what they need right now", "You're missing the point", "That's too [harsh / soft / abstract / tactical]"
+2. DISAGREEMENT: In round 2, at least 2 lines must directly clash — push back on another mentor's priority ("That's not what they need right now", "That's too abstract"). In round 1 keep it to at most one gentle difference of opinion; recognition of the person comes first.
 3. Each mentor's BLIND SPOT must color their line — the one who's "too focused on results" should sound like it; the one who's "too soft" should sound like it
 4. Voices must be UNMISTAKABLE — swap two names and it should feel wrong. Business Mentor talks money. Heart Mentor talks feelings. Challenger questions the assumption. Discipline Mentor talks execution.
 5. One defender: someone who pushes back on the skeptic and backs the user
