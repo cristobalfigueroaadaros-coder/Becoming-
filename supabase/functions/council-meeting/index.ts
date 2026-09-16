@@ -1234,7 +1234,9 @@ KNOWN TENSIONS (use at least one per banter):
 - Strategist Mentor vs Quantum Inventor: "Here's the roadmap" vs "The frequency isn't right yet"
 - Marketing Mentor vs Ancient Sage: "Ship it and post about it" vs "Slow down. Let it breathe."
 
-FORMAT: [Mentor Name]: "quote" — 10-20 words max per line
+MENTORS IN THE ROOM (use these exact names, no others): ${mentorTypes.map((t: string) => mentorNames[t]).filter(Boolean).join(', ')}
+
+FORMAT: every line must be exactly \`Mentor Name: "quote"\` — 10-20 words max per line. No intro text, no numbering, no commentary outside the lines.
 Generate 4-5 lines. No two lines make the same kind of point.`;
 
     let banterResponse: Response | null = null;
