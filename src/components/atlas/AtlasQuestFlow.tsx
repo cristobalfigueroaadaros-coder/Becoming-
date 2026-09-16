@@ -465,7 +465,24 @@ export const AtlasQuestFlow = ({ quest, clusterId, onboardingIndex }: Props) => 
         return;
       }
 
-      // If onboarding quest 13 just completed, mark onboarding as done
+      const targetSlug = clusters.find(c => c.id === dotClusterId)?.slug;
+      const atlasParams = new URLSearchParams();
+      if (targetSlug) atlasParams.set("highlight", targetSlug);
+      atlasParams.set("newDot", finalDot.title);
+
+      if (isOnboarding && onboardingIndex === 0) {
+        await supabase.from("profiles").update({ atlas_journey_stage: "quest_two" } as any).eq("id", user.id);
+        navigate(`/atlas?${atlasParams.toString()}`);
+        return;
+      }
+
+      if (isOnboarding && onboardingIndex === 1) {
+        await supabase.from("profiles").update({ atlas_journey_stage: "lifetime_event" } as any).eq("id", user.id);
+        navigate(`/atlas?${atlasParams.toString()}`);
+        return;
+      }
+
+      // If the final onboarding quest just completed, mark onboarding as done
       if (isOnboarding && onboardingIndex === 12) {
         await supabase.from("profiles").update({ onboarding_quest_completed: true } as any).eq("id", user.id);
         queryClient.invalidateQueries({ queryKey: ["profile-onboarding-status"] });
@@ -485,15 +502,12 @@ export const AtlasQuestFlow = ({ quest, clusterId, onboardingIndex }: Props) => 
         }
       }
 
-      // For onboarding, go to next quest; otherwise go to atlas with highlight
+      // Every quest returns to the Atlas so the user sees the new Dot before
+      // choosing the next step.
       if (isOnboarding) {
-        navigate("/atlas/quest", { state: { ts: Date.now() } });
+        navigate(`/atlas?${atlasParams.toString()}`);
       } else {
-        const targetSlug = clusters.find(c => c.id === dotClusterId)?.slug;
-        const params = new URLSearchParams();
-        if (targetSlug) params.set("highlight", targetSlug);
-        params.set("newDot", finalDot.title);
-        navigate(`/atlas?${params.toString()}`);
+        navigate(`/atlas?${atlasParams.toString()}`);
       }
     } catch (err: any) {
       console.error(err);
@@ -507,7 +521,7 @@ export const AtlasQuestFlow = ({ quest, clusterId, onboardingIndex }: Props) => 
     if (isOnboarding && onboardingIndex === 12) {
       navigate("/atlas");
     } else if (isOnboarding) {
-      navigate("/atlas/quest", { state: { ts: Date.now() } });
+      navigate("/atlas");
     } else {
       navigate("/atlas");
     }

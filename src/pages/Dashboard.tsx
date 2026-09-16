@@ -83,12 +83,8 @@ const Dashboard = () => {
 
       const completed = completedQuestCount || 0;
 
-      if (completed < threshold) {
-        window.setTimeout(() => {
-          // Always send first-time users through the founder intro path.
-          navigate("/atlas?intro=founder");
-        }, 5000);
-      }
+      // Atlas owns the onboarding sequence. Home never redirects into a
+      // competing founder-first path.
     } catch (error) {
       console.error("Error checking Atlas guidance:", error);
     }

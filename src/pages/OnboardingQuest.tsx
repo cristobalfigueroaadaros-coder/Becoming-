@@ -218,6 +218,7 @@ const OnboardingQuest = () => {
         .from("profiles")
         .update({
           action_patterns: actionPatterns,
+          atlas_journey_stage: "atlas_intro",
         })
         .eq("id", user.id);
 
@@ -225,7 +226,7 @@ const OnboardingQuest = () => {
       // not the Atlas onboarding itself: Council unlocks after the user has
       // created enough personal discoveries in the Atlas.
       toast.success("Your Atlas is ready to begin.");
-      navigate("/atlas?intro=guide");
+      navigate("/atlas");
     } catch (error: any) {
       console.error("Error completing quest:", error);
       toast.error("Failed to save progress");

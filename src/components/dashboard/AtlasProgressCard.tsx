@@ -31,12 +31,7 @@ const AtlasProgressCard = () => {
   const unlockedCount = clusters.filter(c => c.computedState !== "locked").length;
 
   const handleOpen = () => {
-    // First-time users always go through the Cris's Map / founder intro path.
-    if (atlasOnboardingDone === false) {
-      navigate("/atlas?intro=founder");
-    } else {
-      navigate("/atlas");
-    }
+    navigate("/atlas");
   };
 
   return (
