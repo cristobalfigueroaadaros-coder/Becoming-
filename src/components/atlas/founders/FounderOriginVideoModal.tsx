@@ -109,7 +109,7 @@ const MOMENTS: OriginMoment[] = [
     connections: [["life-events", "skills"]],
   },
   {
-    tag: "Natural Talent",
+    tag: "Skill",
     title: "Seeing patterns",
     year: "Always",
     context: "I could see the thread before I had the words for it.",
