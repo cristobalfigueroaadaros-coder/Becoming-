@@ -36,7 +36,7 @@ const AtlasProgressCard = () => {
             className="gap-1 text-primary"
             onClick={handleOpen}
           >
-            {atlasOnboardingDone === false ? "Open Atlas" : "Explore"}
+            Explore
             <ArrowRight className="w-3 h-3" />
           </Button>
         </div>
