@@ -1171,12 +1171,34 @@ Mission: ${profile.main_mission}`;
 
     const conversationContextBanter = formatConversationHistory(safeConversationHistory);
 
-    const banterPrompt = `You are generating a REAL advisory room argument. The user stepped out — the mentors are talking among themselves.
+    // ROUND INTENT: round 1 is human and personal (they talk about the PERSON),
+    // round 2 converges (they narrow toward one direction and set up the creative handoff).
+    const banterRoundIntent = isQ1 ? `
+THIS IS ROUND 1 — THE HUMAN ROUND.
+- The mentors are meeting this person for the first time. They talk about WHO THEY ARE, not about a product.
+- Each line must reference something REAL they shared or something real from their history (a place they lived, a thing they built, a skill they earned, a moment that marked them).
+- Tone: warm, curious, a little unguarded — like advisors genuinely moved by the person who just left the room.
+- Mild friendly disagreement is welcome, but this round is recognition, not interrogation.
+- FORBIDDEN in round 1: business models, market size, monetisation, "they need to validate", roadmaps, naming a project.
+` : `
+THIS IS ROUND 2 — THE CONVERGING ROUND.
+- The mentors now connect the dots between their own earlier perspectives and narrow toward ONE direction.
+- At least two lines must explicitly build on another mentor's point ("Strategist is right about the structure, but the pull is in...").
+- Name the concrete raw materials of this person that the direction would stand on.
+- Cut what does not belong: one line must openly drop or park an option to keep focus.
+- Last line must hand the thread to The Creative Visionary to shape the direction into something real.
+- Still third person, still short. No project name here — that is the Creative Visionary's job.
+`;
+
+    const banterPrompt = `You are generating a REAL advisory room conversation. The user stepped out — the mentors are talking among themselves.
 ${conversationContextBanter}
+${fullUserContext}
+${banterRoundIntent}
 
 These are NOT motivational speakers. Each mentor has a distinct lens AND a blind spot they overdo. Real clashes happen because they care differently, not because they disagree for sport.
 
 ${councilType === 'transmutation' ? TRANSMUTATION_TONE_RULES : ''}
+
 
 MENTOR PROFILES THIS ROUND (personality + what they overdo):
 ${selectedMentors.map((type: string) => {
