@@ -237,7 +237,7 @@ export function useAtlasQuests() {
   }
 
   function isIdentityMoment(onboardingIndex: number): boolean {
-    return onboardingIndex === 12; // After quest 13 (index 12)
+    return onboardingIndex === CORE_ONBOARDING_QUESTS.length - 1;
   }
 
   return {

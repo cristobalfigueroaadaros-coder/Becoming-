@@ -18,7 +18,7 @@ const OnboardingRouter = () => {
 
         const { data: profile } = await supabase
           .from("profiles")
-          .select("birth_name, gravity_orientation_completed, gravity_transition_completed, council_introduction_completed, first_project_created_at, onboarding_completion_seen, console_intake_completed, entry_state")
+          .select("birth_name, gravity_orientation_completed, gravity_transition_completed, council_introduction_completed, first_project_created_at, onboarding_completion_seen, console_intake_completed, entry_state, action_patterns")
           .eq("id", user.id)
           .single();
 
@@ -32,13 +32,13 @@ const OnboardingRouter = () => {
           navigate("/gravity/orientation");
         } else if (!profile?.birth_name) {
           navigate("/onboarding");
-        } else if (!(profile as any)?.entry_state) {
+        } else if (!profile?.entry_state) {
           // User has profile but never picked their phase — finish step 2
           navigate("/onboarding/step2");
+        } else if (!profile?.action_patterns || Object.keys(profile.action_patterns as Record<string, unknown>).length === 0) {
+          navigate("/onboarding/quest");
         } else {
-          // Always land on Home — Home decides whether to send the user to
-          // Cris's Map (founder intro) based on backend flags.
-          navigate("/dashboard");
+          navigate("/atlas");
         }
       } catch (error) {
         console.error("Error checking onboarding status:", error);

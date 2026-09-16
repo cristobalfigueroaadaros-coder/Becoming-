@@ -3347,6 +3347,7 @@ export type Database = {
       profiles: {
         Row: {
           action_patterns: Json | null
+          atlas_journey_stage: string
           atlas_onboarding_completed: boolean | null
           birth_date: string | null
           birth_location: string | null
@@ -3409,6 +3410,7 @@ export type Database = {
         }
         Insert: {
           action_patterns?: Json | null
+          atlas_journey_stage?: string
           atlas_onboarding_completed?: boolean | null
           birth_date?: string | null
           birth_location?: string | null
@@ -3471,6 +3473,7 @@ export type Database = {
         }
         Update: {
           action_patterns?: Json | null
+          atlas_journey_stage?: string
           atlas_onboarding_completed?: boolean | null
           birth_date?: string | null
           birth_location?: string | null

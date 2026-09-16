@@ -491,11 +491,8 @@ export const FounderOriginVideoModal = ({ onNext, variant = "modal" }: FounderOr
                   animate={{ opacity: 1, y: 0 }}
                 >
                   <Button onClick={onNext} size="lg" className="h-11 flex-1 rounded-full gap-2">
-                    Start my map
+                    Continue quest
                     <ArrowRight className="h-4 w-4" />
-                  </Button>
-                  <Button onClick={onNext} variant="ghost" className="h-11 rounded-full px-5 text-muted-foreground">
-                    Skip
                   </Button>
                 </motion.div>
               )}

@@ -13,7 +13,7 @@ import { interpretQuestResult, type ExtractedSignal, type DetectedPattern } from
 import { detectConnections, findGoldMoments } from "@/lib/atlasConnectionEngine";
 import { useAtlasQuests } from "@/hooks/useAtlasQuests";
 import { useAtlas } from "@/hooks/useAtlas";
-import type { AtlasQuestDefinition, DotInterpretation } from "@/data/atlasQuests";
+import { ONBOARDING_QUEST_SEQUENCE, type AtlasQuestDefinition, type DotInterpretation } from "@/data/atlasQuests";
 import type { DotCategory } from "@/data/atlasSignals";
 
 const GROWTH_MESSAGES: Record<string, string> = {
@@ -465,9 +465,26 @@ export const AtlasQuestFlow = ({ quest, clusterId, onboardingIndex }: Props) => 
         return;
       }
 
-      // If onboarding quest 13 just completed, mark onboarding as done
-      if (isOnboarding && onboardingIndex === 12) {
-        await supabase.from("profiles").update({ onboarding_quest_completed: true } as any).eq("id", user.id);
+      const targetSlug = clusters.find(c => c.id === dotClusterId)?.slug;
+      const atlasParams = new URLSearchParams();
+      if (targetSlug) atlasParams.set("highlight", targetSlug);
+      atlasParams.set("newDot", finalDot.title);
+
+      if (isOnboarding && onboardingIndex === 0) {
+        await supabase.from("profiles").update({ atlas_journey_stage: "quest_two" } as any).eq("id", user.id);
+        navigate(`/atlas?${atlasParams.toString()}`);
+        return;
+      }
+
+      if (isOnboarding && onboardingIndex === 1) {
+        await supabase.from("profiles").update({ atlas_journey_stage: "lifetime_event" } as any).eq("id", user.id);
+        navigate(`/atlas?${atlasParams.toString()}`);
+        return;
+      }
+
+      // If the final onboarding quest just completed, mark onboarding as done
+      if (isOnboarding && onboardingIndex === ONBOARDING_QUEST_SEQUENCE.length - 1) {
+        await supabase.from("profiles").update({ onboarding_quest_completed: true, atlas_journey_stage: "complete" } as any).eq("id", user.id);
         queryClient.invalidateQueries({ queryKey: ["profile-onboarding-status"] });
         setShowConnectionMoment(true);
         return;
@@ -485,15 +502,12 @@ export const AtlasQuestFlow = ({ quest, clusterId, onboardingIndex }: Props) => 
         }
       }
 
-      // For onboarding, go to next quest; otherwise go to atlas with highlight
+      // Every quest returns to the Atlas so the user sees the new Dot before
+      // choosing the next step.
       if (isOnboarding) {
-        navigate("/atlas/quest", { state: { ts: Date.now() } });
+        navigate(`/atlas?${atlasParams.toString()}`);
       } else {
-        const targetSlug = clusters.find(c => c.id === dotClusterId)?.slug;
-        const params = new URLSearchParams();
-        if (targetSlug) params.set("highlight", targetSlug);
-        params.set("newDot", finalDot.title);
-        navigate(`/atlas?${params.toString()}`);
+        navigate(`/atlas?${atlasParams.toString()}`);
       }
     } catch (err: any) {
       console.error(err);
@@ -504,13 +518,7 @@ export const AtlasQuestFlow = ({ quest, clusterId, onboardingIndex }: Props) => 
   };
 
   const handleConnectionMomentContinue = async () => {
-    if (isOnboarding && onboardingIndex === 12) {
-      navigate("/atlas");
-    } else if (isOnboarding) {
-      navigate("/atlas/quest", { state: { ts: Date.now() } });
-    } else {
-      navigate("/atlas");
-    }
+    navigate("/atlas");
   };
 
   const progress = Math.min(step + 1, 4);

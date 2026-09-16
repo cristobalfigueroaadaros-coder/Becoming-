@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useState } from "react";
-import { AnimatePresence, motion } from "framer-motion";
+import { motion } from "framer-motion";
 import { Sparkles } from "lucide-react";
 import {
   FOUNDERS_CLUSTERS,
@@ -15,11 +15,8 @@ interface FoundersMapProps {
   onCtaClick: () => void;
 }
 
-const POPUP_FLAG = "founders_popup_seen";
-
 export const FoundersMap = ({ onCtaClick }: FoundersMapProps) => {
   const [isMobile, setIsMobile] = useState(false);
-  const [showPopup, setShowPopup] = useState(false);
   const [selected, setSelected] = useState<FounderCluster | null>(null);
 
   useEffect(() => {
@@ -28,28 +25,6 @@ export const FoundersMap = ({ onCtaClick }: FoundersMapProps) => {
     window.addEventListener("resize", check);
     return () => window.removeEventListener("resize", check);
   }, []);
-
-  useEffect(() => {
-    try {
-      const seen = localStorage.getItem(POPUP_FLAG);
-      if (!seen) {
-        const timer = window.setTimeout(() => setShowPopup(true), 2000);
-        return () => window.clearTimeout(timer);
-      }
-    } catch {
-      const timer = window.setTimeout(() => setShowPopup(true), 2000);
-      return () => window.clearTimeout(timer);
-    }
-  }, []);
-
-  const handleDismissPopup = () => {
-    try {
-      localStorage.setItem(POPUP_FLAG, "true");
-    } catch {
-      // ignore
-    }
-    setShowPopup(false);
-  };
 
   const clusterById = useMemo(() => {
     const m: Record<string, FounderCluster> = {};
@@ -76,11 +51,6 @@ export const FoundersMap = ({ onCtaClick }: FoundersMapProps) => {
 
   return (
     <div className="relative w-full">
-      {/* Popup */}
-      <AnimatePresence>
-        {showPopup && <FounderOriginVideoModal onNext={handleDismissPopup} />}
-      </AnimatePresence>
-
       {/* Header strip */}
       <div className="px-5 pt-4 pb-2 relative z-10">
         <div className="flex items-center gap-2">

@@ -100,6 +100,23 @@ const LifeTimeline = () => {
     const newEvent = await createEvent(data);
     if (newEvent) {
       await syncAtlasDot(newEvent);
+      const { data: { user } } = await supabase.auth.getUser();
+      if (user) {
+        const { data: profile } = await supabase
+          .from("profiles")
+          .select("atlas_journey_stage")
+          .eq("id", user.id)
+          .maybeSingle();
+        if (profile?.atlas_journey_stage === "lifetime_event") {
+          await supabase
+            .from("profiles")
+            .update({ atlas_journey_stage: "founder_journey" })
+            .eq("id", user.id);
+          toast.success("Your Life Event is now part of your Atlas");
+          navigate(`/atlas?highlight=life-events&newDot=${encodeURIComponent(newEvent.event_label)}`);
+          return;
+        }
+      }
       toast.success("Added to your Life Timeline and Atlas");
     }
   };
