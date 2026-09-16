@@ -750,7 +750,27 @@ YOUR COUNCIL MISSION: Identify their current stage and define the next milestone
 `;
     }
 
+    // === RAW MATERIALS FROM ATLAS (concrete things the user actually did/built/learned) ===
+    const { data: atlasDots } = await supabaseClient
+      .from("atlas_dots")
+      .select("title, short_description, dot_category, created_at")
+      .eq("user_id", user.id)
+      .order("created_at", { ascending: false })
+      .limit(14);
+
+    const atlasMaterialContext = (atlasDots && atlasDots.length > 0) ? `
+=== THEIR RAW MATERIALS (concrete things they have actually lived, built, or learned) ===
+${atlasDots.map((d: any) => `- [${d.dot_category || 'general'}] ${d.title}${d.short_description ? ` — ${d.short_description}` : ''}`).join('\n')}
+=== END RAW MATERIALS ===
+HOW TO USE THESE:
+- Build every idea, angle, or observation on TOP of at least one of these concrete materials.
+- Name the material implicitly ("you already built a game, so you understand mechanics") — never say Atlas, dots, data, or profile.
+- Combine two materials that do not obviously belong together — that is where their unfair advantage lives.
+- Generic ideas that ignore these materials are a failure.
+` : '';
+
     // === ATLAS SIGNALS CONTEXT (Invisible identity context from Atlas dots) ===
+
     const MENTOR_SIGNAL_MATRIX: Record<string, string[]> = {
       creative_visionary: ["identity", "motivation"],
       strategist_mentor: ["behavioral", "direction"],
@@ -778,7 +798,7 @@ Use these signals to personalize your response. Show that you understand who thi
     }
 
     // Combine foundation + numerology + entry state + life domains + atlas signals context
-    const fullUserContext = numerologyContext + userFoundationContext + entryStateContext + lifeDomainContext + atlasSignalContext + timelineContext;
+    const fullUserContext = numerologyContext + userFoundationContext + entryStateContext + lifeDomainContext + atlasSignalContext + atlasMaterialContext + timelineContext;
 
     // === Q2 CLARITY SEEKING REMOVED — Max 2 questions rule ===
     // Q2 now goes straight to full council response (acts as final round)
@@ -960,24 +980,31 @@ ${cvConversationContext}
 Question: "${question}"
 ${userName ? `User's name: ${userName}` : ''}
 
-YOUR JOB: Say one creative thing that NO OTHER MENTOR would say. The Strategist gave a roadmap. The Business Mentor talked money. You see the angle nobody else is looking at.
+YOUR JOB: Say one creative thing that NO OTHER MENTOR would say — and build it from THEIR OWN raw materials (what they have lived, built, learned, or keep returning to). The Strategist gave a roadmap. The Business Mentor talked money. You see the angle nobody else is looking at.
+
+NON-NEGOTIABLE GROUNDING RULE:
+- Every idea must start from at least one concrete thing THIS person actually has: a thing they built, a skill they earned, a place they lived, something they are learning right now, a problem they lived through.
+- The strongest move is combining TWO of their materials: "you already built a game, so you understand mechanics — and you're learning AI right now; that combination is the unlock."
+- Never invent materials they never mentioned. Never propose a generic format (community space, platform, pop-up, course, retreat) that any stranger could be told.
+- If you cannot tie the idea to something specific of theirs, say the sharper thing you CAN tie to their materials instead.
 
 VARY YOUR APPROACH — pick whichever fits this specific moment:
-- The unexpected FORMAT: "What if this wasn't a [workshop/app/program] but a [surprising alternative]?"
-- The hidden AUDIENCE: "The people who actually need this aren't who they think..."
-- The emotional HOOK: "The real reason this works isn't the content — it's the [unexpected feeling it creates]"
-- The analogy that REFRAMES: "This is basically [unexpected but perfect comparison] — and that changes everything"
-- The provocative INVERSION: "Most people would [obvious path]. The creative move is [opposite]"
-- The ONE specific THING: Not "build an ecosystem" — name the ONE weird specific thing that could unlock it
+- The unexpected FORMAT: what if their existing material took a form nobody expects?
+- The hidden AUDIENCE: the people who actually need what they already know
+- The emotional HOOK: the unexpected feeling their experience creates in others
+- The analogy that REFRAMES using something from their own history
+- The provocative INVERSION of the obvious path
+- The ONE specific THING: name the one weird specific thing built from their materials
 
 BANNED FOREVER:
 ❌ "I see a whole ecosystem..." — never again
 ❌ "workshops, online courses, maybe even..." — too generic
+❌ "One version is X, a stranger version is Y" as a template with ideas untethered from their materials
 ❌ "start with the smallest version and test with X people" — every response uses this
-❌ Any response that could fit ANY user — must be specific to what THEY said
+❌ Any response that could fit ANY user
 ❌ Questions
 
-Be specific to their actual idea. Sound like someone who just had a genuinely fresh thought, not a template.
+Be specific to their actual materials and their actual idea. Sound like someone who just connected two things in THEIR life.
 1-2 sentences. No questions.`;
 
       } else if (mentorType === "marketing_mentor") {
@@ -1078,6 +1105,15 @@ Add NEW perspective only. Just your perspective, no labels or format.
 ${KEYWORD_HIGHLIGHTING_RULES}`;
       }
 
+      // EVERY mentor speaks with the user's real history in hand — foundation story,
+      // life context and the concrete materials from their Atlas. Without this the
+      // voices drift into generic advice that ignores what the person actually has.
+      if (fullUserContext) {
+        systemPrompt += `\n\n${fullUserContext}`;
+      }
+
+
+
       if (mentorType === "future_self" && profile) {
         systemPrompt += `\n\nFuture Self Profile:
 Age: ${profile.future_age}
@@ -1135,12 +1171,34 @@ Mission: ${profile.main_mission}`;
 
     const conversationContextBanter = formatConversationHistory(safeConversationHistory);
 
-    const banterPrompt = `You are generating a REAL advisory room argument. The user stepped out — the mentors are talking among themselves.
+    // ROUND INTENT: round 1 is human and personal (they talk about the PERSON),
+    // round 2 converges (they narrow toward one direction and set up the creative handoff).
+    const banterRoundIntent = isQ1 ? `
+THIS IS ROUND 1 — THE HUMAN ROUND.
+- The mentors are meeting this person for the first time. They talk about WHO THEY ARE, not about a product.
+- Each line must reference something REAL they shared or something real from their history (a place they lived, a thing they built, a skill they earned, a moment that marked them).
+- Tone: warm, curious, a little unguarded — like advisors genuinely moved by the person who just left the room.
+- Mild friendly disagreement is welcome, but this round is recognition, not interrogation.
+- FORBIDDEN in round 1: business models, market size, monetisation, "they need to validate", roadmaps, naming a project.
+` : `
+THIS IS ROUND 2 — THE CONVERGING ROUND.
+- The mentors now connect the dots between their own earlier perspectives and narrow toward ONE direction.
+- At least two lines must explicitly build on another mentor's point ("Strategist is right about the structure, but the pull is in...").
+- Name the concrete raw materials of this person that the direction would stand on.
+- Cut what does not belong: one line must openly drop or park an option to keep focus.
+- Last line must hand the thread to The Creative Visionary to shape the direction into something real.
+- Still third person, still short. No project name here — that is the Creative Visionary's job.
+`;
+
+    const banterPrompt = `You are generating a REAL advisory room conversation. The user stepped out — the mentors are talking among themselves.
 ${conversationContextBanter}
+${fullUserContext}
+${banterRoundIntent}
 
 These are NOT motivational speakers. Each mentor has a distinct lens AND a blind spot they overdo. Real clashes happen because they care differently, not because they disagree for sport.
 
 ${councilType === 'transmutation' ? TRANSMUTATION_TONE_RULES : ''}
+
 
 MENTOR PROFILES THIS ROUND (personality + what they overdo):
 ${selectedMentors.map((type: string) => {
@@ -1162,7 +1220,7 @@ DETECTED THEMES: ${extractedTags.length > 0 ? extractedTags.join(', ') : 'genera
 
 BANTER RULES (non-negotiable):
 1. Third person only — mentors discuss the user as if they stepped out: "They want X but I'm not sure they've thought about Y"
-2. REAL DISAGREEMENT REQUIRED: At least 2 lines must directly clash — not just add a different angle, but actually push back on another mentor's priority. Use: "That's not what they need right now", "You're missing the point", "That's too [harsh / soft / abstract / tactical]"
+2. DISAGREEMENT: In round 2, at least 2 lines must directly clash — push back on another mentor's priority ("That's not what they need right now", "That's too abstract"). In round 1 keep it to at most one gentle difference of opinion; recognition of the person comes first.
 3. Each mentor's BLIND SPOT must color their line — the one who's "too focused on results" should sound like it; the one who's "too soft" should sound like it
 4. Voices must be UNMISTAKABLE — swap two names and it should feel wrong. Business Mentor talks money. Heart Mentor talks feelings. Challenger questions the assumption. Discipline Mentor talks execution.
 5. One defender: someone who pushes back on the skeptic and backs the user
@@ -1176,7 +1234,9 @@ KNOWN TENSIONS (use at least one per banter):
 - Strategist Mentor vs Quantum Inventor: "Here's the roadmap" vs "The frequency isn't right yet"
 - Marketing Mentor vs Ancient Sage: "Ship it and post about it" vs "Slow down. Let it breathe."
 
-FORMAT: [Mentor Name]: "quote" — 10-20 words max per line
+MENTORS IN THE ROOM (use these exact names, no others): ${mentorTypes.map((t: string) => mentorNames[t]).filter(Boolean).join(', ')}
+
+FORMAT: every line must be exactly \`Mentor Name: "quote"\` — 10-20 words max per line. No intro text, no numbering, no commentary outside the lines.
 Generate 4-5 lines. No two lines make the same kind of point.`;
 
     let banterResponse: Response | null = null;
@@ -1202,29 +1262,32 @@ Generate 4-5 lines. No two lines make the same kind of point.`;
       banter = banterData.choices[0].message.content;
       
       // Parse banter into structured format with colors
+      const resolveMentorKey = (rawName: string): string | undefined => {
+        const incoming = rawName.toLowerCase().replace(/^the\s+/, '').replace(/[*[\]]/g, '').trim();
+        return Object.keys(mentorNames).find(k => {
+          const full = mentorNames[k].toLowerCase().replace(/^the\s+/, '');
+          return full === incoming || full.startsWith(incoming + " ") || incoming.startsWith(full) || full.split(" ")[0] === incoming;
+        });
+      };
+
       const lines = banter.split('\n').filter(line => line.trim());
       for (const line of lines) {
-        // Handle multiple formats: **Name:** text, [Name]: "text", Name: text
+        // Handle multiple formats: **Name:** text, [Name]: "text", Name: text (incl. "The X Mentor")
         let match = line.match(/\*\*(.+?)\*\*:\s*"?(.+?)"?\s*$/);
         if (!match) {
           match = line.match(/\[(.+?)\]:\s*"?(.+?)"?\s*$/);
         }
         if (!match) {
-          match = line.match(/^([A-Z][a-z]+(?:\s[A-Z][a-z]+)?):\s*"?(.+?)"?\s*$/);
+          match = line.match(/^[-*\d.\s]*((?:The\s+)?[A-Z][A-Za-z]+(?:\s+[A-Z][A-Za-z]+){0,2}):\s*"?(.+?)"?\s*$/);
         }
-        
+
         if (match) {
           const mentorName = match[1];
-          const text = match[2].replace(/"+$/g, '').trim(); // Remove trailing quotes and trim
-          
+          const text = match[2].replace(/^"+|"+$/g, '').trim();
+
           // VALIDATE: Only allow known mentor names to prevent hallucinations like "MVP"
-          // Use case-insensitive full match OR first-word match so abbreviated names still map correctly.
-          const mentorKey = Object.keys(mentorNames).find(k => {
-            const full = mentorNames[k].toLowerCase();
-            const incoming = mentorName.toLowerCase();
-            return full === incoming || full.startsWith(incoming + " ") || full.split(" ")[0] === incoming;
-          });
-          if (mentorKey) {
+          const mentorKey = resolveMentorKey(mentorName);
+          if (mentorKey && text.length > 2) {
             const color = mentorColors[mentorKey] || '#6B7280';
             banterLines.push({ mentor: mentorKey, text, color });
           } else {
@@ -1232,7 +1295,28 @@ Generate 4-5 lines. No two lines make the same kind of point.`;
           }
         }
       }
+
+      // FALLBACK: the room must never go silent. If the model ignored the format,
+      // attribute the usable sentences to the mentors that are actually in the room.
+      if (banterLines.length === 0) {
+        const sentences = banter
+          .split(/\n+|(?<=[.!?])\s+/)
+          .map(s => s.replace(/^[-*\d.\s"]+|["]+$/g, '').trim())
+          .filter(s => s.length > 20 && !/^[A-Z\s]+:$/.test(s))
+          .slice(0, 4);
+        const roomMentors = (mentorTypes as string[]).filter(t => mentorNames[t] && t !== "future_self");
+        sentences.forEach((text, i) => {
+          const mentorKey = roomMentors[i % Math.max(roomMentors.length, 1)];
+          if (mentorKey) {
+            banterLines.push({ mentor: mentorKey, text, color: mentorColors[mentorKey] || '#6B7280' });
+          }
+        });
+        console.warn(`Banter parsing fallback used — recovered ${banterLines.length} lines`);
+      }
+    } else if (shouldGenerateBanter) {
+      console.error("Banter generation failed:", banterResponse?.status);
     }
+
 
     // === EMOTIONAL REFLECTION (1-2 lines, after banter) ===
     const emotionalReflectionPrompt = `You are the Council. Provide a soft, grounding emotional reflection.
