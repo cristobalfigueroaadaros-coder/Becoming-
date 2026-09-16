@@ -11,7 +11,7 @@ export type CoherenceType = 'NEW_CORE_PROJECT' | 'BRANCH_ADDITION' | 'CORE_EVOLU
 interface FirstWinNamingCardProps {
   proposedName: string;
   description: string;
-  onAccept: (name: string) => void;
+  onAccept: (name: string) => void | Promise<void>;
   onKeepExploring: () => void;
   // PDR v2.1: Evolution support
   isEvolution?: boolean;
@@ -110,6 +110,8 @@ export const FirstWinNamingCard = ({
     try {
       await onAccept(editedName);
     } catch {
+      // The parent shows the error; unlock this card so the user can retry.
+    } finally {
       setCelebrating(false);
     }
   };

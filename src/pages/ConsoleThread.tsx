@@ -1771,6 +1771,11 @@ const ConsoleThread = ({ embedded = false, onProjectNameChange }: ConsoleThreadP
     try {
       const { data: { user } } = await supabase.auth.getUser();
       if (!user) throw new Error("Not authenticated");
+      setPendingProjectProposal({
+        name,
+        description,
+        projectType: discoveredProjectTypeRef.current,
+      });
 
       // --- Step 1: Show intro message ---
       await showTyping("future_self", 1000);
@@ -1868,6 +1873,7 @@ const ConsoleThread = ({ embedded = false, onProjectNameChange }: ConsoleThreadP
         setTyping(null);
         setPhase("post_project");
         persistPhase("post_project");
+        setPendingProjectProposal(null);
         setProjectName(name);
         onProjectNameChange?.(name);
         confetti({ particleCount: 120, spread: 80, origin: { y: 0.6 } });
@@ -1974,6 +1980,7 @@ const ConsoleThread = ({ embedded = false, onProjectNameChange }: ConsoleThreadP
         setTyping(null);
         setPhase("post_project");
         persistPhase("post_project");
+        setPendingProjectProposal(null);
         setProjectName(name);
         onProjectNameChange?.(name);
 
@@ -2121,6 +2128,7 @@ const ConsoleThread = ({ embedded = false, onProjectNameChange }: ConsoleThreadP
       
       setPhase("post_project");
       persistPhase("post_project");
+      setPendingProjectProposal(null);
       setProjectName(name);
       onProjectNameChange?.(name);
 
