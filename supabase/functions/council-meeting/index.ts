@@ -750,7 +750,27 @@ YOUR COUNCIL MISSION: Identify their current stage and define the next milestone
 `;
     }
 
+    // === RAW MATERIALS FROM ATLAS (concrete things the user actually did/built/learned) ===
+    const { data: atlasDots } = await supabaseClient
+      .from("atlas_dots")
+      .select("title, short_description, dot_category, created_at")
+      .eq("user_id", user.id)
+      .order("created_at", { ascending: false })
+      .limit(14);
+
+    const atlasMaterialContext = (atlasDots && atlasDots.length > 0) ? `
+=== THEIR RAW MATERIALS (concrete things they have actually lived, built, or learned) ===
+${atlasDots.map((d: any) => `- [${d.dot_category || 'general'}] ${d.title}${d.short_description ? ` — ${d.short_description}` : ''}`).join('\n')}
+=== END RAW MATERIALS ===
+HOW TO USE THESE:
+- Build every idea, angle, or observation on TOP of at least one of these concrete materials.
+- Name the material implicitly ("you already built a game, so you understand mechanics") — never say Atlas, dots, data, or profile.
+- Combine two materials that do not obviously belong together — that is where their unfair advantage lives.
+- Generic ideas that ignore these materials are a failure.
+` : '';
+
     // === ATLAS SIGNALS CONTEXT (Invisible identity context from Atlas dots) ===
+
     const MENTOR_SIGNAL_MATRIX: Record<string, string[]> = {
       creative_visionary: ["identity", "motivation"],
       strategist_mentor: ["behavioral", "direction"],
