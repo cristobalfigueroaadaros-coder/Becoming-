@@ -39,7 +39,6 @@ const Dashboard = () => {
     checkRitualStatus();
     checkFirstTimeUser();
     checkReengagementNotifications();
-    checkAtlasGuidance();
 
 
     const outreachTimer = setTimeout(() => {
@@ -51,44 +50,6 @@ const Dashboard = () => {
 
     };
   }, []);
-
-  // Guide users to Cris's Atlas first if they haven't built enough discovery yet.
-  // Threshold mirrors useProgressiveUnlock (chat unlock thresholds by entry state).
-  const checkAtlasGuidance = async () => {
-    try {
-      const { data: { user } } = await supabase.auth.getUser();
-      if (!user) return;
-
-      const { data: profile } = await supabase
-        .from("profiles")
-        .select("entry_state, atlas_guidance_dismissed, atlas_onboarding_completed" as any)
-        .eq("id", user.id)
-        .maybeSingle();
-
-      const p = profile as any;
-      // Once user dismisses or progresses past threshold, never redirect again
-      if (p?.atlas_guidance_dismissed) return;
-      // If atlas onboarding is already done, do not auto-redirect.
-      if (p?.atlas_onboarding_completed) return;
-
-      const entryState: string = p?.entry_state || "DISCOVER";
-      const COUNCIL_THRESHOLDS: Record<string, number> = { DISCOVER: 4, GROW: 3, BUILD: 2 };
-      const threshold = COUNCIL_THRESHOLDS[entryState] ?? 4;
-
-      const { count: completedQuestCount } = await supabase
-        .from("atlas_quests")
-        .select("*", { count: "exact", head: true })
-        .eq("user_id", user.id)
-        .eq("status", "completed");
-
-      const completed = completedQuestCount || 0;
-
-      // Atlas owns the onboarding sequence. Home never redirects into a
-      // competing founder-first path.
-    } catch (error) {
-      console.error("Error checking Atlas guidance:", error);
-    }
-  };
 
   // Check for re-engagement notifications when user returns
   const checkReengagementNotifications = async () => {

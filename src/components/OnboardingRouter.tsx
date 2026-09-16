@@ -32,7 +32,7 @@ const OnboardingRouter = () => {
           navigate("/gravity/orientation");
         } else if (!profile?.birth_name) {
           navigate("/onboarding");
-        } else if (!(profile as any)?.entry_state) {
+        } else if (!profile?.entry_state) {
           // User has profile but never picked their phase — finish step 2
           navigate("/onboarding/step2");
         } else if (!profile?.action_patterns || Object.keys(profile.action_patterns as Record<string, unknown>).length === 0) {
