@@ -8,10 +8,10 @@ Make the existing onboarding journey run in one reliable order:
 3. After four seconds, show the Atlas introduction card.
 4. Accept the introduction and begin the first quest.
 5. Complete the quest, select Atlas Dots, and return to the Atlas to see them.
-6. Start another quest and repeat the same completion loop.
-7. When prompted, add a Lifetime Event and return to see it on the Atlas.
+6. Start the second quest and repeat the same completion loop.
+7. After two completed quests, prompt the user to add a Lifetime Event and return to see it on the Atlas.
 8. Make the Cris/founder map control pulse; opening it starts the founder journey from the beginning.
-9. Continue into and complete the final quest.
+9. “Continue quest” resumes the next normal quest in the existing ordered sequence.
 
 ## Investigation
 - Trace every route, saved completion marker, delayed popup, and redirect involved.
@@ -19,9 +19,11 @@ Make the existing onboarding journey run in one reliable order:
 - Confirm how quest completion, dot selection, Lifetime Events, and founder progress are persisted and resumed.
 
 ## Implementation
-- Establish one authoritative onboarding stage resolver from persisted progress.
+- Establish one authoritative onboarding stage resolver from persisted progress: introduction, quest one, quest two, Lifetime Event, founder journey, then normal quest continuation.
 - Make each action advance exactly one stage and prevent duplicate clicks or remounts from skipping stages.
 - Remove or bypass conflicting redirects and stale browser flags for this journey.
+- Return to the user’s Atlas after each selected Dot and after the Lifetime Event, showing the newly added item before the next action is offered.
+- Pulse the Cris’s Map control only after the Lifetime Event has been added; opening it starts the founder journey at its first moment.
 - Preserve normal Atlas use after onboarding is complete.
 
 ## Verification
