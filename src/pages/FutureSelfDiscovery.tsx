@@ -1,4 +1,4 @@
-import { FormEvent, useEffect, useRef, useState } from "react";
+import { FormEvent, useEffect, useLayoutEffect, useRef, useState } from "react";
 import { useLocation, useNavigate } from "react-router-dom";
 import { useQueryClient } from "@tanstack/react-query";
 import { ArrowRight, Keyboard, Mic, RotateCcw, Sparkles, Volume2, VolumeX } from "lucide-react";
@@ -129,66 +129,13 @@ const createTurningPointLessonInteraction = (contextText = ""): QuestInteraction
   };
 };
 
-const QUEST_OPENING_KEYWORDS: Record<Exclude<DiscoveryQuestTheme, "origin">, string[]> = {
-  gifts: ["skill", "learn", "connect", "create", "experience", "influence", "talent", "curious"],
-  world: ["help", "serve", "impact", "people", "gift", "purpose", "creator", "community"],
-  experiments: ["build", "built", "test", "create", "project", "iterate", "feedback", "family", "festival"],
-  current: ["action", "decision", "challenge", "project", "future", "move", "create", "experiment"],
+const questOpenings: Record<DiscoveryQuestTheme, string> = {
+  origin: openingInvitation,
+  gifts: "Think of something that comes naturally to you or a skill you had to work at. How did you discover you were good at it?",
+  world: "When you think about what you could contribute, who would you most like to help? What would you want to change for them?",
+  experiments: "Tell me about something you've already tried to create or make happen. What did you learn that you'd bring into whatever you try next?",
+  current: "What's happening in your life right now that you'd like to think through together?",
 };
-
-const joinOpeningReferences = (references: string[]) => {
-  if (references.length <= 1) return references[0] || "what you have already shared";
-  if (references.length === 2) return `${references[0]} and ${references[1]}`;
-  return `${references.slice(0, -1).join(", ")}, and ${references[references.length - 1]}`;
-};
-
-const openingDotReferences = (
-  dots: AtlasDot[],
-  theme: Exclude<DiscoveryQuestTheme, "origin">,
-) => {
-  const keywords = QUEST_OPENING_KEYWORDS[theme];
-  const uniqueDots = dots.filter((dot, index, allDots) =>
-    Boolean(dot.title) && allDots.findIndex((candidate) => candidate.title === dot.title) === index,
-  );
-  const selected = uniqueDots
-    .map((dot, index) => {
-      const searchableText = `${dot.title} ${dot.short_description || ""}`.toLowerCase();
-      const relevance = keywords.reduce((score, keyword) => score + (searchableText.includes(keyword) ? 1 : 0), 0);
-      return { dot, score: relevance * 10 + index };
-    })
-    .sort((a, b) => b.score - a.score)
-    .slice(0, 2)
-    .map(({ dot }) => {
-      const description = dot.short_description?.replace(/\s+/g, " ").trim();
-      const shortDescription = description && description.length > 96
-        ? `${description.slice(0, 93).trimEnd()}...`
-        : description;
-      return shortDescription ? `${dot.title} — ${shortDescription}` : dot.title;
-    });
-
-  return selected.length > 0 ? joinOpeningReferences(selected) : "what you have already shared";
-};
-
-const buildNextQuestInvitation = (dots: AtlasDot[], completedFutureSelfQuests = 0) => {
-  if (completedFutureSelfQuests <= 1) {
-    const context = openingDotReferences(dots, "gifts");
-    return `I'm carrying forward ${context}. I don't want you to start from zero.\n\nThis time, I want to understand the person and the abilities underneath those experiences: who shaped the way you work, what comes naturally to you, and what you had to learn.\n\nTell me about someone who influenced you, a skill you had to learn, or something you feel naturally good at. What did it teach you about yourself?`;
-  }
-
-  if (completedFutureSelfQuests === 2) {
-    const context = openingDotReferences(dots, "world");
-    return `I'm carrying forward ${context}. You have begun to show me what matters to you; now I want to follow that care outward.\n\nThis part is about the people who could genuinely benefit from what you are learning and creating, not an abstract mission.\n\nWhen you imagine a better world, who do you feel called to help first, and why them?`;
-  }
-
-  if (completedFutureSelfQuests === 3) {
-    const context = openingDotReferences(dots, "experiments");
-    return `I'm carrying forward ${context}. You have named the people and change you care about; now I want to ground that vision in what you have actually put into the world.\n\nTell me about something you created, tested, organized, built, helped with, or attempted. What did that experiment teach you that you could use again?`;
-  }
-
-  const context = openingDotReferences(dots, "current");
-  return `I'm carrying forward ${context}. We have explored where you came from, what you can do, who you want to help, and what you have already tried.\n\nNow I want to connect that learning with the edge of your life today.\n\nTell me about a recent action, challenge, relationship, idea, or decision that feels important right now. What are you learning from it?`;
-};
-
 const missionClusterSlugs: Record<DiscoveryMission, string> = {
   skills: "skills",
   natural_talents: "natural-talents",
@@ -796,17 +743,11 @@ const FutureSelfDiscovery = () => {
   const location = useLocation();
   const queryClient = useQueryClient();
   const { clusters, dots: allExistingDots, isLoading: isAtlasLoading } = useAtlas();
-  const { completedQuests, futureSelfProgress, isLoading: isProgressLoading } = useAtlasQuests();
-  const { completedSteps, nextTheme } = futureSelfProgress;
+  const { completedQuests, futureSelfProgress, isLoading: isProgressLoading, isFetching: isProgressFetching } = useAtlasQuests();
+  const { nextTheme } = futureSelfProgress;
   const [input, setInput] = useState("");
-  const [isSessionReady, setIsSessionReady] = useState(false);
-  const [messages, setMessages] = useState<ConversationMessage[]>([
-    {
-      id: "opening",
-      role: "future-self",
-      content: openingInvitation,
-    },
-  ]);
+  const [preparedSessionKey, setPreparedSessionKey] = useState<string | null>(null);
+  const [messages, setMessages] = useState<ConversationMessage[]>([]);
   const [decision, setDecision] = useState<DiscoveryDecision | null>(null);
   const [activeInteraction, setActiveInteraction] = useState<QuestInteraction | null>(null);
   const [usedInteractionKeys, setUsedInteractionKeys] = useState<string[]>([]);
@@ -831,13 +772,13 @@ const FutureSelfDiscovery = () => {
   const speechPauseTimerRef = useRef<number | null>(null);
   const autoSendTimerRef = useRef<number | null>(null);
   const autoSendIntervalRef = useRef<number | null>(null);
-  const freshResetKeyRef = useRef("");
+  const sessionKey = location.key;
 
   const canSubmit = input.trim().length > 0;
   const latestFutureSelfMessage = [...messages]
     .reverse()
     .find((message) => message.role === "future-self");
-  const isSessionPreparing = freshResetKeyRef.current !== (location.search || "initial") || !isSessionReady;
+  const isSessionPreparing = preparedSessionKey !== sessionKey;
   const visibleLatestFutureSelfMessage = isSessionPreparing ? undefined : latestFutureSelfMessage;
   const constellationMode: ConstellationMode = isRecordingVoice
     ? "listening"
@@ -847,26 +788,26 @@ const FutureSelfDiscovery = () => {
         ? "speaking"
         : "idle";
 
+  useLayoutEffect(() => {
+    cancelAutoSend();
+    stopSpeaking();
+  }, [sessionKey]);
+
   useEffect(() => {
     const resetDiscoverySession = () => {
-      if (isAtlasLoading || isProgressLoading) return;
-      const sessionKey = location.search || "initial";
-      if (freshResetKeyRef.current === sessionKey) return;
-      freshResetKeyRef.current = sessionKey;
+      if (!isSessionPreparing || isAtlasLoading || isProgressLoading || isProgressFetching) return;
 
       const isNextQuest = nextTheme !== "origin";
       const priorInteractionKeys = completedQuests
         .filter((quest) => quest.quest_key?.startsWith("future_self_"))
         .map((quest) => (quest.interactions as { interactionKey?: unknown } | null)?.interactionKey)
         .filter((key): key is string => typeof key === "string" && key.length > 0);
-      cancelAutoSend();
-      stopSpeaking();
       setInput("");
       setMessages([
         {
           id: isNextQuest ? "next-quest-opening" : "opening",
           role: "future-self",
-          content: isNextQuest ? buildNextQuestInvitation(allExistingDots, completedSteps) : openingInvitation,
+          content: questOpenings[nextTheme],
         },
       ]);
       setDecision(null);
@@ -883,11 +824,11 @@ const FutureSelfDiscovery = () => {
       setSavedDotTitle(null);
       setActiveQuestTheme(nextTheme);
       lastSpokenMessageIdRef.current = "";
-      setIsSessionReady(true);
+      setPreparedSessionKey(sessionKey);
     };
 
     resetDiscoverySession();
-  }, [location.search, allExistingDots, isAtlasLoading, isProgressLoading, completedSteps, nextTheme, completedQuests]);
+  }, [sessionKey, isSessionPreparing, isAtlasLoading, isProgressLoading, isProgressFetching, nextTheme, completedQuests]);
 
   const speakFutureSelfMessage = (message?: ConversationMessage) => {
     if (!message || typeof window === "undefined" || !("speechSynthesis" in window)) return;
@@ -917,7 +858,9 @@ const FutureSelfDiscovery = () => {
       utterance.rate = index === 0 ? 0.86 : 0.88;
       utterance.pitch = 1.04;
       utterance.volume = 0.92;
-      utterance.onstart = () => setIsSpeaking(true);
+      utterance.onstart = () => {
+        if (runId === speechRunIdRef.current) setIsSpeaking(true);
+      };
       utterance.onend = () => {
         if (runId !== speechRunIdRef.current) return;
         speechPauseTimerRef.current = window.setTimeout(
@@ -925,7 +868,9 @@ const FutureSelfDiscovery = () => {
           speechPauseFor(chunk),
         );
       };
-      utterance.onerror = () => setIsSpeaking(false);
+      utterance.onerror = () => {
+        if (runId === speechRunIdRef.current) setIsSpeaking(false);
+      };
       window.speechSynthesis.speak(utterance);
     };
 
@@ -945,11 +890,11 @@ const FutureSelfDiscovery = () => {
   };
 
   useEffect(() => {
-    if (!isSessionReady || isSessionPreparing || !voiceRepliesEnabled || !latestFutureSelfMessage) return;
-    if (latestFutureSelfMessage.id === lastSpokenMessageIdRef.current) return;
+    if (!voiceRepliesEnabled || !visibleLatestFutureSelfMessage) return;
+    if (visibleLatestFutureSelfMessage.id === lastSpokenMessageIdRef.current) return;
 
-    speakFutureSelfMessage(latestFutureSelfMessage);
-  }, [isSessionPreparing, isSessionReady, latestFutureSelfMessage, voiceRepliesEnabled]);
+    speakFutureSelfMessage(visibleLatestFutureSelfMessage);
+  }, [visibleLatestFutureSelfMessage, voiceRepliesEnabled]);
 
   useEffect(() => {
     if (typeof window === "undefined" || !("speechSynthesis" in window)) return;
@@ -1839,7 +1784,7 @@ const FutureSelfDiscovery = () => {
                         variant="ghost"
                         size="sm"
                         className="h-7 px-2 text-xs"
-                        onClick={() => speakFutureSelfMessage(latestFutureSelfMessage)}
+                        onClick={() => speakFutureSelfMessage(visibleLatestFutureSelfMessage)}
                       >
                         Replay
                       </Button>
