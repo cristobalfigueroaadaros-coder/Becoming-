@@ -27,8 +27,10 @@ interface LifetimeEventEditModalProps {
   defaultEventType?: EventType;
   defaultEventLabel?: string;
   defaultEventDescription?: string;
+  requireTimePeriod?: boolean;
+  linkedDotTitles?: string[];
   momentKindOverride?: "event" | "skill" | "realization" | "creation";
-  onSave: (data: LifetimeEventInput) => Promise<void>;
+  onSave: (data: LifetimeEventInput) => Promise<void | boolean>;
   onDelete?: () => Promise<void>;
 }
 
@@ -88,11 +90,13 @@ export const LifetimeEventEditModal = ({
   defaultEventType,
   defaultEventLabel,
   defaultEventDescription,
+  requireTimePeriod = false,
+  linkedDotTitles = [],
   momentKindOverride,
   onSave,
   onDelete,
 }: LifetimeEventEditModalProps) => {
-  const [timePeriod, setTimePeriod] = useState<TimePeriod>(defaultTimePeriod);
+  const [timePeriod, setTimePeriod] = useState<TimePeriod | null>(defaultTimePeriod);
   const [eventLabel, setEventLabel] = useState("");
   const [eventDescription, setEventDescription] = useState("");
   const [eventType, setEventType] = useState<EventType | null>(null);
@@ -112,26 +116,26 @@ export const LifetimeEventEditModal = ({
       setEventDescription(event.event_description || "");
       setEventType(event.event_type);
     } else {
-      setTimePeriod(defaultTimePeriod);
+      setTimePeriod(requireTimePeriod ? null : defaultTimePeriod);
       setEventLabel(defaultEventLabel || "");
       setEventDescription(defaultEventDescription || "");
       setEventType(defaultEventType || null);
     }
     setShowDeleteConfirm(false);
-  }, [event, defaultTimePeriod, defaultEventType, defaultEventLabel, defaultEventDescription, open]);
+  }, [event, defaultTimePeriod, defaultEventType, defaultEventLabel, defaultEventDescription, requireTimePeriod, open]);
 
   const handleSave = async () => {
-    if (!eventLabel.trim()) return;
+    if (!eventLabel.trim() || !timePeriod) return;
 
     setSaving(true);
     try {
-      await onSave({
+      const saved = await onSave({
         time_period: timePeriod,
         event_label: eventLabel.trim(),
         event_description: eventDescription.trim() || undefined,
         event_type: eventType || undefined,
       });
-      onClose();
+      if (saved !== false) onClose();
     } finally {
       setSaving(false);
     }
@@ -238,6 +242,13 @@ export const LifetimeEventEditModal = ({
             />
           </div>
 
+          {linkedDotTitles.length > 0 && (
+            <div className="space-y-2">
+              <p className="text-sm font-medium">Linked Atlas Dots</p>
+              <p className="text-sm text-muted-foreground">{linkedDotTitles.join(", ")}</p>
+            </div>
+          )}
+
           {/* Pattern info (read-only if linked) */}
           {event?.pattern_name && (
             <div className="bg-indigo-500/10 rounded-lg p-3 space-y-1">
@@ -308,7 +319,7 @@ export const LifetimeEventEditModal = ({
             <Button
               type="button"
               onClick={handleSave}
-              disabled={!eventLabel.trim() || saving}
+              disabled={!eventLabel.trim() || !timePeriod || saving}
             >
               {saving ? (
                 <Loader2 className="w-4 h-4 animate-spin" />

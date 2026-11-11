@@ -242,8 +242,11 @@ Return ONLY valid JSON with this exact shape:
   "privateSignals": [{ "type": "timeline_moment | possible_dot | possible_connection | transferable_skill | value_signal | audience_signal | project_seed | action_reflection | mentor_handoff_context", "summary": "specific hidden signal", "revealTiming": "when this should become visible", "mentorUse": "how mentors should use this", "confidence": 0.0 }],
   "nextMove": { "priority": "origin | learning | creation | direction | action_reflection | project_momentum | atlas_deepening | mentor_handoff", "reason": "why this is the next best move", "suggestedQuestion": "one human question or CTA", "recommendedMentor": "optional mentor/team" },
   "impactOptions": { "audiences": ["short option in the user's own language"], "needs": ["short option based on their answers"] },
-  "candidateDots": [{ "title": "3-6 words", "description": "1-2 specific sentences", "dotCategory": "strength | shadow | life_imprint | direction", "clusterSlug": "one allowed Atlas destination", "sourceQuote": "verbatim words from this user's answer supporting this specific Dot" }]
+  "candidateDots": [{ "title": "3-6 words", "description": "1-2 specific sentences", "dotCategory": "strength | shadow | life_imprint | direction", "clusterSlug": "one allowed Atlas destination", "sourceQuote": "verbatim words from this user's answer supporting this specific Dot" }],
+  "lifetimeMoments": [{ "label": "short exact phrase within sourceQuote naming what happened", "sourceQuote": "verbatim excerpt from a single user answer, at most 400 characters" }]
 }
+
+For GENERATE_DOTS, suggest at most two concrete events the user explicitly describes as having happened. Include what the event meant when the user connects it to the event in the same excerpt. Copy exact wording for both fields. Never infer a date, age, move between places, or event details. Beliefs, intentions, and hypothetical examples alone do not describe an event. Return an empty list when there is no grounded event.
 
 For the world quest, when the user has started naming an audience or their needs, provide up to five grounded options for each under impactOptions, even if the chosen action is ASK. Include only groups the user named and needs they described. Keep different audiences distinct and avoid two options that mean the same thing. Return empty arrays when the user has not given enough evidence. Use the latest answer to ask about one thing that is still open. If the audience is known, move on to their needs or the change the user wants to create. For the experiments quest, reflect a specific detail from the current conversation and ask which part of what they learned could help the people they want to serve now.
 
@@ -270,7 +273,7 @@ Candidate Dot rules:
     const response = await callChatCompletion({
       model: "gpt-4o-mini",
       temperature: 0.35,
-      max_tokens: mode === "interaction" ? 1600 : 900,
+      max_tokens: mode === "interaction" ? 2000 : 900,
       messages: [
         { role: "system", content: systemPrompt },
         { role: "user", content: typeof candidateFeedback === "string" && candidateFeedback.trim()
@@ -299,6 +302,20 @@ Candidate Dot rules:
       userEvidence.push(interactionResponse.lessonInOwnWords);
     }
     const candidateDots = action === "GENERATE_DOTS" ? asCandidateDots(parsed.candidateDots, userEvidence, allowedClusters) : [];
+    const normalizeQuote = (value: string) => value.toLowerCase().replace(/\s+/g, " ").trim();
+    const normalizedAnswers = userEvidence.map(normalizeQuote);
+    const lifetimeMoments = action === "GENERATE_DOTS" && Array.isArray(parsed.lifetimeMoments)
+      ? parsed.lifetimeMoments.filter((item: unknown) => {
+        if (!isRecord(item) || typeof item.label !== "string" || typeof item.sourceQuote !== "string") return false;
+        const label = normalizeQuote(item.label);
+        const quote = normalizeQuote(item.sourceQuote);
+        return label.length > 0 && label.length <= 100 && quote.length >= 12 && quote.length <= 400
+          && quote.includes(label) && normalizedAnswers.some((answer) => answer.includes(quote));
+      }).slice(0, 2).map(({ label, sourceQuote }: { label: string; sourceQuote: string }) => ({
+        label: label.trim(),
+        sourceQuote: sourceQuote.trim(),
+      }))
+      : [];
 
     return new Response(JSON.stringify({
       message: typeof parsed.message === "string"
@@ -351,6 +368,7 @@ Candidate Dot rules:
         needs: asImpactOptions(parsed.impactOptions?.needs),
       } : undefined,
       candidateDots,
+      lifetimeMoments,
     }), {
       headers: { ...corsHeaders, "Content-Type": "application/json" },
     });

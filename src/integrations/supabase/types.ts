@@ -2882,8 +2882,10 @@ export type Database = {
           gold_outcome: string | null
           id: string
           is_transmuted: boolean | null
+          linked_atlas_dot_ids: string[]
           pattern_id: string | null
           pattern_name: string | null
+          source_candidate_key: string | null
           time_period: string
           updated_at: string
           user_id: string
@@ -2896,8 +2898,10 @@ export type Database = {
           gold_outcome?: string | null
           id?: string
           is_transmuted?: boolean | null
+          linked_atlas_dot_ids?: string[]
           pattern_id?: string | null
           pattern_name?: string | null
+          source_candidate_key?: string | null
           time_period: string
           updated_at?: string
           user_id: string
@@ -2910,8 +2914,10 @@ export type Database = {
           gold_outcome?: string | null
           id?: string
           is_transmuted?: boolean | null
+          linked_atlas_dot_ids?: string[]
           pattern_id?: string | null
           pattern_name?: string | null
+          source_candidate_key?: string | null
           time_period?: string
           updated_at?: string
           user_id?: string

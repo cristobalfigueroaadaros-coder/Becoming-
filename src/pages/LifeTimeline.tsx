@@ -1,11 +1,12 @@
 import { useEffect, useState } from "react";
 import { useNavigate, useSearchParams } from "react-router-dom";
 import { useQueryClient } from "@tanstack/react-query";
-import { ArrowLeft, BookOpen, CalendarDays, Lightbulb, Plus, Sparkles } from "lucide-react";
+import { ArrowLeft, BookOpen, Lightbulb, Plus, Sparkles } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import { LifetimeEventDetailView, LifetimeEventEditModal, LifetimeMapTimeline } from "@/components/lifetime-map";
-import { TIME_PERIOD_LABELS, useLifetimeEvents, type EventType, type LifetimeEvent, type LifetimeEventCandidate, type LifetimeEventInput, type TimePeriod } from "@/hooks/useLifetimeEvents";
+import { useLifetimeEvents, type EventType, type LifetimeEvent, type LifetimeEventCandidate, type LifetimeEventInput, type TimePeriod } from "@/hooks/useLifetimeEvents";
+import { useAtlas } from "@/hooks/useAtlas";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
 
@@ -22,7 +23,9 @@ const LifeTimeline = () => {
   const navigate = useNavigate();
   const [searchParams, setSearchParams] = useSearchParams();
   const queryClient = useQueryClient();
-  const { events, candidates, loading, createEvent, updateEvent, deleteEvent, markCandidateAdded, getEventsByPeriod } = useLifetimeEvents();
+  const { events, candidates, loading, createEvent, updateEvent, deleteEvent, getEventsByPeriod } = useLifetimeEvents();
+  const { dots } = useAtlas();
+  const linkedDotTitles = (ids: string[] = []) => dots.filter((dot) => ids.includes(dot.id)).map((dot) => dot.title);
   const [editingEvent, setEditingEvent] = useState<LifetimeEvent | null>(null);
   const [selectedEvent, setSelectedEvent] = useState<LifetimeEvent | null>(null);
   const [selectedCandidate, setSelectedCandidate] = useState<LifetimeEventCandidate | null>(null);
@@ -60,8 +63,7 @@ const LifeTimeline = () => {
   const openCandidate = (candidate: LifetimeEventCandidate) => {
     setEditingEvent(null);
     setSelectedCandidate(candidate);
-    setDefaultTimePeriod(candidate.suggested_time_period);
-    setDefaultEventType(candidate.suggested_event_type || undefined);
+    setDefaultEventType(undefined);
     setDefaultMomentKind("event");
     setIsEditorOpen(true);
   };
@@ -130,18 +132,14 @@ const LifeTimeline = () => {
 
   const saveEvent = async (data: LifetimeEventInput) => {
     if (editingEvent) {
-      if (await updateEvent(editingEvent.id, data)) {
-        await syncAtlasDot({ ...editingEvent, ...data, updated_at: new Date().toISOString() });
-        toast.success("Timeline moment updated in your Atlas");
-      }
-      return;
+      if (!(await updateEvent(editingEvent.id, data))) return false;
+      await syncAtlasDot({ ...editingEvent, ...data, updated_at: new Date().toISOString() });
+      toast.success("Timeline moment updated in your Atlas");
+      return true;
     }
-    const newEvent = await createEvent(data);
+    const newEvent = await createEvent(data, selectedCandidate || undefined);
     if (newEvent) {
       await syncAtlasDot(newEvent);
-      if (selectedCandidate) {
-        await markCandidateAdded(selectedCandidate.id);
-      }
       toast.success("Added to your Life Timeline and Atlas");
       if (discoveryBridge) {
         navigate("/atlas?intro=founder&next=quest", { replace: true });
@@ -149,6 +147,7 @@ const LifeTimeline = () => {
         navigate("/council?view=intake", { replace: true });
       }
     }
+    return Boolean(newEvent);
   };
 
   if (loading) return <div className="min-h-screen bg-cosmic flex items-center justify-center text-sm text-muted-foreground">Loading your Life Timeline…</div>;
@@ -185,35 +184,27 @@ const LifeTimeline = () => {
           </div>
         </div>
 
-        {candidates.some((candidate) => candidate.status !== "dismissed") && (
+        {candidates.length > 0 && (
           <Card className="border-primary/20 bg-primary/5 backdrop-blur-sm">
             <CardContent className="p-4">
               <p className="text-xs font-semibold uppercase tracking-[0.16em] text-primary">Moments Future Self noticed</p>
-              <p className="mt-1 text-sm text-muted-foreground">Your conversations surfaced possible chapters for your personal album.</p>
+              <p className="mt-1 text-sm text-muted-foreground">Review moments from your conversations and choose which to add.</p>
               <div className="mt-4 space-y-2">
-                {candidates
-                  .filter((candidate) => candidate.status !== "dismissed")
-                  .map((candidate) => {
+                {candidates.map((candidate) => {
                     const isAvailable = candidate.status === "available";
                     const isAdded = candidate.status === "added";
                     return (
                       <div key={candidate.id} className={`flex items-start justify-between gap-3 rounded-lg border p-3 ${isAvailable ? "border-primary/35 bg-background/50" : "border-border/50 bg-background/20 opacity-75"}`}>
                         <div>
                           <p className="text-sm font-semibold text-foreground">{candidate.event_label}</p>
-                          <p className="mt-1 flex items-center gap-1.5 text-xs font-medium text-primary">
-                            <CalendarDays className="h-3.5 w-3.5" aria-hidden="true" />
-                            {TIME_PERIOD_LABELS[candidate.suggested_time_period]}
-                          </p>
                           <p className="mt-1 text-xs leading-relaxed text-muted-foreground">{candidate.event_description}</p>
                         </div>
                         {isAdded ? (
                           <span className="shrink-0 text-xs text-primary">Added</span>
-                        ) : isAvailable ? (
-                          <Button type="button" size="sm" className="shrink-0" onClick={() => openCandidate(candidate)}>
-                            Add
-                          </Button>
                         ) : (
-                          <span className="shrink-0 text-xs text-muted-foreground">Locked</span>
+                          <Button type="button" size="sm" className="shrink-0" onClick={() => openCandidate(candidate)}>
+                            Review
+                          </Button>
                         )}
                       </div>
                     );
@@ -268,9 +259,11 @@ const LifeTimeline = () => {
         onClose={() => { setIsEditorOpen(false); setEditingEvent(null); setSelectedCandidate(null); setDefaultEventType(undefined); setDefaultMomentKind(undefined); }}
         event={editingEvent}
         defaultTimePeriod={defaultTimePeriod}
-        defaultEventType={selectedCandidate?.suggested_event_type || defaultEventType}
+        defaultEventType={defaultEventType}
         defaultEventLabel={selectedCandidate?.event_label}
         defaultEventDescription={selectedCandidate?.event_description || undefined}
+        requireTimePeriod={Boolean(selectedCandidate)}
+        linkedDotTitles={linkedDotTitles(selectedCandidate?.linked_atlas_dot_ids ?? editingEvent?.linked_atlas_dot_ids)}
         momentKindOverride={selectedCandidate ? "event" : defaultMomentKind}
         onSave={saveEvent}
         onDelete={editingEvent ? async () => {
@@ -282,12 +275,13 @@ const LifeTimeline = () => {
       />
       <LifetimeEventDetailView
         event={selectedEvent}
+        linkedDotTitles={linkedDotTitles(selectedEvent?.linked_atlas_dot_ids)}
         open={isDetailOpen}
         onClose={() => { setIsDetailOpen(false); setSelectedEvent(null); }}
         onGoToPatternMap={() => selectedEvent?.pattern_id && navigate(`/pattern-map/${selectedEvent.pattern_id}`)}
         onGoToTransmutation={() => navigate("/creation-lab?type=becoming")}
         onTalkToMentor={() => navigate(`/council?view=intake&source=life_timeline${selectedEvent ? `&event=${selectedEvent.id}` : ""}`)}
-        onEdit={() => { if (selectedEvent) { setEditingEvent(selectedEvent); setIsDetailOpen(false); setIsEditorOpen(true); } }}
+        onEdit={() => { if (selectedEvent) { setSelectedCandidate(null); setEditingEvent(selectedEvent); setIsDetailOpen(false); setIsEditorOpen(true); } }}
       />
     </div>
   );

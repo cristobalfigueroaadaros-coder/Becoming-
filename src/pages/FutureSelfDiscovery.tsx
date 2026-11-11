@@ -17,12 +17,11 @@ import {
 import { detectConnections } from "@/lib/atlasConnectionEngine";
 import { AtlasDot, useAtlas } from "@/hooks/useAtlas";
 import { useAtlasQuests } from "@/hooks/useAtlasQuests";
-import { useLifetimeEvents } from "@/hooks/useLifetimeEvents";
 import { getFutureSelfOnboardingProgress } from "@/lib/journeyFlow";
 import { supabase } from "@/integrations/supabase/client";
 import type { Database } from "@/integrations/supabase/types";
 import { toast } from "@/hooks/use-toast";
-import { extractLifetimeCandidates } from "@/lib/lifetimeCandidates";
+import { buildLifetimeCandidates } from "@/lib/lifetimeCandidates";
 
 type ConversationMessage = {
   id: string;
@@ -799,7 +798,6 @@ const FutureSelfDiscovery = () => {
   const { clusters, dots: allExistingDots, isLoading: isAtlasLoading } = useAtlas();
   const { completedQuests, futureSelfProgress, isLoading: isProgressLoading } = useAtlasQuests();
   const { completedSteps, nextTheme } = futureSelfProgress;
-  const { upsertCandidates: upsertLifetimeCandidates } = useLifetimeEvents();
   const [input, setInput] = useState("");
   const [isSessionReady, setIsSessionReady] = useState(false);
   const [messages, setMessages] = useState<ConversationMessage[]>([
@@ -1358,9 +1356,13 @@ const FutureSelfDiscovery = () => {
 
       const lifetimeEvidence = messages
         .filter(({ role, id }) => role === "user" && !id.startsWith("interaction-"))
-        .map(({ content }) => content)
-        .join(" ");
-      const lifetimeSeeds = extractLifetimeCandidates(lifetimeEvidence);
+        .map(({ content }) => content);
+      const reflection = interactionResponses.at(-1);
+      if (reflection && typeof reflection === "object" && "lessonInOwnWords" in reflection
+        && typeof reflection.lessonInOwnWords === "string") {
+        lifetimeEvidence.push(reflection.lessonInOwnWords);
+      }
+      const lifetimeSeeds = buildLifetimeCandidates(decision.lifetimeMoments || [], lifetimeEvidence, validatedDotProvenance);
 
       const questPayload: AtlasQuestInsert = {
         user_id: user.id,
@@ -1529,8 +1531,6 @@ const FutureSelfDiscovery = () => {
         title: "Discovery added to Atlas",
         description: dotsToSave.length === 1 ? primaryDot.title : `${dotsToSave.length} Dots saved`,
       });
-
-      await upsertLifetimeCandidates(lifetimeSeeds, savedQuest.id);
 
       const params = new URLSearchParams({
         highlight: targetCluster.slug,

@@ -24,6 +24,7 @@ import { cn } from "@/lib/utils";
 
 interface LifetimeEventDetailViewProps {
   event: LifetimeEvent | null;
+  linkedDotTitles?: string[];
   open: boolean;
   onClose: () => void;
   onGoToPatternMap: () => void;
@@ -34,6 +35,7 @@ interface LifetimeEventDetailViewProps {
 
 export const LifetimeEventDetailView = ({
   event,
+  linkedDotTitles = [],
   open,
   onClose,
   onGoToPatternMap,
@@ -98,6 +100,13 @@ export const LifetimeEventDetailView = ({
           {event.event_description && (
             <div className="bg-muted/50 rounded-lg p-4">
               <p className="text-sm text-muted-foreground">{event.event_description}</p>
+            </div>
+          )}
+
+          {linkedDotTitles.length > 0 && (
+            <div className="space-y-2">
+              <p className="text-sm font-medium">Linked Atlas Dots</p>
+              <p className="text-sm text-muted-foreground">{linkedDotTitles.join(", ")}</p>
             </div>
           )}
 

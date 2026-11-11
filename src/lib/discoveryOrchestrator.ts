@@ -5,6 +5,7 @@ import {
   EvidenceClass,
   EvidenceRecord,
 } from "@/lib/discoveryMissions";
+import type { GroundedLifetimeMoment } from "@/lib/lifetimeCandidates";
 
 export type DiscoveryState =
   | "ENTRY"
@@ -86,6 +87,7 @@ export interface DiscoveryDecision {
   deferredSignals: DeferredSignal[];
   evidence: EvidenceRecord[];
   privateSignals?: PrivateDiscoverySignal[];
+  lifetimeMoments?: GroundedLifetimeMoment[];
   nextMove?: DiscoveryNextMove;
 }
 
