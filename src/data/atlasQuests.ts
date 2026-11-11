@@ -40,6 +40,7 @@ export interface DotInterpretation {
   description: string;
   dotCategory: DotCategory;
   clusterSlug?: string;
+  sourceQuote?: string;
 }
 
 export interface AtlasQuestDefinition {

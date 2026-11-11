@@ -1,6 +1,7 @@
 import { useState, useEffect, useCallback } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
+import { getFutureSelfOnboardingProgress } from "@/lib/journeyFlow";
 
 export interface UnlockState {
   home: boolean;
@@ -12,7 +13,7 @@ export interface UnlockState {
 }
 
 const LOCK_MESSAGES: Record<string, string> = {
-  chat: "You'll unlock this after exploring your Atlas.\nKeep discovering — your mentor is waiting.",
+  chat: "You'll unlock this after four Future Self discoveries.\nYour mentor is waiting.",
   projects: "This unlocks once you start working with a mentor.\nYour first conversation will open this door.",
   creators: "This unlocks once you begin building something.\nCreate your project first.",
 };
@@ -49,7 +50,7 @@ export function useProgressiveUnlock() {
 
       const { data: profile } = await supabase
         .from("profiles")
-        .select("chat_unlocked, projects_unlocked, creators_unlocked, entry_state" as any)
+        .select("chat_unlocked, projects_unlocked, creators_unlocked, console_intake_completed, first_project_id" as any)
         .eq("id", user.id)
         .single();
 
@@ -62,20 +63,15 @@ export function useProgressiveUnlock() {
       let projectsUnlocked = prevProjects;
       let creatorsUnlocked = prevCreators;
 
-      const entryState: string = p.entry_state || "DISCOVER";
-
-      const COUNCIL_THRESHOLDS: Record<string, number> = { DISCOVER: 4, GROW: 3, BUILD: 2 };
-      const threshold = COUNCIL_THRESHOLDS[entryState] ?? 4;
-
-      // Use completed quest count — matches AtlasPage / AtlasQuestFlow logic exactly.
-      // Any completed quest counts; no dependency on specific cluster slugs having dots.
-      const { count: completedQuestCount } = await supabase
+      const { data: quests, error: questError } = await supabase
         .from("atlas_quests")
-        .select("*", { count: "exact", head: true })
+        .select("quest_key, status, interactions")
         .eq("user_id", user.id)
         .eq("status", "completed");
+      if (questError) throw questError;
 
-      const chatUnlocked = (completedQuestCount || 0) >= threshold;
+      const chatUnlocked = !!p.console_intake_completed || !!p.first_project_id
+        || getFutureSelfOnboardingProgress(quests || []).consoleUnlocked;
 
       // Sync the DB flag to match the live computation
       if (chatUnlocked !== prevChat) {
@@ -85,56 +81,53 @@ export function useProgressiveUnlock() {
           .eq("id", user.id);
       }
 
-      // Check projects unlock: user has sent at least one message to a mentor or console.
-      // Use current chatUnlocked (not prevChat) so projects can unlock in the same pass.
-      if (!projectsUnlocked && chatUnlocked) {
-        const { count: threadCount } = await supabase
-          .from("console_thread_messages")
-          .select("*", { count: "exact", head: true })
+      // Projects unlock only after a real first project exists. Mentor or
+      // console messages can prepare the idea, but they must not open an empty
+      // Projects tab.
+      let validProjectId: string | null = null;
+      const profileProjectId = p.first_project_id as string | null;
+      if (profileProjectId) {
+        const { data: project } = await supabase
+          .from("integrator_projects")
+          .select("id, created_at")
+          .eq("id", profileProjectId)
           .eq("user_id", user.id)
-          .eq("role", "user");
+          .maybeSingle();
+        validProjectId = (project as any)?.id || null;
+      }
 
-        const { count: chatCount } = await supabase
-          .from("chats")
-          .select("*", { count: "exact", head: true })
+      if (!validProjectId) {
+        const { data: latestProject } = await supabase
+          .from("integrator_projects")
+          .select("id, created_at")
           .eq("user_id", user.id)
-          .eq("role", "user");
+          .order("created_at", { ascending: false })
+          .limit(1)
+          .maybeSingle();
 
-        if ((threadCount || 0) >= 1 || (chatCount || 0) >= 1) {
-          projectsUnlocked = true;
+        if ((latestProject as any)?.id) {
+          validProjectId = (latestProject as any).id;
           await supabase
             .from("profiles")
-            .update({ projects_unlocked: true } as any)
+            .update({
+              first_project_id: validProjectId,
+              first_project_created_at: (latestProject as any).created_at || new Date().toISOString(),
+            } as any)
             .eq("id", user.id);
         }
       }
 
-      // Check creators unlock condition: has a project (any type)
-      // Use current projectsUnlocked so creators can unlock in the same pass.
-      if (!creatorsUnlocked && projectsUnlocked) {
-        const { count: projectCount } = await supabase
-          .from("integrator_projects")
-          .select("*", { count: "exact", head: true })
-          .eq("user_id", user.id);
+      projectsUnlocked = !!validProjectId;
+      creatorsUnlocked = !!validProjectId;
 
-        const { count: creationCount } = await supabase
-          .from("creation_projects")
-          .select("*", { count: "exact", head: true })
-          .eq("user_id", user.id);
-
-        // Also check atlas_project_nodes (created immediately on project acceptance)
-        const { count: atlasProjectCount } = await supabase
-          .from("atlas_project_nodes")
-          .select("*", { count: "exact", head: true })
-          .eq("user_id", user.id);
-
-        if ((projectCount || 0) >= 1 || (creationCount || 0) >= 1 || (atlasProjectCount || 0) >= 1) {
-          creatorsUnlocked = true;
-          await supabase
-            .from("profiles")
-            .update({ creators_unlocked: true } as any)
-            .eq("id", user.id);
-        }
+      if (projectsUnlocked !== prevProjects || creatorsUnlocked !== prevCreators) {
+        await supabase
+          .from("profiles")
+          .update({
+            projects_unlocked: projectsUnlocked,
+            creators_unlocked: creatorsUnlocked,
+          } as any)
+          .eq("id", user.id);
       }
 
       // Fire celebrations for newly unlocked sections

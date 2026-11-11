@@ -26,6 +26,7 @@ interface Props {
   validationMode: ValidationMode;
   onSetValidationMode: (mode: ValidationMode) => void;
   confirmLabel?: string;
+  editEachCandidate?: boolean;
 }
 
 const CATEGORY_CONFIG: Record<string, { icon: typeof Sparkles; label: string }> = {
@@ -54,7 +55,7 @@ const clusterLabelFor = (clusterSlug?: string, fallback?: string) => {
 
 export const AtlasWinningCard = ({
   dot, clusterName, destinationClusterSlug, fallbackClusterSlug, onConfirm, onRegenerate, isLoading, isPatternBased, isReinforced,
-  mirrorFeedback, variations, validationMode, onSetValidationMode, confirmLabel,
+  mirrorFeedback, variations, validationMode, onSetValidationMode, confirmLabel, editEachCandidate,
 }: Props) => {
   const dotCategory = dot.dotCategory || "strength";
   const dotColor = DOT_TYPE_COLORS[dotCategory] || DOT_TYPE_COLORS.strength;
@@ -75,16 +76,48 @@ export const AtlasWinningCard = ({
   const [editTitle, setEditTitle] = useState(dot.title);
   const [editDesc, setEditDesc] = useState(dot.description);
   const [discardFeedback, setDiscardFeedback] = useState("");
-  const [selectedVars, setSelectedVars] = useState<DotInterpretation[]>([]);
+  const [selectedIndices, setSelectedIndices] = useState<number[]>([]);
+  const [edits, setEdits] = useState<Record<number, DotInterpretation>>({});
+  const [editingIndex, setEditingIndex] = useState<number | null>(null);
+  const [editCategory, setEditCategory] = useState(dotCategory);
+  const [editClusterSlug, setEditClusterSlug] = useState(dot.clusterSlug ?? "");
   const maxSelections = Math.min(3, variations?.length ?? 1);
+  const reviewDots = (variations ?? []).map((candidate, index) => edits[index] ?? candidate);
+  const selectedVars = selectedIndices.map((index) => reviewDots[index]).filter(Boolean);
 
-  const toggleVariation = (v: DotInterpretation) => {
-    setSelectedVars(prev => {
-      const isSelected = prev.some(s => s.title === v.title);
-      if (isSelected) return prev.filter(s => s.title !== v.title);
+  const toggleVariation = (index: number) => {
+    setSelectedIndices(prev => {
+      if (prev.includes(index)) return prev.filter(selected => selected !== index);
       if (prev.length >= maxSelections) return prev;
-      return [...prev, v];
+      return [...prev, index];
     });
+  };
+
+  const startEditingCandidate = (index: number, candidate: DotInterpretation) => {
+    setEditingIndex(index);
+    setEditTitle(candidate.title);
+    setEditDesc(candidate.description);
+    setEditCategory(candidate.dotCategory);
+    setEditClusterSlug(candidate.clusterSlug ?? "");
+    onSetValidationMode("editing");
+  };
+
+  const saveCandidateEdit = () => {
+    if (editingIndex === null) return;
+    const candidate = reviewDots[editingIndex];
+    if (!candidate || !editTitle.trim() || !editDesc.trim() || !editClusterSlug) return;
+    setEdits((current) => ({
+      ...current,
+      [editingIndex]: {
+        ...candidate,
+        title: editTitle.trim(),
+        description: editDesc.trim(),
+        dotCategory: editCategory,
+        clusterSlug: editClusterSlug,
+      },
+    }));
+    setEditingIndex(null);
+    onSetValidationMode("picking");
   };
 
   useEffect(() => {
@@ -124,53 +157,63 @@ export const AtlasWinningCard = ({
         )}
 
         <div className="space-y-3 w-full max-w-sm">
-          {variations.map((v, i) => {
+          {reviewDots.map((v, i) => {
             const vColor = DOT_TYPE_COLORS[v.dotCategory || "strength"] || DOT_TYPE_COLORS.strength;
             const vCat = CATEGORY_CONFIG[v.dotCategory || "strength"] || CATEGORY_CONFIG.strength;
             const candidateDestination = getDestination(v);
-            const isSelected = selectedVars.some(s => s.title === v.title);
+            const isSelected = selectedIndices.includes(i);
             const isMaxed = selectedVars.length >= maxSelections && !isSelected;
             return (
-              <motion.button
-                key={i}
-                initial={{ opacity: 0, y: 10 }}
-                animate={{ opacity: 1, y: 0 }}
-                transition={{ delay: i * 0.07, duration: 0.22, ease: [0.23, 1, 0.32, 1] }}
-                onClick={() => !isMaxed && toggleVariation(v)}
-                disabled={isLoading || isMaxed}
-                aria-pressed={isSelected}
-                className={`w-full text-left p-4 rounded-xl border-2 transition-colors space-y-2 active:scale-[0.98] relative ${
-                  isSelected
-                    ? "border-primary bg-primary/5"
-                    : isMaxed
-                    ? "border-border opacity-40 cursor-not-allowed"
-                    : "border-border hover:border-primary/50"
-                }`}
-              >
-                {isSelected && (
-                  <div className="absolute top-3 right-3 w-5 h-5 rounded-full bg-primary flex items-center justify-center">
-                    <Check className="w-3 h-3 text-primary-foreground" />
+              <div key={i}>
+                <motion.button
+                  type="button"
+                  initial={{ opacity: 0, y: 10 }}
+                  animate={{ opacity: 1, y: 0 }}
+                  transition={{ delay: i * 0.07, duration: 0.22, ease: [0.23, 1, 0.32, 1] }}
+                  onClick={() => !isMaxed && toggleVariation(i)}
+                  disabled={isLoading || isMaxed}
+                  aria-pressed={isSelected}
+                  className={`w-full text-left p-4 rounded-xl border-2 transition-colors space-y-2 active:scale-[0.98] relative ${
+                    isSelected
+                      ? "border-primary bg-primary/5"
+                      : isMaxed
+                      ? "border-border opacity-40 cursor-not-allowed"
+                      : "border-border hover:border-primary/50"
+                  }`}
+                >
+                  {isSelected && (
+                    <div className="absolute top-3 right-3 w-5 h-5 rounded-full bg-primary flex items-center justify-center">
+                      <Check className="w-3 h-3 text-primary-foreground" />
+                    </div>
+                  )}
+                  <div className="space-y-1.5 pr-6">
+                    <p className="font-semibold text-foreground">{v.title}</p>
+                    <div className="flex flex-wrap items-center gap-1.5">
+                      <div
+                        className="px-2 py-0.5 rounded-full text-[10px] font-medium"
+                        style={{ backgroundColor: vColor.replace(")", " / 0.13)"), color: vColor }}
+                      >
+                        {vCat.label}
+                      </div>
+                      <div
+                        className="px-2 py-0.5 rounded-full bg-primary/10 text-primary text-[10px] font-medium"
+                        style={candidateDestination.color ? { backgroundColor: candidateDestination.color.replace(")", " / 0.13)"), color: candidateDestination.color } : undefined}
+                      >
+                        {candidateDestination.label}
+                      </div>
+                    </div>
                   </div>
+                  <p className="text-sm text-muted-foreground">{v.description}</p>
+                  {editEachCandidate && v.sourceQuote && (
+                    <p className="text-xs text-muted-foreground">You said: “{v.sourceQuote}”</p>
+                  )}
+                </motion.button>
+                {editEachCandidate && (
+                  <Button type="button" variant="ghost" size="sm" disabled={isLoading} onClick={() => startEditingCandidate(i, v)}>
+                    <Pencil className="mr-1 h-3 w-3" /> Edit {v.title}
+                  </Button>
                 )}
-                <div className="space-y-1.5 pr-6">
-                  <p className="font-semibold text-foreground">{v.title}</p>
-                  <div className="flex flex-wrap items-center gap-1.5">
-                    <div
-                      className="px-2 py-0.5 rounded-full text-[10px] font-medium"
-                      style={{ backgroundColor: vColor.replace(")", " / 0.13)"), color: vColor }}
-                    >
-                      {vCat.label}
-                    </div>
-                    <div
-                      className="px-2 py-0.5 rounded-full bg-primary/10 text-primary text-[10px] font-medium"
-                      style={candidateDestination.color ? { backgroundColor: candidateDestination.color.replace(")", " / 0.13)"), color: candidateDestination.color } : undefined}
-                    >
-                      {candidateDestination.label}
-                    </div>
-                  </div>
-                </div>
-                <p className="text-sm text-muted-foreground">{v.description}</p>
-              </motion.button>
+              </div>
             );
           })}
         </div>
@@ -196,7 +239,7 @@ export const AtlasWinningCard = ({
             >
               <X className="w-3 h-3 mr-1" /> None of these
             </Button>
-            <Button
+            {!editEachCandidate && <Button
               variant="ghost"
               size="sm"
               className="text-xs text-muted-foreground"
@@ -207,7 +250,7 @@ export const AtlasWinningCard = ({
               }}
             >
               <Pencil className="w-3 h-3 mr-1" /> Let me edit
-            </Button>
+            </Button>}
           </div>
         </div>
       </motion.div>
@@ -232,13 +275,32 @@ export const AtlasWinningCard = ({
             placeholder="Description"
             rows={3}
           />
+          {editingIndex !== null && (
+            <div className="grid gap-3 sm:grid-cols-2">
+              <label className="grid gap-1 text-sm">
+                Dot type
+                <select className="rounded-md border bg-background p-2" value={editCategory} onChange={(event) => setEditCategory(event.target.value as DotCategory)}>
+                  {Object.entries(CATEGORY_CONFIG).map(([value, config]) => <option key={value} value={value}>{config.label}</option>)}
+                </select>
+              </label>
+              <label className="grid gap-1 text-sm">
+                Atlas destination
+                <select className="rounded-md border bg-background p-2" value={editClusterSlug} onChange={(event) => setEditClusterSlug(event.target.value)}>
+                  {clusters.map((cluster) => <option key={cluster.id} value={cluster.slug}>{cluster.name}</option>)}
+                </select>
+              </label>
+            </div>
+          )}
         </div>
         <div className="flex gap-2">
-          <Button variant="ghost" size="sm" onClick={() => onSetValidationMode("picking")}>Cancel</Button>
+          <Button variant="ghost" size="sm" onClick={() => {
+            setEditingIndex(null);
+            onSetValidationMode("picking");
+          }}>Cancel</Button>
           <Button
             size="sm"
-            disabled={!editTitle.trim()}
-            onClick={() => onConfirm({ ...dot, title: editTitle, description: editDesc, dotCategory }, [], true)}
+            disabled={!editTitle.trim() || (editingIndex !== null && (!editDesc.trim() || !editClusterSlug))}
+            onClick={editingIndex !== null ? saveCandidateEdit : () => onConfirm({ ...dot, title: editTitle, description: editDesc, dotCategory }, [], true)}
           >
             <Check className="w-4 h-4 mr-1" /> Save
           </Button>

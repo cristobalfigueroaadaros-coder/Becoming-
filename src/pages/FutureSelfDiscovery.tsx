@@ -1,13 +1,12 @@
 import { FormEvent, useEffect, useRef, useState } from "react";
 import { useLocation, useNavigate } from "react-router-dom";
 import { useQueryClient } from "@tanstack/react-query";
-import { ArrowRight, CalendarDays, Keyboard, Mic, RotateCcw, Sparkles, Volume2, VolumeX } from "lucide-react";
+import { ArrowRight, Keyboard, Mic, RotateCcw, Sparkles, Volume2, VolumeX } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
 import { VoiceRecorder } from "@/components/VoiceRecorder";
 import { AtlasQuestInteraction } from "@/components/atlas/AtlasQuestInteraction";
 import { AtlasWinningCard, ValidationMode } from "@/components/atlas/AtlasWinningCard";
-import { LifetimeEventEditModal } from "@/components/lifetime-map";
 import { ATLAS_QUESTS, DotInterpretation, QuestInteraction } from "@/data/atlasQuests";
 import { DiscoveryMission } from "@/lib/discoveryMissions";
 import {
@@ -18,8 +17,8 @@ import {
 import { detectConnections } from "@/lib/atlasConnectionEngine";
 import { AtlasDot, useAtlas } from "@/hooks/useAtlas";
 import { useAtlasQuests } from "@/hooks/useAtlasQuests";
-import { EventType, LifetimeEventInput, TIME_PERIOD_LABELS, TimePeriod, useLifetimeEvents } from "@/hooks/useLifetimeEvents";
-import type { LifetimeEventCandidate } from "@/hooks/useLifetimeEvents";
+import { useLifetimeEvents } from "@/hooks/useLifetimeEvents";
+import { getFutureSelfOnboardingProgress } from "@/lib/journeyFlow";
 import { supabase } from "@/integrations/supabase/client";
 import type { Database } from "@/integrations/supabase/types";
 import { toast } from "@/hooks/use-toast";
@@ -42,18 +41,6 @@ type ImpactOptions = { audiences: string[]; needs: string[] };
 type AiDiscoveryResponse = DiscoveryDecision & {
   candidateDots?: DotInterpretation[];
   impactOptions?: ImpactOptions;
-};
-
-type CouncilHandoff = {
-  atlasUrl: string;
-  councilUrl: string;
-};
-
-type LifetimeAnchorInvite = CouncilHandoff & {
-  suggestedLabel: string;
-  suggestedDescription: string;
-  suggestedTimePeriod: TimePeriod;
-  suggestedEventType: EventType;
 };
 
 type ConstellationMode = "idle" | "listening" | "thinking" | "speaking";
@@ -203,13 +190,6 @@ const buildNextQuestInvitation = (dots: AtlasDot[], completedFutureSelfQuests = 
   return `I'm carrying forward ${context}. We have explored where you came from, what you can do, who you want to help, and what you have already tried.\n\nNow I want to connect that learning with the edge of your life today.\n\nTell me about a recent action, challenge, relationship, idea, or decision that feels important right now. What are you learning from it?`;
 };
 
-const questThemeForProgress = (completedFutureSelfQuests: number): DiscoveryQuestTheme => {
-  if (completedFutureSelfQuests <= 1) return "gifts";
-  if (completedFutureSelfQuests === 2) return "world";
-  if (completedFutureSelfQuests === 3) return "experiments";
-  return "current";
-};
-
 const missionClusterSlugs: Record<DiscoveryMission, string> = {
   skills: "skills",
   natural_talents: "natural-talents",
@@ -313,44 +293,6 @@ const getInteractionForMission = (
     ?? null;
 };
 
-const dotCategoryByMission: Record<DiscoveryMission, DotInterpretation["dotCategory"]> = {
-  skills: "strength",
-  natural_talents: "life_imprint",
-  passions: "strength",
-  experiments: "strength",
-  inspirations: "strength",
-};
-
-const fallbackDotsByMission: Record<DiscoveryMission, DotInterpretation[]> = {
-  skills: [
-    { title: "Turns Ideas Into Reality", description: "You keep moving from idea to built thing, using business, travel, and product work as your proving ground.", dotCategory: "strength", clusterSlug: "skills" },
-    { title: "Learns by Building", description: "Your evidence comes from doing: launching, testing, refining, and learning through contact with real life.", dotCategory: "strength", clusterSlug: "skills" },
-    { title: "Connects Through Creation", description: "Your work points toward building things that help people relate, learn, and spend more meaningful time together.", dotCategory: "strength", clusterSlug: "how-i-create-impact" },
-  ],
-  natural_talents: [
-    { title: "Sees What Could Exist", description: "You naturally notice the gap between what people experience now and what could help them grow or connect.", dotCategory: "life_imprint", clusterSlug: "natural-talents" },
-    { title: "Follows Inner Signals", description: "You seem pulled by an internal sense of direction, especially when an idea feels connected to service or impact.", dotCategory: "life_imprint", clusterSlug: "natural-talents" },
-    { title: "Finds Meaning in Pressure", description: "Hard moments become places where you look for purpose, direction, and the next thing to create.", dotCategory: "life_imprint", clusterSlug: "life-events" },
-  ],
-  passions: [
-    { title: "Drawn to Human Connection", description: "Your energy gathers around bringing people closer, especially families, parents, and children.", dotCategory: "strength", clusterSlug: "passions" },
-    { title: "Loves Transformative Play", description: "Family Squad shows a passion for using play as a way to build emotional intelligence and deeper bonds.", dotCategory: "strength", clusterSlug: "passions" },
-    { title: "Curious About Human Growth", description: "You keep returning to how people become better, express their gifts, and give something useful back.", dotCategory: "direction", clusterSlug: "vision-for-a-better-world" },
-  ],
-  experiments: [
-    { title: "Built Family Squad for Connection", description: "Family Squad is not just a game; it is evidence that you build experiences where parents and children can open up, share, and feel safe together.", dotCategory: "strength", clusterSlug: "experiments" },
-    { title: "Creates Experiences People Feel", description: "The e-commerce, Family Squad, and Bali festival all point to a repeatable instinct: you shape environments where people feel connected to something.", dotCategory: "strength", clusterSlug: "how-i-create-impact" },
-    { title: "Tests Ideas in Real Life", description: "You learn by putting ideas into the world: selling online, designing cards, creating events, seeing how people respond, and refining from there.", dotCategory: "strength", clusterSlug: "skills" },
-  ],
-  inspirations: [
-    { title: "Serves Through His Gift", description: "You return to the belief that each person has a gift and that the meaningful move is to turn it into something useful for society.", dotCategory: "strength", clusterSlug: "values" },
-    { title: "Called to Conscious Creators", description: "You named people finding themselves and conscious creators as the people you want to help and connect.", dotCategory: "direction", clusterSlug: "who-i-serve" },
-    { title: "Builds for Human Betterment", description: "Your future direction is not just to build another project; it is to help people become clearer, more connected, and more able to give their gift back.", dotCategory: "direction", clusterSlug: "vision-for-a-better-world" },
-  ],
-};
-
-const dotIncludes = (text: string, terms: string[]) => terms.some((term) => text.includes(term));
-
 const summarizeInteractionResponse = (response: unknown) => {
   if (!response || typeof response !== "object") return "I added a reflection.";
   const responseRecord = response as Record<string, unknown>;
@@ -386,18 +328,6 @@ const summarizeInteractionResponse = (response: unknown) => {
 const hasGenericDotTitle = (title: string) =>
   /^(builder evidence|admired quality|aspirational signal|value in motion|tried in reality|learning through action|possible signal|growth seeker|connection seeker|meaningful creator|passionate builder)$/i.test(title.trim());
 
-const directionClusterSlugs = new Set([
-  "who-i-serve",
-  "vision-for-a-better-world",
-]);
-
-const normalizeDotClassification = (dot: DotInterpretation): DotInterpretation => {
-  if ((!dot.dotCategory || dot.dotCategory === "strength") && directionClusterSlugs.has(dot.clusterSlug || "")) {
-    return { ...dot, dotCategory: "direction" };
-  }
-  return dot;
-};
-
 const dotMatchesExistingEvidence = (dot: DotInterpretation, existingDots: AtlasDot[]) => {
   const normalizeWords = (value: string) => new Set(
     value
@@ -425,549 +355,6 @@ const dotMatchesExistingEvidence = (dot: DotInterpretation, existingDots: AtlasD
 
 const keepNewDots = (dots: DotInterpretation[], existingDots: AtlasDot[]) =>
   dots.filter((dot) => !dotMatchesExistingEvidence(dot, existingDots));
-
-const buildWorldImpactDots = (evidenceText: string): DotInterpretation[] => {
-  const normalized = evidenceText.toLowerCase();
-  const dots: DotInterpretation[] = [];
-  const namesPeopleFindingThemselves = /feel(?:ing)? lost|finding themselves|find themselves|find their gift|gift and direction|understand who they are|purpose/.test(normalized);
-  const namesCreators = /conscious creator|conscious creators|connect creators|connect .*people|collaborat|platform|unify|movement/.test(normalized);
-  const namesCollectiveImpact = /collective|society|positive impact|change the world|help each other|serve|contribut/.test(normalized);
-  const namesNeeds = /clarity|courage|connection|structure|belief|belong|unify|time and effort|scary|insecurit|fear/.test(normalized);
-
-  if (namesPeopleFindingThemselves) {
-    dots.push({
-      title: "Guides People From Lost to Contribution",
-      description: "You want to help people who are trying to find themselves recognize their gift, turn it into something real, and offer it back to society.",
-      dotCategory: "direction",
-      clusterSlug: "who-i-serve",
-    });
-  }
-
-  if (namesCreators && namesCollectiveImpact) {
-    dots.push({
-      title: "Connects Conscious Creators for Collective Impact",
-      description: "You imagine a platform or movement where conscious creators can find one another, collaborate, and make a wider contribution together.",
-      dotCategory: "direction",
-      clusterSlug: "vision-for-a-better-world",
-    });
-  }
-
-  if (namesNeeds) {
-    dots.push({
-      title: "Builds Belonging for Difficult Beginnings",
-      description: "You understand that finding a gift can be slow and frightening, so the help you want to create needs to offer clarity, courage, connection, and a reason to keep moving.",
-      dotCategory: "direction",
-      clusterSlug: "how-i-create-impact",
-    });
-  }
-
-  return dots;
-};
-
-const buildOriginDots = (evidenceText: string): DotInterpretation[] => {
-  const normalized = evidenceText.toLowerCase();
-  const dots: DotInterpretation[] = [];
-
-  if ((normalized.includes("chile") || normalized.includes("home")) && (normalized.includes("germany") || normalized.includes("berlin") || normalized.includes("australia") || normalized.includes("melbourne"))) {
-    dots.push({
-      title: "Rebuilt Through New Worlds",
-      description: "Moving between Chile, Germany, and Australia made adaptation part of your identity. You learned to meet unfamiliar places and keep becoming through the difference.",
-      dotCategory: "life_imprint",
-      clusterSlug: "life-events",
-    });
-  }
-
-  if (/resilien|adapt|trust myself|trust in myself|bring .*reality|solve difficult/.test(normalized)) {
-    dots.push({
-      title: "Trusts Learning Under Pressure",
-      description: "You described resilience as the ability to adapt, learn quickly, solve difficult problems, and bring an idea from your mind into reality.",
-      dotCategory: "strength",
-      clusterSlug: "natural-talents",
-    });
-  }
-
-  if (/aha|realization|family squad|festival|e-commerce|built|created|developed/.test(normalized)) {
-    dots.push({
-      title: "Turns Insight Into Creation",
-      description: "Your story moves from a lived realization into something tangible: a business, a festival, or a creation designed to change how people experience life together.",
-      dotCategory: "strength",
-      clusterSlug: "aha-moments",
-    });
-  }
-
-  return dots;
-};
-
-const buildGiftsDots = (evidenceText: string): DotInterpretation[] => {
-  const normalized = evidenceText.toLowerCase();
-  const dots: DotInterpretation[] = [];
-
-  if (/grandfather|father|influenced|inspiration|vocation|serve society/.test(normalized)) {
-    dots.push({
-      title: "Learns Service Through Example",
-      description: "The people who shaped you showed that a skill or vocation becomes more powerful when it is used to give people hope and help them around you.",
-      dotCategory: "life_imprint",
-      clusterSlug: "inspirations",
-    });
-  }
-
-  if (/connect(?:ing)? people|connect(?:ing)? ideas|connect dots|patterns|different perspectives|break down/.test(normalized)) {
-    dots.push({
-      title: "Connects People, Ideas, and Patterns",
-      description: "You naturally break complex things into parts, learn from different perspectives, and reconnect them into a clearer idea or a more original experience.",
-      dotCategory: "strength",
-      clusterSlug: "natural-talents",
-    });
-  }
-
-  if (/experience|feel|emotion|event|game|family squad|festival/.test(normalized)) {
-    dots.push({
-      title: "Designs What People Remember",
-      description: "You pay attention to what people feel, not only what they do, and use that understanding to create experiences that stay with them.",
-      dotCategory: "strength",
-      clusterSlug: "how-i-create-impact",
-    });
-  }
-
-  return dots;
-};
-
-const buildCurrentDots = (evidenceText: string): DotInterpretation[] => {
-  const normalized = evidenceText.toLowerCase();
-  const dots: DotInterpretation[] = [];
-
-  if (/meeting|opportunity|festival|movement|conscious creator/.test(normalized)) {
-    dots.push({
-      title: "Turns Openings Into Experiments",
-      description: "You treat a meeting or opportunity as a doorway to test whether an idea can become a real experience and eventually a wider movement.",
-      dotCategory: "strength",
-      clusterSlug: "experiments",
-    });
-  }
-
-  if (/stuck|finish|complete|working with ai|next chapter|new opportunity/.test(normalized)) {
-    dots.push({
-      title: "Finishes One Chapter to Open Another",
-      description: "You are noticing the tension between finishing what is in front of you and making room for the next opportunity, which gives your next move a real constraint.",
-      dotCategory: "shadow",
-      clusterSlug: "personal-frustrations",
-    });
-  }
-
-  if (/learn|feedback|iterate|test|improv|try again|decision|challenge/.test(normalized)) {
-    dots.push({
-      title: "Uses Action to Find Clarity",
-      description: "You tend to learn what is true by making a move, seeing what reality teaches you, and using that information to choose the next version.",
-      dotCategory: "strength",
-      clusterSlug: "experiments",
-    });
-  }
-
-  return dots;
-};
-
-const buildQuestThemeDots = (
-  questTheme: DiscoveryQuestTheme,
-  evidenceText: string,
-): DotInterpretation[] => {
-  const specificDots = questTheme === "origin"
-    ? buildOriginDots(evidenceText)
-    : questTheme === "gifts"
-      ? buildGiftsDots(evidenceText)
-      : questTheme === "world"
-        ? buildWorldImpactDots(evidenceText)
-        : questTheme === "experiments"
-          ? buildExperimentDots(evidenceText)
-          : buildCurrentDots(evidenceText);
-
-  const fallbackDots: Record<DiscoveryQuestTheme, DotInterpretation[]> = {
-    origin: [
-      { title: "Names the Chapters That Shaped Them", description: "This first story is becoming a record of the places, changes, and experiences that shaped how they see themselves now.", dotCategory: "life_imprint", clusterSlug: "life-events" },
-      { title: "Turns Change Into Learning", description: "The way they describe change already carries a lesson they can bring into the next chapter of life and creation.", dotCategory: "strength", clusterSlug: "aha-moments" },
-      { title: "Carries Experience Into Creation", description: "Their story links what they have lived with what they feel capable of making next.", dotCategory: "strength", clusterSlug: "natural-talents" },
-      { title: "Makes a Home in Motion", description: "Even when the setting changes, they keep building a sense of self through what they notice, learn, and make next.", dotCategory: "life_imprint", clusterSlug: "life-events" },
-      { title: "Learns Who They Are Through Difference", description: "New cultures and unfamiliar situations became mirrors that helped them discover which qualities were truly theirs.", dotCategory: "life_imprint", clusterSlug: "values" },
-      { title: "Carries Courage Into the Next Chapter", description: "The first story is not only about where they have been; it shows the courage they carry into whatever they create next.", dotCategory: "strength", clusterSlug: "natural-talents" },
-    ],
-    gifts: [
-      { title: "Learns From the People Around Them", description: "Their gifts have been shaped through close observation, influence, and a willingness to learn from people who know something valuable.", dotCategory: "life_imprint", clusterSlug: "inspirations" },
-      { title: "Makes Connections Others Miss", description: "Their natural contribution may be the ability to join ideas, people, and perspectives into something clearer and more useful.", dotCategory: "strength", clusterSlug: "natural-talents" },
-      { title: "Creates Experiences With Feeling", description: "Their strengths are not only technical; they include shaping the emotional experience people have while taking part.", dotCategory: "strength", clusterSlug: "how-i-create-impact" },
-      { title: "Turns Curiosity Into Capability", description: "They do not admire a skill from a distance; they study it, learn it, and make it part of what they can offer.", dotCategory: "strength", clusterSlug: "skills" },
-      { title: "Makes Complexity Usable", description: "They can break a difficult idea into parts, understand what matters, and reconnect it in a form people can use.", dotCategory: "strength", clusterSlug: "natural-talents" },
-      { title: "Builds Feeling Into Form", description: "They translate an intention about connection or emotion into the details of an experience people can actually enter.", dotCategory: "strength", clusterSlug: "how-i-create-impact" },
-    ],
-    world: [
-      { title: "Guides People Toward Their Gift", description: "The change they want to create begins with helping people understand what makes them unique and turn that understanding into contribution.", dotCategory: "direction", clusterSlug: "who-i-serve" },
-      { title: "Connects Creators Who Can Help Each Other", description: "They see conscious creators as a second audience: people whose combined gifts could create more impact together.", dotCategory: "direction", clusterSlug: "vision-for-a-better-world" },
-      { title: "Makes Belonging Part of Growth", description: "They want people to feel less alone while they find direction, build something, and become part of a wider human effort.", dotCategory: "direction", clusterSlug: "how-i-create-impact" },
-      { title: "Makes Self-Discovery a Shared Practice", description: "They imagine finding a gift as something people can do with support, connection, and other creators rather than in isolation.", dotCategory: "direction", clusterSlug: "who-i-serve" },
-      { title: "Builds a Bridge Between Lost People and Creators", description: "Their vision joins two groups they named: people searching for direction and conscious creators who can help one another act on their gifts.", dotCategory: "direction", clusterSlug: "vision-for-a-better-world" },
-      { title: "Turns Personal Gifts Into Collective Work", description: "They believe individual purpose becomes more powerful when people connect their different gifts to serve something larger together.", dotCategory: "direction", clusterSlug: "how-i-create-impact" },
-    ],
-    experiments: [
-      ...buildExperimentDots(evidenceText),
-      { title: "Builds Toward a Human Moment", description: "They begin with the feeling or connection they want people to experience, then shape the mechanics and details around that moment.", dotCategory: "strength", clusterSlug: "how-i-create-impact" },
-      { title: "Combines Many Fields Into One Experience", description: "They gather ideas from different subjects and turn them into one experience that could not have come from a single discipline.", dotCategory: "strength", clusterSlug: "skills" },
-      { title: "Improves Until People Respond", description: "They use real reactions, feedback, and repeated attempts to move an idea from what they imagined toward what people can actually feel.", dotCategory: "strength", clusterSlug: "experiments" },
-    ],
-    current: [
-      { title: "Turns Openings Into Experiments", description: "They learn what an opportunity can become by giving it a concrete next step and watching what reality says.", dotCategory: "strength", clusterSlug: "experiments" },
-      { title: "Finishes What Makes the Next Move Possible", description: "They are learning how completion, focus, and the next opportunity are connected in this moment.", dotCategory: "shadow", clusterSlug: "personal-frustrations" },
-      { title: "Uses Action to Find Clarity", description: "They understand themselves and their direction more clearly after making a real move and reflecting on what happened.", dotCategory: "strength", clusterSlug: "values" },
-      { title: "Uses This Opening to Learn", description: "They do not need to know the whole future before moving; a real conversation or test can reveal what deserves to grow.", dotCategory: "strength", clusterSlug: "experiments" },
-      { title: "Completes the Work That Unlocks the Next Chapter", description: "They are using the unfinished work in front of them as a practical doorway into the opportunity they want next.", dotCategory: "shadow", clusterSlug: "personal-frustrations" },
-      { title: "Turns Uncertainty Into a Small Test", description: "When the direction is not fully clear, they can make the next decision concrete enough for reality to answer.", dotCategory: "strength", clusterSlug: "experiments" },
-    ],
-  };
-
-  const unique = new Map<string, DotInterpretation>();
-  [...specificDots, ...fallbackDots[questTheme]].forEach((dot) => {
-    if (!dot.title || !dot.description || hasGenericDotTitle(dot.title)) return;
-    const key = dot.title.trim().toLowerCase();
-    if (!unique.has(key)) unique.set(key, dot);
-  });
-  return Array.from(unique.values());
-};
-
-const buildExperimentDots = (evidenceText: string): DotInterpretation[] => {
-  const normalized = evidenceText.toLowerCase();
-  const mentionsFamilySquad = normalized.includes("family squad");
-
-  if (mentionsFamilySquad) {
-    return [
-      {
-        title: "Designed Mechanics for a Family Hug",
-        description: "With Family Squad, you combined cards and game mechanics until a child hugging a parent could happen naturally. You were designing toward a human moment, not simply completing a game.",
-        dotCategory: "strength",
-        clusterSlug: "experiments",
-      },
-      {
-        title: "Learns Across Fields to Build",
-        description: "You learned psychology, game theory, gamification, parenting, game design, and visual design because one creation required all of them. You turn cross-disciplinary learning into something people can actually use.",
-        dotCategory: "strength",
-        clusterSlug: "skills",
-      },
-      {
-        title: "Iterates Until Connection Happens",
-        description: "You test, listen to feedback, improve, and keep going through difficult days until the experience creates the connection you intended. Iteration became a way to turn resilience into a result people can feel.",
-        dotCategory: "strength",
-        clusterSlug: "how-i-create-impact",
-      },
-    ];
-  }
-
-  return [
-    {
-      title: "Learns Across Fields to Build",
-      description: "You pull knowledge from different subjects and perspectives, then combine it into a creation that could not have come from one discipline alone.",
-      dotCategory: "strength",
-      clusterSlug: "skills",
-    },
-    {
-      title: "Turns Feedback Into the Next Version",
-      description: "You put an idea into reality, listen to what happens, and use the feedback to make the next version more useful and more alive.",
-      dotCategory: "strength",
-      clusterSlug: "experiments",
-    },
-    {
-      title: "Designs Toward a Felt Outcome",
-      description: "You begin with the feeling or human change you want to create, then shape the experience and its details until people can actually feel that shift.",
-      dotCategory: "strength",
-      clusterSlug: "how-i-create-impact",
-    },
-  ];
-};
-
-const ensureThreeDistinctDots = (
-  dots: DotInterpretation[],
-  evidenceText: string,
-  activeMission: DiscoveryMission,
-  questTheme: DiscoveryQuestTheme,
-  existingDots: AtlasDot[],
-): DotInterpretation[] => {
-  const questSpecificDots = buildQuestThemeDots(questTheme, evidenceText);
-  const fallbackDots = fallbackDotsByMission[activeMission] || [];
-  const unique = new Map<string, DotInterpretation>();
-
-  // Theme-grounded candidates come first. AI candidates can enrich the set,
-  // but they must not displace the current quest's actual subject.
-  [...questSpecificDots, ...dots, ...fallbackDots].map(normalizeDotClassification).forEach((dot) => {
-    if (!dot.title || !dot.description || hasGenericDotTitle(dot.title)) return;
-    if (dotMatchesExistingEvidence(dot, existingDots)) return;
-    const key = dot.title.trim().toLowerCase();
-    if (!unique.has(key)) unique.set(key, dot);
-  });
-
-  const candidates = Array.from(unique.values());
-  if (candidates.length >= 3) return candidates.slice(0, 3);
-
-  // Keep the three-choice reward stable even when older Dots overlap. These
-  // are still tied to the current quest theme and are never copied verbatim.
-  // The theme pool contains evidence-grounded alternatives beyond the first
-  // three. Use them before reusing an older Dot so the reward remains fresh.
-  buildQuestThemeDots(questTheme, evidenceText).forEach((dot) => {
-    if (candidates.length >= 3 || !dot.title || !dot.description) return;
-    if (dotMatchesExistingEvidence(dot, existingDots)) return;
-    const key = dot.title.trim().toLowerCase();
-    if (unique.has(key)) return;
-    unique.set(key, dot);
-    candidates.push(dot);
-  });
-
-  return candidates.slice(0, 3);
-};
-
-const enrichDotsFromEvidence = (
-  dots: DotInterpretation[],
-  evidenceText: string,
-  activeMission: DiscoveryMission,
-  questTheme?: DiscoveryQuestTheme,
-): DotInterpretation[] => {
-  const normalized = evidenceText.toLowerCase();
-
-  // The World quest needs to reveal the user's intended audience and change,
-  // not recycle older creation or gift signals from the opening.
-  if (questTheme === "world") {
-    const worldDots = buildWorldImpactDots(evidenceText);
-    if (worldDots.length > 0) return worldDots.slice(0, 3);
-  }
-
-  if (questTheme === "experiments") {
-    return buildExperimentDots(evidenceText);
-  }
-
-  const specificDots: DotInterpretation[] = [];
-  const hasIterationEvidence = /\b(iterat|test|feedback|improv|refin|try again|consistent|handle my emotions|manage my emotions|expectations|confidence|bring .*reality)\w*/.test(normalized);
-  const hasCrossDisciplinaryLearning = /different (topics|angles|perspectives|subjects)|many (topics|different)|game design|game theory|psychology|parenting|gamification|learn a lot/.test(normalized);
-  const hasEmotionalExperienceDesign = /people forget.*felt|emotions involved|transmutation of emotions|higher frequency|everything .*experience/.test(normalized);
-  const prefersFreshExperimentDots = hasIterationEvidence && (
-    hasCrossDisciplinaryLearning || normalized.includes("feedback") || normalized.includes("confidence")
-  );
-
-  if (normalized.includes("chile") && (normalized.includes("berlin") || normalized.includes("germany")) && (normalized.includes("australia") || normalized.includes("melbourne"))) {
-    specificDots.push({
-      title: "Rebuilt Himself Across Cultures",
-      description: "Moving from Chile through Germany and Australia gave you repeated chances to adapt, learn from difference, and become someone you could trust in unfamiliar places.",
-      dotCategory: "life_imprint",
-      clusterSlug: "life-events",
-    });
-  }
-
-  if ((normalized.includes("resilien") || normalized.includes("adapt")) && (normalized.includes("trust myself") || normalized.includes("bring .*reality") || normalized.includes("bring what"))) {
-    specificDots.push({
-      title: "Trusts Himself to Build",
-      description: "Your resilience is practical: when circumstances change, you learn what is needed and keep moving until the idea in your mind becomes something real.",
-      dotCategory: "strength",
-      clusterSlug: "natural-talents",
-    });
-  }
-
-  if (normalized.includes("gift") && normalized.includes("society") && (normalized.includes("people") || normalized.includes("help"))) {
-    specificDots.push({
-      title: "Helps Gifts Become Contribution",
-      description: "You want people to understand what makes them unique, create something from it, and give that contribution back to society.",
-      dotCategory: "direction",
-      clusterSlug: "vision-for-a-better-world",
-    });
-  }
-
-  if (hasIterationEvidence) {
-    specificDots.push({
-      title: "Turns Feedback Into Progress",
-      description: "You move an idea forward by testing it early, facing what did not work, managing your expectations, and improving from what reality teaches you.",
-      dotCategory: "strength",
-      clusterSlug: "experiments",
-    });
-  }
-
-  if (hasCrossDisciplinaryLearning) {
-    specificDots.push({
-      title: "Learns Across Disciplines to Create",
-      description: "You combine learning from gamification, game design, psychology, parenting, design, and other fields to shape experiences that could not come from one subject alone.",
-      dotCategory: "strength",
-      clusterSlug: "skills",
-    });
-  }
-
-  if (hasEmotionalExperienceDesign) {
-    specificDots.push({
-      title: "Designs Experiences That Shift Emotion",
-      description: "You design the journey around what people feel, aiming to move them from one emotional state to another through the interactions and atmosphere you create.",
-      dotCategory: "strength",
-      clusterSlug: "how-i-create-impact",
-    });
-  }
-
-  if ((normalized.includes("built the confidence") || normalized.includes("bring what is in my mind") || normalized.includes("bring what is an idea in my mind")) && hasIterationEvidence) {
-    specificDots.push({
-      title: "Builds Confidence by Making Ideas Real",
-      description: "Repeatedly turning ideas into tested, improving creations has given you evidence that you can learn what is needed and bring something real into the world.",
-      dotCategory: "strength",
-      clusterSlug: "natural-talents",
-    });
-  }
-
-  if ((normalized.includes("professional skills thief") || normalized.includes("learn skills from") || normalized.includes("learn skills from different people")) && (normalized.includes("father") || normalized.includes("fast learner"))) {
-    specificDots.push({
-      title: "Learns Skills by Studying People",
-      description: "You deliberately observe people who do something well, learn the skill from them, and carry it into your own work. That makes curiosity a practical way you grow.",
-      dotCategory: "strength",
-      clusterSlug: "skills",
-    });
-  }
-
-  if ((normalized.includes("patterns") || normalized.includes("break down")) && (normalized.includes("connect") || normalized.includes("different perspectives") || normalized.includes("nature"))) {
-    specificDots.push({
-      title: "Sees Patterns Across Worlds",
-      description: "You break complex situations into parts, then reconnect ideas from business, nature, and people into something useful and new.",
-      dotCategory: "strength",
-      clusterSlug: "natural-talents",
-    });
-  }
-
-  if ((normalized.includes("coach") || normalized.includes("coaching")) && (normalized.includes("gift") || normalized.includes("purpose"))) {
-    specificDots.push({
-      title: "Turns Gifts Into Guidance",
-      description: "You are already helping people understand their gifts and shape them into something they can offer back to society.",
-      dotCategory: "direction",
-      clusterSlug: "who-i-serve",
-    });
-  }
-
-  if (normalized.includes("social housing") || normalized.includes("built a lot of social housing")) {
-    specificDots.push({
-      title: "Builds Hope Through Human Spaces",
-      description: "Your grandfather's work showed you that creating a place for people can also create dignity, hope, and belonging.",
-      dotCategory: "life_imprint",
-      clusterSlug: "inspirations",
-    });
-  }
-
-  if (normalized.includes("family squad")) {
-    specificDots.push({
-      title: "Built Family Squad for Connection",
-      description: "Family Squad shows your instinct for turning emotional intelligence into a shared experience parents and children can actually play through together.",
-      dotCategory: "strength",
-      clusterSlug: "experiments",
-    });
-  }
-
-  if (normalized.includes("conscious creator") || normalized.includes("finding themselves") || normalized.includes("find themselves")) {
-    specificDots.push({
-      title: "Guides People Toward Their Gift",
-      description: "You keep naming the same audience: people trying to find themselves and turn their uniqueness into something useful for society.",
-      dotCategory: "direction",
-      clusterSlug: "who-i-serve",
-    });
-  }
-
-  if (normalized.includes("festival") || normalized.includes("experience") || normalized.includes("people feel") || normalized.includes("safe environment")) {
-    specificDots.push({
-      title: "Creates Environments People Feel",
-      description: "From the Bali festival to Family Squad, your creations are designed around atmosphere, safety, emotion, and shared connection.",
-      dotCategory: "strength",
-      clusterSlug: "how-i-create-impact",
-    });
-  }
-
-  if (normalized.includes("movement") && normalized.includes("conscious creator")) {
-    specificDots.push({
-      title: "Starts Movements for Conscious Creators",
-      description: "The festival idea is not only an event; you described it as a movement where conscious creators can collaborate, connect, and build something together.",
-      dotCategory: "direction",
-      clusterSlug: "vision-for-a-better-world",
-    });
-  }
-
-  if (normalized.includes("meeting") && normalized.includes("opportunity")) {
-    specificDots.push({
-      title: "Turns Opportunities Into Experiments",
-      description: "You are approaching the upcoming meeting as a real-world opening to test whether the conscious creators festival can become something bigger.",
-      dotCategory: "strength",
-      clusterSlug: "experiments",
-    });
-  }
-
-  if (normalized.includes("e-commerce") || normalized.includes("social media") || normalized.includes("selling")) {
-    specificDots.push({
-      title: "Learned Digital Demand Early",
-      description: "The e-commerce in Chile gives you real evidence of selling online, growing attention through social media, and learning from a market.",
-      dotCategory: "strength",
-      clusterSlug: "experiments",
-    });
-  }
-
-  if (normalized.includes("grandfather")) {
-    specificDots.push({
-      title: "Inherited Service as Vocation",
-      description: "Your grandfather gave you a living model of using vocation to help people around you and create a positive impact.",
-      dotCategory: "life_imprint",
-      clusterSlug: "inspirations",
-    });
-  }
-
-  const merged = [...specificDots, ...dots]
-    .filter((dot) => dot.title && dot.description)
-    .filter((dot) => !prefersFreshExperimentDots || !/^(built family squad for connection|creates environments people feel|creates experiences people feel|tests ideas in real life)$/i.test(dot.title.trim()))
-    .map((dot) => normalizeDotClassification({
-      ...dot,
-      clusterSlug: dot.clusterSlug || inferClusterSlugForDot(dot, activeMission, evidenceText),
-    }));
-  const unique = new Map<string, DotInterpretation>();
-  merged.forEach((dot) => {
-    const key = dot.title.toLowerCase();
-    if (!unique.has(key) && !hasGenericDotTitle(dot.title)) unique.set(key, dot);
-  });
-
-  return Array.from(unique.values()).slice(0, 3);
-};
-
-const inferClusterSlugForDot = (
-  dot: DotInterpretation,
-  mission: DiscoveryMission,
-  evidenceText = ""
-) => {
-  const text = `${dot.title} ${dot.description} ${evidenceText}`.toLowerCase();
-  if (/\bwho\b|\bpeople\b|\bparents?\b|\bfamilies\b|\bkids\b|\bchildren\b|\blost\b|\bconscious creators?\b|\bfinding themselves\b|\bfind themselves\b/.test(text)) return "who-i-serve";
-  if (/\bimpact\b|\bconnect\b|\bexperience\b|\bsafe environment\b|\bfeel\b|\bguide\b|\bhelp .* find\b|\bquality time\b/.test(text)) return "how-i-create-impact";
-  if (/\bfamily squad\b|\be-?commerce\b|\bfestival\b|\bbuilt\b|\bcreated\b|\btested\b|\borganized\b|\bstarted\b/.test(text)) return "experiments";
-  if (/\bskill\b|\blearn\b|\biterate\b|\bfeedback\b|\bsell\b|\bsocial media\b|\bconnect ideas\b|\bbring .* reality\b/.test(text)) return "skills";
-  if (/\bgrandfather\b|\badmire\b|\binspired\b|\bvocation\b/.test(text)) return "inspirations";
-  if (/\bgift\b|\bpurpose\b|\bsociety\b|\bservice\b|\bmission\b/.test(text)) return "values";
-  return missionClusterSlugs[mission];
-};
-
-const buildCandidateDots = (
-  decision: DiscoveryDecision,
-  scopedEvidenceText?: string,
-  questTheme?: DiscoveryQuestTheme,
-): DotInterpretation[] => {
-  const evidenceText = scopedEvidenceText?.trim() || decision.evidence.map((item) => item.text).join(" ");
-  const normalized = evidenceText.toLowerCase();
-  const fromFallback = (dots: DotInterpretation[]) => enrichDotsFromEvidence(dots, evidenceText, decision.activeMission, questTheme);
-
-  if (dotIncludes(normalized, ["festival", "events", "parties", "experience", "experiences", "gamification", "human behavior", "game theory", "feedback", "iterate", "testing"])) {
-    return fromFallback(fallbackDotsByMission.experiments);
-  }
-
-  if (dotIncludes(normalized, ["gift", "society", "serve", "help others", "positive impact"])) {
-    return fromFallback(fallbackDotsByMission.inspirations);
-  }
-
-  if (dotIncludes(normalized, ["broke my leg", "surgery", "covid", "couldn't walk", "finish the game"])) {
-    return fromFallback(fallbackDotsByMission.experiments);
-  }
-
-  if (dotIncludes(normalized, ["family", "parents", "children", "kids", "quality time"])) {
-    return fromFallback(fallbackDotsByMission.passions);
-  }
-
-  return fromFallback(fallbackDotsByMission[decision.activeMission].map((dot) => ({
-    ...dot,
-    dotCategory: dot.dotCategory || dotCategoryByMission[decision.activeMission],
-  })));
-};
 
 const cleanTextForSpeech = (text: string) =>
   text
@@ -1132,34 +519,6 @@ const speechPauseFor = (chunk: string) => {
   return 260;
 };
 
-const buildBridgeQuestionDecision = (decision: DiscoveryDecision, userText: string): DiscoveryDecision => {
-  const normalized = userText.toLowerCase();
-  const isChangeSeeking =
-    /\bchange\b|\bdifferent\b|\bmeaningful\b|\bimpact\b|\bhelp\b|\bserve\b|\bbetter world\b|\b9\s*to\s*5\b|\bjob\b/.test(normalized);
-  const isCreatorSignal =
-    /\bfamily squad\b|\bproject\b|\bproduct\b|\bgame\b|\bfestival\b|\bevent\b|\bcreated\b|\bbuilt\b|\bdeveloped\b|\bstarted\b/.test(normalized);
-
-  const message = isCreatorSignal
-    ? "I want to hold this before turning it into a Dot, because there is a useful bridge here. What did that creation teach you about people, and what part of that learning could you use in something you create next?"
-    : isChangeSeeking
-      ? "I hear that you are looking for something more meaningful, not just another task. If the change you imagine had to start with one small group of people, who would you feel called to help first, and why them?"
-      : "I am hearing something important, and I want one more layer before we name it. What did that experience teach you that you still carry into how you choose, build, or help people now?";
-
-  return {
-    ...decision,
-    message,
-    action: "ASK",
-    state: "FOLLOW_UP",
-    interactionKey: undefined,
-    nextMove: {
-      ...decision.nextMove,
-      priority: isChangeSeeking ? "direction" : "learning",
-      reason: "The user has useful evidence, but Future Self needs one more connected layer before revealing Dots.",
-      suggestedQuestion: message,
-    },
-  };
-};
-
 const buildActivityDecision = (
   decision: DiscoveryDecision,
   theme?: DiscoveryQuestTheme,
@@ -1256,9 +615,6 @@ const hasStuckOrCompletionSignal = (text: string) =>
 const hasRelationshipSignal = (text: string) =>
   /\brelationship\b|\bmet a girl\b|\bmet someone\b|\blike her\b|\blike him\b|\bpartner\b/.test(text.toLowerCase());
 
-const hasLearningSignal = (text: string) =>
-  /\blearn(?:ed|t|ing)?\b|\btaught\b|\btrust\b|\bresilien(?:ce|t)\b|\badapt\b|\brealization\b|\baha\b|\bcarry\b|\bskill\b|\biterate\b|\bfeedback\b|\btest\b/.test(text.toLowerCase());
-
 const repeatsAudienceQuestion = (message: string) => {
   const normalized = message.toLowerCase();
   return normalized.includes("first small group") || normalized.includes("who would you feel called to help");
@@ -1305,7 +661,7 @@ const buildThemedFollowUpDecision = (
           : "I want to ground this in what you have already tried. Tell me about one thing you created, tested, organized, built, or helped shape. What did reality teach you through that experiment?";
 
   const currentMessage = hasStuckOrCompletionSignal(normalized)
-    ? "I hear the part that feels most alive right now: you want to finish the AI project so you can open the next chapter, while also feeling a little stuck and looking for more opportunity. What is the one unfinished piece that is actually holding you back, and what would ‘finished enough’ look like for you this week?"
+    ? "What feels like the biggest thing holding you back right now?"
     : hasRelationshipSignal(normalized)
       ? "What have you noticed about yourself in this relationship, and what would you like to understand better?"
       : /\bmeeting\b|\bopportunity\b|\bmovement\b|\bconscious creators?\b/.test(normalized)
@@ -1356,65 +712,6 @@ const buildThemedFollowUpDecision = (
   };
 };
 
-const normalizeToQuestTheme = (
-  body: Record<string, unknown>,
-  decision: DiscoveryDecision,
-  sessionText: string,
-  interactionCount: number,
-  priorUserTurns: number
-): DiscoveryDecision => {
-  const theme = typeof body.activeQuestTheme === "string" ? body.activeQuestTheme as DiscoveryQuestTheme : "origin";
-
-  const messageRepeatsAudience = repeatsAudienceQuestion(decision.message);
-  const messageRepeatsOrigin = repeatsOriginStoryQuestion(decision.message);
-  const themeMission: Partial<Record<DiscoveryQuestTheme, DiscoveryMission>> = {
-    origin: decision.activeMission,
-    gifts: "skills",
-    world: "inspirations",
-    experiments: "experiments",
-  };
-
-  if (messageRepeatsOrigin && theme !== "origin") {
-    return buildThemedFollowUpDecision(decision, theme, sessionText);
-  }
-
-  if (theme === "world" && messageRepeatsAudience && hasAudienceDirection(sessionText)) {
-    return buildActivityDecision({
-      ...decision,
-      activeMission: "inspirations",
-      coverage: {
-        ...decision.coverage,
-        mission: "inspirations",
-        score: Math.max(decision.coverage.score, 0.55),
-        covered: Array.from(new Set([...decision.coverage.covered, "world", "audience"])),
-      },
-    }, "world");
-  }
-
-  if (interactionCount === 0 && priorUserTurns <= 1) {
-    if (theme === "gifts" && (messageRepeatsAudience || decision.activeMission !== "skills" || decision.action === "SHOW_INTERACTION")) {
-      return buildThemedFollowUpDecision(decision, theme, sessionText);
-    }
-    if (theme === "world" && (decision.action === "SHOW_INTERACTION" || !hasAudienceDirection(sessionText))) {
-      return buildThemedFollowUpDecision(decision, theme, sessionText);
-    }
-    if (theme === "experiments" && (decision.action === "SHOW_INTERACTION" || decision.activeMission !== "experiments")) {
-      return buildThemedFollowUpDecision(decision, theme, sessionText);
-    }
-  }
-
-  const expectedMission = themeMission[theme];
-  if (expectedMission && decision.action === "SHOW_INTERACTION") {
-    return {
-      ...decision,
-      activeMission: expectedMission,
-      coverage: { ...decision.coverage, mission: expectedMission },
-    };
-  }
-
-  return decision;
-};
-
 const missionForQuestTheme = (
   theme: DiscoveryQuestTheme,
   fallback: DiscoveryMission
@@ -1427,7 +724,8 @@ const missionForQuestTheme = (
 
 const applyQuestFlowContract = (
   body: Record<string, unknown>,
-  decision: DiscoveryDecision
+  decision: DiscoveryDecision,
+  fromModel = false
 ): DiscoveryDecision => {
   const theme = typeof body.activeQuestTheme === "string" ? body.activeQuestTheme as DiscoveryQuestTheme : "origin";
 
@@ -1458,6 +756,16 @@ const applyQuestFlowContract = (
     return buildDotRewardDecision(themedDecision);
   }
 
+  const hasOneFollowUp = fromModel
+    && decision.action === "ASK"
+    && (decision.message.match(/\?/g)?.length || 0) === 1
+    && !repeatsOriginStoryQuestion(decision.message)
+    && !(hasAudienceDirection(sessionText) && repeatsAudienceQuestion(decision.message));
+
+  if (priorUserTurns < 2 && hasOneFollowUp) {
+    return themedDecision;
+  }
+
   if (priorUserTurns <= 0) {
     return buildThemedFollowUpDecision(themedDecision, theme, sessionText);
   }
@@ -1484,119 +792,16 @@ const buildDotRewardDecision = (decision: DiscoveryDecision): DiscoveryDecision 
   },
 });
 
-const suggestLifetimeAnchor = (
-  decision: DiscoveryDecision | null,
-  messages: ConversationMessage[],
-  selectedDots: DotInterpretation[]
-): Pick<LifetimeAnchorInvite, "suggestedLabel" | "suggestedDescription" | "suggestedTimePeriod" | "suggestedEventType"> => {
-  const evidenceText = [
-    ...(decision?.evidence || []).map((item) => item.text),
-    ...messages.map((message) => message.content),
-    ...selectedDots.map((dot) => `${dot.title}. ${dot.description}`),
-  ].join(" ");
-  const normalized = evidenceText.toLowerCase();
-
-  if (normalized.includes("broke") || normalized.includes("injury") || normalized.includes("surgery")) {
-    return {
-      suggestedLabel: "The recovery period that helped me create",
-      suggestedDescription: "A difficult health moment became a place where I focused, learned, and moved a meaningful creation forward.",
-      suggestedTimePeriod: "current",
-      suggestedEventType: "health",
-    };
-  }
-
-  if (normalized.includes("berlin") || normalized.includes("germany") || normalized.includes("moved") || normalized.includes("travel")) {
-    return {
-      suggestedLabel: "Leaving home and growing through a new culture",
-      suggestedDescription: "A move into a different culture challenged me, stretched my identity, and helped shape who I became.",
-      suggestedTimePeriod: "mid_20s",
-      suggestedEventType: "change",
-    };
-  }
-
-  if (normalized.includes("family squad") || normalized.includes("game") || normalized.includes("project") || normalized.includes("built") || normalized.includes("created")) {
-    return {
-      suggestedLabel: "Creating something from my lived experience",
-      suggestedDescription: "A project or creation became evidence of what I care about, what I can build, and who I want to help.",
-      suggestedTimePeriod: "current",
-      suggestedEventType: "work",
-    };
-  }
-
-  return {
-    suggestedLabel: "A moment that shaped who I am becoming",
-    suggestedDescription: "This moment gives my Atlas a real-life anchor, so the system can connect my Dots to something I have actually lived.",
-    suggestedTimePeriod: "current",
-    suggestedEventType: "identity",
-  };
-};
-
-const enforceDiscoveryLoop = (body: Record<string, unknown>, decision: DiscoveryDecision): DiscoveryDecision => {
-  const recentMessages = Array.isArray(body.recentMessages) ? body.recentMessages : [];
-  const recentUserTurns = recentMessages.filter((message) => {
-    if (!message || typeof message !== "object") return false;
-    return (message as { role?: unknown }).role === "user";
-  }).length;
-  const recentUserText = recentMessages
-    .filter((message) => message && typeof message === "object" && (message as { role?: unknown }).role === "user")
-    .map((message) => String((message as { content?: unknown }).content || ""))
-    .join(" ");
-  const priorUserTurns = Math.max(Number(body.priorUserTurns || 0), recentUserTurns);
-  const userText = typeof body.userText === "string" ? body.userText : "";
-  const interactionText = typeof body.interactionResponse === "undefined"
-    ? ""
-    : JSON.stringify(body.interactionResponse);
-  const sessionText = [recentUserText, userText, interactionText].join(" ");
-  const interactionCount = Number(body.interactionCount || 0);
-  const theme = typeof body.activeQuestTheme === "string"
-    ? body.activeQuestTheme as DiscoveryQuestTheme
-    : "origin";
-  const repeatedAudienceLayer = repeatsAudienceQuestion(decision.message) && hasAudienceDirection(sessionText);
-  const hasEnoughDiscoveryShape =
-    priorUserTurns >= 2 &&
-    interactionCount >= 1 &&
-    hasAudienceDirection(sessionText) &&
-    hasCreationSignal(sessionText) &&
-    hasLearningSignal(sessionText);
-  const themedDecision = normalizeToQuestTheme(body, decision, sessionText, interactionCount, priorUserTurns);
-
-  if (themedDecision !== decision) {
-    return themedDecision;
-  }
-
-  if (decision.action !== "GENERATE_DOTS") {
-    if (hasEnoughDiscoveryShape || repeatedAudienceLayer || (priorUserTurns >= 2 && interactionCount >= 1 && decision.coverage.score >= 0.35)) {
-      return buildDotRewardDecision(decision);
-    }
-    if (interactionCount === 0 && (repeatedAudienceLayer || priorUserTurns >= 3)) {
-      return buildActivityDecision(decision, theme);
-    }
-    return decision;
-  }
-
-  if (priorUserTurns < 2) return buildBridgeQuestionDecision(decision, userText);
-  if (interactionCount < 1) return buildActivityDecision(decision, theme);
-
-  return buildDotRewardDecision(decision);
-};
-
 const FutureSelfDiscovery = () => {
   const navigate = useNavigate();
   const location = useLocation();
   const queryClient = useQueryClient();
   const { clusters, dots: allExistingDots, isLoading: isAtlasLoading } = useAtlas();
-  const { preCouncilComplete, preCouncilSlugsForPhase } = useAtlasQuests();
-  const {
-    events: lifetimeEvents,
-    candidates: lifetimeCandidates,
-    createEvent: createLifetimeEvent,
-    markCandidateAdded,
-    upsertCandidates: upsertLifetimeCandidates,
-    reload: reloadLifetimeEvents,
-  } = useLifetimeEvents();
-  const hasFreshRequest = new URLSearchParams(location.search).has("fresh");
+  const { completedQuests, futureSelfProgress, isLoading: isProgressLoading } = useAtlasQuests();
+  const { completedSteps, nextTheme } = futureSelfProgress;
+  const { upsertCandidates: upsertLifetimeCandidates } = useLifetimeEvents();
   const [input, setInput] = useState("");
-  const [isSessionReady, setIsSessionReady] = useState(!hasFreshRequest);
+  const [isSessionReady, setIsSessionReady] = useState(false);
   const [messages, setMessages] = useState<ConversationMessage[]>([
     {
       id: "opening",
@@ -1609,6 +814,7 @@ const FutureSelfDiscovery = () => {
   const [usedInteractionKeys, setUsedInteractionKeys] = useState<string[]>([]);
   const [interactionResponses, setInteractionResponses] = useState<unknown[]>([]);
   const [candidateDots, setCandidateDots] = useState<DotInterpretation[]>([]);
+  const [candidateRevision, setCandidateRevision] = useState(0);
   const [selectedDots, setSelectedDots] = useState<DotInterpretation[]>([]);
   const [validationMode, setValidationMode] = useState<ValidationMode>("picking");
   const [isSavingDot, setIsSavingDot] = useState(false);
@@ -1620,11 +826,6 @@ const FutureSelfDiscovery = () => {
   const [isProcessingVoice, setIsProcessingVoice] = useState(false);
   const [preferredSpeechVoice, setPreferredSpeechVoice] = useState<SpeechSynthesisVoice | null>(null);
   const [savedDotTitle, setSavedDotTitle] = useState<string | null>(null);
-  const [councilHandoff, setCouncilHandoff] = useState<CouncilHandoff | null>(null);
-  const [lifetimeAnchorInvite, setLifetimeAnchorInvite] = useState<LifetimeAnchorInvite | null>(null);
-  const [showLifetimeCandidateBridge, setShowLifetimeCandidateBridge] = useState(false);
-  const [selectedLifetimeCandidate, setSelectedLifetimeCandidate] = useState<LifetimeEventCandidate | null>(null);
-  const [showLifetimeAnchorModal, setShowLifetimeAnchorModal] = useState(false);
   const [autoSendSeconds, setAutoSendSeconds] = useState<number | null>(null);
   const [activeQuestTheme, setActiveQuestTheme] = useState<DiscoveryQuestTheme>("origin");
   const lastSpokenMessageIdRef = useRef("");
@@ -1638,7 +839,7 @@ const FutureSelfDiscovery = () => {
   const latestFutureSelfMessage = [...messages]
     .reverse()
     .find((message) => message.role === "future-self");
-  const isSessionPreparing = hasFreshRequest && (freshResetKeyRef.current !== location.search || !isSessionReady);
+  const isSessionPreparing = freshResetKeyRef.current !== (location.search || "initial") || !isSessionReady;
   const visibleLatestFutureSelfMessage = isSessionPreparing ? undefined : latestFutureSelfMessage;
   const constellationMode: ConstellationMode = isRecordingVoice
     ? "listening"
@@ -1649,43 +850,17 @@ const FutureSelfDiscovery = () => {
         : "idle";
 
   useEffect(() => {
-    let cancelled = false;
+    const resetDiscoverySession = () => {
+      if (isAtlasLoading || isProgressLoading) return;
+      const sessionKey = location.search || "initial";
+      if (freshResetKeyRef.current === sessionKey) return;
+      freshResetKeyRef.current = sessionKey;
 
-    const resetDiscoverySession = async () => {
-      const params = new URLSearchParams(location.search);
-      if (!params.has("fresh")) {
-        setIsSessionReady(true);
-        return;
-      }
-      setIsSessionReady(false);
-      if (isAtlasLoading) return;
-      if (freshResetKeyRef.current === location.search) {
-        setIsSessionReady(true);
-        return;
-      }
-      freshResetKeyRef.current = location.search;
-      const isNextQuest = params.get("mode") === "next" && allExistingDots.length > 0;
-      let completedFutureSelfQuests = 0;
-      let priorInteractionKeys: string[] = [];
-
-      if (isNextQuest) {
-        const { data: { user } } = await supabase.auth.getUser();
-        if (user) {
-          const { data: completedQuests } = await supabase
-            .from("atlas_quests")
-            .select("interactions")
-            .eq("user_id", user.id)
-            .like("quest_key", "future_self_%");
-          completedFutureSelfQuests = completedQuests?.length || 0;
-          priorInteractionKeys = (completedQuests || [])
-            .map((quest) => (quest.interactions as { interactionKey?: unknown } | null)?.interactionKey)
-            .filter((key): key is string => typeof key === "string" && key.length > 0);
-        }
-      }
-
-      if (cancelled) return;
-      const nextTheme = isNextQuest ? questThemeForProgress(completedFutureSelfQuests) : "origin";
-
+      const isNextQuest = nextTheme !== "origin";
+      const priorInteractionKeys = completedQuests
+        .filter((quest) => quest.quest_key?.startsWith("future_self_"))
+        .map((quest) => (quest.interactions as { interactionKey?: unknown } | null)?.interactionKey)
+        .filter((key): key is string => typeof key === "string" && key.length > 0);
       cancelAutoSend();
       stopSpeaking();
       setInput("");
@@ -1693,7 +868,7 @@ const FutureSelfDiscovery = () => {
         {
           id: isNextQuest ? "next-quest-opening" : "opening",
           role: "future-self",
-          content: isNextQuest ? buildNextQuestInvitation(allExistingDots, completedFutureSelfQuests) : openingInvitation,
+          content: isNextQuest ? buildNextQuestInvitation(allExistingDots, completedSteps) : openingInvitation,
         },
       ]);
       setDecision(null);
@@ -1708,21 +883,13 @@ const FutureSelfDiscovery = () => {
       setIsRecordingVoice(false);
       setIsProcessingVoice(false);
       setSavedDotTitle(null);
-      setCouncilHandoff(null);
-      setLifetimeAnchorInvite(null);
-      setShowLifetimeCandidateBridge(false);
-      setSelectedLifetimeCandidate(null);
-      setShowLifetimeAnchorModal(false);
       setActiveQuestTheme(nextTheme);
       lastSpokenMessageIdRef.current = "";
       setIsSessionReady(true);
     };
 
     resetDiscoverySession();
-    return () => {
-      cancelled = true;
-    };
-  }, [location.search, allExistingDots, isAtlasLoading]);
+  }, [location.search, allExistingDots, isAtlasLoading, isProgressLoading, completedSteps, nextTheme, completedQuests]);
 
   const speakFutureSelfMessage = (message?: ConversationMessage) => {
     if (!message || typeof window === "undefined" || !("speechSynthesis" in window)) return;
@@ -1837,58 +1004,14 @@ const FutureSelfDiscovery = () => {
     cancelAutoSend();
   }, []);
 
-  const applyDecision = (
-    nextDecision: DiscoveryDecision,
-    aiCandidateDots?: DotInterpretation[],
-    freshContextText = ""
-  ) => {
-    // The opening for a later quest names earlier Dots for continuity. Those
-    // labels are context, not new evidence for the current quest.
-    const questUserEvidence = messages
-      .filter((message) => message.role === "user")
-      .map((message) => message.content);
-    const evidenceText = [
-      ...questUserEvidence,
-      freshContextText,
-    ].filter(Boolean).join(" ");
-    const decisionEvidenceText = nextDecision.evidence
-      .map((item) => item.text)
-      .filter((text) => !/already have some signals|including .*(dot|built|learned|creates|guides)/i.test(text))
-      .join(" ");
-    const scopedEvidence = [evidenceText, decisionEvidenceText].filter(Boolean).join(" ");
-    const prepareCandidateDots = (dots: DotInterpretation[]) => ensureThreeDistinctDots(
-      keepNewDots(dots, allExistingDots),
-      scopedEvidence,
-      nextDecision.activeMission,
-      activeQuestTheme,
-      allExistingDots,
-    );
-    const upgradedDots = nextDecision.action === "GENERATE_DOTS"
-      ? prepareCandidateDots(enrichDotsFromEvidence(
-        aiCandidateDots && aiCandidateDots.length > 0 ? aiCandidateDots : [],
-        scopedEvidence,
-        nextDecision.activeMission,
-        activeQuestTheme,
-      ))
-      : [];
-    const fallbackDots = nextDecision.action === "GENERATE_DOTS"
-      ? prepareCandidateDots(enrichDotsFromEvidence(
-        buildCandidateDots(nextDecision, scopedEvidence, activeQuestTheme),
-        scopedEvidence,
-        nextDecision.activeMission,
-        activeQuestTheme,
-      ))
-      : [];
-
+  const applyDecision = (nextDecision: DiscoveryDecision, aiCandidateDots: DotInterpretation[] = []) => {
     setDecision(nextDecision);
     setValidationMode("picking");
-    setCandidateDots(
-      nextDecision.action === "GENERATE_DOTS"
-        ? upgradedDots.length === 3
-          ? upgradedDots
-          : fallbackDots
-        : []
-    );
+    const candidates = keepNewDots(aiCandidateDots, allExistingDots)
+      .filter((dot) => !hasGenericDotTitle(dot.title) && !!dot.sourceQuote && clusters.some((cluster) => cluster.slug === dot.clusterSlug));
+    const distinct = new Map(candidates.map((dot) => [dot.title.trim().toLowerCase(), dot]));
+    setCandidateDots(nextDecision.action === "GENERATE_DOTS" ? [...distinct.values()].slice(0, 3) : []);
+    setCandidateRevision((current) => current + 1);
   };
 
   const activateInteraction = (nextDecision: DiscoveryDecision, contextText = "", impactOptions?: ImpactOptions) => {
@@ -1934,6 +1057,8 @@ const FutureSelfDiscovery = () => {
     }
   };
 
+  const recentMessages = messages.filter(({ id }) => id !== "opening" && id !== "next-quest-opening").slice(-8);
+
   const askFutureSelfDiscovery = async (
     body: Record<string, unknown>,
     fallback: () => DiscoveryDecision
@@ -1941,13 +1066,13 @@ const FutureSelfDiscovery = () => {
     try {
       const { data, error } = await supabase.functions.invoke<AiDiscoveryResponse>(
         "future-self-discovery",
-        { body }
+        { body: { ...body, availableClusterSlugs: clusters.map(({ slug }) => slug) } }
       );
 
       if (error || !data) throw error || new Error("No Future Self response");
 
       const decision = normalizeInteractionDecision(
-        applyQuestFlowContract(body, enforceDiscoveryLoop(body, data))
+        applyQuestFlowContract(body, data, true)
       );
 
       return {
@@ -1996,9 +1121,9 @@ const FutureSelfDiscovery = () => {
             priorUserTurns: currentUserTurnCount,
             interactionCount: interactionResponses.length,
             usedInteractionKeys,
-            freshSession,
+            freshSession: freshSession || currentUserTurnCount === 0,
             activeQuestTheme,
-            recentMessages: messages.slice(-8),
+            recentMessages,
           },
           () => decideNextDiscoveryStep({
             text: trimmedText,
@@ -2021,7 +1146,7 @@ const FutureSelfDiscovery = () => {
           content: nextDecision.message,
         },
       ]);
-      applyDecision(nextDecision, aiCandidateDots, trimmedText);
+      applyDecision(nextDecision, aiCandidateDots);
       activateInteraction(nextDecision, trimmedText, impactOptions);
       setInput("");
     } finally {
@@ -2072,7 +1197,7 @@ const FutureSelfDiscovery = () => {
           usedInteractionKeys,
           freshSession,
           activeQuestTheme,
-          recentMessages: messages.slice(-8),
+          recentMessages,
         },
         () => decideAfterDiscoveryInteraction({
           activeMission: decision.activeMission,
@@ -2095,7 +1220,7 @@ const FutureSelfDiscovery = () => {
         content: nextDecision.message,
       },
     ]);
-    applyDecision(nextDecision, aiCandidateDots, summarizeInteractionResponse(response));
+    applyDecision(nextDecision, aiCandidateDots);
     activateInteraction(nextDecision, summarizeInteractionResponse(response), impactOptions);
     setIsThinking(false);
   };
@@ -2115,18 +1240,12 @@ const FutureSelfDiscovery = () => {
 
   const handleSaveToAtlas = async (
     dotsToSave = selectedDots,
-    userEdited = validationMode === "confirmed",
+    userEdited = false,
   ) => {
     if (!decision || dotsToSave.length === 0 || isSavingDot || savedDotTitle) return;
 
     const primaryDot = dotsToSave[0];
-    const dotClusterSlugs = dotsToSave.map((dot) =>
-      dot.clusterSlug || inferClusterSlugForDot(dot, decision.activeMission, decision.evidence.map((item) => item.text).join(" "))
-    );
-    const targetClusters = dotClusterSlugs.map((slug) =>
-      clusters.find((cluster) => cluster.slug === slug) ||
-      clusters.find((cluster) => cluster.slug === missionClusterSlugs[decision.activeMission])
-    );
+    const targetClusters = dotsToSave.map((dot) => clusters.find((cluster) => cluster.slug === dot.clusterSlug));
     const targetCluster = targetClusters[0];
 
     if (!targetCluster || targetClusters.some((cluster) => !cluster)) {
@@ -2143,13 +1262,18 @@ const FutureSelfDiscovery = () => {
       const { data: { user } } = await supabase.auth.getUser();
       if (!user) throw new Error("Not authenticated");
 
-      const { count: previousFutureSelfQuestCount } = await supabase
+      const { data: savedQuests, error: progressError } = await supabase
         .from("atlas_quests")
-        .select("id", { count: "exact", head: true })
+        .select("quest_key, status, interactions")
         .eq("user_id", user.id)
-        .eq("status", "completed")
-        .like("quest_key", "future_self_%");
+        .eq("status", "completed");
+      if (progressError) throw progressError;
 
+      const progressBeforeSave = getFutureSelfOnboardingProgress(savedQuests || []);
+      if (activeQuestTheme !== progressBeforeSave.nextTheme) {
+        navigate("/atlas", { replace: true });
+        return;
+      }
       const signalSources = [
         "future_self_conversation",
         decision.activeMission,
@@ -2161,7 +1285,6 @@ const FutureSelfDiscovery = () => {
           .filter((message) => message.role === "user")
           .map((message) => message.content),
         ...interactionResponses.map((response) => summarizeInteractionResponse(response)),
-        ...decision.evidence.map((item) => item.text),
       ]))
         .map((evidence) => evidence.replace(/\s+/g, " ").trim().slice(0, 520))
         .filter(Boolean)
@@ -2170,23 +1293,27 @@ const FutureSelfDiscovery = () => {
       const offeredDots = candidateDots.slice(0, 3).map((dot) => ({
         title: dot.title,
         description: dot.description,
-        dotCategory: dot.dotCategory || "strength",
-        clusterSlug: dot.clusterSlug || inferClusterSlugForDot(dot, decision.activeMission, questEvidence.join(" ")),
+        dotCategory: dot.dotCategory,
+        clusterSlug: dot.clusterSlug,
+        sourceQuote: dot.sourceQuote,
       }));
 
       const dotPayloads: AtlasDotInsert[] = dotsToSave.map((dot, index) => ({
+        id: crypto.randomUUID(),
         user_id: user.id,
         cluster_id: targetClusters[index]!.id,
         title: dot.title,
         short_description: dot.description,
         dot_type: "future_self_discovery",
-        dot_category: dot.dotCategory || "strength",
+        dot_category: dot.dotCategory,
         signal_sources: signalSources,
         signal_strength: Math.max(1, decision.coverage.covered.length),
         source_system: "future_self_discovery",
         confidence_score: 0.72,
         user_validated: true,
-        user_edited: userEdited,
+        user_edited: userEdited || !candidateDots.some((candidate) => candidate.title === dot.title
+          && candidate.description === dot.description && candidate.dotCategory === dot.dotCategory
+          && candidate.clusterSlug === dot.clusterSlug),
         original_title: dot.title,
         original_description: dot.description,
         signal_tags: {
@@ -2199,6 +1326,7 @@ const FutureSelfDiscovery = () => {
           questEvidence,
           activityEvidence,
           dotOrigin: "current_quest_evidence",
+          sourceQuote: dot.sourceQuote,
         },
       }));
 
@@ -2208,33 +1336,30 @@ const FutureSelfDiscovery = () => {
         .select("id,title,short_description,dot_category");
 
       if (error) throw error;
-      const primarySavedDot = savedDots?.[0];
-      if (!primarySavedDot) throw new Error("The Atlas did not return the saved Dot.");
-      const savedDotRows = savedDots || [];
+      const savedById = new Map((savedDots || []).map((dot) => [dot.id, dot]));
+      const savedDotRows = dotPayloads.map(({ id }) => {
+        const saved = id ? savedById.get(id) : undefined;
+        if (!saved) throw new Error("The Atlas did not return every saved Dot.");
+        return saved;
+      });
+      const primarySavedDot = savedDotRows[0];
       const validatedDotProvenance = dotsToSave.map((dot, index) => ({
         savedDotId: savedDotRows[index]?.id || null,
         title: dot.title,
         description: dot.description,
-        dotCategory: dot.dotCategory || "strength",
+        dotCategory: dot.dotCategory,
         clusterSlug: targetClusters[index]!.slug,
+        sourceQuote: dot.sourceQuote,
         sourceQuestKey: questKey,
         questTheme: activeQuestTheme,
         evidence: questEvidence,
         activityEvidence,
       }));
 
-      const { data: previousFutureSelfHistory } = await supabase
-        .from("atlas_quests")
-        .select("interactions")
-        .eq("user_id", user.id)
-        .like("quest_key", "future_self_%")
-        .order("completed_at", { ascending: true });
-      const lifetimeEvidence = [
-        ...(previousFutureSelfHistory || []).map((quest) => JSON.stringify(quest.interactions || "")),
-        ...messages.map((message) => message.content),
-        ...decision.evidence.map((item) => item.text),
-        ...dotsToSave.map((dot) => `${dot.title}. ${dot.description}`),
-      ].join(" ");
+      const lifetimeEvidence = messages
+        .filter(({ role, id }) => role === "user" && !id.startsWith("interaction-"))
+        .map(({ content }) => content)
+        .join(" ");
       const lifetimeSeeds = extractLifetimeCandidates(lifetimeEvidence);
 
       const questPayload: AtlasQuestInsert = {
@@ -2249,10 +1374,11 @@ const FutureSelfDiscovery = () => {
             nextMove: decision.nextMove || null,
             timelineCandidates: lifetimeSeeds,
             mentorHandoff: {
-              currentGoal: "Understand the user through story and guide them toward a meaningful next action.",
+              currentGoal: "Use the user's account of what happened and what they learned to guide one relevant next step. Confirm inferred skills and project ideas before acting on them.",
               questTheme: activeQuestTheme,
               sourceQuestKey: questKey,
               questEvidence,
+              followUpAnswers: recentMessages.filter(({ role }) => role === "user").slice(1).map(({ content }) => content.trim().slice(0, 520)),
               activityEvidence,
               offeredDots,
               validatedDots: validatedDotProvenance,
@@ -2342,7 +1468,7 @@ const FutureSelfDiscovery = () => {
           short_description: dot.short_description || originalDot.description,
           confidence_score: 0.72,
           dot_type: "future_self_discovery",
-          dot_category: originalDot.dotCategory || "strength",
+          dot_category: originalDot.dotCategory,
           signal_sources: signalSources,
           signal_strength: Math.max(1, decision.coverage.covered.length),
           source_system: "future_self_discovery",
@@ -2404,7 +1530,7 @@ const FutureSelfDiscovery = () => {
         description: dotsToSave.length === 1 ? primaryDot.title : `${dotsToSave.length} Dots saved`,
       });
 
-      const persistedLifetimeCandidates = await upsertLifetimeCandidates(lifetimeSeeds, savedQuest?.id);
+      await upsertLifetimeCandidates(lifetimeSeeds, savedQuest.id);
 
       const params = new URLSearchParams({
         highlight: targetCluster.slug,
@@ -2432,73 +1558,9 @@ const FutureSelfDiscovery = () => {
           }),
         },
       ]);
-      const councilUrl = "/council?view=intake";
-      const hasLifetimeAnchor = lifetimeEvents.length > 0;
-
-      // Offer a real life moment only after the third saved conversation.
-      const shouldPauseForLifetimeAlbum =
-        !hasLifetimeAnchor &&
-        persistedLifetimeCandidates.length > 0 &&
-        (previousFutureSelfQuestCount || 0) >= 2;
-
-      if (shouldPauseForLifetimeAlbum) {
-        setLifetimeAnchorInvite(null);
-        setCouncilHandoff(null);
-        setShowLifetimeCandidateBridge(true);
-        setMessages((current) => [
-          ...current,
-          {
-            id: `future-self-lifetime-bridge-${Date.now()}`,
-            role: "future-self",
-            content:
-              "We have reached a meaningful pause in your story. I found several moments that could become part of your Lifetime album. Choose one to place on the map now; the others will stay here as locked possibilities until you are ready.",
-          },
-        ]);
-        return;
+      if (!progressBeforeSave.consoleUnlocked) {
+        navigate(atlasUrl, { replace: true });
       }
-
-      const savedTargetClusterSlugs = new Set(
-        targetClusters.map((cluster) => cluster?.slug).filter(Boolean) as string[]
-      );
-      const projectedPreCouncilComplete =
-        preCouncilComplete ||
-        preCouncilSlugsForPhase.every((slug) => {
-          const cluster = clusters.find((item) => item.slug === slug);
-          return savedTargetClusterSlugs.has(slug) || (cluster?.dotCount || 0) > 0;
-        });
-      const isCouncilReady = hasLifetimeAnchor && projectedPreCouncilComplete;
-
-      if (isCouncilReady) {
-        setLifetimeAnchorInvite(null);
-        setCouncilHandoff({ atlasUrl, councilUrl });
-        setMessages((current) => [
-          ...current,
-          {
-            id: `future-self-council-ready-${Date.now()}`,
-            role: "future-self",
-            content:
-              "I think we have enough now.\n\nYour Atlas has enough real signals, and it has a life anchor, so the next step is to bring this to your Council. They can use what we collected here to help shape a more personal direction with you.",
-          },
-        ]);
-        return;
-      }
-
-      if (projectedPreCouncilComplete && !hasLifetimeAnchor && (previousFutureSelfQuestCount || 0) >= 2 && lifetimeSeeds.length > 0) {
-        const suggestedAnchor = suggestLifetimeAnchor(decision, messages, dotsToSave);
-        setCouncilHandoff(null);
-        setLifetimeAnchorInvite({ ...suggestedAnchor, atlasUrl, councilUrl });
-        setMessages((current) => [
-          ...current,
-          {
-            id: `future-self-lifetime-anchor-${Date.now()}`,
-            role: "future-self",
-            content:
-              "We have enough Atlas signal now, but I want to ground it in one real moment from your life before we bring it to the Council.\n\nI am going to suggest a Lifetime anchor from what you shared. You can edit it, save it, and then we can keep going from here.",
-          },
-        ]);
-        return;
-      }
-
     } catch (error: unknown) {
       const message = error instanceof Error ? error.message : "Try again in a moment.";
       toast({
@@ -2511,36 +1573,28 @@ const FutureSelfDiscovery = () => {
     }
   };
 
-  const handleCandidateRegenerate = (feedback?: string) => {
-    if (!decision) return;
-
-    const currentEvidence = [
-      ...messages.filter((message) => message.role === "user").map((message) => message.content),
-      ...decision.evidence.map((item) => item.text),
-    ].join(" ");
-    const regeneratedEvidenceDots = enrichDotsFromEvidence(
-        buildCandidateDots(decision, currentEvidence, activeQuestTheme),
-        currentEvidence,
-        decision.activeMission,
+  const handleCandidateRegenerate = async (feedback?: string) => {
+    if (!decision || isThinking || isSavingDot || !interactionResponses.length) return;
+    setIsThinking(true);
+    try {
+      const { decision: nextDecision, candidateDots: nextDots } = await askFutureSelfDiscovery({
+        mode: "interaction",
+        activeMission: decision.activeMission,
+        interactionResponse: interactionResponses[interactionResponses.length - 1],
+        interactionCount: interactionResponses.length,
+        priorUserTurns: messages.filter(({ role }) => role === "user").length,
         activeQuestTheme,
-      );
-    const baseCandidates = ensureThreeDistinctDots(
-      keepNewDots(regeneratedEvidenceDots, allExistingDots),
-      currentEvidence,
-      decision.activeMission,
-      activeQuestTheme,
-      allExistingDots,
-    );
-    const regenerated = baseCandidates.map((candidate, index) => ({
-      ...candidate,
-      title: index === 0 && feedback ? "Closer Signal" : candidate.title,
-      description: feedback
-        ? `Reframed with your feedback: "${feedback.slice(0, 120)}${feedback.length > 120 ? "..." : ""}"`
-        : candidate.description,
-    }));
-
-    setCandidateDots(regenerated);
-    setValidationMode("picking");
+        recentMessages,
+        candidateFeedback: feedback?.trim().slice(0, 500),
+      }, () => decision);
+      if (nextDots?.length) {
+        applyDecision(nextDecision, nextDots);
+      } else {
+        toast({ title: "Couldn’t refresh your Dots", description: "Try again when you’re ready." });
+      }
+    } finally {
+      setIsThinking(false);
+    }
   };
 
   const handleContinueDiscovery = () => {
@@ -2552,10 +1606,6 @@ const FutureSelfDiscovery = () => {
     setUsedInteractionKeys([]);
     setValidationMode("picking");
     setSavedDotTitle(null);
-    setCouncilHandoff(null);
-    setLifetimeAnchorInvite(null);
-    setShowLifetimeCandidateBridge(false);
-    setSelectedLifetimeCandidate(null);
     setMessages((current) => [
       ...current,
       {
@@ -2564,71 +1614,6 @@ const FutureSelfDiscovery = () => {
         content: "Let's keep going. Tell me another part of your story, a project you tried, someone who shaped you, or a pattern you keep noticing in yourself.",
       },
     ]);
-  };
-
-  const handleLifetimeCandidateSave = async (data: LifetimeEventInput) => {
-    if (!selectedLifetimeCandidate) return;
-
-    const savedEvent = await createLifetimeEvent(data);
-    if (!savedEvent) return;
-
-    await markCandidateAdded(selectedLifetimeCandidate.id);
-    setShowLifetimeAnchorModal(false);
-    setSelectedLifetimeCandidate(null);
-    setMessages((current) => [
-      ...current,
-      {
-        id: `future-self-lifetime-candidate-saved-${Date.now()}`,
-        role: "future-self",
-        content:
-          `That moment is now part of your Lifetime album, placed in your ${TIME_PERIOD_LABELS[data.time_period]} chapter. The other moments I noticed are still waiting for you when you want to add another chapter.`,
-        savedDestinations: [{
-          title: savedEvent.event_label,
-          location: `Life Timeline · ${TIME_PERIOD_LABELS[savedEvent.time_period]}`,
-          href: `/life-timeline?event=${encodeURIComponent(savedEvent.id)}`,
-        }],
-      },
-    ]);
-    toast({
-      title: "Lifetime moment added",
-      description: savedEvent.event_label,
-    });
-  };
-
-  const handleLifetimeAnchorSave = async (data: LifetimeEventInput) => {
-    const savedEvent = await createLifetimeEvent(data);
-    if (!savedEvent || !lifetimeAnchorInvite) return;
-
-    await Promise.all([
-      reloadLifetimeEvents(),
-      queryClient.invalidateQueries({ queryKey: ["atlas-dots"] }),
-      queryClient.invalidateQueries({ queryKey: ["atlas-quests-completed"] }),
-    ]);
-
-    setShowLifetimeAnchorModal(false);
-    setLifetimeAnchorInvite(null);
-    setCouncilHandoff({
-      atlasUrl: lifetimeAnchorInvite.atlasUrl,
-      councilUrl: lifetimeAnchorInvite.councilUrl,
-    });
-    setMessages((current) => [
-      ...current,
-      {
-        id: `future-self-lifetime-saved-${Date.now()}`,
-        role: "future-self",
-        content:
-          `Good. That gives your Atlas a real anchor, not just ideas. It now sits in your ${TIME_PERIOD_LABELS[data.time_period]} chapter.\n\nNow we can bring your Dots and this life moment to the Council, or you can review how the map changed first.`,
-        savedDestinations: [{
-          title: savedEvent.event_label,
-          location: `Life Timeline · ${TIME_PERIOD_LABELS[savedEvent.time_period]}`,
-          href: `/life-timeline?event=${encodeURIComponent(savedEvent.id)}`,
-        }],
-      },
-    ]);
-    toast({
-      title: "Lifetime anchor saved",
-      description: savedEvent.event_label,
-    });
   };
 
   return (
@@ -2761,12 +1746,19 @@ const FutureSelfDiscovery = () => {
             </article>
           )}
 
+          {decision?.action === "GENERATE_DOTS" && candidateDots.length === 0 && !savedDotTitle && (
+            <Button type="button" variant="outline" onClick={() => void handleCandidateRegenerate()} disabled={isThinking}>
+              Try generating Dots again
+            </Button>
+          )}
+
           {candidateDots.length > 0 && decision && validationMode !== "confirmed" && (
             <section className="rounded-lg border border-border bg-card py-5 shadow-sm">
               <AtlasWinningCard
+                key={candidateRevision}
+                editEachCandidate
                 dot={candidateDots[0]}
                 clusterName="Future Self Discovery"
-                fallbackClusterSlug={missionClusterSlugs[decision.activeMission]}
                 onConfirm={handleCandidateConfirm}
                 onRegenerate={handleCandidateRegenerate}
                 variations={candidateDots}
@@ -2779,124 +1771,7 @@ const FutureSelfDiscovery = () => {
             </section>
           )}
 
-          {councilHandoff && (
-            <section className="rounded-lg border border-primary/30 bg-primary/5 p-4">
-              <p className="text-xs uppercase tracking-[0.18em] text-muted-foreground">
-                Council ready
-              </p>
-              <p className="mt-2 text-sm text-muted-foreground">
-                Future Self has enough to hand your story, Dots, and signals to the Council intake.
-              </p>
-              <div className="mt-4 flex flex-col gap-2 sm:flex-row">
-                <Button type="button" className="gap-2" onClick={() => navigate(councilHandoff.councilUrl)}>
-                  Go to Council
-                  <ArrowRight className="h-4 w-4" aria-hidden="true" />
-                </Button>
-                <Button type="button" variant="outline" onClick={() => navigate(councilHandoff.atlasUrl)}>
-                  Review Atlas first
-                </Button>
-              </div>
-            </section>
-          )}
-
-          {showLifetimeCandidateBridge && !councilHandoff && (
-            <section className="rounded-lg border border-primary/30 bg-primary/5 p-4">
-              <p className="text-xs uppercase tracking-[0.18em] text-primary">
-                Your Lifetime album
-              </p>
-              <p className="mt-2 text-sm text-muted-foreground">
-                Future Self noticed these moments in your story. Add one now; the others stay visible for later.
-              </p>
-              <div className="mt-4 space-y-2">
-                {lifetimeCandidates
-                  .filter((candidate) => candidate.status !== "dismissed")
-                  .map((candidate) => {
-                    const isAvailable = candidate.status === "available";
-                    const isAdded = candidate.status === "added";
-                    return (
-                      <div
-                        key={candidate.id}
-                        className={`rounded-lg border p-3 ${isAvailable ? "border-primary/40 bg-background/70" : "border-border/60 bg-background/30 opacity-75"}`}
-                      >
-                        <div className="flex items-start justify-between gap-3">
-                          <div>
-                            <p className="font-semibold text-foreground">{candidate.event_label}</p>
-                            <p className="mt-1 flex items-center gap-1.5 text-xs font-medium text-primary">
-                              <CalendarDays className="h-3.5 w-3.5" aria-hidden="true" />
-                              {TIME_PERIOD_LABELS[candidate.suggested_time_period]}
-                            </p>
-                            <p className="mt-1 text-sm text-muted-foreground">{candidate.event_description}</p>
-                          </div>
-                          {isAdded ? (
-                            <span className="shrink-0 text-xs text-primary">Added</span>
-                          ) : isAvailable ? (
-                            <Button
-                              type="button"
-                              size="sm"
-                              className="shrink-0"
-                              onClick={() => {
-                                setSelectedLifetimeCandidate(candidate);
-                                setShowLifetimeAnchorModal(true);
-                              }}
-                            >
-                              Add
-                            </Button>
-                          ) : (
-                            <span className="shrink-0 text-xs text-muted-foreground">Locked</span>
-                          )}
-                        </div>
-                      </div>
-                    );
-                  })}
-              </div>
-              <div className="mt-4 flex flex-col gap-2 sm:flex-row">
-                <Button
-                  type="button"
-                  className="gap-2"
-                  onClick={() => navigate(`/future-self/discovery?mode=next&fresh=${Date.now()}`)}
-                >
-                  Continue discovery
-                  <ArrowRight className="h-4 w-4" aria-hidden="true" />
-                </Button>
-                <Button type="button" variant="outline" onClick={() => navigate("/life-timeline")}>
-                  Open Lifetime
-                </Button>
-              </div>
-            </section>
-          )}
-
-          {lifetimeAnchorInvite && (
-            <section className="rounded-lg border border-primary/30 bg-primary/5 p-4">
-              <p className="text-xs uppercase tracking-[0.18em] text-muted-foreground">
-                Lifetime anchor
-              </p>
-              <p className="mt-2 text-sm text-muted-foreground">
-                Suggested from your conversation:
-              </p>
-              <div className="mt-3 rounded-lg border border-border/70 bg-background/60 p-3">
-                <p className="font-semibold text-foreground">{lifetimeAnchorInvite.suggestedLabel}</p>
-                <p className="mt-1 flex items-center gap-1.5 text-xs font-medium text-primary">
-                  <CalendarDays className="h-3.5 w-3.5" aria-hidden="true" />
-                  {TIME_PERIOD_LABELS[lifetimeAnchorInvite.suggestedTimePeriod]}
-                </p>
-                <p className="mt-1 text-sm text-muted-foreground">{lifetimeAnchorInvite.suggestedDescription}</p>
-              </div>
-              <div className="mt-4 flex flex-col gap-2 sm:flex-row">
-                <Button type="button" className="gap-2" onClick={() => setShowLifetimeAnchorModal(true)}>
-                  Add Lifetime anchor
-                  <ArrowRight className="h-4 w-4" aria-hidden="true" />
-                </Button>
-                <Button type="button" variant="outline" onClick={() => navigate(lifetimeAnchorInvite.atlasUrl)}>
-                  Go to Atlas
-                </Button>
-                <Button type="button" variant="ghost" onClick={handleContinueDiscovery}>
-                  Continue talking
-                </Button>
-              </div>
-            </section>
-          )}
-
-          {selectedDots.length > 0 && !councilHandoff && !lifetimeAnchorInvite && !showLifetimeCandidateBridge && !savedDotTitle && (
+          {selectedDots.length > 0 && !savedDotTitle && (
             <section className="rounded-lg border border-primary/30 bg-primary/5 p-4">
               <p className="text-xs uppercase tracking-[0.18em] text-muted-foreground">
                 Validated candidate
@@ -2922,36 +1797,12 @@ const FutureSelfDiscovery = () => {
               </div>
             </section>
           )}
-          {savedDotTitle && !councilHandoff && !lifetimeAnchorInvite && !showLifetimeCandidateBridge && (
+          {savedDotTitle && (
             <Button type="button" variant="ghost" onClick={handleContinueDiscovery}>
               Continue discovery
             </Button>
           )}
         </div>
-
-        <LifetimeEventEditModal
-          open={showLifetimeAnchorModal}
-          onClose={() => {
-            setShowLifetimeAnchorModal(false);
-            setSelectedLifetimeCandidate(null);
-          }}
-          defaultTimePeriod={selectedLifetimeCandidate?.suggested_time_period || lifetimeAnchorInvite?.suggestedTimePeriod || "current"}
-          defaultEventType={selectedLifetimeCandidate?.suggested_event_type || lifetimeAnchorInvite?.suggestedEventType}
-          defaultEventLabel={selectedLifetimeCandidate?.event_label || lifetimeAnchorInvite?.suggestedLabel}
-          defaultEventDescription={selectedLifetimeCandidate?.event_description || lifetimeAnchorInvite?.suggestedDescription || undefined}
-          momentKindOverride="event"
-          onSave={async (data) => {
-            if (selectedLifetimeCandidate) {
-              await handleLifetimeCandidateSave(data);
-              return;
-            }
-            await handleLifetimeAnchorSave({
-              ...data,
-              event_label: data.event_label || lifetimeAnchorInvite?.suggestedLabel || "A moment that shaped me",
-              event_description: data.event_description || lifetimeAnchorInvite?.suggestedDescription,
-            });
-          }}
-        />
 
         <form onSubmit={handleSubmit} className="sticky bottom-0 space-y-3 border-t border-border/70 bg-background py-4">
           {voiceModeEnabled && (

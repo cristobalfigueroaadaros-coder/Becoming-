@@ -1,6 +1,7 @@
 import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { ATLAS_QUESTS, ONBOARDING_QUESTS, ONBOARDING_QUEST_SEQUENCE, CONNECTION_MOMENT_AFTER, AtlasQuestDefinition } from "@/data/atlasQuests";
+import { getFutureSelfOnboardingProgress } from "@/lib/journeyFlow";
 import { useAtlas } from "./useAtlas";
 import type { AggregatedSignal } from "@/lib/atlasSignalEngine";
 
@@ -114,17 +115,7 @@ export function useAtlasQuests() {
 
   const completedKeys = new Set((completedQuery.data || []).map((q: any) => q.quest_key));
   const completedCount = completedKeys.size;
-  // Future Self conversations are the four discovery steps shown in the
-  // Council path. Count completed rows, not unique quest keys, so repeated
-  // themes still advance the visible conversation progress. The source check
-  // also keeps older saved rows visible if their key used an earlier format.
-  const futureSelfCompletedCount = (completedQuery.data || []).filter((quest: any) => {
-    const source = quest?.interactions?.source;
-    return (
-      (typeof quest.quest_key === "string" && quest.quest_key.startsWith("future_self_")) ||
-      source === "future_self_discovery"
-    );
-  }).length;
+  const futureSelfProgress = getFutureSelfOnboardingProgress(completedQuery.data || []);
 
   const isOnboardingCompleted = (profileQuery.data as any)?.onboarding_quest_completed === true;
   const entryState: string = (profileQuery.data as any)?.entry_state || "DISCOVER";
@@ -273,14 +264,15 @@ export function useAtlasQuests() {
     completedQuests: completedQuery.data || [],
     completedKeys,
     completedCount,
-    futureSelfCompletedCount,
+    futureSelfCompletedCount: futureSelfProgress.completedSteps,
+    futureSelfProgress,
     preCouncilExploredCount,
     preCouncilSlugsForPhase,
     preCouncilComplete,
     completedOnboardingCount,
     aggregatedSignals,
     detectedPatternKeys,
-    isLoading: completedQuery.isLoading || profileQuery.isLoading,
+    isLoading: userQuery.isLoading || completedQuery.isLoading || profileQuery.isLoading,
     isFetching: completedQuery.isFetching || profileQuery.isFetching,
     isOnboarding,
     isOnboardingCompleted,

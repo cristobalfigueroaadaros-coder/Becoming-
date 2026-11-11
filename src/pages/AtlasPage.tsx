@@ -8,7 +8,6 @@ import { useAtlas, ClusterWithState, DOMAIN_COLORS, getCurrentPhase, getNextPhas
 import { useAtlasQuests } from "@/hooks/useAtlasQuests";
 import { AtlasClusterNode, AtlasClusterDetail } from "@/components/atlas";
 import { AtlasOnboardingOverlay } from "@/components/atlas/AtlasOnboardingOverlay";
-import { AtlasUnlockProgress } from "@/components/atlas/AtlasUnlockProgress";
 import { ThinkOutOfBoxCard } from "@/components/atlas/ThinkOutOfBoxCard";
 import { YourPatternsCard } from "@/components/atlas/YourPatternsCard";
 import { useOpportunityDetection } from "@/hooks/useOpportunityDetection";
@@ -168,9 +167,8 @@ const AtlasPage = () => {
       return (data || []) as AtlasConnectionRecord[];
     },
   });
-  const { completedCount, futureSelfCompletedCount, preCouncilExploredCount, isLoading: questsLoading } = useAtlasQuests();
+  const { completedCount, futureSelfProgress, isLoading: questsLoading } = useAtlasQuests();
   const { events: lifetimeEvents, candidates: lifetimeCandidates } = useLifetimeEvents();
-  const [lifetimeEventCount, setLifetimeEventCount] = useState(0);
   const [selectedCluster, setSelectedCluster] = useState<ClusterWithState | null>(null);
   const [isMobile, setIsMobile] = useState(false);
   useEffect(() => {
@@ -198,7 +196,7 @@ const AtlasPage = () => {
   const [foundersAccepted, setFoundersAccepted] = useState(false);
   const [showFirstDiscoveryGuide, setShowFirstDiscoveryGuide] = useState(false);
   const [showFounderTabGuide, setShowFounderTabGuide] = useState(false);
-  const foundersMapUnlocked = !questsLoading && futureSelfCompletedCount >= 2;
+  const foundersMapUnlocked = !questsLoading && (futureSelfProgress.crisMapUnlocked || intakeCompleted === true);
 
   const markAtlasIntroSeen = async () => {
     const { data: { user } } = await supabase.auth.getUser();
@@ -351,13 +349,6 @@ const AtlasPage = () => {
       setIntakeCompleted(!!p?.console_intake_completed);
       setAtlasIntroCompleted(!!p?.atlas_onboarding_completed || completedCount > 0);
       if (p?.entry_state) setEntryState(p.entry_state);
-      const { count } = await supabase
-        .from("lifetime_events")
-        .select("*", { count: "exact", head: true })
-        .eq("user_id", user.id);
-      if (cancelled) return;
-      const fetchedLifetimeEventCount = count || 0;
-      setLifetimeEventCount(fetchedLifetimeEventCount);
       let forceWalkthrough = false;
       try {
         forceWalkthrough = sessionStorage.getItem("force_atlas_onboarding_walkthrough") === "true";
@@ -497,11 +488,8 @@ const AtlasPage = () => {
   const currentPhase = getCurrentPhase(totalDots);
   const nextThreshold = getNextPhaseThreshold(totalDots);
   const unlockedCount = clusters.filter(c => c.computedState !== "locked").length;
-  const councilProgressCount = entryState === "DISCOVER"
-    ? futureSelfCompletedCount
-    : preCouncilExploredCount;
   const availableLifeMoment = lifetimeCandidates.find((candidate) => candidate.status === "available");
-  const lifetimePreviewUnlocked = lifetimeEventCount > 0 || lifetimeEvents.length > 0 || (futureSelfCompletedCount >= 3 && !!availableLifeMoment);
+  const lifetimePreviewUnlocked = futureSelfProgress.lifetimeUnlocked || intakeCompleted === true || lifetimeEvents.length > 0;
   const recentLifetimeEvents = lifetimeEvents.slice(-3).reverse();
   let hasSeenCrisMapGuide = false;
   try {
@@ -512,7 +500,7 @@ const AtlasPage = () => {
     hasSeenCrisMapGuide = false;
   }
   const shouldInviteCrisMap =
-    foundersMapUnlocked && !!currentUserId && !recentDotTitle && !highlightedSlug && !isFutureSelfReturn && !hasSeenCrisMapGuide && searchParams.get("viewSaved") !== "1";
+    foundersMapUnlocked && futureSelfProgress.completedSteps === 2 && intakeCompleted === false && !!currentUserId && !hasSeenCrisMapGuide && searchParams.get("viewSaved") !== "1";
   const guideMoment = shouldInviteCrisMap
     ? "cris_map"
     : recentDotTitle || totalDots === 1
@@ -534,11 +522,19 @@ const AtlasPage = () => {
   };
 
   const startDiscoveryQuest = () => {
-    if (totalDots === 0) {
+    if (futureSelfProgress.completedSteps === 0) {
       startFirstDiscoveryQuest();
       return;
     }
     startNextDiscoveryQuest();
+  };
+
+  const shouldIntroduceLifetime = futureSelfProgress.completedSteps === 3 && intakeCompleted === false
+    && !!currentUserId && readAccountStorage(currentUserId, "atlas_lifetime_intro_seen") !== "1";
+  const shouldOpenConsole = futureSelfProgress.consoleUnlocked && intakeCompleted === false;
+  const openLifetime = () => {
+    if (currentUserId) writeAccountStorage(currentUserId, "atlas_lifetime_intro_seen", "1");
+    navigate("/life-timeline?from=onboarding");
   };
 
   const openCrisMapGuide = () => {
@@ -554,7 +550,7 @@ const AtlasPage = () => {
     setActiveTab("founders");
   };
 
-  const shouldShowProgressiveGuide = !showOnboarding && (shouldInviteCrisMap || (!recentDotTitle && (showFirstDiscoveryGuide || guideMoment !== "atlas")));
+  const shouldShowProgressiveGuide = !showOnboarding && (shouldInviteCrisMap || (showFirstDiscoveryGuide && futureSelfProgress.completedSteps === 0));
 
   return (
     <div className="min-h-screen bg-cosmic relative overflow-x-hidden overflow-y-auto">
@@ -642,21 +638,6 @@ const AtlasPage = () => {
         />
       ) : (
         <>
-      {/* Phase-based Council unlock progress */}
-      {intakeCompleted === false && (
-        <div className="relative z-20">
-          <AtlasUnlockProgress
-            phase={entryState as any}
-            completedCount={councilProgressCount}
-            hasLifetimeAnchor={lifetimeEventCount > 0}
-            councilAlreadyStarted={!!intakeCompleted}
-            onGoToCouncil={() => navigate("/council?view=intake")}
-              onSaveLifetime={() => navigate("/life-timeline?unlock=mentor&new=1")}
-            onKeepExploring={() => navigate("/atlas/quest")}
-          />
-        </div>
-      )}
-
       {/* Think Out of the Box Opportunity */}
       {opportunity && !opportunityDismissed && (
         <div className="relative z-20">
@@ -709,12 +690,9 @@ const AtlasPage = () => {
         <div className="relative z-[100]">
           <ProgressiveGuideCard
             moment={showFirstDiscoveryGuide ? "atlas" : guideMoment}
-            forceShow={showFirstDiscoveryGuide}
-            actionLabel={showFirstDiscoveryGuide ? "Talk to Future Self" : guideMoment === "cris_map" ? "Open Cris's Map" : "I understand"}
+            forceShow={showFirstDiscoveryGuide || shouldInviteCrisMap}
+            actionLabel={showFirstDiscoveryGuide ? "Start Quest" : guideMoment === "cris_map" ? "Open Cris's Map" : "I understand"}
             onDismiss={showFirstDiscoveryGuide ? startFirstDiscoveryQuest : guideMoment === "cris_map" ? openCrisMapGuide : undefined}
-            secondaryAction={guideMoment === "cris_map" && !showFirstDiscoveryGuide
-              ? { label: "Start Quest", onClick: startDiscoveryQuest }
-              : undefined}
           />
         </div>
       )}
@@ -784,7 +762,7 @@ const AtlasPage = () => {
         })}
       </div>
 
-      {lifetimePreviewUnlocked && (
+      {lifetimePreviewUnlocked && !shouldIntroduceLifetime && (
       <div className="relative z-20 px-5 pb-28">
         <div
           className="rounded-2xl border border-primary/25 bg-card/70 p-4 backdrop-blur-sm"
@@ -799,7 +777,7 @@ const AtlasPage = () => {
               <div className="min-w-0">
                 <p className="text-sm font-semibold text-foreground">Life Timeline</p>
                 <p className="mt-1 text-xs leading-relaxed text-muted-foreground">
-                  {lifetimeEvents.length > 0 ? "Your saved moments connect your story with your Atlas." : `You shared a moment: ${availableLifeMoment?.event_label}. Would you like to place it on your timeline?`}
+                  {lifetimeEvents.length > 0 ? "Your saved moments connect your story with your Atlas." : availableLifeMoment ? `You shared a moment: ${availableLifeMoment.event_label}. Would you like to place it on your timeline?` : "Add a moment that helped shape you."}
                 </p>
               </div>
             </div>
@@ -842,19 +820,19 @@ const AtlasPage = () => {
       )}
 
       {/* Start Quest floating button */}
-      {!showFounderTabGuide && (
+      {!showFounderTabGuide && !shouldShowProgressiveGuide && (
       <div className="fixed bottom-20 left-1/2 -translate-x-1/2 z-20">
         <motion.div
           animate={{ scale: [1, 1.04, 1] }}
           transition={{ duration: 2.5, repeat: Infinity, ease: "easeInOut" }}
         >
           <Button
-            onClick={startDiscoveryQuest}
+            onClick={shouldIntroduceLifetime ? openLifetime : shouldOpenConsole ? () => navigate("/council?view=intake") : startDiscoveryQuest}
             className="rounded-full gap-2 shadow-[0_0_30px_hsl(265_90%_62%/0.55)]"
             size="lg"
           >
             <Sparkles className="w-4 h-4" />
-            {totalDots === 0 ? "Talk to Future Self" : "Start Quest"}
+            {shouldIntroduceLifetime ? "Open Life Timeline" : shouldOpenConsole ? "Open Console" : futureSelfProgress.completedSteps === 0 ? "Talk to Future Self" : "Start Quest"}
           </Button>
         </motion.div>
       </div>

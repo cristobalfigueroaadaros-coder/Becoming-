@@ -111,3 +111,6 @@ project_id = "tfmcpikybvhoartzzbpv"
     verify_jwt = true
   [functions.journey-compass]
     verify_jwt = true
+
+  [functions.future-self-discovery]
+    verify_jwt = true

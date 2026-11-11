@@ -4,6 +4,34 @@
 
 export type EntryPhase = "DISCOVER" | "GROW" | "BUILD";
 
+export const FUTURE_SELF_ONBOARDING_STEPS = ["origin", "gifts", "world", "experiments"] as const;
+
+export function getFutureSelfOnboardingProgress(quests: readonly {
+  quest_key?: string | null;
+  status?: string | null;
+  interactions?: unknown;
+}[]) {
+  const completedThemes = new Set<string>();
+  for (const quest of quests) {
+    if (quest.status !== "completed") continue;
+    const metadata = quest.interactions as { source?: string; questTheme?: string } | null | undefined;
+    if (!quest.quest_key?.startsWith("future_self_") && metadata?.source !== "future_self_discovery") continue;
+    const theme = metadata?.questTheme ?? quest.quest_key?.split("_").pop();
+    if (theme) completedThemes.add(theme);
+  }
+  const firstIncomplete = FUTURE_SELF_ONBOARDING_STEPS.findIndex((step) => !completedThemes.has(step));
+  const completedSteps = firstIncomplete < 0 ? FUTURE_SELF_ONBOARDING_STEPS.length : firstIncomplete;
+  const nextTheme: (typeof FUTURE_SELF_ONBOARDING_STEPS)[number] | "current" =
+    firstIncomplete < 0 ? "current" : FUTURE_SELF_ONBOARDING_STEPS[firstIncomplete];
+  return {
+    completedSteps,
+    nextTheme,
+    crisMapUnlocked: completedSteps >= 2,
+    lifetimeUnlocked: completedSteps >= 3,
+    consoleUnlocked: completedSteps === FUTURE_SELF_ONBOARDING_STEPS.length,
+  };
+}
+
 /**
  * Number of completed Atlas quests required to unlock the Council / Chats
  * intake for each entry phase.
@@ -17,6 +45,14 @@ export const COUNCIL_THRESHOLDS: Record<EntryPhase, number> = {
 export function councilThresholdFor(state: string | null | undefined): number {
   const key = (state || "DISCOVER") as EntryPhase;
   return COUNCIL_THRESHOLDS[key] ?? COUNCIL_THRESHOLDS.DISCOVER;
+}
+
+export function hasCouncilUnlock(
+  state: string | null | undefined,
+  completedQuestCount: number,
+  lifetimeAnchorCount: number,
+): boolean {
+  return completedQuestCount >= councilThresholdFor(state) && lifetimeAnchorCount > 0;
 }
 
 /**

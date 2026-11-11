@@ -9,6 +9,8 @@ import { Button } from "@/components/ui/button";
 import { toast } from "sonner";
 import { ChatRequestCard } from "@/components/creators/ChatRequestCard";
 import { CreatorChatView } from "@/components/creators/CreatorChatView";
+import { FUTURE_SELF_ONBOARDING_STEPS, getFutureSelfOnboardingProgress } from "@/lib/journeyFlow";
+import { ProgressiveGuideCard } from "@/components/ProgressiveGuideCard";
 
 // Lazy-load the heavy conversation engines so opening Council does not
 // pay the cost of all four trees up-front.
@@ -17,11 +19,70 @@ const ChatPage = lazy(() => import("./Chat"));
 const ConsoleThread = lazy(() => import("./ConsoleThread"));
 const BuilderTeamThread = lazy(() => import("./BuilderTeamThread"));
 
-const ConversationFallback = () => (
-  <div className="flex-1 flex items-center justify-center min-h-[200px]">
-    <div className="h-6 w-6 rounded-full border-2 border-primary/30 border-t-primary animate-spin" />
+const CouncilLoadingStep = ({ active, label }: { active?: boolean; label: string }) => (
+  <div className={cn(
+    "flex items-center gap-2 text-xs transition-colors",
+    active ? "text-primary" : "text-muted-foreground/70"
+  )}>
+    <span className={cn(
+      "h-1.5 w-1.5 rounded-full transition-colors",
+      active ? "bg-primary shadow-[0_0_10px_hsl(265_90%_62%/0.8)]" : "bg-muted-foreground/30"
+    )} />
+    {label}
   </div>
 );
+
+const CouncilLoadingState = () => (
+  <div className="min-h-screen flex items-center justify-center bg-background px-6">
+    <div className="w-full max-w-sm rounded-2xl border border-primary/15 bg-card/80 p-6 text-center shadow-[0_0_30px_hsl(265_90%_62%/0.12)]">
+      <div className="mx-auto mb-5 flex h-14 w-14 items-center justify-center rounded-full border border-primary/25 bg-primary/10">
+        <Sparkles className="h-6 w-6 text-primary animate-pulse" />
+      </div>
+      <p className="text-sm font-semibold text-foreground">Preparing your Council</p>
+      <p className="mt-2 text-xs leading-relaxed text-muted-foreground">
+        Bringing in your Atlas, life moments, and mentor context.
+      </p>
+      <div className="mx-auto mt-5 grid w-fit gap-2 text-left">
+        <CouncilLoadingStep active label="Checking your unlock path" />
+        <CouncilLoadingStep label="Gathering mentor context" />
+        <CouncilLoadingStep label="Opening the conversation" />
+      </div>
+    </div>
+  </div>
+);
+
+const ConversationFallback = () => (
+  <div className="flex-1 flex items-center justify-center min-h-[260px] px-6">
+    <div className="w-full max-w-xs rounded-xl border border-border/70 bg-card/70 p-5 text-center">
+      <div className="mx-auto mb-4 h-7 w-7 rounded-full border-2 border-primary/30 border-t-primary animate-spin" />
+      <p className="text-sm font-medium text-foreground">Opening the conversation</p>
+      <p className="mt-1 text-xs text-muted-foreground">
+        Future Self is loading your latest context.
+      </p>
+    </div>
+  </div>
+);
+
+const COUNCIL_PREPARATION_SEEN_PREFIX = "council_preparation_seen";
+
+const councilPreparationKey = (userId: string) =>
+  `${COUNCIL_PREPARATION_SEEN_PREFIX}:${userId}`;
+
+const hasSeenCouncilPreparation = (userId: string) => {
+  try {
+    return localStorage.getItem(councilPreparationKey(userId)) === "1";
+  } catch {
+    return false;
+  }
+};
+
+const rememberCouncilPreparation = (userId: string) => {
+  try {
+    localStorage.setItem(councilPreparationKey(userId), "1");
+  } catch {
+    // Storage can be unavailable in private browsing; the Council still works.
+  }
+};
 // Type for location state passed from various flows
 interface LocationState {
   prefilledQuestion?: string;
@@ -48,6 +109,12 @@ interface LocationState {
   problemClarificationMode?: boolean;
   projectId?: string;
   projectName?: string;
+}
+
+interface CouncilGateState {
+  allowed: boolean;
+  completedQuestCount: number;
+  threshold: number;
 }
 
 // All mentors in the system (including new PDR expansion mentors)
@@ -93,6 +160,16 @@ const mentorConfig: Record<string, { name: string; color: string; hex: string; i
   stoic_mentor:           { name: "Stoic Mentor",           color: "bg-[hsl(220_20%_48%)]", hex: "hsl(220,20%,48%)",  icon: "⚖️", archetype: "The Steadfast — holds the centre" },
 };
 
+const mentorTypeByName = Object.fromEntries(
+  Object.entries(mentorConfig).map(([type, config]) => [config.name.toLowerCase(), type])
+);
+
+const normalizeMentorType = (mentor?: string | null) => {
+  if (!mentor) return null;
+  if (mentorConfig[mentor]) return mentor;
+  return mentorTypeByName[mentor.toLowerCase().trim()] || mentor;
+};
+
 const Council = () => {
   const [searchParams, setSearchParams] = useSearchParams();
   const navigate = useNavigate();
@@ -102,15 +179,17 @@ const Council = () => {
   const [insightFollowupMentors, setInsightFollowupMentors] = useState<Set<string>>(new Set());
   const [councilNotifications, setCouncilNotifications] = useState(0);
   const [loading, setLoading] = useState(true);
+  const [showCouncilPreparation, setShowCouncilPreparation] = useState(false);
   const [showMobileList, setShowMobileList] = useState(true);
   const [intakePending, setIntakePending] = useState(false);
   const [threadProjectName, setThreadProjectName] = useState<string | null>(null);
   const [creatorChats, setCreatorChats] = useState<any[]>([]);
   const [chatRequests, setChatRequests] = useState<any[]>([]);
   const [currentUserId, setCurrentUserId] = useState<string | null>(null);
+  const [councilGate, setCouncilGate] = useState<CouncilGateState | null>(null);
   
   // Get current view from URL params
-  const currentView = searchParams.get("view") || "console";
+  const currentView = searchParams.get("view") || "intake";
   const isConsole = currentView === "console";
   const isIntake = currentView === "intake";
   const isBuilderTeam = currentView === "builder-team";
@@ -120,6 +199,7 @@ const Council = () => {
 
   useEffect(() => {
     loadData();
+    window.addEventListener("council-badge-refresh", loadData);
 
     // Realtime: update badge counts instantly when a new outreach message is inserted
     // This fires immediately after "Go Deeper Later" — no page refresh needed
@@ -146,9 +226,22 @@ const Council = () => {
         { event: "UPDATE", schema: "public", table: "mentor_daily_outreach" },
         () => { loadData(); } // Re-sync when messages are marked as read
       )
+      .on(
+        "postgres_changes",
+        { event: "*", schema: "public", table: "mentor_private_messages" },
+        () => { loadData(); }
+      )
+      .on(
+        "postgres_changes",
+        { event: "*", schema: "public", table: "council_notifications" },
+        () => { loadData(); }
+      )
       .subscribe();
 
-    return () => { supabase.removeChannel(channel); };
+    return () => {
+      window.removeEventListener("council-badge-refresh", loadData);
+      supabase.removeChannel(channel);
+    };
   }, []);
 
   // When view changes, hide mobile list if a conversation is selected
@@ -162,20 +255,49 @@ const Council = () => {
   }, [currentView]);
 
   const loadData = async () => {
+    let preparationWasNeeded = false;
+    let preparationCompleted = false;
+    let preparationUserId: string | null = null;
     try {
       const { data: { user } } = await supabase.auth.getUser();
       if (!user) return;
 
+      preparationUserId = user.id;
+      preparationWasNeeded = !hasSeenCouncilPreparation(user.id);
+      setShowCouncilPreparation(preparationWasNeeded);
+
       // Check intake status
       const { data: profile } = await supabase
         .from("profiles")
-        .select("console_intake_completed, onboarding_quest_completed, first_project_id")
+        .select("console_intake_completed, onboarding_quest_completed, first_project_id" as any)
         .eq("id", user.id)
         .single();
 
       const questDone = !!(profile as any)?.onboarding_quest_completed;
       const intakeDone = !!(profile as any)?.console_intake_completed;
-      setIntakePending(questDone && !intakeDone);
+
+      const { data: quests, error: questError } = await supabase
+        .from("atlas_quests")
+        .select("quest_key, status, interactions")
+        .eq("user_id", user.id)
+        .eq("status", "completed");
+      if (questError) throw questError;
+
+      const progress = getFutureSelfOnboardingProgress(quests || []);
+      const gateState = {
+        allowed: intakeDone || !!(profile as any)?.first_project_id || progress.consoleUnlocked,
+        completedQuestCount: progress.completedSteps,
+        threshold: FUTURE_SELF_ONBOARDING_STEPS.length,
+      };
+      setCouncilGate(gateState);
+      if (!gateState.allowed) {
+        setLoading(false);
+        return;
+      }
+
+      preparationCompleted = true;
+
+      setIntakePending((questDone || progress.consoleUnlocked) && !intakeDone);
 
       // Load project name for thread label
       const firstProjectId = (profile as any)?.first_project_id;
@@ -190,8 +312,10 @@ const Council = () => {
         }
       }
 
-      // Auto-select intake if pending and no view specified
-      if (questDone && !intakeDone && !searchParams.get("view")) {
+      // Auto-select the new intake thread until the first Council conversation
+      // is complete. This prevents the legacy CouncilMeeting intro modal from
+      // becoming the default Chat entry after Atlas/Lifetime unlock.
+      if (!intakeDone && !searchParams.get("view")) {
         setSearchParams({ view: "intake" });
         setShowMobileList(false);
       }
@@ -232,18 +356,30 @@ const Council = () => {
         }
       });
 
-      setMentorNotifications(counts);
-      setInsightFollowupMentors(followupMentors);
-
-      // Load council notifications
-      const { count } = await supabase
+      // Load council notifications. Some are tied to a specific mentor
+      // through context_data.source_mentor; surface those on the mentor row
+      // so the Chats badge does not become an untraceable red number.
+      const { data: unreadCouncilNotifications } = await supabase
         .from("council_notifications")
-        .select("*", { count: "exact", head: true })
+        .select("id, context_data")
         .eq("user_id", user.id)
         .eq("dismissed", false)
         .is("read_at", null);
 
-      setCouncilNotifications(count || 0);
+      let unassignedCouncilCount = 0;
+      unreadCouncilNotifications?.forEach((n: any) => {
+        const sourceMentor = normalizeMentorType(n.context_data?.source_mentor);
+        if (sourceMentor) {
+          counts[sourceMentor] = (counts[sourceMentor] || 0) + 1;
+          followupMentors.add(sourceMentor);
+        } else {
+          unassignedCouncilCount += 1;
+        }
+      });
+
+      setMentorNotifications(counts);
+      setInsightFollowupMentors(followupMentors);
+      setCouncilNotifications(unassignedCouncilCount);
 
       setCurrentUserId(user.id);
 
@@ -288,6 +424,10 @@ const Council = () => {
     } catch (error) {
       console.error("Error loading council data:", error);
     } finally {
+      if (preparationWasNeeded && preparationCompleted && preparationUserId) {
+        rememberCouncilPreparation(preparationUserId);
+      }
+      setShowCouncilPreparation(false);
       setLoading(false);
     }
   };
@@ -315,6 +455,24 @@ const Council = () => {
         .neq("message_type", "insight_followup")
         .neq("message_type", "proactive_insight")
         .neq("message_type", "council_handover");
+
+      const { data: councilRows } = await supabase
+        .from("council_notifications")
+        .select("id, context_data")
+        .eq("user_id", user.id)
+        .eq("dismissed", false)
+        .is("read_at", null);
+
+      const mentorCouncilIds = (councilRows || [])
+        .filter((row: any) => normalizeMentorType(row.context_data?.source_mentor) === mentorType)
+        .map((row: any) => row.id);
+
+      if (mentorCouncilIds.length > 0) {
+        await supabase
+          .from("council_notifications")
+          .update({ read_at: new Date().toISOString() })
+          .in("id", mentorCouncilIds);
+      }
 
       // Update local state immediately
       setMentorNotifications(prev => ({
@@ -345,7 +503,7 @@ const Council = () => {
   };
 
   const handleSelectConsole = () => {
-    setSearchParams({ view: "console" });
+    setSearchParams({ view: "intake" });
     setShowMobileList(false);
     markCouncilNotificationsAsRead();
   };
@@ -524,11 +682,13 @@ const Council = () => {
             )}
           </button>
 
-          {/* Builder Team Thread */}
+          {/* Experience Team Thread */}
           <button
             onClick={() => {
               if (chatsLocked) { toast("Complete your first conversation to unlock this.", { duration: 3000 }); return; }
-              setSearchParams({ view: "builder-team" });
+              const nextParams = new URLSearchParams(searchParams);
+              nextParams.set("view", "builder-team");
+              setSearchParams(nextParams);
               setShowMobileList(false);
             }}
             className={cn(
@@ -549,7 +709,7 @@ const Council = () => {
               {chatsLocked && <Lock className="w-3 h-3 absolute -bottom-0.5 -right-0.5 text-muted-foreground/60" />}
             </div>
             <div className="flex-1 min-w-0">
-              <p className="font-medium truncate">{threadProjectName ? `${threadProjectName} — Builder Team` : "Builder Team"}</p>
+              <p className="font-medium truncate">{threadProjectName ? `${threadProjectName} — Experience Team` : "Experience Team"}</p>
               <p className="text-xs text-muted-foreground truncate">Design, UX, Gamification & more</p>
             </div>
           </button>
@@ -753,15 +913,46 @@ const Council = () => {
         <ArrowLeft className="w-5 h-5" />
       </Button>
       <span className="font-medium truncate">
-        {isIntake ? (threadProjectName || "New Conversation") : isBuilderTeam ? (threadProjectName ? `${threadProjectName} — Builder Team` : "Builder Team") : isConsole ? "Chats" : isCreatorChat ? (creatorChats.find((c: any) => c.id === creatorChatId)?.otherName || "Creator Chat") : mentorConfig[selectedMentor || ""]?.name || "Chat"}
+        {isIntake ? (threadProjectName || "New Conversation") : isBuilderTeam ? (threadProjectName ? `${threadProjectName} — Experience Team` : "Experience Team") : isConsole ? "Chats" : isCreatorChat ? (creatorChats.find((c: any) => c.id === creatorChatId)?.otherName || "Creator Chat") : mentorConfig[selectedMentor || ""]?.name || "Chat"}
       </span>
     </div>
   );
 
+  if (loading && showCouncilPreparation) {
+    return <CouncilLoadingState />;
+  }
+
   if (loading) {
+    return <ConversationFallback />;
+  }
+
+  if (councilGate && !councilGate.allowed) {
+    const remaining = councilGate.threshold - councilGate.completedQuestCount;
+
     return (
-      <div className="min-h-screen flex items-center justify-center">
-        <p className="text-muted-foreground">Loading...</p>
+      <div className="min-h-[calc(100vh-5rem)] bg-background flex items-center justify-center p-6">
+        <div className="w-full max-w-sm rounded-2xl border border-primary/20 bg-card p-6 text-center shadow-[0_0_28px_hsl(265_90%_62%/0.12)]">
+          <div className="mx-auto mb-4 flex h-12 w-12 items-center justify-center rounded-full bg-primary/10">
+            <Lock className="h-5 w-5 text-primary" />
+          </div>
+          <h2 className="text-lg font-semibold text-foreground">Council is almost ready</h2>
+          <p className="mt-2 text-sm leading-relaxed text-muted-foreground">
+            Complete {remaining} more Future Self {remaining === 1 ? "discovery" : "discoveries"} to meet your mentors.
+          </p>
+          <Button
+            className="mt-5 w-full"
+            onClick={() => navigate("/atlas")}
+          >
+            Continue on Atlas
+          </Button>
+          <Button
+            variant="ghost"
+            className="mt-2 w-full"
+            onClick={() => navigate("/atlas")}
+          >
+            Back to Atlas
+          </Button>
+        </div>
       </div>
     );
   }
@@ -776,7 +967,11 @@ const Council = () => {
         </div>
         
         {/* Right Content Area */}
-        <div className="flex-1 overflow-hidden h-full">
+        <div className="flex-1 overflow-hidden h-full flex flex-col">
+          <div className="shrink-0 px-4 pt-4">
+            <ProgressiveGuideCard moment={isBuilderTeam ? "creation" : "council"} />
+          </div>
+          <div className="min-h-0 flex-1 overflow-hidden">
           <Suspense fallback={<ConversationFallback />}>
           {isIntake ? (
             <ConsoleThread embedded onProjectNameChange={setThreadProjectName} />
@@ -798,6 +993,7 @@ const Council = () => {
             </div>
           )}
           </Suspense>
+          </div>
         </div>
       </div>
 
@@ -808,6 +1004,9 @@ const Council = () => {
         ) : (
           <div className="h-full flex flex-col">
             <MobileBackHeader />
+            <div className="shrink-0 px-3 pt-3">
+              <ProgressiveGuideCard moment={isBuilderTeam ? "creation" : "council"} />
+            </div>
             <div className="flex-1 overflow-hidden">
               <Suspense fallback={<ConversationFallback />}>
               {isIntake ? (
