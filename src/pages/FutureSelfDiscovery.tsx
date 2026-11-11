@@ -761,6 +761,8 @@ const FutureSelfDiscovery = () => {
   const [voiceModeEnabled, setVoiceModeEnabled] = useState(true);
   const [voiceRepliesEnabled, setVoiceRepliesEnabled] = useState(true);
   const [isSpeaking, setIsSpeaking] = useState(false);
+  const [speechNeedsClick, setSpeechNeedsClick] = useState(false);
+  const [speechFailed, setSpeechFailed] = useState(false);
   const [isRecordingVoice, setIsRecordingVoice] = useState(false);
   const [isProcessingVoice, setIsProcessingVoice] = useState(false);
   const [preferredSpeechVoice, setPreferredSpeechVoice] = useState<SpeechSynthesisVoice | null>(null);
@@ -823,6 +825,8 @@ const FutureSelfDiscovery = () => {
       setIsThinking(false);
       setIsRecordingVoice(false);
       setIsProcessingVoice(false);
+      setSpeechNeedsClick(false);
+      setSpeechFailed(false);
       setSavedDotTitle(null);
       setActiveQuestTheme(nextTheme);
       lastSpokenMessageIdRef.current = "";
@@ -832,9 +836,15 @@ const FutureSelfDiscovery = () => {
     resetDiscoverySession();
   }, [sessionKey, isSessionPreparing, isAtlasLoading, isProgressLoading, isProgressFetching, nextTheme, completedQuests]);
 
-  const speakFutureSelfMessage = (message?: ConversationMessage) => {
-    if (!message || typeof window === "undefined" || !("speechSynthesis" in window)) return;
+  const speakFutureSelfMessage = (message?: ConversationMessage, useDefaultVoice = false) => {
+    if (!message) return;
+    if (!("speechSynthesis" in window) || typeof SpeechSynthesisUtterance === "undefined") {
+      setSpeechFailed(true);
+      return;
+    }
 
+    setSpeechNeedsClick(false);
+    setSpeechFailed(false);
     speechRunIdRef.current += 1;
     const runId = speechRunIdRef.current;
     if (speechPauseTimerRef.current) {
@@ -855,8 +865,8 @@ const FutureSelfDiscovery = () => {
       }
 
       const utterance = new SpeechSynthesisUtterance(chunk);
-      if (preferredSpeechVoice) utterance.voice = preferredSpeechVoice;
-      utterance.lang = preferredSpeechVoice?.lang || "en-US";
+      if (preferredSpeechVoice && !useDefaultVoice) utterance.voice = preferredSpeechVoice;
+      utterance.lang = utterance.voice?.lang || "en-US";
       utterance.rate = index === 0 ? 0.86 : 0.88;
       utterance.pitch = 1.04;
       utterance.volume = 0.92;
@@ -870,8 +880,11 @@ const FutureSelfDiscovery = () => {
           speechPauseFor(chunk),
         );
       };
-      utterance.onerror = () => {
-        if (runId === speechRunIdRef.current) setIsSpeaking(false);
+      utterance.onerror = ({ error }) => {
+        if (runId !== speechRunIdRef.current) return;
+        setIsSpeaking(false);
+        if (error === "not-allowed") setSpeechNeedsClick(true);
+        else if (error !== "canceled" && error !== "interrupted") setSpeechFailed(true);
       };
       window.speechSynthesis.speak(utterance);
     };
@@ -894,6 +907,10 @@ const FutureSelfDiscovery = () => {
   useEffect(() => {
     if (!voiceRepliesEnabled || !visibleLatestFutureSelfMessage) return;
     if (visibleLatestFutureSelfMessage.id === lastSpokenMessageIdRef.current) return;
+    if (navigator.userActivation && !navigator.userActivation.hasBeenActive) {
+      setSpeechNeedsClick(true);
+      return;
+    }
 
     speakFutureSelfMessage(visibleLatestFutureSelfMessage);
   }, [visibleLatestFutureSelfMessage, voiceRepliesEnabled]);
@@ -1662,6 +1679,7 @@ const FutureSelfDiscovery = () => {
               size="icon"
               onClick={() => {
                 if (voiceRepliesEnabled) stopSpeaking();
+                else speakFutureSelfMessage(visibleLatestFutureSelfMessage, speechFailed);
                 setVoiceRepliesEnabled((enabled) => !enabled);
               }}
               title={voiceRepliesEnabled ? "Turn spoken replies off" : "Turn spoken replies on"}
@@ -1677,7 +1695,7 @@ const FutureSelfDiscovery = () => {
               type="button"
               variant="outline"
               size="icon"
-              onClick={() => speakFutureSelfMessage(visibleLatestFutureSelfMessage)}
+              onClick={() => speakFutureSelfMessage(visibleLatestFutureSelfMessage, speechFailed)}
               disabled={!visibleLatestFutureSelfMessage}
               title="Replay latest Future Self reply"
               aria-label="Replay latest Future Self reply"
@@ -1692,6 +1710,14 @@ const FutureSelfDiscovery = () => {
 
         <div className="flex-1 space-y-4 py-6">
           <FutureSelfConstellation mode={constellationMode} latestMessage={visibleLatestFutureSelfMessage} />
+          {voiceRepliesEnabled && visibleLatestFutureSelfMessage && (speechNeedsClick || speechFailed) && (
+            <div className="flex flex-wrap items-center gap-2 text-sm text-muted-foreground">
+              <Button type="button" variant="outline" size="sm" onClick={() => speakFutureSelfMessage(visibleLatestFutureSelfMessage, speechFailed)}>
+                <Volume2 className="mr-2 h-4 w-4" /> Listen to Future Self
+              </Button>
+              {speechFailed && <span role="status">Voice playback couldn’t start. You can still read the reply below.</span>}
+            </div>
+          )}
 
           {isSessionPreparing ? (
             <article className="flex justify-start">

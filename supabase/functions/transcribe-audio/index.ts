@@ -38,7 +38,7 @@ serve(async (req) => {
     }
     const userId = userData.user.id;
 
-    const { audio } = await req.json();
+    const { audio, mimeType } = await req.json();
     
     if (!audio) {
       throw new Error('No audio data provided');
@@ -51,15 +51,28 @@ serve(async (req) => {
     
     // Prepare form data for OpenAI Whisper API
     const formData = new FormData();
-    const blob = new Blob([binaryAudio], { type: 'audio/webm' });
-    formData.append('file', blob, 'audio.webm');
+    const supportedFormats: Record<string, string> = {
+      "audio/webm": "webm",
+      "audio/ogg": "ogg",
+      "audio/mp4": "mp4",
+      "video/mp4": "mp4",
+      "audio/wav": "wav",
+      "audio/mpeg": "mp3",
+      "audio/x-m4a": "m4a",
+    };
+    const suppliedType = typeof mimeType === "string" ? mimeType.split(";")[0].trim().toLowerCase() : "";
+    const audioType = Object.hasOwn(supportedFormats, suppliedType) ? suppliedType : "audio/webm";
+    const blob = new Blob([binaryAudio], { type: audioType });
+    formData.append('file', blob, `audio.${supportedFormats[audioType]}`);
     formData.append('model', 'whisper-1');
 
     // Call OpenAI Whisper API
+    const openAiKey = Deno.env.get('OPENAI_API_KEY') || Deno.env.get('chatgpt');
+    if (!openAiKey) throw new Error('Missing OpenAI transcription key');
     const response = await fetch('https://api.openai.com/v1/audio/transcriptions', {
       method: 'POST',
       headers: {
-        'Authorization': `Bearer ${Deno.env.get('chatgpt')}`,
+        'Authorization': `Bearer ${openAiKey}`,
       },
       body: formData,
     });

@@ -5,6 +5,7 @@ import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { BrowserRouter, Routes, Route, Navigate, useParams, useLocation } from "react-router-dom";
 import { useEffect, useState, lazy, Suspense } from "react";
 import { supabase } from "@/integrations/supabase/client";
+import type { Session } from "@supabase/supabase-js";
 import { ShadowEncounterModal } from "@/components/ShadowEncounterModal";
 import { useShadowEncounters } from "@/hooks/useShadowEncounters";
 import { FutureSelfOmnipresenceModal } from "@/components/FutureSelfOmnipresenceModal";
@@ -171,26 +172,18 @@ const ChatRedirect = () => {
 };
 
 const App = () => {
-  const [session, setSession] = useState<any>(null);
-  const [loading, setLoading] = useState(true);
+  const [session, setSession] = useState<Session | null>(null);
   const [authReady, setAuthReady] = useState(false);
 
   useEffect(() => {
-    // Initial session check
-    const checkSession = async () => {
-      const { data: { session } } = await supabase.auth.getSession();
-      setSession(session);
-      setAuthReady(true);
-      setLoading(false);
-    };
-    
-    checkSession();
-
-    // Listen for auth changes to prevent stale session renders
+    let accountId: string | null = null;
     const {
       data: { subscription },
-    } = supabase.auth.onAuthStateChange((_event, session) => {
-      setSession(session);
+    } = supabase.auth.onAuthStateChange((_event, nextSession) => {
+      const nextAccountId = nextSession?.user.id ?? null;
+      if (accountId !== nextAccountId) queryClient.clear();
+      accountId = nextAccountId;
+      setSession(nextSession);
       setAuthReady(true);
     });
 
@@ -198,7 +191,7 @@ const App = () => {
   }, []);
 
   // Wait for auth state to be confirmed before rendering
-  if (loading || !authReady) {
+  if (!authReady) {
     return (
       <RouteFallback />
     );
@@ -215,7 +208,7 @@ const App = () => {
         <BrowserRouter>
           <Suspense fallback={<RouteFallback />}>
           <Routes>
-            <Route path="/" element={session ? <OnboardingRouter /> : <Index />} />
+            <Route path="/" element={session ? <OnboardingRouter key={session.user.id} userId={session.user.id} /> : <Index />} />
             {/* Redirect old /auth route to new merged page */}
             <Route path="/auth" element={<Navigate to="/" replace />} />
             

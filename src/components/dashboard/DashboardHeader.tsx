@@ -3,6 +3,7 @@ import { useNavigate } from "react-router-dom";
 import { Button } from "@/components/ui/button";
 import { Bell, Settings, User, LogOut } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
+import { toast } from "sonner";
 import { getRandomQuote, Quote } from "@/lib/inspirationalQuotes";
 import bcomingLogo from "@/assets/bcoming-icon.svg";
 import {
@@ -29,8 +30,13 @@ const DashboardHeader = ({ displayName }: DashboardHeaderProps) => {
   };
 
   const handleSignOut = async () => {
-    await supabase.auth.signOut();
-    navigate("/auth");
+    try {
+      const { error } = await supabase.auth.signOut({ scope: "local" });
+      if (error) throw error;
+      navigate("/", { replace: true });
+    } catch {
+      toast.error("Could not sign out. Check your connection and try again.");
+    }
   };
 
   const greeting = getGreeting();

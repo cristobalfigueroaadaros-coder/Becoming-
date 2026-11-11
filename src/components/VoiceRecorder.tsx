@@ -1,4 +1,4 @@
-import { useState, useRef } from "react";
+import { useEffect, useState, useRef } from "react";
 import { Button } from "@/components/ui/button";
 import { Mic, Square, Loader2 } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
@@ -17,6 +17,23 @@ export const VoiceRecorder = ({ onTranscription, disabled, idleLabel = "Record V
   const mediaRecorderRef = useRef<MediaRecorder | null>(null);
   const chunksRef = useRef<Blob[]>([]);
   const streamRef = useRef<MediaStream | null>(null);
+  const mountedRef = useRef(false);
+  const startingRef = useRef(false);
+
+  useEffect(() => {
+    mountedRef.current = true;
+    return () => {
+      mountedRef.current = false;
+      const recorder = mediaRecorderRef.current;
+      if (recorder) {
+        recorder.ondataavailable = recorder.onstart = recorder.onerror = recorder.onstop = null;
+        if (recorder.state !== "inactive") recorder.stop();
+      }
+      streamRef.current?.getTracks().forEach(track => track.stop());
+      streamRef.current = null;
+      mediaRecorderRef.current = null;
+    };
+  }, []);
 
   const getSupportedMimeType = () => {
     const candidates = [
@@ -67,9 +84,9 @@ export const VoiceRecorder = ({ onTranscription, disabled, idleLabel = "Record V
     });
 
   const startRecording = async () => {
+    if (disabled || isProcessing || isRecording || startingRef.current || mediaRecorderRef.current) return;
+    startingRef.current = true;
     try {
-      if (disabled || isProcessing || isRecording) return;
-
       if (typeof window !== "undefined" && !window.isSecureContext && window.location.hostname !== "localhost") {
         toast.error("Voice recording needs a secure HTTPS connection.");
         return;
@@ -87,11 +104,15 @@ export const VoiceRecorder = ({ onTranscription, disabled, idleLabel = "Record V
           autoGainControl: true,
         },
       });
+      if (!mountedRef.current) {
+        stream.getTracks().forEach(track => track.stop());
+        return;
+      }
+      streamRef.current = stream;
       const mimeType = getSupportedMimeType();
       const mediaRecorder = new MediaRecorder(stream, mimeType ? { mimeType } : undefined);
 
       chunksRef.current = [];
-      streamRef.current = stream;
 
       mediaRecorder.ondataavailable = (e) => {
         if (e.data.size > 0) {
@@ -116,24 +137,26 @@ export const VoiceRecorder = ({ onTranscription, disabled, idleLabel = "Record V
       };
 
       mediaRecorder.onstop = async () => {
-        const recordedType = mediaRecorder.mimeType || mimeType || chunksRef.current[0]?.type || "audio/webm";
+        const recordedType = chunksRef.current[0]?.type || mediaRecorder.mimeType || mimeType || "audio/webm";
         const audioBlob = new Blob(chunksRef.current, { type: recordedType });
-        await processAudio(audioBlob);
         stream.getTracks().forEach(track => track.stop());
-        mediaRecorderRef.current = null;
         streamRef.current = null;
+        await processAudio(audioBlob);
       };
 
       mediaRecorder.start(250);
       mediaRecorderRef.current = mediaRecorder;
     } catch (error) {
       console.error("Error starting recording:", error);
+      if (!mountedRef.current) return;
       toast.error(getRecorderErrorMessage(error));
       setIsRecording(false);
       onStateChange?.({ isRecording: false, isProcessing: false });
       mediaRecorderRef.current = null;
       streamRef.current?.getTracks().forEach(track => track.stop());
       streamRef.current = null;
+    } finally {
+      startingRef.current = false;
     }
   };
 
@@ -189,14 +212,18 @@ export const VoiceRecorder = ({ onTranscription, disabled, idleLabel = "Record V
       if (data?.error) throw new Error(data.error);
       if (!data?.text) throw new Error("No transcription received");
 
-      onTranscription(data.text, publicUrl);
-      toast.success("Voice transcribed successfully");
+      if (mountedRef.current) {
+        onTranscription(data.text, publicUrl);
+        toast.success("Voice transcribed successfully");
+      }
     } catch (error: unknown) {
       console.error("Error processing audio:", error);
-      toast.error(error instanceof Error ? error.message : "Failed to transcribe audio");
+      if (mountedRef.current) toast.error(error instanceof Error ? error.message : "Failed to transcribe audio");
     } finally {
-      setIsProcessing(false);
-      onStateChange?.({ isRecording: false, isProcessing: false });
+      if (mountedRef.current) {
+        setIsProcessing(false);
+        onStateChange?.({ isRecording: false, isProcessing: false });
+      }
       streamRef.current?.getTracks().forEach(track => track.stop());
       mediaRecorderRef.current = null;
       streamRef.current = null;
