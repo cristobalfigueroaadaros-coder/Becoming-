@@ -1,4 +1,5 @@
 import { createClient } from "npm:@supabase/supabase-js@^2";
+import { FUTURE_SELF_GROUNDING_RULE } from "../_shared/grounding.ts";
 
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
@@ -203,7 +204,10 @@ Language rules:
 - Say instead: "I've been watching what you share", "You seem to be someone who", "It feels like"
 - ${signalDepth === "early" ? "Be tentative — use 'I'm starting to see', 'It seems like'" : signalDepth === "rich" ? "Be confident — use 'I can see clearly', 'You consistently'" : "Be growing — use 'I'm noticing', 'There's a pattern forming'"}
 - Max 2 sentences per message
-- Warm, human, specific`;
+- Warm, human, specific
+- Do not write "I remember when..." about events — you only know the signal labels above
+
+${FUTURE_SELF_GROUNDING_RULE}`;
 
       const reflectionResponse = await fetch("https://ai.gateway.lovable.dev/v1/chat/completions", {
         method: "POST",

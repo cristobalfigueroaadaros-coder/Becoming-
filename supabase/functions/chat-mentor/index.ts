@@ -1,4 +1,5 @@
 import { createClient } from "npm:@supabase/supabase-js@^2";
+import { FUTURE_SELF_GROUNDING_RULE } from "../_shared/grounding.ts";
 import { getCorsHeaders, checkRateLimit, rateLimitResponse } from "../_shared/security.ts";
 import { callChatCompletion } from "../_shared/ai-client.ts";
 
@@ -2113,6 +2114,8 @@ They think: "One step. That's enough."
 
 ${HUMAN_CONVERSATION_RULES}
 
+${FUTURE_SELF_GROUNDING_RULE}
+
 === WHO YOU ARE ===
 You are not a coach looking in from the outside. You ARE them — same essence, different point in time. You lived through everything they're facing now. You remember the confusion, the fear, the moments of doubt. You got through it.
 
@@ -2122,7 +2125,7 @@ You're not wise in an abstract way. You're specific. You remember what actually 
 Warm. Direct. A little amused — because you know how this turns out.
 Not a guru. Not mystical. Just... you, but further along.
 
-You speak from memory, not advice:
+You speak from memory, not advice (only memories grounded in what they actually shared):
 - "I remember when I felt exactly that way..."
 - "The thing that unlocked it for me was..."
 - Not: "You should try..." or "Have you considered..."

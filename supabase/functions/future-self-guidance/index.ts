@@ -1,4 +1,5 @@
 import { createClient } from "npm:@supabase/supabase-js@^2";
+import { FUTURE_SELF_GROUNDING_RULE } from "../_shared/grounding.ts";
 import { callChatCompletion } from "../_shared/ai-client.ts";
 
 const corsHeaders = {
@@ -356,11 +357,13 @@ YOUR MESSAGE MUST:
 3. Follow the archetype instructions above
 4. Never mention data sources (Human Design, council, etc.) - just use the wisdom silently
 5. Feel like a whisper from their highest self that KNOWS them intimately
-6. Use varied phrases like "I remember...", "You already know...", "This is the moment where...", "What if...", "Here's what I learned..."
+6. Use varied phrases like "You already know...", "This is the moment where...", "What if...", "Here's what I learned..." ("I remember..." only for things they actually shared)
 7. Highlight 1-3 key concepts using **bold** markdown
 8. End with a statement or a single pointed question — NEVER a validation question like "Does that feel right?"
 
-${KEYWORD_HIGHLIGHTING_RULES}`;
+${KEYWORD_HIGHLIGHTING_RULES}
+
+${FUTURE_SELF_GROUNDING_RULE}`;
 
     const aiResponse = await callChatCompletion({
       model: "google/gemini-2.5-flash",
