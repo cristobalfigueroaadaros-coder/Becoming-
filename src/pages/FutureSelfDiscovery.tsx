@@ -775,7 +775,7 @@ const applyQuestFlowContract = (
 
 const buildDotRewardDecision = (decision: DiscoveryDecision): DiscoveryDecision => ({
   ...decision,
-  message: "I have enough now to offer a few possible Dots from what you shared. Treat them as mirrors, not conclusions. Choose only what feels true.",
+  message: "",
   action: "GENERATE_DOTS",
   state: "READY_FOR_DOTS",
   interactionKey: undefined,
@@ -1140,11 +1140,11 @@ const FutureSelfDiscovery = () => {
           role: "user",
           content: trimmedText,
         },
-        {
+        ...(nextDecision.message ? [{
           id: `future-self-${Date.now()}`,
-          role: "future-self",
+          role: "future-self" as const,
           content: nextDecision.message,
-        },
+        }] : []),
       ]);
       applyDecision(nextDecision, aiCandidateDots);
       activateInteraction(nextDecision, trimmedText, impactOptions);
@@ -1214,11 +1214,11 @@ const FutureSelfDiscovery = () => {
         role: "user",
         content: summarizeInteractionResponse(response),
       },
-      {
+      ...(nextDecision.message ? [{
         id: `future-self-${Date.now()}`,
-        role: "future-self",
+        role: "future-self" as const,
         content: nextDecision.message,
-      },
+      }] : []),
     ]);
     applyDecision(nextDecision, aiCandidateDots);
     activateInteraction(nextDecision, summarizeInteractionResponse(response), impactOptions);
@@ -1746,10 +1746,15 @@ const FutureSelfDiscovery = () => {
             </article>
           )}
 
-          {decision?.action === "GENERATE_DOTS" && candidateDots.length === 0 && !savedDotTitle && (
-            <Button type="button" variant="outline" onClick={() => void handleCandidateRegenerate()} disabled={isThinking}>
-              Try generating Dots again
-            </Button>
+          {decision?.action === "GENERATE_DOTS" && candidateDots.length === 0 && !savedDotTitle && !isThinking && (
+            <section className="space-y-3 rounded-lg border border-border bg-card p-4">
+              <p role="status" className="text-sm text-card-foreground">
+                I couldn’t prepare your Dots this time. You can try again with the answers you already shared.
+              </p>
+              <Button type="button" variant="outline" onClick={() => void handleCandidateRegenerate()}>
+                Try again
+              </Button>
+            </section>
           )}
 
           {candidateDots.length > 0 && decision && validationMode !== "confirmed" && (
@@ -1766,7 +1771,7 @@ const FutureSelfDiscovery = () => {
                 onSetValidationMode={setValidationMode}
                 isLoading={isSavingDot}
                 confirmLabel={isSavingDot ? "Saving to Atlas" : "Save to Atlas"}
-                mirrorFeedback="These are provisional. Pick or edit only what feels true; when you save, I will add them to your Atlas."
+                mirrorFeedback="Here’s what I picked up from your answers. Choose or edit what feels true to you, then save it to your Atlas."
               />
             </section>
           )}

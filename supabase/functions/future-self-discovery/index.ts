@@ -186,7 +186,7 @@ Hidden HTDA baseline:
 - Never respond to a rich biography with a generic phrase like "there is a thread here." Show that you heard the actual places, creations, transitions, and current desire.
 - Prefer questions that connect across the user's life: "What did that teach you?", "Where else has something similar shown up?", "What part of that creation could you use in the next project?", "What stayed the same as the idea evolved?", "Who is the first small group you would feel called to help?"
 - Do not repeat the same layer. If the user already answered what a journey taught them, move to transfer, creation, who they want to help, future use, or candidate Dots.
-- The first onboarding loop should feel like: broad story -> specific follow-up -> one structured reflection -> one bridge question if needed -> candidate Dots.
+- The first onboarding loop should feel like: broad story -> specific follow-up -> one structured reflection -> candidate Dots.
 - Do not choose GENERATE_DOTS before at least 2 prior user turns AND at least 1 completed structured reflection, unless the user explicitly asks to save/summarize now.
 - If priorUserTurns is less than 2, choose ASK or SHOW_INTERACTION. If interactionCount is 0 and there is a useful signal, prefer SHOW_INTERACTION over GENERATE_DOTS.
 - Do not repeat the same structured reflection. If a structured reflection already happened, use its answer to continue or generate Dots instead of asking for another similar activity.
@@ -210,7 +210,7 @@ Core rules:
 - Prefer concrete facts, moments, actions, projects, people, places, and exact user phrases.
 - Do not rush to candidate Dots after a first broad introduction. A human Future Self first reflects, chooses one thread, and asks a deeper question.
 - When the user shares a life story with multiple chapters, ask about the most alive or transformative moment before generating Dots.
-- GENERATE_DOTS should happen only after there is a Moment, a Learning/Meaning, and a Creation/Action or repeated pattern, plus enough interaction depth to make the Dot feel earned.
+- A specific belief, value, skill, experience, or direction can independently support a Dot. A turning point or a repeated pattern is optional.
 - If the user mentions a project they built, ask what it taught them that could transfer into a new project before generating Dots, unless they already answered that.
 
 Omnipresent memory behavior:
@@ -229,7 +229,7 @@ ${missionList}
 Choose one action:
 - ASK when the user gave too little concrete evidence.
 - SHOW_INTERACTION when there is a useful mission signal but one more structured reflection would help.
-- GENERATE_DOTS only when there is enough specific evidence from a focused follow-up and at least one interaction to propose 3 candidate Dots.
+- For a completed structured reflection, choose GENERATE_DOTS. Return one to three supported Dots, or an empty array if there is no supported suggestion.
 
 Return ONLY valid JSON with this exact shape:
 {
@@ -261,11 +261,10 @@ Candidate Dot rules:
 - Never use scaffold labels like "Admired Quality", "Aspirational Signal", "Value in Motion", "Builder Evidence", "Tried in Reality", or "Learning Through Action".
 - Titles should sound like meaningful Atlas Dots, but they must be created from the current conversation.
 - Prefer transformation, service, resilience, creation, and lived anchors over generic personality labels.
-- If the user mentions cultural events, Family Squad, testing, feedback, gamification, human behavior, or game theory, candidate Dots should focus on building experiences, learning through iteration, and making people feel or learn through play.
 - If action is ASK or SHOW_INTERACTION, candidateDots must be an empty array.`;
 
     const userPrompt = mode === "interaction"
-      ? `The user completed a focused reflection for hidden route "${activeMission}". Interaction response: ${serializedInteraction}\n\nActive quest theme: ${String(activeQuestTheme)}\nPrior user turns before this interaction: ${Number(priorUserTurns) || 0}\nCompleted structured reflections in this session including this one: ${Number(interactionCount) || 0}\nUsed structured reflections: ${serializedUsedInteractions}\nFresh test session: ${Boolean(freshSession)}\n\nRecent conversation: ${serializedMessages}\n\nUse the reflection answer as the primary evidence for this quest. Earlier Dot names in the opening are continuity context only; do not reuse them as current candidate Dots. Decide whether there is enough Moment + Learning/Meaning + Creation/Action or repeated pattern to generate candidate Dots. If not, ask one natural bridge question that connects what they learned to who they want to help, what they can build, or what they can use next.`
+      ? `The user completed a focused reflection for hidden route "${activeMission}". Interaction response: ${serializedInteraction}\n\nActive quest theme: ${String(activeQuestTheme)}\n\nRecent conversation: ${serializedMessages}\n\nChoose GENERATE_DOTS. Look across the user's own conversation answers and any written reflection for distinct insights. The selected options can help prioritize insights grounded in those answers. A single supported insight is enough. Use an exact excerpt from the user's own words for each sourceQuote.`
       : `The user said:\n"${String(userText).slice(0, 6000)}"\n\nActive quest theme: ${String(activeQuestTheme)}\nPrior user turns before this message: ${Number(priorUserTurns) || 0}\nCompleted structured reflections in this session: ${Number(interactionCount) || 0}\nUsed structured reflections: ${serializedUsedInteractions}\nFresh test session: ${Boolean(freshSession)}\n\nRecent conversation: ${serializedMessages}\n\nUse the user's latest answer to choose the next step. Let the quest theme guide the topic when it fits their story. On the first reply, choose ASK and follow one specific detail from their answer. On the next reply, choose SHOW_INTERACTION when there is enough to work with, or ASK one focused question to fill a meaningful gap. After that, choose SHOW_INTERACTION if the reflection is still pending.`;
 
     const response = await callChatCompletion({
@@ -290,7 +289,7 @@ Candidate Dot rules:
 
     const parsed = extractJson(rawContent);
     const mission = asMission(parsed.activeMission);
-    const action = asAction(parsed.action);
+    const action = mode === "interaction" ? "GENERATE_DOTS" : asAction(parsed.action);
     const userEvidence = (Array.isArray(recentMessages) ? recentMessages : [])
       .filter((message) => message?.role === "user" && typeof message.content === "string"
         && !(typeof message.id === "string" && message.id.startsWith("interaction-")))
