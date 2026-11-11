@@ -61,7 +61,7 @@ export const AtlasWinningCard = ({
   const dotColor = DOT_TYPE_COLORS[dotCategory] || DOT_TYPE_COLORS.strength;
   const catConfig = CATEGORY_CONFIG[dotCategory] || CATEGORY_CONFIG.strength;
 
-  const { clusters } = useAtlas();
+  const { clusters, dots } = useAtlas();
   const getDestination = (candidate: DotInterpretation) => {
     const slug = destinationClusterSlug || candidate.clusterSlug;
     const cluster = clusters.find((item) => slug ? item.slug === slug : item.name === clusterName)
@@ -161,6 +161,7 @@ export const AtlasWinningCard = ({
             const vColor = DOT_TYPE_COLORS[v.dotCategory || "strength"] || DOT_TYPE_COLORS.strength;
             const vCat = CATEGORY_CONFIG[v.dotCategory || "strength"] || CATEGORY_CONFIG.strength;
             const candidateDestination = getDestination(v);
+            const anchor = dots.find((saved) => saved.id === (v.parentDotId || v.relatedDotId));
             const isSelected = selectedIndices.includes(i);
             const isMaxed = selectedVars.length >= maxSelections && !isSelected;
             return (
@@ -173,6 +174,10 @@ export const AtlasWinningCard = ({
                   onClick={() => !isMaxed && toggleVariation(i)}
                   disabled={isLoading || isMaxed}
                   aria-pressed={isSelected}
+                  style={editEachCandidate && candidateDestination.color ? {
+                    borderColor: candidateDestination.color.replace(")", isSelected ? " / 0.85)" : " / 0.35)"),
+                    backgroundColor: isSelected ? candidateDestination.color.replace(")", " / 0.10)") : undefined,
+                  } : undefined}
                   className={`w-full text-left p-4 rounded-xl border-2 transition-colors space-y-2 active:scale-[0.98] relative ${
                     isSelected
                       ? "border-primary bg-primary/5"
@@ -191,9 +196,9 @@ export const AtlasWinningCard = ({
                     <div className="flex flex-wrap items-center gap-1.5">
                       <div
                         className="px-2 py-0.5 rounded-full text-[10px] font-medium"
-                        style={{ backgroundColor: vColor.replace(")", " / 0.13)"), color: vColor }}
+                        style={editEachCandidate ? undefined : { backgroundColor: vColor.replace(")", " / 0.13)"), color: vColor }}
                       >
-                        {vCat.label}
+                        {v.parentDotId ? "Mini Dot" : vCat.label}
                       </div>
                       <div
                         className="px-2 py-0.5 rounded-full bg-primary/10 text-primary text-[10px] font-medium"
@@ -204,11 +209,16 @@ export const AtlasWinningCard = ({
                     </div>
                   </div>
                   <p className="text-sm text-muted-foreground">{v.description}</p>
+                  {editEachCandidate && anchor && (
+                    <p className="text-xs text-muted-foreground">
+                      {v.parentDotId ? "Add to" : "Connect to"} <span className="font-medium text-foreground">{anchor.title}</span>
+                    </p>
+                  )}
                   {editEachCandidate && v.sourceQuote && (
                     <p className="text-xs text-muted-foreground">You said: “{v.sourceQuote}”</p>
                   )}
                 </motion.button>
-                {editEachCandidate && (
+                {editEachCandidate && !v.parentDotId && (
                   <Button type="button" variant="ghost" size="sm" disabled={isLoading} onClick={() => startEditingCandidate(i, v)}>
                     <Pencil className="mr-1 h-3 w-3" /> Edit {v.title}
                   </Button>

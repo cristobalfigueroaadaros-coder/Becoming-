@@ -7,7 +7,7 @@ import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
 import { Sparkles, Compass, ArrowLeft, Plus, Send } from "lucide-react";
 import type { ClusterWithState, AtlasDot } from "@/hooks/useAtlas";
-import { DOMAIN_COLORS, GROWTH_LEVEL_LABELS } from "@/hooks/useAtlas";
+import { DOMAIN_COLORS, getAtlasClusterColor, GROWTH_LEVEL_LABELS } from "@/hooks/useAtlas";
 import { AtlasDotCard } from "./AtlasDotCard";
 import { AtlasDotView } from "./AtlasDotView";
 import { AtlasDotDeepLayer } from "./AtlasDotDeepLayer";
@@ -203,7 +203,7 @@ export const AtlasClusterDetail = ({ cluster, open, onOpenChange }: AtlasCluster
                     <AtlasDotCard
                       key={dot.id}
                       dot={dot}
-                      color={colors.bg}
+                      color={getAtlasClusterColor(cluster)}
                       onTap={() => handleDotTap(dot)}
                       miniDotCount={miniDotCounts[dot.id] || 0}
                     />

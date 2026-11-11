@@ -9,7 +9,7 @@ interface AtlasDotCardProps {
   miniDotCount?: number;
 }
 
-export const AtlasDotCard = ({ dot, onTap, miniDotCount = 0 }: AtlasDotCardProps) => {
+export const AtlasDotCard = ({ dot, color, onTap, miniDotCount = 0 }: AtlasDotCardProps) => {
   const dotColor = getDotColor(dot);
   const hasDepth = miniDotCount > 0;
 
@@ -17,12 +17,12 @@ export const AtlasDotCard = ({ dot, onTap, miniDotCount = 0 }: AtlasDotCardProps
     <button
       onClick={onTap}
       className="w-full text-left p-3 rounded-lg border border-border/50 bg-card/50 hover:bg-card transition-colors"
-      style={hasDepth ? { boxShadow: `0 0 8px ${dotColor}20`, borderColor: `${dotColor}30` } : undefined}
+      style={hasDepth ? { boxShadow: `0 0 8px ${color.replace(")", " / 0.13)")}`, borderColor: color.replace(")", " / 0.19)") } : undefined}
     >
       <div className="flex items-start gap-2">
         <span
           className="mt-1 w-2.5 h-2.5 rounded-full shrink-0"
-          style={{ backgroundColor: dotColor }}
+          style={{ backgroundColor: color }}
         />
         <div className="min-w-0">
           <p className="text-sm font-medium text-foreground truncate">{(dot as any).original_title || dot.title}</p>

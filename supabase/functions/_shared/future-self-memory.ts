@@ -107,6 +107,57 @@ function compactSection(
   return section(title, compactLines(lines, maxItems, maxChars, relevanceQuery));
 }
 
+export async function loadDiscoveryAtlas(supabase: SupabaseLike, userId: string, userText: string) {
+  const [dots, minis, connections] = await Promise.allSettled([
+    supabase.from("atlas_dots").select("id,title,short_description,dot_category,signal_tags,atlas_clusters(slug)")
+      .eq("user_id", userId).eq("user_validated", true).order("created_at", { ascending: false }).limit(80),
+    supabase.from("atlas_mini_dots").select("parent_dot_id,content")
+      .eq("user_id", userId).order("created_at", { ascending: false }).limit(120),
+    supabase.from("atlas_connections").select("dot_id_a,dot_id_b,insight_text")
+      .eq("user_id", userId).order("created_at", { ascending: false }).limit(100),
+  ]);
+  const data = <T,>(result: PromiseSettledResult<{ data?: T[] }>) =>
+    result.status === "fulfilled" && Array.isArray(result.value.data) ? result.value.data : [];
+  const anchors = data<{
+    id: string;
+    title: string;
+    short_description: string | null;
+    dot_category: string | null;
+    signal_tags: { sourceQuote?: string } | null;
+    atlas_clusters: { slug: string } | null;
+  }>(dots);
+  const evidence = data<{ parent_dot_id: string; content: string }>(minis);
+  const links = data<{ dot_id_a: string; dot_id_b: string; insight_text: string | null }>(connections);
+  const byId = new Map(anchors.map((dot) => [dot.id, dot]));
+  const tokens = memoryTokens(userText);
+  const ranked = anchors.map((dot) => {
+    const details = evidence.filter((mini) => mini.parent_dot_id === dot.id).slice(0, 4);
+    const text = [dot.title, dot.short_description, dot.signal_tags?.sourceQuote, ...details.map((mini) => mini.content)].join(" ").toLowerCase();
+    return { dot, details, score: tokens.filter((token) => text.includes(token)).length };
+  }).sort((a, b) => b.score - a.score);
+  const relevant = ranked.filter(({ score }) => score > 0).slice(0, 6);
+  const related = links.filter((link) => byId.has(link.dot_id_a) && byId.has(link.dot_id_b)
+    && relevant.some(({ dot }) => dot.id === link.dot_id_a || dot.id === link.dot_id_b)).slice(0, 6);
+  const includedIds = new Set([...relevant.map(({ dot }) => dot.id), ...related.flatMap((link) => [link.dot_id_a, link.dot_id_b])]);
+  const selected = ranked.filter(({ dot }) => includedIds.has(dot.id));
+  return {
+    anchors: selected.map(({ dot, details }) => ({
+      id: dot.id,
+      title: cleanText(dot.title, 100),
+      description: cleanText(dot.short_description, 220),
+      originalEvidence: cleanText(dot.signal_tags?.sourceQuote, 260),
+      category: dot.dot_category,
+      cluster: dot.atlas_clusters?.slug,
+      details: details.map((mini) => cleanText(mini.content, 260)),
+    })),
+    connections: related.map((link) => ({
+      from: link.dot_id_a,
+      to: link.dot_id_b,
+      possibleMeaning: cleanText(link.insight_text, 180),
+    })),
+  };
+}
+
 export async function buildFutureSelfMemoryContext(
   supabaseClient: SupabaseLike,
   userId: string,

@@ -98,10 +98,19 @@ export const CLUSTER_COLORS: Record<string, { bg: string; glow: string }> = {
   project: { bg: DOMAIN_COLORS.Product.bg, glow: DOMAIN_COLORS.Product.glow },
 };
 
+const DISCOVERY_CLUSTER_ACCENTS: Record<string, string> = {
+  "life-events": "hsl(48 92% 59%)",
+  values: "hsl(290 82% 73%)",
+  "who-i-serve": "hsl(27 92% 63%)",
+  "vision-for-a-better-world": "hsl(14 90% 69%)",
+  "how-i-create-impact": "hsl(73 73% 58%)",
+};
+
 export function getAtlasClusterColor(cluster: Pick<AtlasCluster, "slug" | "cluster_category" | "meta_domain">): string {
   if (cluster.cluster_category === "project") return "hsl(0 75% 55%)";
   if (cluster.slug === "golden-moments") return "hsl(40 85% 55%)";
-  return (DOMAIN_COLORS[cluster.meta_domain?.name || "Person"] || DOMAIN_COLORS.Person).bg;
+  return DISCOVERY_CLUSTER_ACCENTS[cluster.slug]
+    || (DOMAIN_COLORS[cluster.meta_domain?.name || "Person"] || DOMAIN_COLORS.Person).bg;
 }
 
 export const DOT_TYPE_COLORS: Record<string, string> = {
@@ -272,7 +281,7 @@ export function useAtlas() {
   const clusters: ClusterWithState[] = (clustersQuery.data || []).map((c: any) => {
     const clusterDots = allDots.filter((d) => d.cluster_id === c.id);
     const isProjectCluster = c.cluster_category === "project";
-    const unlocked = isProjectCluster || isClusterUnlocked(c.slug, totalDots);
+    const unlocked = isProjectCluster || clusterDots.length > 0 || isClusterUnlocked(c.slug, totalDots);
     const phase = isProjectCluster ? 0 : getUnlockPhase(c.slug);
     return {
       id: c.id,

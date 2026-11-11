@@ -772,6 +772,7 @@ const FutureSelfDiscovery = () => {
   const speechPauseTimerRef = useRef<number | null>(null);
   const autoSendTimerRef = useRef<number | null>(null);
   const autoSendIntervalRef = useRef<number | null>(null);
+  const saveIdsRef = useRef(new Map<string, string>());
   const sessionKey = location.key;
 
   const canSubmit = input.trim().length > 0;
@@ -816,6 +817,7 @@ const FutureSelfDiscovery = () => {
       setInteractionResponses([]);
       setCandidateDots([]);
       setSelectedDots([]);
+      saveIdsRef.current.clear();
       setValidationMode("picking");
       setIsSavingDot(false);
       setIsThinking(false);
@@ -950,9 +952,18 @@ const FutureSelfDiscovery = () => {
   const applyDecision = (nextDecision: DiscoveryDecision, aiCandidateDots: DotInterpretation[] = []) => {
     setDecision(nextDecision);
     setValidationMode("picking");
-    const candidates = keepNewDots(aiCandidateDots, allExistingDots)
-      .filter((dot) => !hasGenericDotTitle(dot.title) && !!dot.sourceQuote && clusters.some((cluster) => cluster.slug === dot.clusterSlug));
-    const distinct = new Map(candidates.map((dot) => [dot.title.trim().toLowerCase(), dot]));
+    const candidates = aiCandidateDots.filter((dot) => {
+      const cluster = clusters.find((item) => item.slug === dot.clusterSlug);
+      if (!cluster || hasGenericDotTitle(dot.title) || !dot.sourceQuote) return false;
+      const clusterDots = allExistingDots.filter((saved) => saved.cluster_id === cluster.id);
+      return dot.parentDotId
+        ? clusterDots.some((parent) => parent.id === dot.parentDotId)
+        : keepNewDots([dot], clusterDots).length > 0;
+    });
+    const distinct = new Map(candidates.map((dot) => [
+      dot.parentDotId ? `${dot.parentDotId}:${dot.sourceQuote}` : `${dot.clusterSlug}:${dot.title.trim().toLowerCase()}`,
+      dot,
+    ]));
     setCandidateDots(nextDecision.action === "GENERATE_DOTS" ? [...distinct.values()].slice(0, 3) : []);
     setCandidateRevision((current) => current + 1);
   };
@@ -1239,10 +1250,20 @@ const FutureSelfDiscovery = () => {
         dotCategory: dot.dotCategory,
         clusterSlug: dot.clusterSlug,
         sourceQuote: dot.sourceQuote,
+        parentDotId: dot.parentDotId,
+        relatedDotId: dot.relatedDotId,
       }));
 
-      const dotPayloads: AtlasDotInsert[] = dotsToSave.map((dot, index) => ({
-        id: crypto.randomUUID(),
+      const stableSaveId = (key: string) => {
+        const id = saveIdsRef.current.get(key) || crypto.randomUUID();
+        saveIdsRef.current.set(key, id);
+        return id;
+      };
+      const selectionIds = dotsToSave.map((dot) => dot.parentDotId
+        || stableSaveId(JSON.stringify([questKey, dot.title, dot.clusterSlug, dot.sourceQuote])));
+      const parents = new Map(allExistingDots.map((dot) => [dot.id, dot]));
+      const dotPayloads: AtlasDotInsert[] = dotsToSave.flatMap((dot, index) => dot.parentDotId ? [] : [{
+        id: selectionIds[index],
         user_id: user.id,
         cluster_id: targetClusters[index]!.id,
         title: dot.title,
@@ -1271,20 +1292,64 @@ const FutureSelfDiscovery = () => {
           dotOrigin: "current_quest_evidence",
           sourceQuote: dot.sourceQuote,
         },
-      }));
+      }]);
 
+      if (dotPayloads.length) {
+        const { error } = await supabase.from("atlas_dots").upsert(dotPayloads, { onConflict: "id", ignoreDuplicates: true });
+        if (error) throw error;
+      }
       const { data: savedDots, error } = await supabase
         .from("atlas_dots")
-        .insert(dotPayloads)
-        .select("id,title,short_description,dot_category");
+        .select("id,title,short_description,dot_category,cluster_id")
+        .eq("user_id", user.id)
+        .in("id", selectionIds);
 
       if (error) throw error;
       const savedById = new Map((savedDots || []).map((dot) => [dot.id, dot]));
-      const savedDotRows = dotPayloads.map(({ id }) => {
-        const saved = id ? savedById.get(id) : undefined;
-        if (!saved) throw new Error("The Atlas did not return every saved Dot.");
+      const savedDotRows = selectionIds.map((id, index) => {
+        const saved = savedById.get(id);
+        if (!saved || saved.cluster_id !== targetClusters[index]!.id) throw new Error("The Atlas did not return every saved Dot in its expected cluster.");
         return saved;
       });
+      const miniPayloads = dotsToSave.flatMap((dot) => dot.parentDotId && dot.sourceQuote ? [{
+        id: stableSaveId(JSON.stringify([dot.parentDotId, dot.sourceQuote])),
+        parent_dot_id: dot.parentDotId,
+        user_id: user.id,
+        cluster_slug: dot.clusterSlug,
+        origin: "user",
+        content: dot.sourceQuote,
+      }] : []);
+      if (miniPayloads.length) {
+        const { data: existingMinis, error: lookupError } = await supabase.from("atlas_mini_dots")
+          .select("parent_dot_id,content").eq("user_id", user.id)
+          .in("parent_dot_id", miniPayloads.map((mini) => mini.parent_dot_id));
+        if (lookupError) throw lookupError;
+        const normalize = (value: string) => value.toLowerCase().replace(/\s+/g, " ").trim();
+        const newMinis = miniPayloads.filter((mini) => !existingMinis?.some((existing) =>
+          existing.parent_dot_id === mini.parent_dot_id && normalize(existing.content) === normalize(mini.content)));
+        if (newMinis.length) {
+          const { error: miniError } = await supabase.from("atlas_mini_dots").upsert(newMinis, { onConflict: "id", ignoreDuplicates: true });
+          if (miniError) throw miniError;
+        }
+      }
+      const explicitLinks: AtlasConnectionInsert[] = dotsToSave.flatMap((dot, index) => {
+        const related = dot.relatedDotId ? parents.get(dot.relatedDotId) : undefined;
+        if (dot.parentDotId || !related) return [];
+        const [dotA, dotB] = [savedDotRows[index].id, related.id].sort();
+        return [{
+          id: stableSaveId(JSON.stringify([dotA, dotB])),
+          user_id: user.id,
+          dot_id_a: dotA,
+          dot_id_b: dotB,
+          connection_type: related.cluster_id === savedDotRows[index].cluster_id ? "signal_overlap" : "cross_cluster_bridge",
+          strength: 3,
+          insight_text: dot.sourceQuote,
+        }];
+      });
+      if (explicitLinks.length) {
+        const { error: linkError } = await supabase.from("atlas_connections").upsert(explicitLinks, { onConflict: "dot_id_a,dot_id_b", ignoreDuplicates: true });
+        if (linkError) throw linkError;
+      }
       const primarySavedDot = savedDotRows[0];
       const validatedDotProvenance = dotsToSave.map((dot, index) => ({
         savedDotId: savedDotRows[index]?.id || null,
@@ -1293,6 +1358,8 @@ const FutureSelfDiscovery = () => {
         dotCategory: dot.dotCategory,
         clusterSlug: targetClusters[index]!.slug,
         sourceQuote: dot.sourceQuote,
+        parentDotId: dot.parentDotId,
+        relatedDotId: dot.relatedDotId,
         sourceQuestKey: questKey,
         questTheme: activeQuestTheme,
         evidence: questEvidence,
@@ -1404,10 +1471,11 @@ const FutureSelfDiscovery = () => {
       const { error: signalError } = await supabase.from("atlas_signals").insert(signalPayloads);
       if (signalError) throw signalError;
 
-      const savedDotsForConnections: AtlasDot[] = savedDotRows.map((dot, index) => {
+      const savedDotsForConnections: AtlasDot[] = savedDotRows.flatMap((dot, index) => {
         const originalDot = dotsToSave[index] || primaryDot;
+        if (originalDot.parentDotId) return [];
         const originalCluster = targetClusters[index] || targetCluster;
-        return {
+        return [{
           id: dot.id,
           user_id: user.id,
           cluster_id: originalCluster.id,
@@ -1420,7 +1488,7 @@ const FutureSelfDiscovery = () => {
           signal_strength: Math.max(1, decision.coverage.covered.length),
           source_system: "future_self_discovery",
           created_at: new Date().toISOString(),
-        };
+        }];
       });
       const clusterSlugMap = clusters.reduce<Record<string, string>>((map, cluster) => {
         map[cluster.id] = cluster.slug;
@@ -1441,7 +1509,8 @@ const FutureSelfDiscovery = () => {
       const connectionPayloads: AtlasConnectionInsert[] = detectConnections(
         [...allExistingDots, ...savedDotsForConnections],
         existingPairs,
-        clusterSlugMap
+        clusterSlugMap,
+        miniPayloads
       )
         .map((connection) => ({
           user_id: user.id,
@@ -1469,6 +1538,9 @@ const FutureSelfDiscovery = () => {
         queryClient.invalidateQueries({ queryKey: ["atlas-connections"] }),
         queryClient.invalidateQueries({ queryKey: ["atlas-connections-map"] }),
         queryClient.invalidateQueries({ queryKey: ["atlas-patterns"] }),
+        queryClient.invalidateQueries({ queryKey: ["atlas-mini-dots"] }),
+        queryClient.invalidateQueries({ queryKey: ["atlas-mini-dot-counts"] }),
+        queryClient.invalidateQueries({ queryKey: ["atlas-mini-dot-counts-cluster"] }),
       ]);
 
       setSavedDotTitle(primaryDot.title);
@@ -1480,7 +1552,7 @@ const FutureSelfDiscovery = () => {
       const params = new URLSearchParams({
         highlight: targetCluster.slug,
         clusterId: targetCluster.id,
-        newDot: primaryDot.title,
+        newDot: primarySavedDot.title,
         source: "future-self",
       });
       const atlasUrl = `/atlas?${params.toString()}`;
@@ -1489,7 +1561,7 @@ const FutureSelfDiscovery = () => {
         {
           id: `future-self-atlas-saved-${savedQuest.id}`,
           role: "future-self",
-          content: savedDotRows.length === 1 ? "Your Dot is saved." : "Your Dots are saved.",
+          content: "Your discoveries are saved in Atlas.",
           savedDestinations: savedDotRows.map((dot, index) => {
             const cluster = targetClusters[index]!;
             const query = new URLSearchParams({

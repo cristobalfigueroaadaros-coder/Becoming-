@@ -1,7 +1,7 @@
 import { motion, useReducedMotion } from "framer-motion";
 import { Lock } from "lucide-react";
 import type { ClusterWithState } from "@/hooks/useAtlas";
-import { DOMAIN_COLORS, getDotColor } from "@/hooks/useAtlas";
+import { getAtlasClusterColor } from "@/hooks/useAtlas";
 
 const canHover = typeof window !== "undefined" && window.matchMedia("(hover: hover) and (pointer: fine)").matches;
 
@@ -50,18 +50,18 @@ const GROWTH_STYLES: Record<string, { size: number; opacity: string; glowSize: n
 
 export const AtlasClusterNode = ({ cluster, index, onTap, isHighlighted, miniDotCounts = {}, isFocused, isFaded, scale = 1 }: AtlasClusterNodeProps) => {
   const shouldReduceMotion = useReducedMotion();
-  const domainName = cluster.meta_domain?.name || "Person";
   const isGolden = cluster.slug === "golden-moments";
   const isProject = cluster.cluster_category === "project";
+  const clusterColor = getAtlasClusterColor(cluster);
   const colors = isProject
     ? { bg: "hsl(0 75% 55%)", glow: "hsl(0 75% 55% / 0.35)", border: "hsl(0 75% 55% / 0.60)", gradient: "linear-gradient(135deg, rgba(255,255,255,0.15) 0%, hsl(0 75% 55% / 0.60) 100%)" }
     : isGolden
     ? { bg: "hsl(40 85% 55%)", glow: "hsl(40 85% 55% / 0.35)", border: "hsl(40 85% 55% / 0.65)", gradient: "linear-gradient(135deg, rgba(255,255,255,0.15) 0%, hsl(40 85% 55% / 0.65) 100%)" }
     : {
-        bg: DOMAIN_COLORS[domainName]?.bg || DOMAIN_COLORS.Person.bg,
-        glow: DOMAIN_COLORS[domainName]?.glow || DOMAIN_COLORS.Person.glow,
-        border: DOMAIN_COLORS[domainName]?.border || DOMAIN_COLORS.Person.border,
-        gradient: `linear-gradient(135deg, rgba(255,255,255,0.15) 0%, ${(DOMAIN_COLORS[domainName]?.bg || "hsl(265 90% 62%)").replace(")", " / 0.60)")} 100%)`,
+        bg: clusterColor,
+        glow: clusterColor.replace(")", " / 0.5)"),
+        border: clusterColor,
+        gradient: `linear-gradient(135deg, rgba(255,255,255,0.15) 0%, ${clusterColor.replace(")", " / 0.60)")} 100%)`,
       };
   const state = cluster.computedState;
   const rawStyle = GROWTH_STYLES[state] || GROWTH_STYLES.dormant;
@@ -159,10 +159,10 @@ export const AtlasClusterNode = ({ cluster, index, onTap, isHighlighted, miniDot
               <motion.span
                 className="absolute rounded-full"
                 style={{
-                  backgroundColor: getDotColor(dot),
+                  backgroundColor: clusterColor,
                   left: `calc(50% + ${pos.x}px - ${Math.round(5 * scale)}px)`,
                   top: `calc(50% + ${pos.y}px - ${Math.round(5 * scale)}px)`,
-                  boxShadow: `0 0 ${Math.round((hasMinis ? 8 + dotMiniCount * 2 : 6) * scale)}px ${getDotColor(dot)}80`,
+                  boxShadow: `0 0 ${Math.round((hasMinis ? 8 + dotMiniCount * 2 : 6) * scale)}px ${clusterColor.replace(")", " / 0.5)")}`,
                   width: Math.round((hasMinis ? 12 : 10) * scale),
                   height: Math.round((hasMinis ? 12 : 10) * scale),
                 }}
@@ -180,7 +180,7 @@ export const AtlasClusterNode = ({ cluster, index, onTap, isHighlighted, miniDot
                     key={`mini-${dot.id}-${mi}`}
                     className="absolute rounded-full"
                     style={{
-                      backgroundColor: getDotColor(dot),
+                      backgroundColor: clusterColor,
                       left: `calc(50% + ${mx}px - 2px)`,
                       top: `calc(50% + ${my}px - 2px)`,
                       width: 4,
