@@ -1,6 +1,5 @@
-# Onboarding cleanup roadmap
+# Roadmap
 
-- [x] Trace the current registration-to-final-quest journey and all state flags.
-- [x] Define one deterministic sequence matching the requested order.
-- [x] Implement targeted fixes without changing unrelated onboarding content.
-- [x] Verify the complete journey and key reload/resume states.
+- [ ] Quest questions adapt to the person's earlier answers in the same quest (no unrelated fixed follow-ups).
+- [ ] Future Self never brings in details from another account or previous test (clear browser cache on account switch, server-side scoping).
+- [ ] Future Self never invents people, memories or events the person did not share.
