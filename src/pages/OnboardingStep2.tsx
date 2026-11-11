@@ -377,7 +377,7 @@ const OnboardingStep2 = () => {
                 transition={{ delay: 0.5 }}
               >
                 <Button
-                  onClick={() => navigate("/onboarding/quest")}
+                  onClick={() => navigate("/atlas")}
                   className="w-full h-11 text-base"
                 >
                   Let's begin →

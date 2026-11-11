@@ -9,6 +9,7 @@ import { cn } from "@/lib/utils";
 interface FounderOriginVideoModalProps {
   onNext: () => void;
   variant?: "modal" | "embedded";
+  ctaLabel?: string;
 }
 
 type OriginMoment = {
@@ -234,7 +235,7 @@ const BECOMING_CONNECTIONS: [string, string][] = FOUNDERS_CLUSTERS.map((cluster)
   CENTER_PROJECT.id,
 ]);
 
-export const FounderOriginVideoModal = ({ onNext, variant = "modal" }: FounderOriginVideoModalProps) => {
+export const FounderOriginVideoModal = ({ onNext, variant = "modal", ctaLabel = "Continue quest" }: FounderOriginVideoModalProps) => {
   const shouldReduceMotion = useReducedMotion();
   const isEmbedded = variant === "embedded";
   const [step, setStep] = useState(0);
@@ -491,7 +492,7 @@ export const FounderOriginVideoModal = ({ onNext, variant = "modal" }: FounderOr
                   animate={{ opacity: 1, y: 0 }}
                 >
                   <Button onClick={onNext} size="lg" className="h-11 flex-1 rounded-full gap-2">
-                    Continue quest
+                    {ctaLabel}
                     <ArrowRight className="h-4 w-4" />
                   </Button>
                 </motion.div>

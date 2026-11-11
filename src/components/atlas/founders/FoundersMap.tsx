@@ -1,6 +1,7 @@
 import { useEffect, useMemo, useState } from "react";
-import { motion } from "framer-motion";
-import { Sparkles } from "lucide-react";
+import { AnimatePresence, motion } from "framer-motion";
+import { ArrowRight, Sparkles } from "lucide-react";
+import { Button } from "@/components/ui/button";
 import {
   FOUNDERS_CLUSTERS,
   GOLD_CONNECTIONS,
@@ -13,10 +14,16 @@ import { FoundersTimeline } from "./FoundersTimeline";
 
 interface FoundersMapProps {
   onCtaClick: () => void;
+  forceOriginVideo?: boolean;
+  originDelayMs?: number;
 }
 
-export const FoundersMap = ({ onCtaClick }: FoundersMapProps) => {
+const POPUP_FLAG = "founders_popup_seen";
+
+export const FoundersMap = ({ onCtaClick, forceOriginVideo = false, originDelayMs = 2000 }: FoundersMapProps) => {
   const [isMobile, setIsMobile] = useState(false);
+  const [showPopup, setShowPopup] = useState(false);
+  const [showBridgeIntro, setShowBridgeIntro] = useState(forceOriginVideo);
   const [selected, setSelected] = useState<FounderCluster | null>(null);
 
   useEffect(() => {
@@ -25,6 +32,46 @@ export const FoundersMap = ({ onCtaClick }: FoundersMapProps) => {
     window.addEventListener("resize", check);
     return () => window.removeEventListener("resize", check);
   }, []);
+
+  useEffect(() => {
+    if (forceOriginVideo) {
+      setShowBridgeIntro(true);
+      setShowPopup(false);
+      return;
+    }
+
+    try {
+      const seen = localStorage.getItem(POPUP_FLAG);
+      if (!seen) {
+        const timer = window.setTimeout(() => setShowPopup(true), originDelayMs);
+        return () => window.clearTimeout(timer);
+      }
+    } catch {
+      const timer = window.setTimeout(() => setShowPopup(true), originDelayMs);
+      return () => window.clearTimeout(timer);
+    }
+  }, [forceOriginVideo, originDelayMs]);
+
+  const handleDismissPopup = () => {
+    try {
+      localStorage.setItem(POPUP_FLAG, "true");
+    } catch {
+      // ignore
+    }
+    setShowPopup(false);
+  };
+
+  const handlePopupNext = () => {
+    handleDismissPopup();
+    if (forceOriginVideo) {
+      onCtaClick();
+    }
+  };
+
+  const startBridgeVideo = () => {
+    setShowBridgeIntro(false);
+    setShowPopup(true);
+  };
 
   const clusterById = useMemo(() => {
     const m: Record<string, FounderCluster> = {};
@@ -49,8 +96,39 @@ export const FoundersMap = ({ onCtaClick }: FoundersMapProps) => {
 
   const mapHeight = isMobile ? 960 : 720;
 
+  if (showBridgeIntro) {
+    return (
+      <div className="fixed inset-0 z-50 flex items-center justify-center bg-background/90 p-4 backdrop-blur-md">
+        <motion.div
+          initial={{ opacity: 0, y: 14, scale: 0.97 }}
+          animate={{ opacity: 1, y: 0, scale: 1 }}
+          className="w-full max-w-md rounded-2xl border border-border/60 bg-card/95 p-5 text-center shadow-[0_0_70px_hsl(265_90%_62%/0.28)]"
+        >
+          <div className="mx-auto mb-4 flex h-12 w-12 items-center justify-center rounded-2xl bg-primary/15 text-primary">
+            <Sparkles className="h-5 w-5" />
+          </div>
+          <p className="text-xs font-semibold uppercase tracking-[0.18em] text-primary">Cris's Map</p>
+          <h2 className="mt-2 text-xl font-bold text-foreground">This is an example map.</h2>
+          <p className="mt-3 text-sm leading-relaxed text-muted-foreground">
+            You are about to see how dots, life events, skills, experiments, and questions connected over time into Becoming.
+            Your map will not copy this one. It will reveal your own pattern and what wants to be created through you.
+          </p>
+          <Button onClick={startBridgeVideo} size="lg" className="mt-5 w-full rounded-full gap-2">
+            See the example
+            <ArrowRight className="h-4 w-4" />
+          </Button>
+        </motion.div>
+      </div>
+    );
+  }
+
   return (
     <div className="relative w-full">
+      {/* Popup */}
+      <AnimatePresence>
+        {showPopup && <FounderOriginVideoModal onNext={handlePopupNext} ctaLabel="Continue my map" />}
+      </AnimatePresence>
+
       {/* Header strip */}
       <div className="px-5 pt-4 pb-2 relative z-10">
         <div className="flex items-center gap-2">
@@ -146,7 +224,7 @@ export const FoundersMap = ({ onCtaClick }: FoundersMapProps) => {
 
       {/* Origin video CTA */}
       <section className="pt-2">
-        <FounderOriginVideoModal onNext={onCtaClick} variant="embedded" />
+        <FounderOriginVideoModal onNext={onCtaClick} variant="embedded" ctaLabel="Continue my map" />
       </section>
 
       {/* Cluster detail sheet */}

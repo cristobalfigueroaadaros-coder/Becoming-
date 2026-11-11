@@ -7,8 +7,11 @@ type EntryState = "DISCOVER" | "GROW" | "BUILD";
 interface AtlasUnlockProgressProps {
   phase: EntryState;
   completedCount: number;
+  hasLifetimeAnchor: boolean;
   councilAlreadyStarted: boolean;
   onGoToCouncil: () => void;
+  councilHref?: string;
+  onSaveLifetime: () => void;
   onKeepExploring: () => void;
 }
 
@@ -45,8 +48,11 @@ const PHASE_CONFIG: Record<EntryState, {
 export function AtlasUnlockProgress({
   phase,
   completedCount,
+  hasLifetimeAnchor,
   councilAlreadyStarted,
   onGoToCouncil,
+  councilHref = "/council?view=intake",
+  onSaveLifetime,
   onKeepExploring,
 }: AtlasUnlockProgressProps) {
   if (councilAlreadyStarted) return null;
@@ -54,7 +60,8 @@ export function AtlasUnlockProgress({
   const config = PHASE_CONFIG[phase] || PHASE_CONFIG.DISCOVER;
   const { required, nodeLabels, color, glow } = config;
   const filled = Math.min(completedCount, required);
-  const isUnlocked = completedCount >= required;
+  const questThresholdMet = completedCount >= required;
+  const isUnlocked = questThresholdMet && hasLifetimeAnchor;
 
   return (
     <motion.div
@@ -69,7 +76,7 @@ export function AtlasUnlockProgress({
           Your path to Council
         </p>
         <span className="text-xs text-muted-foreground">
-          {filled} / {required}
+          {filled} / {required} quests
         </span>
       </div>
 
@@ -120,19 +127,70 @@ export function AtlasUnlockProgress({
                 </span>
               </div>
 
-              {/* Connector line — between nodes, and last one connects to Council */}
+              {/* Connector line — between nodes, and last one connects to Lifetime */}
               <div className="flex-1 h-[2px] mx-1 mb-4 rounded-full overflow-hidden bg-white/10">
                 <motion.div
                   className="h-full rounded-full"
                   style={{ backgroundColor: color }}
                   initial={{ width: "0%" }}
-                  animate={{ width: (i < nodeLabels.length - 1 ? done : isUnlocked) ? "100%" : "0%" }}
+                  animate={{ width: (i < nodeLabels.length - 1 ? done : questThresholdMet) ? "100%" : "0%" }}
                   transition={{ duration: 0.5, delay: i * 0.1 }}
                 />
               </div>
             </div>
           );
         })}
+
+        {/* Lifetime anchor node */}
+        <div className="flex items-center flex-1 min-w-0">
+          <div className="flex flex-col items-center gap-1 flex-shrink-0">
+            <motion.div
+              animate={hasLifetimeAnchor ? { scale: [1, 1.15, 1] } : {}}
+              transition={{ duration: 0.4, delay: nodeLabels.length * 0.08 }}
+              className="relative w-8 h-8 rounded-full flex items-center justify-center border-2 transition-all duration-500"
+              style={{
+                backgroundColor: hasLifetimeAnchor ? color : "transparent",
+                borderColor: hasLifetimeAnchor ? color : questThresholdMet ? color : "hsl(var(--muted-foreground) / 0.3)",
+                boxShadow: hasLifetimeAnchor ? `0 0 12px ${glow}` : questThresholdMet ? `0 0 6px ${glow}` : "none",
+              }}
+            >
+              {hasLifetimeAnchor ? (
+                <Sparkles className="w-3.5 h-3.5 text-white" />
+              ) : (
+                <span
+                  className="text-[10px] font-bold"
+                  style={{ color: questThresholdMet ? color : "hsl(var(--muted-foreground) / 0.5)" }}
+                >
+                  Time
+                </span>
+              )}
+              {questThresholdMet && !hasLifetimeAnchor && (
+                <motion.div
+                  className="absolute inset-0 rounded-full border-2"
+                  style={{ borderColor: color }}
+                  animate={{ scale: [1, 1.5], opacity: [0.6, 0] }}
+                  transition={{ duration: 1.5, repeat: Infinity }}
+                />
+              )}
+            </motion.div>
+            <span
+              className="text-[8px] text-center leading-tight max-w-[52px]"
+              style={{ color: hasLifetimeAnchor ? color : "hsl(var(--muted-foreground) / 0.5)" }}
+            >
+              Lifetime
+            </span>
+          </div>
+
+          <div className="flex-1 h-[2px] mx-1 mb-4 rounded-full overflow-hidden bg-white/10">
+            <motion.div
+              className="h-full rounded-full"
+              style={{ backgroundColor: color }}
+              initial={{ width: "0%" }}
+              animate={{ width: isUnlocked ? "100%" : "0%" }}
+              transition={{ duration: 0.5, delay: nodeLabels.length * 0.1 }}
+            />
+          </div>
+        </div>
 
         {/* Council unlock node */}
         <div className="flex items-center flex-shrink-0">
@@ -190,12 +248,14 @@ export function AtlasUnlockProgress({
             </div>
             <div className="flex gap-2">
               <Button
+                asChild
                 size="sm"
                 className="gap-1.5 flex-1"
                 style={{ backgroundColor: color, borderColor: color }}
-                onClick={onGoToCouncil}
               >
-                Meet my Council <ArrowRight className="w-3 h-3" />
+                <a href={councilHref} onClick={onGoToCouncil}>
+                  Meet my Council <ArrowRight className="w-3 h-3" />
+                </a>
               </Button>
               <Button
                 size="sm"
@@ -206,6 +266,26 @@ export function AtlasUnlockProgress({
                 Keep exploring
               </Button>
             </div>
+          </motion.div>
+        ) : questThresholdMet ? (
+          <motion.div
+            key="lifetime-anchor"
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            exit={{ opacity: 0 }}
+            className="flex items-center justify-between gap-3"
+          >
+            <p className="text-[11px] text-muted-foreground">
+              Add one real Life Moment to unlock your Council
+            </p>
+            <Button
+              size="sm"
+              className="gap-1.5 flex-shrink-0 text-xs h-7 px-3"
+              style={{ backgroundColor: color, borderColor: color }}
+              onClick={onSaveLifetime}
+            >
+              Add Life Moment <ArrowRight className="w-3 h-3" />
+            </Button>
           </motion.div>
         ) : (
           <motion.div

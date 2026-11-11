@@ -2,7 +2,7 @@ import type { DotCategory } from "./atlasSignals";
 
 export type InteractionType = "multi_select" | "ranking" | "scenario" | "card_pick" | "energy_slider" | "reflection"
   | "emoji_scale" | "visual_metaphor" | "sentence_completion" | "memory_flash"
-  | "this_or_that" | "tap_resonates" | "then_vs_now";
+  | "this_or_that" | "tap_resonates" | "then_vs_now" | "impact_blueprint" | "turning_point_lesson";
 
 export interface EmojiOption {
   emoji: string;
@@ -19,6 +19,7 @@ export interface QuestInteraction {
   emojiOptions?: EmojiOption[];
   sentenceStem?: string;
   memoryPrompt?: string;
+  detailHint?: string;
   /** For this_or_that: exactly 2 options */
   optionA?: string;
   optionB?: string;
@@ -27,12 +28,18 @@ export interface QuestInteraction {
   /** For then_vs_now: labels for the two text inputs */
   thenLabel?: string;
   nowLabel?: string;
+  /** For turning_point_lesson: choices that name the lesson and where it can travel next */
+  impactAudienceOptions?: string[];
+  impactNeedOptions?: string[];
+  lessonOptions?: string[];
+  futureUseOptions?: string[];
 }
 
 export interface DotInterpretation {
   title: string;
   description: string;
   dotCategory: DotCategory;
+  clusterSlug?: string;
 }
 
 export interface AtlasQuestDefinition {
@@ -458,7 +465,7 @@ export const ATLAS_QUESTS: AtlasQuestDefinition[] = [
     clusterName: "Vision for a Better World",
     intro: "Let's explore your vision for the future.",
     interactions: [
-      { type: "card_pick", prompt: "Which cause pulls at your heart?", options: ["Education for all", "Mental health", "Environmental restoration", "Economic fairness"] },
+      { type: "card_pick", prompt: "Who do you feel called to help?", options: ["People who feel lost", "People trying to find themselves", "Creators with a positive mission", "Parents who want deeper connection", "Kids who need emotional tools", "Founders with meaningful ideas", "Communities that feel disconnected", "People rebuilding confidence", "People who want to express their gifts", "People who need clarity and direction"] },
       { type: "multi_select", prompt: "What changes would you fight for?", options: ["Equal opportunity", "Creative freedom", "Sustainable living", "Deeper connection", "Better education", "Health access"], minSelect: 2, maxSelect: 3 },
       { type: "emoji_scale", prompt: "How urgent does change feel to you?", emojiOptions: [
         { emoji: "😐", label: "Someday" }, { emoji: "🙂", label: "Important" }, { emoji: "😊", label: "Urgent" }, { emoji: "🔥", label: "Now" }, { emoji: "💥", label: "Yesterday" }
@@ -790,21 +797,22 @@ export const ATLAS_QUESTS: AtlasQuestDefinition[] = [
 
 // ===== ONBOARDING QUESTS (14 guided quests in fixed sequence) =====
 // DO NOT REORDER — sequence is intentional and feeds AI personalization for mentors + Future Self.
-// Phase 1 (1–5): Identity core — who they are and what drives/blocks them
-// Phase 2 (6–9): Depth layer — values, inspiration, roots, growth moments
-// Phase 3 (10–14): Purpose + direction — who they serve, how they contribute, their vision
+// Discovery opens with: gift + origin + worldview + evidence.
+// Phase 1 (1–4): Pre-Council core — who they are, where it started, who they serve, what they have tried
+// Phase 2 (5–10): Depth layer — energy, skills, values, inspiration, life story
+// Phase 3 (11–14): Purpose + direction — worldview, contribution, vision
 export const ONBOARDING_QUEST_SEQUENCE: string[] = [
-  "skills",               // 1. What they can do — capability baseline
-  "passions",             // 2. What drives them — motivational fuel
-  "aha-moments",          // 3. How they grow — surfaces insight pattern early
-  "experiments",          // 4. What they've tried — grounds vision in real experience
-  "natural-talents",      // 5. What comes naturally
-  "personal-frustrations",// 6. What blocks them — shadow
-  "life-events",          // 7. Their story — WHY behind everything above
-  "values",               // 8. What they stand for — filter for mentor advice from here on
-  "inspirations",         // 9. Who shaped them — aspirational identity
-  "childhood-signals",    // 10. Deep roots — works after trust is built
-  "who-i-serve",          // 11. Who they want to help — bridge to project + creator system
+  "natural-talents",      // 1. Natural Gifts — what comes easily and feels alive
+  "childhood-signals",    // 2. Early Signals — deep roots before adult logic
+  "who-i-serve",          // 3. Who/what they want to repair — bridge to project + creator system
+  "experiments",          // 4. Experiments — what they've tried; evidence through action
+  "passions",             // 5. What drives them — motivational fuel
+  "skills",               // 6. What they can do — capability baseline
+  "personal-frustrations",// 7. What blocks them — shadow
+  "life-events",          // 8. Their story — WHY behind everything above
+  "values",               // 9. What they stand for — filter for mentor advice from here on
+  "inspirations",         // 10. Who shaped them — aspirational identity
+  "aha-moments",          // 11. Aha Moments — worldview, what they notice, what changed how they see
   "ideal-life",           // 12. Personal vision — what their fulfilled life looks like
   "external-reflections", // 13. What others see in them — deepens self-awareness
   "vision-for-a-better-world", // 14. World vision — closes the arc
@@ -821,7 +829,7 @@ export const ONBOARDING_QUESTS: AtlasQuestDefinition[] = [
       { type: "tap_resonates", prompt: "Tap all skills that feel like you.", words: ["Organizing", "Creating", "Listening", "Analyzing", "Leading", "Teaching", "Writing", "Designing", "Negotiating", "Storytelling", "Problem-solving", "Connecting people"] },
       { type: "ranking", prompt: "Rank your top 3 by confidence.", options: ["Communication", "Creative thinking", "Strategic planning", "Understanding people"] },
       { type: "scenario", prompt: "In a team you naturally become…", options: ["The planner", "The idea generator", "The people connector", "The executor", "The problem solver"] },
-      { type: "reflection", prompt: "What are you naturally good at, even without trying too hard?" },
+      { type: "reflection", prompt: "What are you naturally good at, even without trying too hard?", detailHint: "Give one real moment: who was there, what happened, and what did people rely on you for?" },
     ],
     interpret: (r) => pick(["Connects People Naturally", "Breaks Down Any System", "Understands and Guides Others"], r),
   },
@@ -837,7 +845,7 @@ export const ONBOARDING_QUESTS: AtlasQuestDefinition[] = [
       { type: "emoji_scale", prompt: "How alive do you feel doing what you love?", emojiOptions: [
         { emoji: "😐", label: "Okay" }, { emoji: "🙂", label: "Good" }, { emoji: "😊", label: "Great" }, { emoji: "😄", label: "On fire" }, { emoji: "🤯", label: "Unstoppable" }
       ]},
-      { type: "reflection", prompt: "What do you naturally enjoy doing, even if no one asks you to?" },
+      { type: "reflection", prompt: "What do you naturally enjoy doing, even if no one asks you to?", detailHint: "Name one recent moment when you did this naturally. Where were you, and what made it feel alive?" },
     ],
     interpret: (r) => pick(["Creates to Help Others", "Loves Exploring Ideas", "Brings Ideas Into Reality"], r),
   },
@@ -853,7 +861,7 @@ export const ONBOARDING_QUESTS: AtlasQuestDefinition[] = [
         { emoji: "😐", label: "Mild" }, { emoji: "😤", label: "Annoying" }, { emoji: "😠", label: "Intense" }, { emoji: "🔥", label: "Burning" }, { emoji: "💥", label: "Explosive" }
       ]},
       { type: "card_pick", prompt: "Which one feels most personal?", options: ["People not reaching their potential", "Systems that fail people", "Creativity being crushed", "Lack of real connection"] },
-      { type: "reflection", prompt: "What problem would you solve if you had unlimited resources, and why does it matter to you personally?" },
+      { type: "reflection", prompt: "What problem would you solve if you had unlimited resources, and why does it matter to you personally?", detailHint: "Point to a person or moment that made you care about this. What did you see that stayed with you?" },
     ],
     interpret: (r) => pick(["Sees Wasted Potential", "Frustrated by Unlived Lives", "Builds for Those Who Are Lost"], r),
   },
@@ -866,8 +874,8 @@ export const ONBOARDING_QUESTS: AtlasQuestDefinition[] = [
     interactions: [
       { type: "tap_resonates", prompt: "Tap what you've done.", words: ["Built", "Launched", "Failed", "Pivoted", "Learned", "Created", "Tried", "Quit", "Scaled", "Started over"] },
       { type: "this_or_that", prompt: "Your most important experiment…", optionA: "Succeeded beyond expectations", optionB: "Taught me something more valuable than success" },
-      { type: "sentence_completion", prompt: "Complete this:", sentenceStem: "The experiment I learned the most from was" },
-      { type: "reflection", prompt: "What did your most important experiment teach you that you now carry into everything you build?" },
+      { type: "multi_select", prompt: "What kinds of experiments have you created or tried in real life?", options: ["A business or offer", "Social media content", "A trip or move", "A game or activity", "A workshop or event", "A routine or challenge", "A creative project", "A community", "A course or learning path", "A service for someone"], minSelect: 1, maxSelect: 4 },
+      { type: "reflection", prompt: "Tell us about one experiment, creation, or test you actually did.", detailHint: "What did you create or try? How was it structured? Who was involved, what happened, and what did you learn from how it worked?" },
     ],
     interpret: (r) => pick(["Left Safety and Discovered What Matters", "Built Something From Nothing", "Learned to Shift Energy"], r),
   },
@@ -895,21 +903,21 @@ export const ONBOARDING_QUESTS: AtlasQuestDefinition[] = [
       { type: "multi_select", prompt: "Which moments feel most defining?", options: ["A move", "A relationship shift", "A career change", "A loss", "A success", "A moment of clarity"], minSelect: 2, maxSelect: 3 },
       { type: "ranking", prompt: "Rank these by emotional impact.", options: ["The biggest risk I took", "The hardest loss", "The proudest moment", "The most unexpected turn"] },
       { type: "then_vs_now", prompt: "How did your biggest life change shape you?", thenLabel: "Who I was before my biggest change", nowLabel: "Who I became after it" },
-      { type: "reflection", prompt: "In one sentence, what do your biggest life moments have in common? What is the thread that runs through them?" },
+      { type: "reflection", prompt: "In one sentence, what do your biggest life moments have in common? What is the thread that runs through them?", detailHint: "Use one concrete anchor from your story, like a place, relationship, decision, loss, or turning point." },
     ],
     interpret: (r) => pick(["Built Something Every Time Life Paused", "Always Returned to People", "Moved Toward Freedom Every Time"], r, "life_imprint"),
   },
-  // 7. Natural Talents — direction
+  // 1. Natural Gifts — combines skill + passion without asking twice
   {
     questKey: "onboarding_natural_talents",
     clusterSlug: "natural-talents",
-    clusterName: "Natural Talents",
-    intro: "Let's uncover the gifts you take for granted.",
+    clusterName: "Natural Gifts",
+    intro: "Let's find your mix of natural gifts, learned skills, and things you feel pulled to understand.",
     interactions: [
-      { type: "tap_resonates", prompt: "Tap what feels natural to you.", words: ["Reads people", "Sees patterns", "Simplifies complexity", "Builds systems", "Holds space", "Generates ideas", "Connects dots", "Stays calm under pressure"] },
-      { type: "sentence_completion", prompt: "Complete this:", sentenceStem: "Something I can do that most people find hard is" },
-      { type: "this_or_that", prompt: "Your strongest abilities feel…", optionA: "Something I was born with", optionB: "Something I built through experience" },
-      { type: "reflection", prompt: "What ability do you have that feels so natural you sometimes forget it is a skill?" },
+      { type: "tap_resonates", prompt: "What is part of your current skill or learning mix?", words: ["Understanding people", "Business", "Design", "AI or technology", "Sales", "Law or systems", "Psychology", "Healing or energy work", "Teaching", "Storytelling", "Sports or coaching", "Creating experiences"] },
+      { type: "sentence_completion", prompt: "Complete this:", sentenceStem: "Lately I have been learning, studying, or getting curious about" },
+      { type: "this_or_that", prompt: "Your strongest gift feels more like…", optionA: "A natural instinct", optionB: "An ability I built through study or experience" },
+      { type: "reflection", prompt: "What are you naturally good at, what have you learned or studied, and what would you like to learn next?", detailHint: "Be messy and real: mention work, courses, interests, skills, books, life experience, or anything you keep researching." },
     ],
     interpret: (r) => pick(["Understands Systems Deeply", "Reads a Room Instantly", "Connects Ideas No One Else Connects"], r),
   },
@@ -937,7 +945,7 @@ export const ONBOARDING_QUESTS: AtlasQuestDefinition[] = [
       { type: "multi_select", prompt: "Which values won't you compromise?", options: ["Freedom", "Family", "Impact", "Growth", "Connection", "Integrity", "Creativity", "Service", "Depth", "Authenticity"], minSelect: 2, maxSelect: 4 },
       { type: "this_or_that", prompt: "Quick gut reaction:", optionA: "Freedom", optionB: "Security" },
       { type: "ranking", prompt: "What guides your biggest decisions?", options: ["My gut feeling", "My values", "Other people's needs", "Long-term vision"] },
-      { type: "reflection", prompt: "What matters so much to you that you would not compromise on it, even when it is hard?" },
+      { type: "reflection", prompt: "What matters so much to you that you would not compromise on it, even when it is hard?", detailHint: "Tell a moment when this value was tested. What did you choose?" },
     ],
     interpret: (r) => pick(["Fights for Freedom", "Family and Legacy Drive Everything", "Connection Is Non-Negotiable"], r),
   },
@@ -957,19 +965,19 @@ export const ONBOARDING_QUESTS: AtlasQuestDefinition[] = [
     ],
     interpret: (r) => pick(["Most Alive When Creating for Others", "Impact at Scale While Staying Free", "Build Family and Keep Building Things"], r),
   },
-  // 11. Childhood Signals
+  // 2. Childhood Clues — early pattern before adult logic
   {
     questKey: "onboarding_childhood",
     clusterSlug: "childhood-signals",
-    clusterName: "Childhood Signals",
+    clusterName: "Childhood Clues",
     intro: "Let's go back to who you were before the world told you who to be.",
     interactions: [
-      { type: "multi_select", prompt: "What did you love doing as a child?", options: ["Playing sport", "Making things", "Telling stories", "Organizing", "Exploring", "Performing", "Connecting with people"], minSelect: 2, maxSelect: 3 },
-      { type: "sentence_completion", prompt: "Complete this:", sentenceStem: "Someone in my family whose way of living I admire is" },
-      { type: "emoji_scale", prompt: "How connected is your childhood self to who you are today?", emojiOptions: [
+      { type: "multi_select", prompt: "As a child, what kept showing up in you?", options: ["Making things", "Inventing games", "Asking why", "Helping others", "Performing", "Organizing people", "Exploring places", "Protecting someone", "Noticing unfairness", "Feeling deeply"], minSelect: 2, maxSelect: 3 },
+      { type: "sentence_completion", prompt: "Complete this:", sentenceStem: "When I was younger, I kept coming back to" },
+      { type: "emoji_scale", prompt: "How connected is that younger version to who you are today?", emojiOptions: [
         { emoji: "😐", label: "Very different" }, { emoji: "🙂", label: "Some overlap" }, { emoji: "😊", label: "Connected" }, { emoji: "😄", label: "Very connected" }, { emoji: "🤯", label: "Exactly the same" }
       ]},
-      { type: "reflection", prompt: "What did you love doing as a child that you still do in some form today, and is there someone from your family whose skill or way of living you carry with you?" },
+      { type: "reflection", prompt: "What did you love, notice, protect, or keep doing as a child that still says something true about you today?", detailHint: "Name one scene, place, person, habit, obsession, or sensitivity from when you were younger." },
     ],
     interpret: (r) => pick(["Loved Organizing Games as a Kid", "Learned Legacy Through Family", "Built Things From Nothing Since Childhood"], r, "life_imprint"),
   },
@@ -983,7 +991,7 @@ export const ONBOARDING_QUESTS: AtlasQuestDefinition[] = [
       { type: "multi_select", prompt: "People come to you for…", options: ["Advice", "Problem solving", "Creative ideas", "Emotional support", "Leadership", "Organizing", "Connection", "Perspective"], minSelect: 2, maxSelect: 3 },
       { type: "sentence_completion", prompt: "Complete this:", sentenceStem: "Something people compliment me on that still surprises me is" },
       { type: "this_or_that", prompt: "Others see you more as…", optionA: "A creator — you build new things", optionB: "A connector — you bring people together" },
-      { type: "reflection", prompt: "What do people usually come to you for, and what do they say about you that you still find hard to fully believe?" },
+      { type: "reflection", prompt: "What do people usually come to you for, and what do they say about you that you still find hard to fully believe?", detailHint: "Think of one person who came to you. What did they need, and what did they say afterward?" },
     ],
     interpret: (r) => pick(["Creates Space for People", "People Come When Things Fall Apart", "Recognized as the One Who Connects"], r),
   },
@@ -992,14 +1000,14 @@ export const ONBOARDING_QUESTS: AtlasQuestDefinition[] = [
     questKey: "onboarding_who_i_serve",
     clusterSlug: "who-i-serve",
     clusterName: "Who I Serve",
-    intro: "You've mapped who you are. Now let's discover who you feel called to help.",
+    intro: "Let's name who you feel called to help, and what in the world you want to repair.",
     interactions: [
-      { type: "multi_select", prompt: "Who do you feel most drawn to help?", options: ["People who feel lost", "Creators without direction", "Entrepreneurs starting out", "People without mentors", "Families", "Young professionals", "Kids", "People in transition"], minSelect: 1, maxSelect: 3 },
-      { type: "card_pick", prompt: "Why do you care about this group?", options: ["I was once in their shoes", "I see their potential clearly", "The world overlooks them", "I have exactly what they need"] },
-      { type: "sentence_completion", prompt: "Complete this:", sentenceStem: "The person I most want to help is someone who" },
-      { type: "reflection", prompt: "Who do you feel most called to help, and why them specifically? What do you understand about them that most people miss?" },
+      { type: "card_pick", prompt: "What feels most worth repairing?", options: ["Disconnection between people", "People feeling lost", "Creators hiding their gifts", "Work that drains people", "Families under pressure", "Systems failing people"] },
+      { type: "multi_select", prompt: "Who do you feel protective of or curious to serve?", options: ["Families", "People in transition", "Creators or entrepreneurs", "Young people", "Professionals stuck in work", "Communities needing connection", "Organizations or teams", "People exploring healing or spirituality", "People building with technology", "People without mentors"], minSelect: 1, maxSelect: 3 },
+      { type: "sentence_completion", prompt: "Complete this:", sentenceStem: "The world would be better if" },
+      { type: "reflection", prompt: "What do you see in the world that feels broken or worth repairing, who is most affected, and why do you care?", detailHint: "Name one real group or person. What are they carrying that others miss, and what shift would you want them to feel?" },
     ],
-    interpret: (r) => pick(["Feels Called to Help Others Find Direction", "Drawn to Supporting the Overlooked", "Wants to Help People Grow"], r),
+    interpret: (r) => pick(["Feels Called to Repair What Breaks Connection", "Protects the People Others Overlook", "Sees a Better World Through Service"], r),
   },
   // 14. Vision for a Better World
   {
@@ -1011,7 +1019,7 @@ export const ONBOARDING_QUESTS: AtlasQuestDefinition[] = [
       { type: "card_pick", prompt: "The world needs more…", options: ["People finding purpose", "Families connected", "Conscious creators", "Compassion", "Meaningful work", "Human connection"] },
       { type: "sentence_completion", prompt: "Complete this:", sentenceStem: "The world would be better if everyone" },
       { type: "this_or_that", prompt: "Change starts…", optionA: "Inside the individual first", optionB: "In the systems around us" },
-      { type: "reflection", prompt: "What does the world need more of that you are trying to contribute to, and what would it look like if your vision came true?" },
+      { type: "reflection", prompt: "What does the world need more of that you are trying to contribute to, and what would it look like if your vision came true?", detailHint: "Make it concrete: what would someone do, feel, or receive differently in that future?" },
     ],
     interpret: (r) => pick(["World Where Everyone Finds Their Gift", "Building the System That Helps People Wake Up", "Everyone Deserves a Mentor"], r),
   },
@@ -1133,22 +1141,22 @@ export const ONBOARDING_QUESTS: AtlasQuestDefinition[] = [
 export const CONNECTION_MOMENT_AFTER = [2, 5, 8, 12];
 
 export const CLUSTER_DEEPENING_QUESTIONS: Record<string, string[]> = {
-  skills: ["When do you use this skill most?", "What happens when you apply it?"],
-  passions: ["What specifically about this excites you?", "When did you first feel this?"],
-  "personal-frustrations": ["Why does this bother you so deeply?", "What would change if this was solved?"],
-  experiments: ["What did you learn from doing this?", "Would you do it again differently?"],
-  "aha-moments": ["What changed after this realization?", "How does this show up now?"],
-  "life-events": ["How did this moment change you?", "What did you carry forward from it?"],
-  "natural-talents": ["When does this feel most effortless?", "How do others react to it?"],
-  inspirations: ["What specifically inspires you about this?", "How does it influence you?"],
-  values: ["When was this value tested?", "How do you live this value daily?"],
-  "ideal-life": ["What would a day in this life look like?", "What's the first step toward it?"],
-  "childhood-signals": ["How does this memory connect to who you are now?", "What feeling does it bring back?"],
-  "who-i-serve": ["What do these people struggle with most?", "Why do you feel drawn to help them?"],
-  "how-i-create-impact": ["What happens when you do this for others?", "What makes your way unique?"],
-  "golden-moments": ["What did this moment reveal about you?", "How has it shaped your direction?"],
-  "external-reflections": ["What pattern do others see in you?", "Does their view surprise you?"],
-  "vision-for-a-better-world": ["What would be different if this existed?", "What's your role in making it happen?"],
+  skills: ["Tell one moment when someone relied on this skill.", "What did you actually do in that moment?"],
+  passions: ["When did you last lose track of time doing this?", "What detail made it feel alive?"],
+  "personal-frustrations": ["When did you first notice this problem in real life?", "Who is affected by this, and what happens to them?"],
+  experiments: ["Name one experiment you actually tried.", "What changed after you tried it?"],
+  "aha-moments": ["Where were you when this clicked?", "What did you do differently after that realization?"],
+  "life-events": ["What concrete moment changed you?", "What did you carry forward from that moment?"],
+  "natural-talents": ["Tell one scene where this felt effortless.", "How did someone else react to it?"],
+  inspirations: ["What exact person, book, place, or moment inspired this?", "What did it make you want to become or build?"],
+  values: ["When was this value tested in real life?", "What did you choose because of it?"],
+  "ideal-life": ["Describe one ordinary hour in this life.", "Who is there, and what are you doing?"],
+  "childhood-signals": ["What is one childhood scene that still feels important?", "What feeling from then still lives in you?"],
+  "who-i-serve": ["What do you see in the world that feels broken or worth repairing?", "Who is most affected, and why do you care about them?"],
+  "how-i-create-impact": ["Think of one time your help changed someone.", "What did you do that made the difference?"],
+  "golden-moments": ["What happened in this moment, specifically?", "What did it reveal about you?"],
+  "external-reflections": ["Who said this about you?", "What happened that made them see it?"],
+  "vision-for-a-better-world": ["What would one person experience differently if this vision existed?", "What role would you play in creating that?"],
 };
 
 export function getQuestForCluster(slug: string): AtlasQuestDefinition | undefined {

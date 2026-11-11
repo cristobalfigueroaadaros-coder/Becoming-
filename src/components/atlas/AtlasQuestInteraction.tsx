@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, type Dispatch, type SetStateAction } from "react";
 import { motion } from "framer-motion";
 import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
@@ -14,7 +14,27 @@ interface Props {
 }
 
 export const AtlasQuestInteraction = ({ interaction, onSubmit }: Props) => {
-  const { type, prompt, options, minSelect, maxSelect, sliderItems, emojiOptions, sentenceStem, memoryPrompt, optionA, optionB, words, thenLabel, nowLabel } = interaction;
+  const {
+    type,
+    prompt,
+    options,
+    minSelect,
+    maxSelect,
+    sliderItems,
+    emojiOptions,
+    sentenceStem,
+    memoryPrompt,
+    optionA,
+    optionB,
+    words,
+    thenLabel,
+    nowLabel,
+    detailHint,
+    impactAudienceOptions = [],
+    impactNeedOptions = [],
+    lessonOptions,
+    futureUseOptions,
+  } = interaction;
   const [selected, setSelected] = useState<string[]>([]);
   const [ranked, setRanked] = useState<string[]>(options || []);
   const [sliderValues, setSliderValues] = useState<number[]>((sliderItems || []).map(() => 3));
@@ -22,6 +42,20 @@ export const AtlasQuestInteraction = ({ interaction, onSubmit }: Props) => {
   const [emojiIndex, setEmojiIndex] = useState<number | null>(null);
   const [thenText, setThenText] = useState("");
   const [nowText, setNowText] = useState("");
+  const [impactAudience, setImpactAudience] = useState<string[]>([]);
+  const [impactNeeds, setImpactNeeds] = useState<string[]>([]);
+  const [customAudience, setCustomAudience] = useState("");
+  const [customNeed, setCustomNeed] = useState("");
+  const [impactFrom, setImpactFrom] = useState("");
+  const [impactTo, setImpactTo] = useState("");
+  const [lessonSignals, setLessonSignals] = useState<string[]>([]);
+  const [lessonText, setLessonText] = useState("");
+  const [futureUses, setFutureUses] = useState<string[]>([]);
+
+  const writtenAudiences = customAudience.split("\n").map((value) => value.trim()).filter(Boolean);
+  const writtenNeeds = customNeed.split("\n").map((value) => value.trim()).filter(Boolean);
+  const audiences = [...new Set([...impactAudience, ...writtenAudiences])];
+  const needs = [...new Set([...impactNeeds, ...writtenNeeds])];
 
   const canSubmit = (() => {
     switch (type) {
@@ -38,6 +72,8 @@ export const AtlasQuestInteraction = ({ interaction, onSubmit }: Props) => {
       case "this_or_that": return selected.length === 1;
       case "tap_resonates": return selected.length >= 1;
       case "then_vs_now": return thenText.trim().length > 0 && nowText.trim().length > 0;
+      case "impact_blueprint": return audiences.length > 0 && audiences.length <= 2 && needs.length > 0 && needs.length <= 2 && impactFrom.trim().length > 0 && impactTo.trim().length > 0;
+      case "turning_point_lesson": return lessonSignals.length > 0 && lessonText.trim().length > 0 && futureUses.length > 0;
       default: return false;
     }
   })();
@@ -57,6 +93,16 @@ export const AtlasQuestInteraction = ({ interaction, onSubmit }: Props) => {
       case "this_or_that": return onSubmit(selected[0]);
       case "tap_resonates": return onSubmit(selected);
       case "then_vs_now": return onSubmit({ then: thenText.trim(), now: nowText.trim() });
+      case "impact_blueprint": return onSubmit({
+        audience: audiences,
+        needs,
+        transformation: { from: impactFrom.trim(), to: impactTo.trim() },
+      });
+      case "turning_point_lesson": return onSubmit({
+        lessons: lessonSignals,
+        lessonInOwnWords: lessonText.trim(),
+        futureUse: futureUses,
+      });
     }
   };
 
@@ -78,6 +124,30 @@ export const AtlasQuestInteraction = ({ interaction, onSubmit }: Props) => {
       const next = [...prev];
       [next[idx - 1], next[idx]] = [next[idx], next[idx - 1]];
       return next;
+    });
+  };
+
+  const toggleImpactSelection = (
+    value: string,
+    setter: Dispatch<SetStateAction<string[]>>,
+    max = 2,
+  ) => {
+    setter((current) => {
+      if (current.includes(value)) return current.filter((item) => item !== value);
+      if (current.length >= max) return current;
+      return [...current, value];
+    });
+  };
+
+  const toggleTurningPointSelection = (
+    value: string,
+    setter: Dispatch<SetStateAction<string[]>>,
+    max = 2,
+  ) => {
+    setter((current) => {
+      if (current.includes(value)) return current.filter((item) => item !== value);
+      if (current.length >= max) return current;
+      return [...current, value];
     });
   };
 
@@ -210,6 +280,74 @@ export const AtlasQuestInteraction = ({ interaction, onSubmit }: Props) => {
         </div>
       )}
 
+      {/* Turning point lesson — captures the moment, the learning, and where it can be used next */}
+      {type === "turning_point_lesson" && (
+        <div className="space-y-6">
+          {detailHint && (
+            <p className="rounded-xl border border-primary/15 bg-primary/5 px-4 py-3 text-sm leading-6 text-muted-foreground">
+              {detailHint}
+            </p>
+          )}
+          <div className="space-y-2">
+            <p className="text-sm font-medium text-foreground">1. What did this moment give you?</p>
+            <p className="text-xs text-muted-foreground">Choose up to 2 lessons that feel true.</p>
+            <div className="flex flex-col gap-2">
+              {(lessonOptions || []).map((option) => (
+                <button
+                  key={option}
+                  type="button"
+                  onClick={() => toggleTurningPointSelection(option, setLessonSignals)}
+                  className={cn(
+                    "text-left px-4 py-3 rounded-xl border transition-all text-sm",
+                    lessonSignals.includes(option)
+                      ? "border-primary bg-primary/10 text-foreground"
+                      : "border-border bg-card text-muted-foreground hover:border-primary/40",
+                  )}
+                >
+                  {option}
+                </button>
+              ))}
+            </div>
+          </div>
+
+          <div className="space-y-2">
+            <p className="text-sm font-medium text-foreground">2. Say the lesson in your own words</p>
+            <p className="text-xs text-muted-foreground">Complete this: Because of that experience, I now know that I can…</p>
+            <Textarea
+              value={lessonText}
+              onChange={(event) => setLessonText(event.target.value)}
+              placeholder="I can keep learning and creating, even when life changes unexpectedly…"
+              className="min-h-[100px] bg-card"
+            />
+            <VoiceRecorder
+              onTranscription={(transcript) => setLessonText((current) => appendTranscription(current, transcript))}
+            />
+          </div>
+
+          <div className="space-y-2">
+            <p className="text-sm font-medium text-foreground">3. Where could you use this lesson next?</p>
+            <p className="text-xs text-muted-foreground">Choose the place where it feels most useful now.</p>
+            <div className="flex flex-col gap-2">
+              {(futureUseOptions || []).map((option) => (
+                <button
+                  key={option}
+                  type="button"
+                  onClick={() => toggleTurningPointSelection(option, setFutureUses, 1)}
+                  className={cn(
+                    "text-left px-4 py-3 rounded-xl border transition-all text-sm",
+                    futureUses.includes(option)
+                      ? "border-primary bg-primary/10 text-foreground"
+                      : "border-border bg-card text-muted-foreground hover:border-primary/40",
+                  )}
+                >
+                  {option}
+                </button>
+              ))}
+            </div>
+          </div>
+        </div>
+      )}
+
       {/* Emoji scale */}
       {type === "emoji_scale" && emojiOptions && (
         <div className="flex justify-center gap-2 flex-wrap">
@@ -275,6 +413,9 @@ export const AtlasQuestInteraction = ({ interaction, onSubmit }: Props) => {
       {type === "sentence_completion" && (
         <div className="space-y-3">
           <p className="text-base font-medium text-foreground">{sentenceStem}…</p>
+          <p className="text-xs text-muted-foreground">
+            {detailHint || "Add one real detail if you can: a person, place, moment, or what actually happened."}
+          </p>
           <Input
             value={text}
             onChange={(e) => setText(e.target.value)}
@@ -287,12 +428,101 @@ export const AtlasQuestInteraction = ({ interaction, onSubmit }: Props) => {
         </div>
       )}
 
+      {/* Impact blueprint — audience, need, and the change the user wants to create */}
+      {type === "impact_blueprint" && (
+        <div className="space-y-6">
+          <div className="space-y-2">
+            <p className="text-sm font-medium text-foreground">1. Who do you want to help first?</p>
+            <p className="text-xs text-muted-foreground">Choose or write up to 2 groups.</p>
+            <Textarea
+              aria-label="Audience in your own words"
+              value={customAudience}
+              onChange={(event) => setCustomAudience(event.target.value)}
+              placeholder="Or write who you want to help, one group per line"
+              disabled={impactAudience.length >= 2 && !customAudience}
+              maxLength={240}
+              rows={2}
+            />
+            <div className="flex flex-col gap-2">
+              {impactAudienceOptions.map((option) => (
+                <button
+                  key={option}
+                  onClick={() => toggleImpactSelection(option, setImpactAudience, 2 - writtenAudiences.length)}
+                  aria-pressed={impactAudience.includes(option)}
+                  className={cn(
+                    "text-left px-4 py-3 rounded-xl border transition-all text-sm",
+                    impactAudience.includes(option)
+                      ? "border-primary bg-primary/10 text-foreground"
+                      : "border-border bg-card text-muted-foreground hover:border-primary/40"
+                  )}
+                >
+                  {option}
+                </button>
+              ))}
+            </div>
+          </div>
+
+          <div className="space-y-2">
+            <p className="text-sm font-medium text-foreground">2. What do they need most to move forward?</p>
+            <p className="text-xs text-muted-foreground">Choose or write up to 2 needs.</p>
+            <Textarea
+              aria-label="Need in your own words"
+              value={customNeed}
+              onChange={(event) => setCustomNeed(event.target.value)}
+              placeholder="Or write what they need, one need per line"
+              disabled={impactNeeds.length >= 2 && !customNeed}
+              maxLength={240}
+              rows={2}
+            />
+            <div className="flex flex-col gap-2">
+              {impactNeedOptions.map((option) => (
+                <button
+                  key={option}
+                  onClick={() => toggleImpactSelection(option, setImpactNeeds, 2 - writtenNeeds.length)}
+                  aria-pressed={impactNeeds.includes(option)}
+                  className={cn(
+                    "text-left px-4 py-3 rounded-xl border transition-all text-sm",
+                    impactNeeds.includes(option)
+                      ? "border-primary bg-primary/10 text-foreground"
+                      : "border-border bg-card text-muted-foreground hover:border-primary/40"
+                  )}
+                >
+                  {option}
+                </button>
+              ))}
+            </div>
+          </div>
+
+          <div className="space-y-2">
+            <p className="text-sm font-medium text-foreground">3. Complete this in your own words</p>
+            <p className="text-xs text-muted-foreground">I want people to move from… to…</p>
+            <Input
+              value={impactFrom}
+              onChange={(event) => setImpactFrom(event.target.value)}
+              aria-label="What they experience today"
+              placeholder="What they experience today"
+              className="bg-card"
+            />
+            <Input
+              value={impactTo}
+              onChange={(event) => setImpactTo(event.target.value)}
+              aria-label="What you want them to experience instead"
+              placeholder="What you want them to experience instead"
+              className="bg-card"
+            />
+          </div>
+        </div>
+      )}
+
       {/* Memory flash */}
       {type === "memory_flash" && (
         <div className="space-y-3">
           {memoryPrompt && (
             <p className="text-sm italic text-muted-foreground">{memoryPrompt}</p>
           )}
+          <p className="text-xs text-muted-foreground">
+            {detailHint || "A small scene is enough: where were you, who was involved, and what changed?"}
+          </p>
           <Textarea
             value={text}
             onChange={(e) => setText(e.target.value)}
@@ -308,6 +538,9 @@ export const AtlasQuestInteraction = ({ interaction, onSubmit }: Props) => {
       {/* Reflection */}
       {type === "reflection" && (
         <div className="space-y-3">
+          <p className="text-xs text-muted-foreground">
+            {detailHint || "Make it specific: name a moment, person, place, object, or choice from your real life."}
+          </p>
           <Textarea
             value={text}
             onChange={(e) => setText(e.target.value)}

@@ -62,27 +62,10 @@ const Index = () => {
         toast.success("Account created! Redirecting...");
         navigate("/gravity/orientation");
       } else {
-        const { data: authData, error } = await supabase.auth.signInWithPassword({ email, password });
+        const { error } = await supabase.auth.signInWithPassword({ email, password });
         if (error) throw error;
         toast.success("Welcome back!");
-        if (authData.user) {
-          const { data: profile } = await supabase
-            .from("profiles")
-            .select(
-              "birth_name, gravity_orientation_completed, gravity_transition_completed, council_introduction_completed, first_project_created_at, onboarding_completion_seen",
-            )
-            .eq("id", authData.user.id)
-            .single();
-          if (!profile?.gravity_orientation_completed) navigate("/gravity/orientation");
-          else if (!profile?.birth_name) navigate("/onboarding");
-          else if (!profile.gravity_transition_completed) navigate("/gravity/transition");
-          else if (!profile.council_introduction_completed) navigate("/gravity/council-intro");
-          else if (!(profile as any).onboarding_completion_seen) navigate("/gravity/onboarding-complete");
-          else if (!profile.first_project_created_at) navigate("/gravity/first-project");
-          else navigate("/dashboard");
-        } else {
-          navigate("/dashboard");
-        }
+        navigate("/", { replace: true });
       }
     } catch (error: any) {
       toast.error(error.message);

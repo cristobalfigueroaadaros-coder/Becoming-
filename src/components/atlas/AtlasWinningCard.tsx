@@ -1,10 +1,10 @@
 import { useState, useEffect } from "react";
 import { motion } from "framer-motion";
-import { Sparkles, Zap, ArrowRight, Shield, Star, RefreshCw, Check, X, Pencil } from "lucide-react";
+import { Sparkles, ArrowRight, Shield, Star, Compass, RefreshCw, Check, X, Pencil } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
-import { DOT_TYPE_COLORS } from "@/hooks/useAtlas";
+import { DOT_TYPE_COLORS, getAtlasClusterColor, useAtlas } from "@/hooks/useAtlas";
 import confetti from "canvas-confetti";
 import type { DotInterpretation } from "@/data/atlasQuests";
 import type { DotCategory } from "@/data/atlasSignals";
@@ -14,6 +14,8 @@ export type ValidationMode = "initial" | "picking" | "regenerating" | "editing" 
 interface Props {
   dot: DotInterpretation;
   clusterName: string;
+  destinationClusterSlug?: string;
+  fallbackClusterSlug?: string;
   onConfirm: (primary?: DotInterpretation, extras?: DotInterpretation[], userEdited?: boolean) => void;
   onRegenerate: (feedback?: string) => void;
   isLoading?: boolean;
@@ -23,33 +25,64 @@ interface Props {
   variations?: DotInterpretation[];
   validationMode: ValidationMode;
   onSetValidationMode: (mode: ValidationMode) => void;
+  confirmLabel?: string;
 }
 
 const CATEGORY_CONFIG: Record<string, { icon: typeof Sparkles; label: string }> = {
   strength: { icon: Sparkles, label: "Strength" },
   shadow: { icon: Shield, label: "Shadow" },
   life_imprint: { icon: Star, label: "Life Imprint" },
+  direction: { icon: Compass, label: "Direction" },
+};
+
+const CLUSTER_LABELS: Record<string, string> = {
+  "who-i-serve": "Who I Serve",
+  "how-i-create-impact": "How I Create Impact",
+  "vision-for-a-better-world": "Vision for a Better World",
+  "life-events": "Life Events",
+  "aha-moments": "Aha Moments",
+  "natural-talents": "Natural Talents",
+  skills: "Skills",
+  experiments: "Experiments",
+  inspirations: "Inspirations",
+};
+
+const clusterLabelFor = (clusterSlug?: string, fallback?: string) => {
+  if (!clusterSlug) return fallback;
+  return CLUSTER_LABELS[clusterSlug] || clusterSlug.replace(/-/g, " ").replace(/\b\w/g, (letter) => letter.toUpperCase());
 };
 
 export const AtlasWinningCard = ({
-  dot, clusterName, onConfirm, onRegenerate, isLoading, isPatternBased, isReinforced,
-  mirrorFeedback, variations, validationMode, onSetValidationMode,
+  dot, clusterName, destinationClusterSlug, fallbackClusterSlug, onConfirm, onRegenerate, isLoading, isPatternBased, isReinforced,
+  mirrorFeedback, variations, validationMode, onSetValidationMode, confirmLabel,
 }: Props) => {
   const dotCategory = dot.dotCategory || "strength";
   const dotColor = DOT_TYPE_COLORS[dotCategory] || DOT_TYPE_COLORS.strength;
   const catConfig = CATEGORY_CONFIG[dotCategory] || CATEGORY_CONFIG.strength;
 
+  const { clusters } = useAtlas();
+  const getDestination = (candidate: DotInterpretation) => {
+    const slug = destinationClusterSlug || candidate.clusterSlug;
+    const cluster = clusters.find((item) => slug ? item.slug === slug : item.name === clusterName)
+      || clusters.find((item) => item.slug === fallbackClusterSlug);
+    return {
+      label: cluster?.name || clusterLabelFor(slug, clusterName),
+      color: cluster ? getAtlasClusterColor(cluster) : undefined,
+    };
+  };
+  const destination = getDestination(dot);
+
   const [editTitle, setEditTitle] = useState(dot.title);
   const [editDesc, setEditDesc] = useState(dot.description);
   const [discardFeedback, setDiscardFeedback] = useState("");
   const [selectedVars, setSelectedVars] = useState<DotInterpretation[]>([]);
-  const MAX_SELECTIONS = 2;
+  const maxSelections = Math.min(3, variations?.length ?? 1);
 
   const toggleVariation = (v: DotInterpretation) => {
     setSelectedVars(prev => {
       const isSelected = prev.some(s => s.title === v.title);
       if (isSelected) return prev.filter(s => s.title !== v.title);
-      if (prev.length >= MAX_SELECTIONS) return prev;
+      if (prev.length >= maxSelections) return prev;
       return [...prev, v];
     });
   };
@@ -83,7 +116,7 @@ export const AtlasWinningCard = ({
       <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} className="flex flex-col items-center text-center gap-4 px-6 w-full">
         <div className="space-y-1">
           <p className="text-xs uppercase tracking-wider text-muted-foreground">{headerLabel}</p>
-          <p className="text-sm text-muted-foreground">Pick the ones that feel like you <span className="text-muted-foreground/60">(up to {MAX_SELECTIONS})</span></p>
+          <p className="text-sm text-muted-foreground">Pick the ones that feel like you <span className="text-muted-foreground/60">(up to {maxSelections})</span></p>
         </div>
 
         {mirrorFeedback && (
@@ -94,8 +127,9 @@ export const AtlasWinningCard = ({
           {variations.map((v, i) => {
             const vColor = DOT_TYPE_COLORS[v.dotCategory || "strength"] || DOT_TYPE_COLORS.strength;
             const vCat = CATEGORY_CONFIG[v.dotCategory || "strength"] || CATEGORY_CONFIG.strength;
+            const candidateDestination = getDestination(v);
             const isSelected = selectedVars.some(s => s.title === v.title);
-            const isMaxed = selectedVars.length >= MAX_SELECTIONS && !isSelected;
+            const isMaxed = selectedVars.length >= maxSelections && !isSelected;
             return (
               <motion.button
                 key={i}
@@ -104,6 +138,7 @@ export const AtlasWinningCard = ({
                 transition={{ delay: i * 0.07, duration: 0.22, ease: [0.23, 1, 0.32, 1] }}
                 onClick={() => !isMaxed && toggleVariation(v)}
                 disabled={isLoading || isMaxed}
+                aria-pressed={isSelected}
                 className={`w-full text-left p-4 rounded-xl border-2 transition-colors space-y-2 active:scale-[0.98] relative ${
                   isSelected
                     ? "border-primary bg-primary/5"
@@ -117,13 +152,21 @@ export const AtlasWinningCard = ({
                     <Check className="w-3 h-3 text-primary-foreground" />
                   </div>
                 )}
-                <div className="flex items-center justify-between pr-6">
+                <div className="space-y-1.5 pr-6">
                   <p className="font-semibold text-foreground">{v.title}</p>
-                  <div
-                    className="px-2 py-0.5 rounded-full text-[10px] font-medium"
-                    style={{ backgroundColor: `${vColor}20`, color: vColor }}
-                  >
-                    {vCat.label}
+                  <div className="flex flex-wrap items-center gap-1.5">
+                    <div
+                      className="px-2 py-0.5 rounded-full text-[10px] font-medium"
+                      style={{ backgroundColor: vColor.replace(")", " / 0.13)"), color: vColor }}
+                    >
+                      {vCat.label}
+                    </div>
+                    <div
+                      className="px-2 py-0.5 rounded-full bg-primary/10 text-primary text-[10px] font-medium"
+                      style={candidateDestination.color ? { backgroundColor: candidateDestination.color.replace(")", " / 0.13)"), color: candidateDestination.color } : undefined}
+                    >
+                      {candidateDestination.label}
+                    </div>
                   </div>
                 </div>
                 <p className="text-sm text-muted-foreground">{v.description}</p>
@@ -139,7 +182,7 @@ export const AtlasWinningCard = ({
             className="w-full gap-2"
           >
             <Sparkles className="w-4 h-4" />
-            Add to Atlas{selectedVars.length > 0 ? ` (${selectedVars.length})` : ""}
+            {confirmLabel || "Add to Atlas"}{selectedVars.length > 0 ? ` (${selectedVars.length})` : ""}
             <ArrowRight className="w-4 h-4 ml-auto" />
           </Button>
 
@@ -195,7 +238,7 @@ export const AtlasWinningCard = ({
           <Button
             size="sm"
             disabled={!editTitle.trim()}
-            onClick={() => onConfirm({ title: editTitle, description: editDesc, dotCategory }, [], true)}
+            onClick={() => onConfirm({ ...dot, title: editTitle, description: editDesc, dotCategory }, [], true)}
           >
             <Check className="w-4 h-4 mr-1" /> Save
           </Button>
@@ -254,15 +297,18 @@ export const AtlasWinningCard = ({
         <p className="text-xs text-muted-foreground/80 italic max-w-xs">{mirrorFeedback}</p>
       )}
 
-      <div className="flex items-center gap-2">
+      <div className="flex flex-wrap items-center justify-center gap-2">
         <div
           className="px-3 py-1 rounded-full text-xs font-medium"
-          style={{ backgroundColor: `${dotColor}20`, color: dotColor }}
+          style={{ backgroundColor: dotColor.replace(")", " / 0.13)"), color: dotColor }}
         >
           {catConfig.label}
         </div>
-        <div className="px-3 py-1 rounded-full bg-primary/10 text-primary text-xs font-medium">
-          {clusterName}
+        <div
+          className="px-3 py-1 rounded-full bg-primary/10 text-primary text-xs font-medium"
+          style={destination.color ? { backgroundColor: destination.color.replace(")", " / 0.13)"), color: destination.color } : undefined}
+        >
+          {destination.label}
         </div>
       </div>
 

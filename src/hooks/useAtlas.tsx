@@ -29,6 +29,7 @@ export interface AtlasDot {
   dot_type: string | null;
   dot_category: string | null;
   signal_sources: any;
+  signal_tags?: { [key: string]: unknown } | null;
   signal_strength: number | null;
   source_system: string | null;
   created_at: string | null;
@@ -94,17 +95,32 @@ export const DOMAIN_COLORS: Record<string, { bg: string; text: string; glow: str
 
 export const CLUSTER_COLORS: Record<string, { bg: string; glow: string }> = {
   "golden-moments": { bg: "hsl(50 100% 55%)", glow: "hsl(50 100% 55% / 0.55)" },
-  project: { bg: "hsl(355 100% 60%)", glow: "hsl(355 100% 60% / 0.55)" },
+  project: { bg: DOMAIN_COLORS.Product.bg, glow: DOMAIN_COLORS.Product.glow },
 };
+
+export function getAtlasClusterColor(cluster: Pick<AtlasCluster, "slug" | "cluster_category" | "meta_domain">): string {
+  if (cluster.cluster_category === "project") return "hsl(0 75% 55%)";
+  if (cluster.slug === "golden-moments") return "hsl(40 85% 55%)";
+  return (DOMAIN_COLORS[cluster.meta_domain?.name || "Person"] || DOMAIN_COLORS.Person).bg;
+}
 
 export const DOT_TYPE_COLORS: Record<string, string> = {
   strength: "hsl(192 100% 55%)",
   shadow: "hsl(320 100% 58%)",
   life_imprint: "hsl(50 100% 55%)",
+  direction: "hsl(28 100% 58%)",
+};
+
+export const DOT_CATEGORY_LABELS: Record<string, string> = {
+  strength: "Strength",
+  shadow: "Shadow",
+  life_imprint: "Life Imprint",
+  direction: "Direction",
 };
 
 export function getDotColor(dot: AtlasDot): string {
   const cat = dot.dot_category || "strength";
+  if (cat === "project_origin" || cat.startsWith("project_puzzle")) return DOMAIN_COLORS.Product.bg;
   return DOT_TYPE_COLORS[cat] || DOT_TYPE_COLORS.strength;
 }
 
@@ -132,6 +148,16 @@ export function getNextPhaseThreshold(totalDots: number): number | null {
 }
 
 export function useAtlas() {
+  const userQuery = useQuery({
+    queryKey: ["atlas-current-user"],
+    queryFn: async () => {
+      const { data: { user } } = await supabase.auth.getUser();
+      return user?.id || null;
+    },
+    staleTime: 0,
+  });
+  const userId = userQuery.data || null;
+
   const domainsQuery = useQuery({
     queryKey: ["atlas-meta-domains"],
     queryFn: async () => {
@@ -145,10 +171,8 @@ export function useAtlas() {
   });
 
   const clustersQuery = useQuery({
-    queryKey: ["atlas-clusters"],
+    queryKey: ["atlas-clusters", userId],
     queryFn: async () => {
-      const { data: { user } } = await supabase.auth.getUser();
-
       const { data: baseClusters, error: baseError } = await supabase
         .from("atlas_clusters")
         .select("*, atlas_meta_domains(*)")
@@ -159,11 +183,11 @@ export function useAtlas() {
 
       const clusterMap = new Map<string, any>((baseClusters || []).map((cluster: any) => [cluster.id, cluster]));
 
-      if (user) {
+      if (userId) {
         const { data: projectNodes, error: projectNodesError } = await supabase
           .from("atlas_project_nodes")
           .select("id")
-          .eq("user_id", user.id);
+          .eq("user_id", userId);
 
         if (projectNodesError) throw projectNodesError;
 
@@ -208,30 +232,29 @@ export function useAtlas() {
   });
 
   const dotsQuery = useQuery({
-    queryKey: ["atlas-dots"],
+    queryKey: ["atlas-dots", userId],
     queryFn: async () => {
-      const { data: { user } } = await supabase.auth.getUser();
-      if (!user) return [];
+      if (!userId) return [];
       const { data, error } = await supabase
         .from("atlas_dots")
         .select("*")
-        .eq("user_id", user.id)
+        .eq("user_id", userId)
         .order("created_at", { ascending: false });
       if (error) throw error;
       return data as AtlasDot[];
     },
+    enabled: userQuery.isSuccess,
   });
 
   // Fetch mini-dot counts per dot
   const miniDotCountsQuery = useQuery({
-    queryKey: ["atlas-mini-dot-counts"],
+    queryKey: ["atlas-mini-dot-counts", userId],
     queryFn: async () => {
-      const { data: { user } } = await supabase.auth.getUser();
-      if (!user) return {} as Record<string, number>;
+      if (!userId) return {} as Record<string, number>;
       const { data, error } = await supabase
         .from("atlas_mini_dots")
         .select("parent_dot_id")
-        .eq("user_id", user.id);
+        .eq("user_id", userId);
       if (error) throw error;
       const counts: Record<string, number> = {};
       (data || []).forEach((row: any) => {
@@ -239,6 +262,7 @@ export function useAtlas() {
       });
       return counts;
     },
+    enabled: userQuery.isSuccess,
   });
 
   const miniDotCounts = miniDotCountsQuery.data || {};
@@ -278,7 +302,7 @@ export function useAtlas() {
     totalDots,
     threadUnlockReady,
     miniDotCounts,
-    isLoading: domainsQuery.isLoading || clustersQuery.isLoading || dotsQuery.isLoading || miniDotCountsQuery.isLoading,
-    error: domainsQuery.error || clustersQuery.error || dotsQuery.error,
+    isLoading: userQuery.isLoading || domainsQuery.isLoading || clustersQuery.isLoading || dotsQuery.isLoading || miniDotCountsQuery.isLoading,
+    error: userQuery.error || domainsQuery.error || clustersQuery.error || dotsQuery.error,
   };
 }

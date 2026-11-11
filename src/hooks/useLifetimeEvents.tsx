@@ -1,6 +1,7 @@
 import { useState, useEffect, useCallback } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
+import type { LifetimeCandidateSeed } from "@/lib/lifetimeCandidates";
 
 export type TimePeriod = 
   | 'childhood' 
@@ -45,6 +46,26 @@ export interface LifetimeEventInput {
   pattern_id?: string;
   pattern_name?: string;
 }
+
+export interface LifetimeEventCandidate {
+  id: string;
+  user_id: string;
+  candidate_key: string;
+  event_label: string;
+  event_description: string | null;
+  suggested_time_period: TimePeriod;
+  suggested_event_type: EventType | null;
+  source_quest_id: string | null;
+  source_evidence: string[];
+  status: "available" | "locked" | "added" | "dismissed";
+  sort_order: number;
+  created_at: string;
+  updated_at: string;
+}
+
+export type LifetimeEventCandidateInput = LifetimeCandidateSeed & {
+  source_quest_id?: string | null;
+};
 
 export const TIME_PERIOD_LABELS: Record<TimePeriod, string> = {
   childhood: 'Childhood',
@@ -92,6 +113,7 @@ export const EVENT_TYPES: EventType[] = [
 
 export function useLifetimeEvents() {
   const [events, setEvents] = useState<LifetimeEvent[]>([]);
+  const [candidates, setCandidates] = useState<LifetimeEventCandidate[]>([]);
   const [loading, setLoading] = useState(true);
   const { toast } = useToast();
 
@@ -125,9 +147,94 @@ export function useLifetimeEvents() {
     }
   }, [toast]);
 
+  const loadCandidates = useCallback(async () => {
+    try {
+      const { data: { user } } = await supabase.auth.getUser();
+      if (!user) {
+        setCandidates([]);
+        return;
+      }
+
+      const [{ data: questRows, error: questError }, { data: eventRows, error: eventError }] = await Promise.all([
+        supabase
+          .from("atlas_quests")
+          .select("id, interactions")
+          .eq("user_id", user.id)
+          .like("quest_key", "future_self_%")
+          .order("completed_at", { ascending: true }),
+        supabase
+          .from("lifetime_events")
+          .select("event_label")
+          .eq("user_id", user.id),
+      ]);
+      if (questError) throw questError;
+      if (eventError) throw eventError;
+
+      const savedLabels = new Set((eventRows || []).map((event) => event.event_label.trim().toLowerCase()));
+      const uniqueSeeds = new Map<string, LifetimeCandidateSeed & { source_quest_id: string | null }>();
+
+      (questRows || []).forEach((quest) => {
+        const interactions = quest.interactions as {
+          privateSignalMap?: { timelineCandidates?: unknown };
+        } | null;
+        const timelineCandidates = interactions?.privateSignalMap?.timelineCandidates;
+        if (!Array.isArray(timelineCandidates)) return;
+
+        timelineCandidates.forEach((candidate) => {
+          if (!candidate || typeof candidate !== "object") return;
+          const item = candidate as Partial<LifetimeCandidateSeed>;
+          if (typeof item.candidate_key !== "string" || typeof item.event_label !== "string") return;
+          if (!uniqueSeeds.has(item.candidate_key)) {
+            uniqueSeeds.set(item.candidate_key, {
+              candidate_key: item.candidate_key,
+              event_label: item.event_label,
+              event_description: typeof item.event_description === "string" ? item.event_description : "",
+              suggested_time_period: TIME_PERIODS.includes(item.suggested_time_period as TimePeriod)
+                ? item.suggested_time_period as TimePeriod
+                : "current",
+              suggested_event_type: EVENT_TYPES.includes(item.suggested_event_type as EventType)
+                ? item.suggested_event_type as EventType
+                : "identity",
+              source_evidence: Array.isArray(item.source_evidence)
+                ? item.source_evidence.filter((value): value is string => typeof value === "string")
+                : [],
+              sort_order: typeof item.sort_order === "number" ? item.sort_order : uniqueSeeds.size * 10,
+              source_quest_id: quest.id,
+            });
+          }
+        });
+      });
+
+      let availableAssigned = false;
+      const hydrated = Array.from(uniqueSeeds.values())
+        .sort((a, b) => a.sort_order - b.sort_order)
+        .map((seed) => {
+          const isAdded = savedLabels.has(seed.event_label.trim().toLowerCase());
+          const status: LifetimeEventCandidate["status"] = isAdded
+            ? "added"
+            : !availableAssigned
+              ? (availableAssigned = true, "available")
+              : "locked";
+          return {
+            ...seed,
+            id: `timeline-candidate:${seed.candidate_key}`,
+            user_id: user.id,
+            status,
+            created_at: new Date().toISOString(),
+            updated_at: new Date().toISOString(),
+          } as LifetimeEventCandidate;
+        });
+
+      setCandidates(hydrated);
+    } catch (error) {
+      console.error("Error loading lifetime event candidates:", error);
+    }
+  }, []);
+
   useEffect(() => {
     loadEvents();
-  }, [loadEvents]);
+    loadCandidates();
+  }, [loadCandidates, loadEvents]);
 
   const createEvent = async (input: LifetimeEventInput): Promise<LifetimeEvent | null> => {
     try {
@@ -209,6 +316,51 @@ export function useLifetimeEvents() {
         description: "Failed to delete event",
         variant: "destructive",
       });
+      return false;
+    }
+  };
+
+  const upsertCandidates = async (
+    inputs: LifetimeEventCandidateInput[],
+    sourceQuestId?: string | null,
+  ): Promise<LifetimeEventCandidate[]> => {
+    if (inputs.length === 0) return candidates;
+
+    const existingKeys = new Set(candidates.map((candidate) => candidate.candidate_key));
+    const hasAvailableCandidate = candidates.some((candidate) => candidate.status === "available");
+    const localUserId = candidates[0]?.user_id || "local";
+    const newCandidates = inputs
+      .filter((input) => !existingKeys.has(input.candidate_key))
+      .map((input, index) => ({
+        ...input,
+        id: `timeline-candidate:${input.candidate_key}`,
+        user_id: localUserId,
+        source_quest_id: sourceQuestId || input.source_quest_id || null,
+        status: !hasAvailableCandidate && index === 0 ? "available" : "locked",
+        created_at: new Date().toISOString(),
+        updated_at: new Date().toISOString(),
+      } as LifetimeEventCandidate));
+
+    const nextCandidates = [...candidates, ...newCandidates]
+      .sort((a, b) => a.sort_order - b.sort_order || a.created_at.localeCompare(b.created_at));
+    setCandidates(nextCandidates);
+    return nextCandidates;
+  };
+
+  const markCandidateAdded = async (candidateId: string): Promise<boolean> => {
+    try {
+      const nextLocked = candidates
+        .filter((candidate) => candidate.status === "locked")
+        .sort((a, b) => a.sort_order - b.sort_order)[0];
+
+      setCandidates((current) => current.map((candidate) => {
+        if (candidate.id === candidateId) return { ...candidate, status: "added" };
+        if (nextLocked && candidate.id === nextLocked.id) return { ...candidate, status: "available" };
+        return candidate;
+      }));
+      return true;
+    } catch (error) {
+      console.error("Error updating lifetime event candidate:", error);
       return false;
     }
   };
@@ -303,11 +455,14 @@ export function useLifetimeEvents() {
 
   return {
     events,
+    candidates,
     loading,
     createEvent,
     createEventFromPattern,
     updateEvent,
     deleteEvent,
+    upsertCandidates,
+    markCandidateAdded,
     linkPattern,
     syncGoldOutcome,
     getEventsByPeriod,

@@ -9,10 +9,10 @@ const LIFE_IMPRINT_CLUSTERS = new Set(["life-events", "childhood-signals", "aha-
 const SHADOW_CLUSTERS = new Set(["personal-frustrations", "external-reflections"]);
 const SERVICE_CLUSTERS = new Set(["who-i-serve", "how-i-create-impact"]);
 // Phase-specific pre-council cluster slugs (must match AtlasPage PHASE1_SLUGS_BY_STATE)
-const PHASE_PRE_COUNCIL_SLUGS: Record<string, string[]> = {
-  BUILD:    ["skills", "passions"],
-  GROW:     ["skills", "passions", "life-events"],
-  DISCOVER: ["skills", "passions", "life-events", "experiments"],
+export const PHASE_PRE_COUNCIL_SLUGS: Record<string, string[]> = {
+  BUILD:    ["skills", "who-i-serve"],
+  GROW:     ["skills", "passions", "who-i-serve"],
+  DISCOVER: ONBOARDING_QUEST_SEQUENCE.slice(0, 4),
 };
 
 // Order is driven by ONBOARDING_QUEST_SEQUENCE — DO NOT sort by array position
@@ -24,62 +24,77 @@ const DISCOVERY_QUESTS = ATLAS_QUESTS;
 
 export function useAtlasQuests() {
   const { clusters, totalDots } = useAtlas();
-
-  const completedQuery = useQuery({
-    queryKey: ["atlas-quests-completed"],
+  const userQuery = useQuery({
+    queryKey: ["atlas-quests-current-user"],
     queryFn: async () => {
       const { data: { user } } = await supabase.auth.getUser();
-      if (!user) return [];
+      return user?.id || null;
+    },
+    staleTime: 0,
+  });
+  const userId = userQuery.data || null;
+
+  const completedQuery = useQuery({
+    queryKey: ["atlas-quests-completed", userId],
+    queryFn: async () => {
+      if (!userId) return [];
       const { data, error } = await supabase
         .from("atlas_quests")
         .select("*")
-        .eq("user_id", user.id)
+        .eq("user_id", userId)
         .eq("status", "completed");
       if (error) throw error;
       return data || [];
     },
+    enabled: userQuery.isSuccess,
+    // The Future Self flow can complete a quest immediately before navigating
+    // back to the Atlas. Always re-read on mount so the progress path cannot
+    // show the previous cached count after that transition.
+    staleTime: 0,
+    refetchOnMount: "always",
+    refetchOnWindowFocus: true,
   });
 
   const profileQuery = useQuery({
-    queryKey: ["profile-onboarding-status"],
+    queryKey: ["profile-onboarding-status", userId],
     queryFn: async () => {
-      const { data: { user } } = await supabase.auth.getUser();
-      if (!user) return null;
+      if (!userId) return null;
       const { data } = await supabase
         .from("profiles")
         .select("onboarding_quest_completed, entry_state" as any)
-        .eq("id", user.id)
+        .eq("id", userId)
         .single();
       return data;
     },
+    enabled: userQuery.isSuccess,
   });
 
   const signalsQuery = useQuery({
-    queryKey: ["atlas-signals"],
+    queryKey: ["atlas-signals", userId],
     queryFn: async () => {
-      const { data: { user } } = await supabase.auth.getUser();
-      if (!user) return [];
+      if (!userId) return [];
       const { data, error } = await supabase
         .from("atlas_signals")
         .select("signal_name, strength")
-        .eq("user_id", user.id);
+        .eq("user_id", userId);
       if (error) throw error;
       return data || [];
     },
+    enabled: userQuery.isSuccess,
   });
 
   const patternsQuery = useQuery({
-    queryKey: ["atlas-patterns"],
+    queryKey: ["atlas-patterns", userId],
     queryFn: async () => {
-      const { data: { user } } = await supabase.auth.getUser();
-      if (!user) return [];
+      if (!userId) return [];
       const { data, error } = await supabase
         .from("atlas_patterns")
         .select("pattern_key")
-        .eq("user_id", user.id);
+        .eq("user_id", userId);
       if (error) throw error;
       return data || [];
     },
+    enabled: userQuery.isSuccess,
   });
 
   const aggregatedSignals: AggregatedSignal[] = (() => {
@@ -99,16 +114,26 @@ export function useAtlasQuests() {
 
   const completedKeys = new Set((completedQuery.data || []).map((q: any) => q.quest_key));
   const completedCount = completedKeys.size;
+  // Future Self conversations are the four discovery steps shown in the
+  // Council path. Count completed rows, not unique quest keys, so repeated
+  // themes still advance the visible conversation progress. The source check
+  // also keeps older saved rows visible if their key used an earlier format.
+  const futureSelfCompletedCount = (completedQuery.data || []).filter((quest: any) => {
+    const source = quest?.interactions?.source;
+    return (
+      (typeof quest.quest_key === "string" && quest.quest_key.startsWith("future_self_")) ||
+      source === "future_self_discovery"
+    );
+  }).length;
 
   const isOnboardingCompleted = (profileQuery.data as any)?.onboarding_quest_completed === true;
-  const isOnboarding = !isOnboardingCompleted;
   const entryState: string = (profileQuery.data as any)?.entry_state || "DISCOVER";
 
   // Count completed onboarding quests specifically
   const completedOnboardingCount = CORE_ONBOARDING_QUESTS.filter(q => completedKeys.has(q.questKey)).length;
 
   // Track last 2 completed cluster IDs for rotation enforcement
-  const recentCompleted = (completedQuery.data || [])
+  const recentCompleted = [...(completedQuery.data || [])]
     .sort((a: any, b: any) => new Date(b.completed_at).getTime() - new Date(a.completed_at).getTime());
   const lastCompletedCluster = recentCompleted[0]?.cluster_id;
   const lastTwoClusterIds = recentCompleted.slice(0, 2).map((q: any) => q.cluster_id);
@@ -131,16 +156,17 @@ export function useAtlasQuests() {
     return hasDot || coreQuestDone;
   }
 
-  function getNextOnboardingQuest(): { quest: AtlasQuestDefinition; clusterId: string; onboardingIndex: number } | null {
-    const preCouncilSlugs = PHASE_PRE_COUNCIL_SLUGS[entryState] || PHASE_PRE_COUNCIL_SLUGS.DISCOVER;
+  const preCouncilSlugsForPhase = PHASE_PRE_COUNCIL_SLUGS[entryState] || PHASE_PRE_COUNCIL_SLUGS.DISCOVER;
+  const preCouncilExploredCount = preCouncilSlugsForPhase.filter(slug => isPreCouncilSlugExplored(slug)).length;
+  const preCouncilComplete = preCouncilSlugsForPhase.every(slug => isPreCouncilSlugExplored(slug));
+  const isOnboarding = !isOnboardingCompleted || !preCouncilComplete;
 
+  function getNextOnboardingQuest(): { quest: AtlasQuestDefinition; clusterId: string; onboardingIndex: number } | null {
     // Dual check: a slot counts as done if it has a dot OR its onboarding quest is completed.
     // This prevents stale atlas-dots cache from triggering a re-offer of an already-done cluster.
-    const preCouncilComplete = preCouncilSlugs.every(slug => isPreCouncilSlugExplored(slug));
-
     if (!preCouncilComplete) {
       // Guide the user through the phase-specific pre-council sequence first
-      for (const slug of preCouncilSlugs) {
+      for (const slug of preCouncilSlugsForPhase) {
         const cluster = clusters.find(c => c.slug === slug);
         if (!cluster) continue;
         // Skip if already explored (dot exists OR onboarding quest completed)
@@ -215,11 +241,14 @@ export function useAtlasQuests() {
     // Post-onboarding, locked clusters are off-limits.
     if (!isOnboarding && cluster.computedState === "locked") return null;
 
-    // During onboarding, always enforce the fixed sequence regardless of which cluster
-    // was tapped. This prevents users from doing quests out of order by clicking
-    // clusters directly on the atlas map.
+    // During onboarding, keep the fixed sequence, but never open an unrelated quest
+    // from a tapped cluster. If the user taps Inspiration while the next required
+    // step is Who I Serve, returning null lets the UI explain that this cluster
+    // opens later instead of making the flow feel broken.
     if (isOnboarding) {
-      return getNextOnboardingQuest();
+      const next = getNextOnboardingQuest();
+      if (!next) return null;
+      return next.clusterId === clusterId ? next : null;
     }
 
     // Post-onboarding: search ATLAS_QUESTS first, then ONBOARDING_QUESTS for
@@ -237,13 +266,17 @@ export function useAtlasQuests() {
   }
 
   function isIdentityMoment(onboardingIndex: number): boolean {
-    return onboardingIndex === CORE_ONBOARDING_QUESTS.length - 1;
+    return onboardingIndex === 12; // After quest 13 (index 12)
   }
 
   return {
     completedQuests: completedQuery.data || [],
     completedKeys,
     completedCount,
+    futureSelfCompletedCount,
+    preCouncilExploredCount,
+    preCouncilSlugsForPhase,
+    preCouncilComplete,
     completedOnboardingCount,
     aggregatedSignals,
     detectedPatternKeys,

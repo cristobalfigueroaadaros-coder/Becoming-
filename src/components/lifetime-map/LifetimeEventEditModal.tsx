@@ -25,6 +25,9 @@ interface LifetimeEventEditModalProps {
   event?: LifetimeEvent | null;
   defaultTimePeriod?: TimePeriod;
   defaultEventType?: EventType;
+  defaultEventLabel?: string;
+  defaultEventDescription?: string;
+  momentKindOverride?: "event" | "skill" | "realization" | "creation";
   onSave: (data: LifetimeEventInput) => Promise<void>;
   onDelete?: () => Promise<void>;
 }
@@ -40,7 +43,7 @@ const PLACEHOLDER_EXAMPLES = [
   "I lost trust in someone",
 ];
 
-const MOMENT_COPY: Record<"event" | "skill" | "realization", {
+const MOMENT_COPY: Record<"event" | "skill" | "realization" | "creation", {
   title: string;
   question: string;
   helper: string;
@@ -61,6 +64,13 @@ const MOMENT_COPY: Record<"event" | "skill" | "realization", {
     placeholder: "Learned to turn complex ideas into clear workshops",
     submit: "Add Skill",
   },
+  creation: {
+    title: "Creation Moment",
+    question: "What are you building now?",
+    helper: "Name the project, idea, or initiative that matters to you",
+    placeholder: "Building a game that helps parents connect with their children",
+    submit: "Save Creation",
+  },
   realization: {
     title: "Realization",
     question: "What do you understand now?",
@@ -76,6 +86,9 @@ export const LifetimeEventEditModal = ({
   event,
   defaultTimePeriod = 'current',
   defaultEventType,
+  defaultEventLabel,
+  defaultEventDescription,
+  momentKindOverride,
   onSave,
   onDelete,
 }: LifetimeEventEditModalProps) => {
@@ -89,7 +102,7 @@ export const LifetimeEventEditModal = ({
 
   const isEditing = !!event;
   const randomPlaceholder = PLACEHOLDER_EXAMPLES[Math.floor(Math.random() * PLACEHOLDER_EXAMPLES.length)];
-  const momentKind = defaultEventType === "work" ? "skill" : defaultEventType === "identity" ? "realization" : "event";
+  const momentKind = momentKindOverride || (defaultEventType === "work" ? "skill" : defaultEventType === "identity" ? "realization" : "event");
   const momentCopy = MOMENT_COPY[momentKind];
 
   useEffect(() => {
@@ -100,12 +113,12 @@ export const LifetimeEventEditModal = ({
       setEventType(event.event_type);
     } else {
       setTimePeriod(defaultTimePeriod);
-      setEventLabel("");
-      setEventDescription("");
+      setEventLabel(defaultEventLabel || "");
+      setEventDescription(defaultEventDescription || "");
       setEventType(defaultEventType || null);
     }
     setShowDeleteConfirm(false);
-  }, [event, defaultTimePeriod, defaultEventType, open]);
+  }, [event, defaultTimePeriod, defaultEventType, defaultEventLabel, defaultEventDescription, open]);
 
   const handleSave = async () => {
     if (!eventLabel.trim()) return;

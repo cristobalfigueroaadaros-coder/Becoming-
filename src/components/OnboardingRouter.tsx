@@ -5,6 +5,7 @@ import { supabase } from "@/integrations/supabase/client";
 const OnboardingRouter = () => {
   const navigate = useNavigate();
   const [checking, setChecking] = useState(true);
+  const [failed, setFailed] = useState(false);
 
   useEffect(() => {
     const checkOnboardingStatus = async () => {
@@ -16,34 +17,33 @@ const OnboardingRouter = () => {
           return;
         }
 
-        const { data: profile } = await supabase
+        const { data: profile, error: profileError } = await supabase
           .from("profiles")
-          .select("birth_name, gravity_orientation_completed, gravity_transition_completed, council_introduction_completed, first_project_created_at, onboarding_completion_seen, console_intake_completed, entry_state, action_patterns")
+          .select("birth_name, gravity_orientation_completed, gravity_transition_completed, council_introduction_completed, first_project_created_at, onboarding_completion_seen, console_intake_completed, entry_state")
           .eq("id", user.id)
           .single();
 
-        // Required pre-Home onboarding steps:
+        if (profileError) throw profileError;
+
+        // Required pre-Atlas onboarding steps:
         // 1. Gravity Orientation
         // 2. Profile / phase onboarding (birth_name + entry_state)
-        // 3. Dashboard (Home) — Atlas + Cris's Map walkthrough is launched FROM Home,
-        //    not from this router, to follow the required flow:
-        //    Home -> Cris Map -> founder card -> My Atlas -> walkthrough -> first quest.
+        // 3. Atlas owns the first-run experience:
+        //    Conversation -> saved Dots -> Cris Map -> relevant life moment.
         if (!profile?.gravity_orientation_completed) {
           navigate("/gravity/orientation");
         } else if (!profile?.birth_name) {
           navigate("/onboarding");
-        } else if (!profile?.entry_state) {
+        } else if (!(profile as any)?.entry_state) {
           // User has profile but never picked their phase — finish step 2
           navigate("/onboarding/step2");
-        } else if (!profile?.action_patterns || Object.keys(profile.action_patterns as Record<string, unknown>).length === 0) {
-          navigate("/onboarding/quest");
         } else {
           navigate("/atlas");
         }
       } catch (error) {
         console.error("Error checking onboarding status:", error);
-        // On error, default to orientation to be safe
-        navigate("/gravity/orientation");
+        // A failed read is not evidence of a new account.
+        setFailed(true);
       } finally {
         setChecking(false);
       }
@@ -51,6 +51,13 @@ const OnboardingRouter = () => {
 
     checkOnboardingStatus();
   }, [navigate]);
+
+  if (failed) return (
+    <div className="min-h-screen flex flex-col items-center justify-center gap-4">
+      <p>We could not load your progress. Your journey has not been reset.</p>
+      <button onClick={() => window.location.reload()}>Try again</button>
+    </div>
+  );
 
   // Show loading while checking
   return (

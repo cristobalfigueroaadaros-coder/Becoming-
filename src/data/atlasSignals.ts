@@ -1,7 +1,7 @@
 // Atlas Signal Catalog & Pattern Definitions
 
 export type SignalCategory = "motivation" | "behavior" | "cognitive" | "creative" | "social";
-export type DotCategory = "strength" | "shadow" | "life_imprint";
+export type DotCategory = "strength" | "shadow" | "life_imprint" | "direction";
 
 export interface SignalDefinition {
   name: string;
@@ -604,10 +604,16 @@ export const OPTION_SIGNAL_MAP: Record<string, Record<number, Record<string, Sig
   // ===== VISION =====
   vision_q1: {
     0: {
-      "Education for all": [{ signalName: "teaching_impulse", strength: 2 }, { signalName: "purpose_drive", strength: 2 }],
-      "Mental health": [{ signalName: "empathy", strength: 2 }, { signalName: "community_orientation", strength: 1 }],
-      "Environmental restoration": [{ signalName: "systems_thinking", strength: 2 }, { signalName: "vision_thinking", strength: 1 }],
-      "Economic fairness": [{ signalName: "purpose_drive", strength: 2 }, { signalName: "systems_thinking", strength: 1 }],
+      "People who feel lost": [{ signalName: "empathy", strength: 2 }, { signalName: "purpose_drive", strength: 2 }],
+      "People trying to find themselves": [{ signalName: "reflection", strength: 2 }, { signalName: "purpose_drive", strength: 2 }],
+      "Creators with a positive mission": [{ signalName: "creativity", strength: 2 }, { signalName: "purpose_drive", strength: 2 }],
+      "Parents who want deeper connection": [{ signalName: "connection", strength: 2 }, { signalName: "empathy", strength: 2 }],
+      "Kids who need emotional tools": [{ signalName: "teaching_impulse", strength: 2 }, { signalName: "empathy", strength: 2 }],
+      "Founders with meaningful ideas": [{ signalName: "experimentation", strength: 2 }, { signalName: "vision_thinking", strength: 2 }],
+      "Communities that feel disconnected": [{ signalName: "community_orientation", strength: 2 }, { signalName: "connection", strength: 2 }],
+      "People rebuilding confidence": [{ signalName: "empathy", strength: 2 }, { signalName: "resilience", strength: 2 }],
+      "People who want to express their gifts": [{ signalName: "expression", strength: 2 }, { signalName: "creativity", strength: 2 }],
+      "People who need clarity and direction": [{ signalName: "reflection", strength: 2 }, { signalName: "vision_thinking", strength: 2 }],
     },
     1: {
       "Equal opportunity": [{ signalName: "empathy", strength: 2 }, { signalName: "purpose_drive", strength: 1 }],

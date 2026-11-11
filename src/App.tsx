@@ -18,7 +18,7 @@ import OnboardingRouter from "./components/OnboardingRouter";
 const OnboardingStep1 = lazy(() => import("./pages/OnboardingStep1"));
 const OnboardingStep2 = lazy(() => import("./pages/OnboardingStep2"));
 const OnboardingStep4 = lazy(() => import("./pages/OnboardingStep4"));
-const OnboardingQuest = lazy(() => import("./pages/OnboardingQuest"));
+const FutureSelfDiscovery = lazy(() => import("./pages/FutureSelfDiscovery"));
 const OnboardingWorkContext = lazy(() => import("./pages/OnboardingWorkContext"));
 const GravityOrientation = lazy(() => import("./pages/GravityOrientation"));
 const GravityTransition = lazy(() => import("./pages/GravityTransition"));
@@ -264,7 +264,7 @@ const App = () => {
             />
             <Route
               path="/onboarding/quest"
-              element={session ? <OnboardingQuest /> : <Navigate to="/" />}
+              element={<Navigate to="/" replace />}
             />
             <Route
               path="/onboarding/work-context"
@@ -380,6 +380,10 @@ const App = () => {
             <Route
               path="/future-self/actual-self"
               element={session ? <ActualSelfPage /> : <Navigate to="/" />}
+            />
+            <Route
+              path="/future-self/discovery"
+              element={session ? <FutureSelfDiscovery /> : <Navigate to="/" />}
             />
             <Route
               path="/future-self/detail"
