@@ -77,6 +77,7 @@ function asCandidateDots(
   userEvidence: string[],
   allowedClusters: readonly string[],
   anchors: Awaited<ReturnType<typeof loadDiscoveryAtlas>>["anchors"],
+  existingDotKeys: ReadonlySet<string>,
 ): CandidateDot[] {
   if (!Array.isArray(value)) return [];
 
@@ -93,6 +94,7 @@ function asCandidateDots(
     if (!isRecord(item)) continue;
     const { dotCategory, clusterSlug } = item;
     const title = typeof item.title === "string" ? item.title.trim().slice(0, 80) : "";
+    if (/^(builder evidence|admired quality|aspirational signal|value in motion|tried in reality|learning through (action|creation)|possible signal|growth seeker|connection seeker|meaningful creator|passionate builder)$/i.test(title)) continue;
     const description = typeof item.description === "string" ? item.description.trim().slice(0, 280) : "";
     const sourceQuote = typeof item.sourceQuote === "string" ? item.sourceQuote.trim() : "";
     const quote = quoteWords(sourceQuote);
@@ -103,6 +105,7 @@ function asCandidateDots(
     if (typeof clusterSlug !== "string" || !allowedClusters.includes(clusterSlug)) continue;
     const parent = typeof item.parentDotId === "string" ? anchorsById.get(item.parentDotId) : undefined;
     if (item.parentDotId != null && (!parent || parent.cluster !== clusterSlug || parent.category !== dotCategory)) continue;
+    if (!parent && existingDotKeys.has(`${clusterSlug}:${title.toLowerCase()}`)) continue;
     if (parent && [parent.originalEvidence, ...parent.details].some((detail) => quoteWords(detail) === quote)) continue;
     const related = !parent && typeof item.relatedDotId === "string" ? anchorsById.get(item.relatedDotId) : undefined;
     const key = parent ? `${parent.id}:${quote}` : normalize(title);
@@ -181,11 +184,15 @@ serve(async (req) => {
       recentMessages = [],
       candidateFeedback,
       availableClusterSlugs,
+      existingDotKeys: submittedDotKeys,
     } = await req.json();
 
     const allowedClusters = Array.isArray(availableClusterSlugs)
       ? discoveryClusterSlugs.filter((slug) => availableClusterSlugs.includes(slug))
       : discoveryClusterSlugs;
+    const existingDotKeys = new Set<string>(Array.isArray(submittedDotKeys)
+      ? submittedDotKeys.filter((key): key is string => typeof key === "string" && key.length <= 220).slice(0, 500)
+      : []);
 
     const missionList = missions.map((mission) => `- ${mission}: ${missionLabels[mission]}`).join("\n");
     const serializedMessages = JSON.stringify(recentMessages).slice(0, 6000);
@@ -305,7 +312,7 @@ For the world quest, when the user has started naming an audience or their needs
 Candidate Dot rules:
 - On GENERATE_DOTS, offer up to 3 distinct candidates when the user's own words support them. Never add a candidate to fill a slot. Each sourceQuote must be a verbatim excerpt from a user answer or their written reflection. Assistant messages, examples, saved memories, and option labels alone are not evidence. Keep names, relationships, places, and projects exactly as the user described them.
 - Candidate titles must be specific and grounded in user language.
-- Descriptions must reference concrete evidence the user provided.
+- Make the description the strongest part of the Dot. Write one or two short, specific sentences about what the person actually did, learned, believes, or intends to try. Avoid generic predictions about future endeavors.
 - Use only evidence present in the current user text and recent conversation supplied in this request. Do not reuse examples from these instructions or prior sessions as if the user said them.
 - Candidate Dots should capture a personal truth, not a topic. Use the formula: active verb + lived pattern + human meaning.
 - Each description should include why the Dot matters for future guidance: what this says about what the user learns, makes, values, or can transfer into a new project.
@@ -314,7 +321,7 @@ Candidate Dot rules:
 - Allowed Atlas destinations: ${allowedClusters.join(", ")}. Use life-events for a formative event, skills for a learned ability, values for a principle that matters to them, who-i-serve for the people they want to help, and vision-for-a-better-world for the change they want to see. Different insights from the same answer can land in different clusters. Two Dots can share a destination if both independently belong there.
 - Use "direction" when the Dot is primarily about who the user feels called to serve, the change they want to create, or the world they want to help bring about. Do not flatten audience or worldview Dots into "strength".
 - If the new evidence adds a specific detail to an existing insight, propose a Mini Dot using that anchor's parentDotId, category and cluster. For a distinct insight, optionally set relatedDotId only when the user's words support a clear connection to that saved anchor. Copy IDs only from the provided Atlas context.
-- Never use scaffold labels like "Admired Quality", "Aspirational Signal", "Value in Motion", "Builder Evidence", "Tried in Reality", or "Learning Through Action".
+- Never use scaffold labels like "Admired Quality", "Aspirational Signal", "Value in Motion", "Builder Evidence", "Tried in Reality", "Learning Through Action", or "Learning Through Creation". Prefer a concrete moment, ability, belief, audience, or project idea over a generic growth slogan.
 - Titles should sound like meaningful Atlas Dots, but they must be created from the current conversation.
 - Prefer transformation, service, resilience, creation, and lived anchors over generic personality labels.
 - If action is ASK or SHOW_INTERACTION, candidateDots must be an empty array.`;
@@ -356,7 +363,7 @@ Candidate Dot rules:
     const mission = asMission(parsed.activeMission);
     const action = mode === "interaction" ? "GENERATE_DOTS" : asAction(parsed.action);
     let candidateDots = action === "GENERATE_DOTS"
-      ? asCandidateDots(parsed.candidateDots, currentAnswers, allowedClusters, atlas.anchors)
+      ? asCandidateDots(parsed.candidateDots, currentAnswers, allowedClusters, atlas.anchors, existingDotKeys)
       : [];
     const initialDotCount = candidateDots.length;
     if (action === "GENERATE_DOTS" && candidateDots.length < 3 && currentAnswers.some((answer) => answer.trim())) {
@@ -374,9 +381,13 @@ Candidate Dot rules:
                   feedback: typeof candidateFeedback === "string" ? candidateFeedback.trim().slice(0, 500) : "",
                   anchors: atlas.anchors,
                   accepted,
+                  alreadySaved: Array.isArray(parsed.candidateDots) ? parsed.candidateDots.flatMap((item: unknown) => {
+                    if (!isRecord(item) || typeof item.title !== "string" || typeof item.clusterSlug !== "string") return [];
+                    return existingDotKeys.has(`${item.clusterSlug}:${item.title.trim().toLowerCase()}`) ? [item.title] : [];
+                  }).slice(0, 3) : [],
                   remainingSlots: 3 - accepted.length,
                 }) },
-                { role: "system", content: "Aim to fill the remaining slots when the answers support them. Look across all answers for distinct evidence, such as an experience, belief, skill, or experiment missing from the drafts. Accepted Dots will stay as they are. Return only new Dots that add a distinct insight, without paraphrasing an accepted Dot. Leave slots empty if the evidence does not support distinct additions." },
+                { role: "system", content: "Aim to fill the remaining slots when the answers support them. Look across all answers for a specific experience, belief, skill, audience, or experiment the accepted Dots do not capture. Never use the generic title Learning Through Creation. Make each description concrete and useful without showing the source quote in it. Accepted Dots will stay as they are. Return only new Dots that add a distinct insight, without paraphrasing an accepted or already saved Dot. Leave slots empty if the evidence does not support distinct additions." },
               ],
           }, usage);
           if (!review.ok) throw new Error("Dot review request failed.");
@@ -384,7 +395,7 @@ Candidate Dot rules:
           if (typeof reviewed !== "string") throw new Error("Dot review returned no text.");
           const additions = extractJson(reviewed).candidateDots;
           if (!Array.isArray(additions)) throw new Error("Dot review returned no candidate list.");
-          return asCandidateDots([...accepted, ...additions], currentAnswers, allowedClusters, atlas.anchors);
+          return asCandidateDots([...accepted, ...additions], currentAnswers, allowedClusters, atlas.anchors, existingDotKeys);
         } catch {
           console.warn("Future Self Dot review unavailable. Keeping already reviewed Dots.");
           return accepted;

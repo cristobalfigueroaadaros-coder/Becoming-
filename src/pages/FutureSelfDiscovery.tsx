@@ -272,35 +272,7 @@ const summarizeInteractionResponse = (response: unknown) => {
 };
 
 const hasGenericDotTitle = (title: string) =>
-  /^(builder evidence|admired quality|aspirational signal|value in motion|tried in reality|learning through action|possible signal|growth seeker|connection seeker|meaningful creator|passionate builder)$/i.test(title.trim());
-
-const dotMatchesExistingEvidence = (dot: DotInterpretation, existingDots: AtlasDot[]) => {
-  const normalizeWords = (value: string) => new Set(
-    value
-      .toLowerCase()
-      .replace(/[^a-z0-9 ]/g, " ")
-      .split(/\s+/)
-      .filter((word) => word.length > 3 && !["your", "this", "that", "with", "from", "into", "people", "something"].includes(word)),
-  );
-
-  const candidateTitle = dot.title.toLowerCase().trim();
-  const candidateWords = normalizeWords(dot.title);
-
-  return existingDots.some((existingDot) => {
-    const existingTitle = existingDot.title.toLowerCase().trim();
-    if (existingTitle === candidateTitle) return true;
-
-    // Only reject a genuinely overlapping title. A shared project name such as
-    // Family Squad is evidence for several different Dots, not a duplicate by itself.
-    const existingWords = normalizeWords(existingDot.title);
-    const overlap = Array.from(candidateWords).filter((word) => existingWords.has(word)).length;
-    const smallerTitleSize = Math.min(candidateWords.size, existingWords.size);
-    return smallerTitleSize >= 3 && overlap >= Math.max(3, Math.ceil(smallerTitleSize * 0.75));
-  });
-};
-
-const keepNewDots = (dots: DotInterpretation[], existingDots: AtlasDot[]) =>
-  dots.filter((dot) => !dotMatchesExistingEvidence(dot, existingDots));
+  /^(builder evidence|admired quality|aspirational signal|value in motion|tried in reality|learning through (action|creation)|possible signal|growth seeker|connection seeker|meaningful creator|passionate builder)$/i.test(title.trim());
 
 const cleanTextForSpeech = (text: string) =>
   text
@@ -975,7 +947,7 @@ const FutureSelfDiscovery = () => {
       const clusterDots = allExistingDots.filter((saved) => saved.cluster_id === cluster.id);
       return dot.parentDotId
         ? clusterDots.some((parent) => parent.id === dot.parentDotId)
-        : keepNewDots([dot], clusterDots).length > 0;
+        : !clusterDots.some((saved) => saved.title.trim().toLowerCase() === dot.title.trim().toLowerCase());
     });
     const distinct = new Map(candidates.map((dot) => [
       dot.parentDotId ? `${dot.parentDotId}:${dot.sourceQuote}` : `${dot.clusterSlug}:${dot.title.trim().toLowerCase()}`,
@@ -1035,9 +1007,14 @@ const FutureSelfDiscovery = () => {
     fallback: () => DiscoveryDecision
   ): Promise<{ decision: DiscoveryDecision; candidateDots?: DotInterpretation[]; impactOptions?: ImpactOptions }> => {
     try {
+      const clusterSlugs = new Map(clusters.map(({ id, slug }) => [id, slug]));
+      const existingDotKeys = allExistingDots.flatMap(({ cluster_id, title }) => {
+        const slug = cluster_id && clusterSlugs.get(cluster_id);
+        return slug ? [`${slug}:${title.trim().toLowerCase()}`] : [];
+      });
       const { data, error } = await supabase.functions.invoke<AiDiscoveryResponse>(
         "future-self-discovery",
-        { body: { ...body, availableClusterSlugs: clusters.map(({ slug }) => slug) } }
+        { body: { ...body, availableClusterSlugs: clusters.map(({ slug }) => slug), ...(body.mode === "interaction" && { existingDotKeys }) } }
       );
 
       if (error || !data) throw error || new Error("No Future Self response");
@@ -1814,7 +1791,6 @@ const FutureSelfDiscovery = () => {
                 onSetValidationMode={setValidationMode}
                 isLoading={isSavingDot}
                 confirmLabel={isSavingDot ? "Saving to Atlas" : "Save to Atlas"}
-                mirrorFeedback="Here’s what I picked up from your answers. Choose or edit what feels true to you, then save it to your Atlas."
               />
             </section>
           )}

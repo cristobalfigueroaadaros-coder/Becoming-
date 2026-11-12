@@ -149,7 +149,7 @@ export const AtlasWinningCard = ({
       <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} className="flex flex-col items-center text-center gap-4 px-6 w-full">
         <div className="space-y-1">
           <p className="text-xs uppercase tracking-wider text-muted-foreground">{headerLabel}</p>
-          <p className="text-sm text-muted-foreground">Pick the ones that feel like you <span className="text-muted-foreground/60">(up to {maxSelections})</span></p>
+          <p className="text-sm text-muted-foreground">Pick the ones that feel like you <span className="text-muted-foreground/60">(up to {editEachCandidate ? 3 : maxSelections})</span></p>
         </div>
 
         {mirrorFeedback && (
@@ -165,7 +165,7 @@ export const AtlasWinningCard = ({
             const isSelected = selectedIndices.includes(i);
             const isMaxed = selectedVars.length >= maxSelections && !isSelected;
             return (
-              <div key={i}>
+              <div key={i} className="relative">
                 <motion.button
                   type="button"
                   initial={{ opacity: 0, y: 10 }}
@@ -178,7 +178,7 @@ export const AtlasWinningCard = ({
                     borderColor: candidateDestination.color.replace(")", isSelected ? " / 0.85)" : " / 0.35)"),
                     backgroundColor: isSelected ? candidateDestination.color.replace(")", " / 0.10)") : undefined,
                   } : undefined}
-                  className={`w-full text-left p-4 rounded-xl border-2 transition-colors space-y-2 active:scale-[0.98] relative ${
+                  className={`w-full text-left rounded-xl border-2 transition-colors space-y-1.5 active:scale-[0.98] relative ${editEachCandidate ? "p-3" : "p-4"} ${
                     isSelected
                       ? "border-primary bg-primary/5"
                       : isMaxed
@@ -187,11 +187,11 @@ export const AtlasWinningCard = ({
                   }`}
                 >
                   {isSelected && (
-                    <div className="absolute top-3 right-3 w-5 h-5 rounded-full bg-primary flex items-center justify-center">
+                    <div className={`absolute top-3 w-5 h-5 rounded-full bg-primary flex items-center justify-center ${editEachCandidate && !v.parentDotId ? "right-11" : "right-3"}`}>
                       <Check className="w-3 h-3 text-primary-foreground" />
                     </div>
                   )}
-                  <div className="space-y-1.5 pr-6">
+                  <div className={`space-y-1.5 ${editEachCandidate && !v.parentDotId ? "pr-14" : "pr-6"}`}>
                     <p className="font-semibold text-foreground">{v.title}</p>
                     <div className="flex flex-wrap items-center gap-1.5">
                       <div
@@ -208,19 +208,16 @@ export const AtlasWinningCard = ({
                       </div>
                     </div>
                   </div>
-                  <p className="text-sm text-muted-foreground">{v.description}</p>
+                  <p className={`text-sm leading-relaxed ${editEachCandidate ? "line-clamp-5 text-foreground/85" : "text-muted-foreground"}`}>{v.description}</p>
                   {editEachCandidate && anchor && (
                     <p className="text-xs text-muted-foreground">
                       {v.parentDotId ? "Add to" : "Connect to"} <span className="font-medium text-foreground">{anchor.title}</span>
                     </p>
                   )}
-                  {editEachCandidate && v.sourceQuote && (
-                    <p className="text-xs text-muted-foreground">You said: “{v.sourceQuote}”</p>
-                  )}
                 </motion.button>
                 {editEachCandidate && !v.parentDotId && (
-                  <Button type="button" variant="ghost" size="sm" disabled={isLoading} onClick={() => startEditingCandidate(i, v)}>
-                    <Pencil className="mr-1 h-3 w-3" /> Edit {v.title}
+                  <Button type="button" variant="ghost" size="icon" className="absolute right-1 top-1 h-8 w-8" aria-label={`Edit ${v.title}`} disabled={isLoading} onClick={() => startEditingCandidate(i, v)}>
+                    <Pencil className="h-3.5 w-3.5" />
                   </Button>
                 )}
               </div>

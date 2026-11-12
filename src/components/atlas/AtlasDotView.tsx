@@ -71,6 +71,7 @@ export const AtlasDotView = ({ dot, clusterName, clusterSlug, onBack, onGoDeeper
   };
 
   const displayTitle = (dot as any).original_title || dot.title;
+  const sourceQuote = typeof dot.signal_tags?.sourceQuote === "string" ? dot.signal_tags.sourceQuote.trim() : "";
 
   return (
     <div className="flex flex-col h-full">
@@ -104,6 +105,13 @@ export const AtlasDotView = ({ dot, clusterName, clusterSlug, onBack, onGoDeeper
             )}
           </div>
         </div>
+
+        {sourceQuote && (
+          <div className="rounded-lg border border-border/60 bg-card/50 p-3">
+            <p className="mb-1 text-xs font-medium text-muted-foreground">In your own words</p>
+            <blockquote className="text-sm leading-relaxed text-foreground">“{sourceQuote}”</blockquote>
+          </div>
+        )}
 
         {/* Actions */}
         <div className="flex gap-2">
