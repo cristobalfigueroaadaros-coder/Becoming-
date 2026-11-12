@@ -1061,9 +1061,26 @@ const FutureSelfDiscovery = () => {
       const currentParams = new URLSearchParams(window.location.search);
       const freshSession = currentParams.has("fresh") && currentParams.get("mode") !== "next";
 
+      const needsMoreDotEvidence = decision?.action === "GENERATE_DOTS"
+        && candidateDots.length < 3 && !savedDotTitle;
+      const newMessage: ConversationMessage = {
+        id: `user-${Date.now()}`,
+        role: "user",
+        content: trimmedText,
+      };
       const { decision: nextDecision, candidateDots: aiCandidateDots, impactOptions } =
         await askFutureSelfDiscovery(
-          {
+          needsMoreDotEvidence ? {
+            mode: "interaction",
+            activeMission: decision.activeMission,
+            interactionResponse: interactionResponses.at(-1),
+            interactionCount: interactionResponses.length,
+            priorUserTurns: currentUserTurnCount + 1,
+            usedInteractionKeys,
+            freshSession,
+            activeQuestTheme,
+            recentMessages: [...recentMessages.filter(({ role }) => role === "user"), newMessage],
+          } : {
             mode: "conversation",
             userText: trimmedText,
             priorUserTurns: currentUserTurnCount,
@@ -1073,7 +1090,7 @@ const FutureSelfDiscovery = () => {
             activeQuestTheme,
             recentMessages,
           },
-          () => decideNextDiscoveryStep({
+          () => needsMoreDotEvidence ? decision : decideNextDiscoveryStep({
             text: trimmedText,
             source: messages.length === 1 ? "initial introduction" : "conversation",
             priorUserTurns: currentUserTurnCount,
@@ -1083,11 +1100,7 @@ const FutureSelfDiscovery = () => {
 
       setMessages((current) => [
         ...current,
-        {
-          id: `user-${Date.now()}`,
-          role: "user",
-          content: trimmedText,
-        },
+        newMessage,
         ...(nextDecision.message ? [{
           id: `future-self-${Date.now()}`,
           role: "future-self" as const,
@@ -1585,7 +1598,7 @@ const FutureSelfDiscovery = () => {
   };
 
   const handleCandidateRegenerate = async (feedback?: string) => {
-    if (!decision || isThinking || isSavingDot || !interactionResponses.length) return;
+    if (!decision || isThinking || isSavingDot) return;
     setIsThinking(true);
     try {
       const { decision: nextDecision, candidateDots: nextDots } = await askFutureSelfDiscovery({
@@ -1766,10 +1779,10 @@ const FutureSelfDiscovery = () => {
             </article>
           )}
 
-          {decision?.action === "GENERATE_DOTS" && candidateDots.length === 0 && !savedDotTitle && !isThinking && (
+          {decision?.action === "GENERATE_DOTS" && candidateDots.length < 3 && !savedDotTitle && !isThinking && (
             <section className="space-y-3 rounded-lg border border-border bg-card p-4">
               <p role="status" className="text-sm text-card-foreground">
-                I couldn’t prepare your Dots this time. You can try again with the answers you already shared.
+                Can you share one more specific detail about what you did, learned, or want to try? You can also retry with the answers you’ve already shared.
               </p>
               <Button type="button" variant="outline" onClick={() => void handleCandidateRegenerate()}>
                 Try again
@@ -1777,7 +1790,7 @@ const FutureSelfDiscovery = () => {
             </section>
           )}
 
-          {candidateDots.length > 0 && decision && validationMode !== "confirmed" && (
+          {candidateDots.length === 3 && decision && validationMode !== "confirmed" && (
             <section className="rounded-lg border border-border bg-card py-5 shadow-sm">
               <AtlasWinningCard
                 key={candidateRevision}
